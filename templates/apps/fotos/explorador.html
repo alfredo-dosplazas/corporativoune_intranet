@@ -21,11 +21,13 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         {% for foto in fotos %}
             <div class="card bg-base-100 shadow">
-                <img
-                        src="{% url 'fotos:show' ruta_actual|add:'/'|add:foto %}?thumb=1"
-                        class="object-cover h-48 w-full rounded"
-                        loading="lazy"
-                        alt="">
+                <a target="_blank" href="{% url 'fotos:show' ruta_actual|add:'/'|add:foto %}">
+                    <img
+                            src="{% url 'fotos:show' ruta_actual|add:'/'|add:foto %}?thumb=1"
+                            class="object-cover h-48 w-full rounded"
+                            loading="lazy"
+                            alt="">
+                </a>
             </div>
         {% endfor %}
     </div>
