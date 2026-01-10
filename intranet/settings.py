@@ -33,6 +33,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_cotton',
+    'apps.fotos',
 ]
 
 MIDDLEWARE = [
@@ -109,3 +111,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
+
+COTTON_DIR = 'components'
+
+FOTOS_ROOT = Path(env('FOTOS_ROOT'))
