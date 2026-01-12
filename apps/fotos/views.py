@@ -15,7 +15,7 @@ IMAGENES_EXT = (".jpg", ".jpeg", ".png", ".webp", ".gif")
 
 class ExploradorFotosView(BreadcrumbsMixin, TemplateView):
     template_name = "apps/fotos/explorador.html"
-    paginate_by = 12
+    paginate_by = 24
 
     def get_breadcrumbs(self):
         ruta = (self.kwargs.get("ruta") or "").strip("/")
