@@ -34,6 +34,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_cotton',
+    'crispy_forms',
+    'apps.core',
     'apps.fotos',
 ]
 
@@ -115,3 +117,11 @@ STATICFILES_DIRS = [
 COTTON_DIR = 'components'
 
 FOTOS_ROOT = Path(env('FOTOS_ROOT'))
+
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "/"
+
+LOGOUT_REDIRECT_URL = "/"
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = "daisyui5"
+CRISPY_TEMPLATE_PACK = "daisyui5"

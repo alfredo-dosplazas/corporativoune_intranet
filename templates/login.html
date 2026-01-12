@@ -1,0 +1,36 @@
+{% load crispy_forms_tags %}
+
+<c-layouts.no-auth>
+    <div class="min-h-screen flex items-center justify-center bg-base-200 px-4">
+        <div class="w-full max-w-md">
+
+            <!-- Card -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body space-y-6">
+
+                    <!-- Header -->
+                    <div class="text-center space-y-2">
+
+                        <h1 class="text-2xl font-bold">
+                            Iniciar sesión
+                        </h1>
+                        <p class="text-sm text-base-content/70">
+                            Accede a tu cuenta para continuar
+                        </p>
+                    </div>
+
+                    <!-- Form -->
+                    <div>
+                        {% crispy form %}
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <p class="mt-6 text-center text-xs text-base-content/50">
+                © {% now 'Y' %} BBH Financiera · Todos los derechos reservados
+            </p>
+        </div>
+    </div>
+</c-layouts.no-auth>

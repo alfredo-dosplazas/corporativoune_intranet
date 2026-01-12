@@ -1,0 +1,12 @@
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    {% for modulo in modulos %}
+        <c-shared.modulos.card
+                url="{% url modulo.url_name %}"
+                :icono="modulo.icono"
+                :nombre="modulo.nombre"
+                :permiso="modulo.permiso"
+                :descripcion="modulo.descripcion"
+        />
+        {{ modulo.urlname }}
+    {% endfor %}
+</div>

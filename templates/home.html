@@ -1,0 +1,53 @@
+<c-layouts.app>
+    <div class="card bg-base-100 shadow-sm mb-6">
+        <div class="card-body">
+            <div class="flex gap-6 items-center">
+                {% if user.empresa %}
+                    user.empresa
+                {% endif %}
+
+                <div>
+                    <h2 class="card-title">Bienvenido de vuelta <span class="font-bold text-primary">{{ user }}</span>
+                    </h2>
+                    <div>
+                        Accede a los módulos de la intranet
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if modulos|length %}
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body">
+                <h2 class="card-title">Aplicaciones</h2>
+
+                <c-shared.modulos.cards :modulos="modulos" />
+            </div>
+        </div>
+    {% else %}
+        <div class="card bg-base-100 shadow-md rounded-xl p-8">
+            <div class="flex flex-col justify-center items-center text-center space-y-4">
+                <!-- Icono ilustrativo -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-300" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 17v-6h6v6m2 0h-10a2 2 0 01-2-2V7a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2z"/>
+                </svg>
+
+                <!-- Texto principal -->
+                <h2 class="font-extrabold text-2xl text-gray-700">Aplicaciones</h2>
+
+                <!-- Texto secundario -->
+                <p class="text-gray-500 max-w-xs">
+                    Cuando el área de sistemas habilite módulos, aparecerán aquí.
+                </p>
+
+                <!-- Acción opcional -->
+                <button class="btn btn-primary btn-sm mt-2">
+                    Contactar a Sistemas
+                </button>
+            </div>
+        </div>
+    {% endif %}
+</c-layouts.app>
