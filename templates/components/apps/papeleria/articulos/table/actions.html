@@ -1,0 +1,40 @@
+<c-table.actions>
+    {% if perms.papeleria.view_articulo %}
+        <li><a href="{% url 'papeleria:articulos__detail' record.pk %}">Detalle</a></li>
+    {% endif %}
+    {% if perms.papeleria.change_articulo %}
+        <li><a href="{% url 'papeleria:articulos__update' record.pk %}">Editar</a></li>
+    {% endif %}
+    {% if perms.papeleria.delete_articulo %}
+        <li>
+            <button onclick="articulo_delete_modal_{{ record.pk }}.showModal()">Eliminar</button>
+        </li>
+    {% endif %}
+
+
+    {% if perms.papeleria.delete_articulo %}
+        <dialog id="articulo_delete_modal_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
+            <div class="modal-box">
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                </form>
+                <h3 class="text-lg font-bold">¿Eliminar {{ record }}?</h3>
+                <p class="py-4">Esta acción no se podrá deshacer.</p>
+
+                <div class="modal-action">
+                    <form action="{% url 'papeleria:articulos__delete' record.pk %}" method="post">
+                        {% csrf_token %}
+                        <button class="btn btn-error">Confirmar</button>
+                    </form>
+                    <form method="dialog">
+                        <button class="btn">Cancelar</button>
+                    </form>
+                </div>
+
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>close</button>
+            </form>
+        </dialog>
+    {% endif %}
+</c-table.actions>

@@ -2,12 +2,14 @@
     <div class="card bg-base-100 shadow-sm mb-6">
         <div class="card-body">
             <div class="flex gap-6 items-center">
-                {% if user.empresa %}
-                    user.empresa
+                {% if user.contacto.empresa %}
+                    <c-component is="apps.empresas.logos.{{ user.contacto.empresa.abreviatura }}"
+                                 class="size-24 text-primary"/>
                 {% endif %}
 
                 <div>
-                    <h2 class="card-title">Bienvenido de vuelta <span class="font-bold text-primary">{{ user }}</span>
+                    <h2 class="card-title">Bienvenido de vuelta <span
+                            class="font-bold text-primary">{{ user.contacto|default:user }}</span>
                     </h2>
                     <div>
                         Accede a los módulos de la intranet
@@ -22,7 +24,7 @@
             <div class="card-body">
                 <h2 class="card-title">Aplicaciones</h2>
 
-                <c-shared.modulos.cards :modulos="modulos" />
+                <c-shared.modulos.cards :modulos="modulos"/>
             </div>
         </div>
     {% else %}

@@ -1,10 +1,11 @@
 @import "tailwindcss";
+@plugin "tw-bootstrap-grid";
 
 @plugin "daisyui";
 @plugin "@iconify/tailwind4";
 
 @plugin "daisyui" {
-    themes: corporate --default, abocosa, bbh, dos_plazas, frescopack;
+    themes: dos_plazas --default, dos_plazas_dark --prefersdark, abocosa, bbh, dos_plazas, frescopack;
 }
 
 @theme {

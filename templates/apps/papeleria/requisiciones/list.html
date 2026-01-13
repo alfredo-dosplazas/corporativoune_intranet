@@ -1,0 +1,31 @@
+{% load django_tables2 %}
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <!-- START -->
+            <div class="justify-self-start">
+                <h1 class="font-bold text-xl flex items-center gap-2">Requisiciones</h1>
+                <h2 class="text-muted text-sm">Solicite y gestione las solicitudes de papelería de la empresa</h2>
+                <a href="{% url 'papeleria:requisiciones__create' %}" class="btn btn-sm btn-primary">
+                    CREAR
+                </a>
+            </div>
+
+            <!-- MIDDLE -->
+            <div class="justify-self-center w-full flex justify-center">
+
+            </div>
+
+
+            <!-- END -->
+            <div class="justify-self-end">
+                <c-shared.searchbar/>
+            </div>
+
+        </div>
+
+    </c-slot>
+
+    {% render_table table %}
+</c-layouts.app>

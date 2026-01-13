@@ -1,0 +1,9 @@
+<div class="flex justify-end">
+    <button class="btn btn-ghost" popovertarget="popover-{{ record.pk }}" style="anchor-name:--anchor-{{ record.pk }}">
+        <span class="icon-[tabler--dots] size-6"></span>
+    </button>
+    <ul class="dropdown dropdown-end menu w-52 rounded-box bg-base-200 shadow-sm"
+        popover id="popover-{{ record.pk }}" style="position-anchor:--anchor-{{ record.pk }}">
+        {{ slot }}
+    </ul>
+</div>

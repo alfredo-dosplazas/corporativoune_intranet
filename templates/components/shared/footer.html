@@ -5,5 +5,13 @@
             © Corporativo UNE {% now 'Y' %}
         </div>
 
+        <!-- Logos de empresas -->
+        <div class="flex flex-wrap justify-center sm:justify-end items-center gap-5 sm:gap-6">
+            {% for empresa in empresas %}
+                <c-component is="apps.empresas.logos.{{ empresa.abreviatura }}"
+                             class="size-8 sm:size-12 opacity-90 hover:opacity-100 transition-opacity"/>
+            {% endfor %}
+        </div>
+
     </div>
 </footer>

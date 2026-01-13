@@ -35,7 +35,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_cotton',
     'crispy_forms',
+    'django_tables2',
+    'extra_views',
     'apps.core',
+    'apps.papeleria',
+    'apps.directorio',
     'apps.fotos',
 ]
 
@@ -54,14 +58,14 @@ ROOT_URLCONF = 'intranet.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
-        ,
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'apps.core.context_processors.empresas',
             ],
         },
     },
@@ -74,6 +78,7 @@ WSGI_APPLICATION = 'intranet.wsgi.application'
 
 DATABASES = {
     'default': env.db(),
+    'intranet': env.db('INTRANET_DATABASE_URL'),
 }
 
 # Password validation
@@ -108,7 +113,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
@@ -125,3 +133,5 @@ LOGOUT_REDIRECT_URL = "/"
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "daisyui5"
 CRISPY_TEMPLATE_PACK = "daisyui5"
+
+DJANGO_TABLES2_TEMPLATE = "django_tables2/daisyui5.html"

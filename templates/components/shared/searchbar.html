@@ -1,0 +1,14 @@
+<form method="get" class="w-full max-w-lg">
+    <label class="input input-bordered flex items-center gap-2 w-full">
+        <span class="icon-[material-symbols--search] size-4 opacity-50"></span>
+
+        <input
+                type="search"
+                name="q"
+                value="{{ request.GET.q }}"
+                placeholder="Buscar..."
+                class="grow"
+                autofocus="autofocus"
+        />
+    </label>
+</form>
