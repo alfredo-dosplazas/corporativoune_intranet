@@ -8,12 +8,15 @@
                 {% endif %}
 
                 <div>
-                    <h2 class="card-title">Bienvenido de vuelta <span
-                            class="font-bold text-primary">{{ user.contacto|default:user }}</span>
+                    <h2 class="card-title">
+                        <div class="flex-col gap-2 md:flex-row">
+                            <p class="text-sm md:text-base">Bienvenido de vuelta</p>
+                            <p class="font-bold text-primary">{{ user.contacto|default:user }}</p>
+                        </div>
                     </h2>
-                    <div>
+                    <p class="text-xs md:text-base text-base-content/80 text-muted">
                         Accede a los módulos de la intranet
-                    </div>
+                    </p>
                 </div>
             </div>
         </div>
