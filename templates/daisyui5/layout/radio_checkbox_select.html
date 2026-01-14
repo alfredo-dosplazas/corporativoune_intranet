@@ -7,7 +7,8 @@
         {% if group %}<strong>{{ group }}</strong>{% endif %}
         {% for option in options %}
             <div class="form-check{% if inline_class %} form-check-inline{% endif %}">
-                <input type="{{ option.type }}" class="checkbox{% if field.errors %} checkbox-error{% endif %}"
+                <input type="{{ option.type }}"
+                       class="checkbox {% if field.errors %} checkbox-error {% else %} checkbox-primary{% endif %}"
                        name="{{ field.html_name }}"
                        value="{{ option.value|unlocalize }}" {% include "daisyui5/layout/attrs.html" with widget=option %}>
                 <label for="{{ option.attrs.id }}" class="form-check-label">

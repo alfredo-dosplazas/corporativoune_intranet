@@ -1,4 +1,5 @@
 from django.db import models
+from django.urls import reverse
 
 from apps.core.models import Empresa
 
@@ -43,6 +44,9 @@ class Articulo(models.Model):
         related_name="articulos",
         help_text="Que empresas pueden ver este artículo",
     )
+
+    def get_absolute_url(self):
+        return reverse('papeleria:articulos__detail', args=[self.id])
 
     def __str__(self):
         return self.nombre

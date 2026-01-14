@@ -1,5 +1,14 @@
-{% if messages|length %}
+<div class="messages">
     {% for message in messages %}
-        {{ message }}
+        <div class="px-4 py-2">
+            <div role="alert" class="alert
+                {% if message.tags == 'success' %}alert-success
+                {% elif message.tags == 'error' %}alert-error
+                {% elif message.tags == 'warning' %}alert-warning
+                {% else %}alert-info{% endif %}
+">
+                <span>{{ message }}</span>
+            </div>
+        </div>
     {% endfor %}
-{% endif %}
+</div>

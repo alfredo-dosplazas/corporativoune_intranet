@@ -1,0 +1,36 @@
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <!-- START -->
+            <div class="justify-self-start">
+                <h1 class="font-bold text-xl flex items-center gap-2">Papelería</h1>
+                <h2 class="text-muted text-sm"></h2>
+            </div>
+
+            <!-- MIDDLE -->
+            <div class="justify-self-center w-full flex justify-center">
+
+            </div>
+
+
+            <!-- END -->
+            <div class="justify-self-end">
+
+            </div>
+
+        </div>
+
+    </c-slot>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <c-shared.modulos.card
+                url="{% url 'rrhh:areas__list' %}"
+                icono="icon-[ix--product]"
+                nombre="Áreas"
+                permiso="perms.rrhh.view_area"
+                descripcion=""
+        />
+
+    </div>
+</c-layouts.app>

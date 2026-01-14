@@ -1,4 +1,4 @@
-from apps.core.tables import TableWithActions, ImageColumn, AmountColumn
+from apps.core.tables import TableWithActions, ImageColumn, AmountColumn, PercentColumn
 from apps.papeleria.models.articulos import Articulo
 
 
@@ -7,6 +7,7 @@ class ArticuloTable(TableWithActions):
 
     imagen = ImageColumn()
     precio = AmountColumn()
+    impuesto = PercentColumn()
     importe = AmountColumn()
 
     class Meta:

@@ -20,3 +20,13 @@ class RequisicionTable(TableWithActions):
             'estado',
             'empresa',
         ]
+
+    def render_solicitante(self, value):
+        if getattr(value, 'contacto', False):
+            return value.contacto
+        return value
+
+    def render_aprobador(self, value):
+        if getattr(value, 'contacto', False):
+            return value.contacto
+        return value

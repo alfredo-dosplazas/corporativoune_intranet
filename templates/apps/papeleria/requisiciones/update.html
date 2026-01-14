@@ -1,0 +1,51 @@
+{% load django_tables2 %}
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <!-- START -->
+            <div class="justify-self-start">
+                <h1 class="font-bold text-xl flex items-center gap-2">{{ requisicion }}</h1>
+            </div>
+
+            <!-- MIDDLE -->
+            <div class="justify-self-center w-full flex justify-center">
+
+            </div>
+
+
+            <!-- END -->
+            <div class="justify-self-end">
+                <div class="flex items-center gap-2">
+                    {% if puede_confirmar %}
+                        <form action="{% url 'papeleria:requisiciones__confirm' requisicion.pk %}" method="POST">
+                            {% csrf_token %}
+                            <button class="btn btn-sm btn-success">Confirmar</button>
+                        </form>
+                    {% endif %}
+
+                    {% if puede_enviar_al_aprobador %}
+                        <form action="{% url 'papeleria:requisiciones__confirm' requisicion.pk %}" method="POST">
+                            {% csrf_token %}
+                            <button class="btn btn-sm btn-success">Solicitar Aprobación</button>
+                        </form>
+                    {% endif %}
+
+                    <button form="requisicion-form" class="btn btn-primary btn-sm">Guardar</button>
+                </div>
+            </div>
+        </div>
+
+    </c-slot>
+
+    {% if not user.is_superuser %}
+        <div>
+            {{ user.contacto.empresa }}
+            {{ user.contacto }}
+            {{ user.contacto.area.aprobador_papeleria.contacto|default:user.contacto.area.aprobador_papeleria }}
+            {{ user.contacto.area }}
+        </div>
+    {% endif %}
+
+    <c-apps.papeleria.requisiciones.form/>
+</c-layouts.app>

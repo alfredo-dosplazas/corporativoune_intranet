@@ -27,6 +27,9 @@ ALLOWED_HOSTS = env('ALLOWED_HOSTS', default='127.0.0.1,localhost').strip().spli
 # Application definition
 
 INSTALLED_APPS = [
+    'dal',
+    'dal_select2',
+    'django.contrib.humanize',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -38,6 +41,7 @@ INSTALLED_APPS = [
     'django_tables2',
     'extra_views',
     'apps.core',
+    'apps.rrhh',
     'apps.papeleria',
     'apps.directorio',
     'apps.fotos',

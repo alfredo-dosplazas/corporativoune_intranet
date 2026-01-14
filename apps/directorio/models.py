@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.db import models
 
 from apps.core.models import Empresa
+from apps.rrhh.models.areas import Area
 
 
 def rename_contacto_image(instance, filename):
@@ -65,6 +66,8 @@ class Contacto(models.Model):
         null=True,
         related_name="a_cargo_de",
     )
+
+    area = models.ForeignKey(Area, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Área')
 
     extension = models.CharField(max_length=255, blank=True, null=True)
 

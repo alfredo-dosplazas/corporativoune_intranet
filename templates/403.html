@@ -1,0 +1,31 @@
+<c-layouts.app>
+    <div class="flex justify-center items-center min-h-[60vh]">
+        <div class="card bg-base-100 shadow-xl max-w-md">
+            <div class="card-body text-center">
+
+                <h2 class="card-title text-error justify-center">
+                    Acceso denegado
+                </h2>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-error mt-4">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No tienes permisos para acceder a esta página.</p>
+                {% endif %}
+
+                {% if exception %}
+                    <p>{{ exception }}</p>
+                {% endif %}
+
+                <div class="card-actions justify-center mt-4">
+                    <a href="/" class="btn btn-primary">Volver al inicio</a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</c-layouts.app>

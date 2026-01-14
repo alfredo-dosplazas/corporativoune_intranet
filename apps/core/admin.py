@@ -1,14 +1,32 @@
 from django.contrib import admin
 
-from apps.core.models import Modulo, Empresa
+from apps.core.models import Modulo, Empresa, ModuloEmpresa
+from apps.papeleria.models.configuracion import ConfiguracionEmpresaPapeleria
+
+
+class ModuloEmpresaInline(admin.TabularInline):
+    autocomplete_fields = ['modulo']
+    model = ModuloEmpresa
+    extra = 1
+
+
+class ConfiguracionPapeleriaInline(admin.TabularInline):
+    autocomplete_fields = ['contraloria', 'compras']
+    model = ConfiguracionEmpresaPapeleria
+    extra = 1
+    min_num = 1
+    max_num = 1
+    validate_min = True
 
 
 @admin.register(Empresa)
 class EmpresaAdmin(admin.ModelAdmin):
+    inlines = [ModuloEmpresaInline, ConfiguracionPapeleriaInline]
     search_fields = ['nombre']
     list_display = ('nombre', 'abreviatura', 'codigo', 'logo')
 
 
 @admin.register(Modulo)
 class ModuloAdmin(admin.ModelAdmin):
+    search_fields = ['nombre']
     list_display = ('nombre', 'descripcion', 'url_name', 'permisos')

@@ -1,8 +1,12 @@
 from django.urls import path
 
+from apps.papeleria.autocompletes.articulos import ArticuloAutocomplete
 from apps.papeleria.views import PapeleriaView
-from apps.papeleria.views.articulos import ArticuloListView, ArticuloCreateView, ArticuloUpdateView
-from apps.papeleria.views.requisiciones import RequisicionListView, RequisicionCreateView
+from apps.papeleria.views.articulos import ArticuloListView, ArticuloCreateView, ArticuloUpdateView, ArticuloDetailView, \
+    ArticuloDeleteView
+from apps.papeleria.views.requisiciones import RequisicionListView, RequisicionCreateView, RequisicionUpdateView, \
+    RequisicionDeleteView, RequisicionDetailView, RequisicionExcelView, RequisicionConfirmView, \
+    RequisicionRequestConfirmView
 
 app_name = 'papeleria'
 
@@ -14,13 +18,22 @@ articulos_urlpatterns = [
     path('articulos/', ArticuloListView.as_view(), name='articulos__list'),
     path('articulos/crear/', ArticuloCreateView.as_view(), name='articulos__create'),
     path('articulos/editar/<int:pk>/', ArticuloUpdateView.as_view(), name='articulos__update'),
-    path('articulos/detalle/<int:pk>/', ArticuloListView.as_view(), name='articulos__detail'),
-    path('articulos/eliminar/<int:pk>/', ArticuloListView.as_view(), name='articulos__delete'),
+    path('articulos/detalle/<int:pk>/', ArticuloDetailView.as_view(), name='articulos__detail'),
+    path('articulos/eliminar/<int:pk>/', ArticuloDeleteView.as_view(), name='articulos__delete'),
+
+    path('articulos/autocomplete/', ArticuloAutocomplete.as_view(), name='articulos__autocomplete'),
 ]
 
 requisiciones_urlpatterns = [
     path('requisiciones/', RequisicionListView.as_view(), name='requisiciones__list'),
     path('requisiciones/crear/', RequisicionCreateView.as_view(), name='requisiciones__create'),
+    path('requisiciones/editar/<int:pk>/', RequisicionUpdateView.as_view(), name='requisiciones__update'),
+    path('requisiciones/detalle/<int:pk>/', RequisicionDetailView.as_view(), name='requisiciones__detail'),
+    path('requisiciones/eliminar/<int:pk>/', RequisicionDeleteView.as_view(), name='requisiciones__delete'),
+    path('requisiciones/confirmar/<int:pk>/', RequisicionConfirmView.as_view(), name='requisiciones__confirm'),
+    path('requisiciones/solicitar-aprobacion/<int:pk>/', RequisicionRequestConfirmView.as_view(),
+         name='requisiciones__request_confirm'),
+    path('requisiciones/excel/<int:pk>/', RequisicionExcelView.as_view(), name='requisiciones__excel'),
 ]
 
 urlpatterns += articulos_urlpatterns

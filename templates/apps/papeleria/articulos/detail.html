@@ -1,0 +1,61 @@
+{% load money %}
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <!-- START -->
+            <div class="justify-self-start">
+                <h1 class="font-bold text-xl flex items-center gap-2">{{ articulo }}</h1>
+            </div>
+
+            <!-- MIDDLE -->
+            <div class="justify-self-center w-full flex justify-center">
+
+            </div>
+
+
+            <!-- END -->
+            <div class="justify-self-end">
+            </div>
+        </div>
+
+    </c-slot>
+
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <div class="flex flex-col items-center gap-4">
+                {% if articulo.imagen %}
+                    <a target="_blank" href="{{ articulo.imagen.url }}">
+                        <img class="w-32 h-auto cursor-zoom-in" src="{{ articulo.imagen.url }}"
+                             alt="{{ articulo.nombre }}">
+                    </a>
+                {% else %}
+                    <p class="text-muted text-sm text-base-content/80">Este artículo no tiene imagen.</p>
+                {% endif %}
+
+                <h2 class="text-xl font-bold">{{ articulo.nombre }}</h2>
+
+                <p><strong>Código VS DP: </strong>{{ articulo.codigo_vs_dp }}</p>
+                <p><strong>Número papelería: </strong>{{ articulo.numero_papeleria }}</p>
+                <p><strong>Unidad: </strong>{{ articulo.unidad }}</p>
+                <p><strong>Impuesto: </strong>{{ articulo.impuesto|percent }}</p>
+                <p><strong>Precio: </strong>{{ articulo.precio|money }}</p>
+                <p><strong>Importe: </strong>{{ articulo.importe|money }}</p>
+
+                <p>
+                    <strong>Empresas: </strong>
+                    {% for empresa in articulo.empresas.all %}
+                        <span class="badge badge-primary" data-theme="{{ empresa.theme }}">{{ empresa }}</span>
+                    {% endfor %}
+                </p>
+
+                {% if user.is_staff %}
+                    <p><strong>Mostrar en sitio: </strong>{{ articulo.mostrar_en_sitio|yesno:'Sí,No' }}</p>
+                    <p>
+                        <strong>¿Pertenece al cuadro básico?: </strong>{{ articulo.es_cuadro_basico|yesno:'Sí,No' }}
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</c-layouts.app>

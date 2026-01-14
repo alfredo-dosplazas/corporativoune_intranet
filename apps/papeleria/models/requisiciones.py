@@ -59,7 +59,6 @@ class Requisicion(models.Model):
     aprobo_aprobador = models.BooleanField(default=False)
     aprobo_compras = models.BooleanField(default=False)
     aprobo_contraloria = models.BooleanField(default=False)
-    articulo_entregado = models.BooleanField(default=False)
 
     empresa = models.ForeignKey(
         Empresa, on_delete=models.CASCADE, related_name="requisiciones_papeleria"
@@ -67,6 +66,64 @@ class Requisicion(models.Model):
 
     created_at = models.DateTimeField("Creado el", auto_now_add=True)
     updated_at = models.DateTimeField("Actualizado el", auto_now=True)
+
+    @property
+    def estado_ui(self):
+        return {
+            "borrador": {"label": "Borrador", "color": "badge-neutral"},
+            "confirmada": {"label": "Confirmada", "color": "badge-info"},
+            "enviada_aprobador": {"label": "En aprobación", "color": "badge-warning"},
+            "autorizada_aprobador": {"label": "Aprobada por Aprobador", "color": "badge-success"},
+            "enviada_compras": {"label": "En Compras", "color": "badge-warning"},
+            "autorizada_compras": {"label": "Aprobada por Compras", "color": "badge-success"},
+            "enviada_contraloria": {"label": "En Contraloría", "color": "badge-warning"},
+            "autorizada_contraloria": {"label": "Aprobada por Contraloría", "color": "badge-success"},
+            "esperando_entrega_articulo": {"label": "Esperando entrega", "color": "badge-accent"},
+            "completada": {"label": "Completada", "color": "badge-success"},
+            "cancelada": {"label": "Cancelada", "color": "badge-error"},
+        }.get(self.estado, {"label": self.estado, "color": "badge-neutral"})
+
+    @property
+    def total(self):
+        return sum([dr.subtotal for dr in self.detalle_requisicion.all()])
+
+    def puede_ver(self, usuario: User):
+        if usuario.is_superuser:
+            return True
+
+        return usuario in [self.solicitante, self.aprobador, self.compras, self.contraloria]
+
+    def puede_editar(self, user):
+        if user.is_superuser:
+            return True
+        if user == self.solicitante and self.estado == "borrador":
+            return True
+        return False
+
+    def puede_confirmar(self, user):
+        if user.is_superuser:
+            return True
+        if user == self.solicitante and self.estado == 'borrador':
+            return True
+        return False
+
+    def puede_enviar_al_aprobador(self, user):
+        if user.is_superuser:
+            return True
+        if user == self.solicitante and self.estado == 'confirmada':
+            return True
+        return False
+
+    def puede_aprobar(self, user):
+        if user.is_superuser:
+            return True
+        if user == self.aprobador and self.estado == "enviada_aprobador":
+            return True
+        if user == self.compras and self.estado == "enviada_compras":
+            return True
+        if user == self.contraloria and self.estado == "enviada_contraloria":
+            return True
+        return False
 
     def save(self, *args, **kwargs):
         if not self.pk:
@@ -116,7 +173,9 @@ class DetalleRequisicion(models.Model):
     def subtotal(self):
         if self.cantidad_liberada > 0:
             return self.cantidad_liberada * self.articulo.importe
-        return self.cantidad * self.articulo.importe
+        if self.cantidad:
+            return self.cantidad * self.articulo.importe
+        return 0
 
     def __str__(self):
         return f"Detalle Requisición {self.requisicion} | {self.articulo} x {self.cantidad}"

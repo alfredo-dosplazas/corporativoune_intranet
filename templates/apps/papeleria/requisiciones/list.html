@@ -6,10 +6,12 @@
             <!-- START -->
             <div class="justify-self-start">
                 <h1 class="font-bold text-xl flex items-center gap-2">Requisiciones</h1>
-                <h2 class="text-muted text-sm">Solicite y gestione las solicitudes de papelería de la empresa</h2>
-                <a href="{% url 'papeleria:requisiciones__create' %}" class="btn btn-sm btn-primary">
-                    CREAR
-                </a>
+                <h2 class="text-muted text-sm mb-2">Solicite y gestione las solicitudes de papelería de la empresa</h2>
+                {% if perms.papeleria.add_requisicion %}
+                    <a href="{% url 'papeleria:requisiciones__create' %}" class="btn btn-sm btn-primary">
+                        CREAR
+                    </a>
+                {% endif %}
             </div>
 
             <!-- MIDDLE -->

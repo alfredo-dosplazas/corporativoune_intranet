@@ -16,11 +16,20 @@
 
             <!-- END -->
             <div class="justify-self-end">
-                <button form="articulo-form" class="btn btn-primary btn-sm">Crear</button>
+                <button form="requisicion-form" class="btn btn-primary btn-sm">Crear</button>
             </div>
         </div>
 
     </c-slot>
+
+    {% if not user.is_superuser %}
+        <div>
+            {{ user.contacto.empresa }}
+            {{ user.contacto }}
+            {{ user.contacto.area.aprobador_papeleria.contacto|default:user.contacto.area.aprobador_papeleria }}
+            {{ user.contacto.area }}
+        </div>
+    {% endif %}
 
     <c-apps.papeleria.requisiciones.form/>
 </c-layouts.app>

@@ -12,6 +12,11 @@ class DirectorioListView(BreadcrumbsMixin, ListView):
     paginate_by = 20
     context_object_name = 'contactos'
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        qs = qs.filter(mostrar_en_directorio=True)
+        return qs
+
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},

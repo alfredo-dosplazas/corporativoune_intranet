@@ -1,0 +1,150 @@
+{% load money %}
+{% load django_tables2 %}
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+            <div>
+                <h1 class="text-xl font-bold">{{ requisicion.folio }}</h1>
+                <span class="badge {{ requisicion.estado_ui.color }} mt-1">
+                    {{ requisicion.estado_ui.label }}
+                </span>
+            </div>
+
+            <div class="flex items-center gap-2">
+                {% if puede_confirmar %}
+                    <form action="{% url 'papeleria:requisiciones__confirm' requisicion.pk %}" method="POST">
+                        {% csrf_token %}
+                        <button class="btn btn-sm btn-success">Confirmar</button>
+                    </form>
+                {% endif %}
+
+                {% if puede_enviar_al_aprobador %}
+                    <form action="{% url 'papeleria:requisiciones__request_confirm' requisicion.pk %}" method="POST">
+                        {% csrf_token %}
+                        <button class="btn btn-sm btn-success">Solicitar Aprobación</button>
+                    </form>
+                {% endif %}
+
+                {% if puede_aprobar %}
+                    <button class="btn btn-success btn-sm">
+                        Aprobar
+                    </button>
+                    <button class="btn btn-error btn-sm">
+                        Rechazar
+                    </button>
+                {% endif %}
+
+                <a href="{% url 'papeleria:requisiciones__excel' requisicion.pk %}"
+                   class="btn bg-[#20744a] text-white btn-sm">
+                    <span class="icon-[file-icons--microsoft-excel]"></span>
+                    Excel
+                </a>
+            </div>
+
+        </div>
+    </c-slot>
+
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 my-6">
+
+        <div class="card bg-base-100 shadow">
+            <div class="card-body p-4">
+                <p class="text-sm opacity-60">Solicitante</p>
+                <p class="font-semibold">{{ requisicion.solicitante.get_full_name }}</p>
+            </div>
+        </div>
+
+        <div class="card bg-base-100 shadow">
+            <div class="card-body p-4">
+                <p class="text-sm opacity-60">Empresa</p>
+                <p class="font-semibold">{{ requisicion.empresa }}</p>
+            </div>
+        </div>
+
+        <div class="card bg-base-100 shadow">
+            <div class="card-body p-4">
+                <p class="text-sm opacity-60">Total
+                    <span class="text-xs text-muted text-base-content/80">Estimado</span>
+                </p>
+                <p class="font-semibold">{{ requisicion.total|money }}</p>
+            </div>
+        </div>
+
+        <div class="card bg-base-100 shadow">
+            <div class="card-body p-4">
+                <p class="text-sm opacity-60">Fecha</p>
+                <p class="font-semibold">{{ requisicion.created_at|date:"d/m/Y" }}</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="card bg-base-100 shadow mb-6">
+        <div class="card-body">
+            <h2 class="font-bold mb-4">Flujo de aprobación</h2>
+
+            <ul class="steps steps-vertical md:steps-horizontal w-full">
+
+                <li class="step step-success">
+                    Solicitante
+                </li>
+
+                <li class="step {% if requisicion.aprobo_aprobador %}step-success{% endif %}">
+                    Aprobador
+                </li>
+
+                <li class="step {% if requisicion.aprobo_compras %}step-success{% endif %}">
+                    Compras
+                </li>
+
+                <li class="step {% if requisicion.aprobo_contraloria %}step-success{% endif %}">
+                    Contraloría
+                </li>
+
+            </ul>
+        </div>
+    </div>
+
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h2 class="font-bold mb-4">Artículos</h2>
+
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                    <tr>
+                        <th>Artículo</th>
+                        <th>Cantidad</th>
+                        <th>Liberada</th>
+                        <th>Pendiente</th>
+                        <th>Subtotal</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for d in requisicion.detalle_requisicion.all %}
+                        <tr>
+                            <td>{{ d.articulo }}</td>
+                            <td>{{ d.cantidad }}</td>
+                            <td>{{ d.cantidad_liberada }}</td>
+                            <td>{{ d.cantidad_pendiente }}</td>
+                            <td>{{ d.subtotal|money }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="card bg-base-100 shadow mt-6">
+        <div class="card-body">
+            <h2 class="font-bold mb-4">Actividad</h2>
+
+            <p class="text-sm opacity-60">
+                Próximamente: comentarios, rechazos y trazabilidad.
+            </p>
+        </div>
+    </div>
+</c-layouts.app>

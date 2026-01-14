@@ -1,3 +1,6 @@
+from typing import override
+
+from babel.numbers import format_currency, format_percent
 from django.contrib.humanize.templatetags.humanize import intcomma
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
@@ -12,8 +15,24 @@ class ImageColumn(Column):
 
 
 class AmountColumn(Column):
+    def __init__(self, currency='MXN'):
+        super().__init__()
+        self.currency = currency
+
+    @override
     def render(self, value):
-        return intcomma(f"{value:.2f}")
+        try:
+            return format_currency(value, self.currency, locale='es_MX')
+        except Exception:
+            return value
+
+
+class PercentColumn(Column):
+    def render(self, value):
+        try:
+            return format_percent(value, locale='es_MX')
+        except Exception:
+            return value
 
 
 class TableWithActions(Table):

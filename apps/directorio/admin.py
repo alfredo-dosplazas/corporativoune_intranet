@@ -15,6 +15,6 @@ class EmailContactoInline(admin.TabularInline):
 
 @admin.register(Contacto)
 class ContactoAdmin(admin.ModelAdmin):
-    autocomplete_fields = ('usuario', 'empresa')
+    autocomplete_fields = ('usuario', 'empresa', 'area')
     list_display = ['nombre_completo']
     inlines = [EmailContactoInline, TelefonoContactoInline]

@@ -4,7 +4,8 @@
 
             <!-- START -->
             <div class="justify-self-start">
-                <h1 class="font-bold text-xl flex items-center gap-2"><span class="icon-[mingcute--pic-fill]"></span> Fotos</h1>
+                <h1 class="font-bold text-xl flex items-center gap-2"><span class="icon-[mingcute--pic-fill]"></span>
+                    Fotos</h1>
                 <h2 class="text-muted text-sm">Fotos de los eventos corporativos.</h2>
             </div>
 
@@ -39,14 +40,14 @@
 
     </c-slot>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4 mb-6">
         {% for carpeta in carpetas %}
             <a href="{% url 'fotos:path' ruta_actual|add:'/'|add:carpeta|default:carpeta %}"
                class="card p-4 hover:shadow-xl hover:bg-base-100">
                 <div class="card-body">
                     <div class="flex flex-col gap-4 items-center justify-center">
                         <span class="icon-[material-symbols--folder] size-32"></span>
-                        {{ carpeta }}
+                        <span class="truncate">{{ carpeta }}</span>
                     </div>
                 </div>
             </a>
@@ -54,7 +55,7 @@
     </div>
 
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {% for foto in fotos %}
             <div class="card bg-base-100 shadow">
                 <a target="_blank"
@@ -63,7 +64,7 @@
                             src="{% url 'fotos:show' ruta_actual|add:'/'|add:foto %}?thumb=1"
                             class="object-cover h-48 w-full rounded"
                             loading="lazy"
-                            alt=""
+                            alt="{{ foto }}"
                     >
                 </a>
             </div>
