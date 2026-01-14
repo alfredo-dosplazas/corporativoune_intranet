@@ -12,6 +12,14 @@
                         CREAR
                     </a>
                 {% endif %}
+
+                {% if perms.papeleria.enviar_requisicion_contraloria and requisiciones_listas_contraloria|length %}
+                    <button class="btn btn-sm btn-secondary"
+                            onclick="solicitar_aprobacion_contraloria_modal.showModal()">
+                        Solicitar Aprobación Contraloría
+                    </button>
+                    <c-apps.papeleria.requisiciones.modal.solicitar-aprobacion-contraloria :requisiciones_listas_contraloria="requisiciones_listas_contraloria"/>
+                {% endif %}
             </div>
 
             <!-- MIDDLE -->

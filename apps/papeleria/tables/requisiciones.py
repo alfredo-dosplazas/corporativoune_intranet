@@ -1,3 +1,4 @@
+from django.utils.safestring import mark_safe
 from django_tables2 import DateColumn
 
 from apps.core.tables import TableWithActions
@@ -20,6 +21,9 @@ class RequisicionTable(TableWithActions):
             'estado',
             'empresa',
         ]
+
+    def render_estado(self, record):
+        return mark_safe(f"<span class='badge {record.estado_ui["color"]}'>{record.estado_ui["label"]}</span>")
 
     def render_solicitante(self, value):
         if getattr(value, 'contacto', False):

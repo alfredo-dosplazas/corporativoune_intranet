@@ -27,12 +27,24 @@
                 {% endif %}
 
                 {% if puede_aprobar %}
-                    <button class="btn btn-success btn-sm">
+                    <button onclick="aprobar_requisicion_modal.showModal()" class="btn btn-success btn-sm">
                         Aprobar
                     </button>
-                    <button class="btn btn-error btn-sm">
+                    <c-apps.papeleria.requisiciones.modal.aprobar :record="requisicion"/>
+                {% endif %}
+
+                {% if puede_autorizar %}
+                    <button onclick="autorizar_requisicion_modal.showModal()" class="btn btn-success btn-sm">
+                        Autorizar
+                    </button>
+                    <c-apps.papeleria.requisiciones.modal.autorizar :record="requisicion"/>
+                {% endif %}
+
+                {% if puede_cancelar %}
+                    <button onclick="rechazar_requisicion_modal.showModal()" class="btn btn-error btn-sm">
                         Rechazar
                     </button>
+                    <c-apps.papeleria.requisiciones.modal.rechazar :record="requisicion"/>
                 {% endif %}
 
                 <a href="{% url 'papeleria:requisiciones__excel' requisicion.pk %}"
@@ -44,6 +56,15 @@
 
         </div>
     </c-slot>
+
+    {% if requisicion.requisicion_relacionada %}
+        <p>Requisición relacionada:
+            <a class="link link-primary"
+               href="{% url 'papeleria:requisiciones__detail' requisicion.requisicion_relacionada.pk %}">
+                {{ requisicion.requisicion_relacionada }}
+            </a>
+        </p>
+    {% endif %}
 
 
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 my-6">
@@ -106,37 +127,110 @@
         </div>
     </div>
 
-    <div class="card bg-base-100 shadow">
-        <div class="card-body">
-            <h2 class="font-bold mb-4">Artículos</h2>
+    {% if requisicion.estado == 'cancelada' %}
+        <div class="card bg-error text-error-content shadow mb-6">
+            <div class="card-body">
+                <h2 class="font-bold mb-4">Cancelada
+                    por: {{ requisicion.rechazador.contacto|default:requisicion.rechazador }}</h2>
 
-            <div class="overflow-x-auto">
-                <table class="table table-zebra w-full">
-                    <thead>
-                    <tr>
-                        <th>Artículo</th>
-                        <th>Cantidad</th>
-                        <th>Liberada</th>
-                        <th>Pendiente</th>
-                        <th>Subtotal</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for d in requisicion.detalle_requisicion.all %}
-                        <tr>
-                            <td>{{ d.articulo }}</td>
-                            <td>{{ d.cantidad }}</td>
-                            <td>{{ d.cantidad_liberada }}</td>
-                            <td>{{ d.cantidad_pendiente }}</td>
-                            <td>{{ d.subtotal|money }}</td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+                <p class="font-bold">Razón de rechazo:</p>
+                <p class="text-muted text-error-content /80">
+                    {{ requisicion.razon_rechazo }}
+                </p>
             </div>
-
         </div>
-    </div>
+    {% endif %}
+
+    {% if puede_autorizar %}
+        <form novalidate id="autorizar-form" action="{% url 'papeleria:requisiciones__autorizar' requisicion.pk %}"
+              method="POST">
+            {% csrf_token %}
+
+            <div class="card bg-base-100 shadow">
+                <div class="card-body">
+                    <h2 class="font-bold mb-4">Autorización por Contraloría</h2>
+
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra w-full">
+                            <thead>
+                            <tr>
+                                <th>Artículo</th>
+                                <th>Notas</th>
+                                <th>Importe</th>
+                                <th>Cantidad solicitada</th>
+                                <th>Cantidad a autorizar</th>
+                                <th>Subtotal</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for d in requisicion.detalle_requisicion.all %}
+                                <tr>
+                                    <td>{{ d.articulo }}</td>
+                                    <td class="text-sm opacity-70">{{ d.notas|default:"—" }}</td>
+                                    <td>{{ d.articulo.importe|money }}</td>
+                                    <td>{{ d.cantidad }}</td>
+                                    <td>
+                                        <input
+                                                type="number"
+                                                name="autorizar_{{ d.id }}"
+                                                min="0"
+                                                max="{{ d.cantidad }}"
+                                                value="{{ d.cantidad }}"
+                                                class="input input-bordered input-sm w-24"
+                                                required
+                                        >
+                                    </td>
+                                    <td>{{ d.subtotal|money }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="alert alert-info text-sm mt-4">
+                        La cantidad liberada puede ser menor a la solicitada.
+                        Si es parcial, se generará una requisición complementaria.
+                    </div>
+                </div>
+            </div>
+        </form>
+    {% else %}
+        <div class="card bg-base-100 shadow">
+            <div class="card-body">
+                <h2 class="font-bold mb-4">Artículos</h2>
+
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                        <tr>
+                            <th>Artículo</th>
+                            <th>Notas</th>
+                            <th>Importe</th>
+                            <th>Cantidad solicitada</th>
+                            <th>Cantidad autorizada</th>
+                            <th>Pendiente</th>
+                            <th>Subtotal</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for d in requisicion.detalle_requisicion.all %}
+                            <tr>
+                                <td>{{ d.articulo }}</td>
+                                <td>{{ d.notas }}</td>
+                                <td>{{ d.articulo.importe|money }}</td>
+                                <td>{{ d.cantidad }}</td>
+                                <td>{{ d.cantidad_autorizada }}</td>
+                                <td>{{ d.cantidad_pendiente }}</td>
+                                <td>{{ d.subtotal|money }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    {% endif %}
 
     <div class="card bg-base-100 shadow mt-6">
         <div class="card-body">

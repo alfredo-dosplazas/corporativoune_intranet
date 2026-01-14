@@ -1,10 +1,9 @@
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Row, Column, Field
-from crispy_forms.templatetags.crispy_forms_field import css_class
+from crispy_forms.layout import Layout, Row, Column
 from dal import autocomplete
 from django import forms
 from django.core.exceptions import ValidationError
-from django.forms import Textarea
+from django.forms import Textarea, TextInput
 
 from apps.papeleria.models.requisiciones import Requisicion, DetalleRequisicion
 
@@ -13,6 +12,10 @@ class RequisicionForm(forms.ModelForm):
     class Meta:
         model = Requisicion
         fields = "__all__"
+        widgets = {
+            'fecha_autorizacion_contraloria': TextInput(attrs={'type': 'date'}),
+            'razon_rechazo': Textarea(attrs={'class': 'h-16'}),
+        }
 
     def _configurar_admin(self):
         self.helper.layout = Layout(
@@ -24,6 +27,21 @@ class RequisicionForm(forms.ModelForm):
                 Column('empresa'),
                 Column('estado'),
             ),
+            Row(
+                Column('requisicion_relacionada'),
+                Column('aprobo_solicitante'),
+                Column('aprobo_aprobador'),
+                Column('aprobo_compras'),
+                Column('aprobo_contraloria'),
+            ),
+            Row(
+                Column('rechazador'),
+                Column('razon_rechazo'),
+            ),
+            Row(
+                Column('fecha_autorizacion_contraloria'),
+                Column('autorizado_por'),
+            )
         )
 
     def _configurar_usuario_normal(self):
@@ -33,7 +51,8 @@ class RequisicionForm(forms.ModelForm):
         # Valores por defecto
         self.initial.update({
             "solicitante": usuario,
-            "aprobador": getattr(getattr(getattr(usuario, 'contacto', None), 'area', None), 'aprobador_papeleria', None),
+            "aprobador": getattr(getattr(getattr(usuario, 'contacto', None), 'area', None), 'aprobador_papeleria',
+                                 None),
             "compras": empresa.configuracion_papeleria.compras,
             "contraloria": empresa.configuracion_papeleria.contraloria,
             "empresa": empresa,
@@ -53,6 +72,10 @@ class RequisicionForm(forms.ModelForm):
             "aprobo_aprobador",
             "aprobo_compras",
             "aprobo_contraloria",
+            "rechazador",
+            "razon_rechazo",
+            "fecha_autorizacion_contraloria",
+            "autorizado_por",
         ]:
             self.fields[field].widget = forms.HiddenInput()
 
@@ -64,7 +87,8 @@ class RequisicionForm(forms.ModelForm):
         if not self.user.is_superuser:
             usuario = self.user
             empresa = getattr(getattr(usuario, 'contacto', None), 'empresa', None)
-            aprobador = getattr(getattr(getattr(usuario, 'contacto', None), 'area', None), 'aprobador_papeleria', None)
+            aprobador = getattr(getattr(getattr(usuario, 'contacto', None), 'area', None), 'aprobador_papeleria',
+                                None)
             compras = empresa.configuracion_papeleria.compras
             contraloria = empresa.configuracion_papeleria.contraloria
 
@@ -73,7 +97,8 @@ class RequisicionForm(forms.ModelForm):
             if not aprobador:
                 raise ValidationError("El aprobador es requerido. El área no tiene aprobador.")
             if not compras:
-                raise ValidationError("El encargado de compras es requerido. La empresa no tiene encargado de compras.")
+                raise ValidationError(
+                    "El encargado de compras es requerido. La empresa no tiene encargado de compras.")
             if not contraloria:
                 raise ValidationError("Contraloría es requerido. La empresa no tiene contraloría.")
 
@@ -100,13 +125,12 @@ class RequisicionForm(forms.ModelForm):
         else:
             self._configurar_admin()
 
-
 class DetalleRequisicionForm(forms.ModelForm):
     class Meta:
         model = DetalleRequisicion
         fields = "__all__"
         exclude = [
-            "cantidad_liberada"
+            "cantidad_autorizada"
         ]
         widgets = {
             'articulo': autocomplete.ModelSelect2(

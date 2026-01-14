@@ -6,7 +6,8 @@ from apps.papeleria.views.articulos import ArticuloListView, ArticuloCreateView,
     ArticuloDeleteView
 from apps.papeleria.views.requisiciones import RequisicionListView, RequisicionCreateView, RequisicionUpdateView, \
     RequisicionDeleteView, RequisicionDetailView, RequisicionExcelView, RequisicionConfirmView, \
-    RequisicionRequestConfirmView
+    RequisicionRequestConfirmView, RequisicionAprobarView, RequisicionRechazarView, RequisicionEnviarContraloriaView, \
+    RequisicionAutorizarView
 
 app_name = 'papeleria'
 
@@ -31,8 +32,19 @@ requisiciones_urlpatterns = [
     path('requisiciones/detalle/<int:pk>/', RequisicionDetailView.as_view(), name='requisiciones__detail'),
     path('requisiciones/eliminar/<int:pk>/', RequisicionDeleteView.as_view(), name='requisiciones__delete'),
     path('requisiciones/confirmar/<int:pk>/', RequisicionConfirmView.as_view(), name='requisiciones__confirm'),
-    path('requisiciones/solicitar-aprobacion/<int:pk>/', RequisicionRequestConfirmView.as_view(),
-         name='requisiciones__request_confirm'),
+    path(
+        'requisiciones/solicitar-aprobacion/<int:pk>/',
+        RequisicionRequestConfirmView.as_view(),
+        name='requisiciones__request_confirm'
+    ),
+    path('requisiciones/aprobar/<int:pk>/', RequisicionAprobarView.as_view(), name='requisiciones__aprobar'),
+    path('requisiciones/rechazar/<int:pk>/', RequisicionRechazarView.as_view(), name='requisiciones__rechazar'),
+    path(
+        'requisiciones/enviar-contraloria/',
+        RequisicionEnviarContraloriaView.as_view(),
+        name='requisiciones__enviar_contraloria'
+    ),
+    path('requisiciones/autorizar/<int:pk>/', RequisicionAutorizarView.as_view(), name='requisiciones__autorizar'),
     path('requisiciones/excel/<int:pk>/', RequisicionExcelView.as_view(), name='requisiciones__excel'),
 ]
 

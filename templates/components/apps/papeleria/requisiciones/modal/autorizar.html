@@ -1,0 +1,118 @@
+{% load money %}
+<dialog id="autorizar_requisicion_modal"
+        class="modal modal-bottom sm:modal-middle">
+
+    <div class="modal-box sm:w-11/12 sm:max-w-4xl space-y-6">
+
+        <!-- Close -->
+        <form method="dialog">
+            <button
+                    class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                    aria-label="Cerrar">
+                ✕
+            </button>
+        </form>
+
+        <!-- Header -->
+        <div>
+            <h3 class="text-lg font-bold flex items-center gap-2">
+                Autorizar requisición
+            </h3>
+            <p class="text-sm text-base-content/60">
+                Autorización por Contraloría
+            </p>
+        </div>
+
+        <!-- Resumen -->
+        <div class="bg-base-200 rounded-lg p-4 space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                <p>
+                    <span class="font-semibold">Requisición:</span>
+                    {{ record }}
+                </p>
+                <p>
+                    <span class="font-semibold">Solicitante:</span>
+                    {{ record.solicitante.contacto|default:record.solicitante }}
+                </p>
+                <p>
+                    <span class="font-semibold">Área:</span>
+                    {{ record.solicitante.contacto.area|default:"No asignada" }}
+                </p>
+                <p>
+                    <span class="font-semibold">Fecha:</span>
+                    {{ record.created_at|date:"d/m/Y" }}
+                </p>
+                <p>
+                    <span class="font-semibold">Total autorizado:</span>
+                    {{ record.total_autorizado|default:record.total|money }}
+                </p>
+                <p>
+                    <span class="font-semibold">Estado actual:</span>
+                    <span class="badge badge-info">
+                        Aprobada por Compras
+                    </span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Información clave -->
+        <div class="alert alert-info text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 class="stroke-current shrink-0 h-5 w-5"
+                 fill="none"
+                 viewBox="0 0 24 24">
+                <path stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/>
+            </svg>
+            <span>
+                Las cantidades de los artículos ya han sido revisadas y validadas por Contraloría.
+                Al autorizar, la requisición quedará lista para que
+                <strong>Compras genere el reporte de compra</strong>.
+            </span>
+        </div>
+
+        <!-- Advertencia -->
+        <div class="alert alert-warning text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 class="stroke-current shrink-0 h-5 w-5"
+                 fill="none"
+                 viewBox="0 0 24 24">
+                <path stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
+            </svg>
+            <span>
+                Esta acción es definitiva.
+                En caso de rechazo parcial, se generará automáticamente
+                una nueva requisición con los artículos no autorizados.
+            </span>
+        </div>
+
+        <!-- Actions -->
+        <div class="modal-action justify-between">
+
+            <form method="dialog">
+                <button class="btn btn-ghost">
+                    Cancelar
+                </button>
+            </form>
+
+            <form action="{% url 'papeleria:requisiciones__autorizar' record.pk %}"
+                  method="post">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="autorizar">
+                <button form="autorizar-form" class="btn btn-success btn-wide">
+                    Autorizar requisición
+                </button>
+            </form>
+        </div>
+
+    </div>
+
+    <form method="dialog" class="modal-backdrop">
+        <button aria-label="Cerrar"></button>
+    </form>
+</dialog>

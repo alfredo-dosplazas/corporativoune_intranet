@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django_tables2',
     'extra_views',
     'apps.core',
+    'apps.auditoria',
     'apps.rrhh',
     'apps.papeleria',
     'apps.directorio',
@@ -55,6 +56,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'apps.auditoria.middleware.UserAccessLogMiddleware',
 ]
 
 ROOT_URLCONF = 'intranet.urls'

@@ -6,6 +6,7 @@ from django.db.models import Q
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.utils.timezone import now
 from django.views import View
 from django.views.generic import ListView, DeleteView, DetailView
 from django_tables2 import SingleTableMixin
@@ -14,7 +15,7 @@ from extra_views import SearchableListMixin, UpdateWithInlinesView, NamedFormset
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.papeleria.forms.requisiciones import RequisicionForm
 from apps.papeleria.inlines import DetalleRequisicionInline
-from apps.papeleria.models.requisiciones import Requisicion
+from apps.papeleria.models.requisiciones import Requisicion, DetalleRequisicion
 from apps.papeleria.services.requisicion_excel import requisicion_excel
 from apps.papeleria.tables.requisiciones import RequisicionTable
 
@@ -25,6 +26,11 @@ class RequisicionListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableL
     model = Requisicion
     table_class = RequisicionTable
     search_fields = ['folio', 'empresa__nombre', 'solicitante']
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['requisiciones_listas_contraloria'] = Requisicion.objects.filter(estado='autorizada_compras')
+        return context
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -131,8 +137,10 @@ class RequisicionDetailView(PermissionRequiredMixin, BreadcrumbsMixin, DetailVie
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['puede_aprobar'] = self.get_object().puede_aprobar(self.request.user)
+        context['puede_cancelar'] = self.get_object().puede_cancelar(self.request.user)
         context['puede_confirmar'] = self.get_object().puede_confirmar(self.request.user)
         context['puede_enviar_al_aprobador'] = self.get_object().puede_enviar_al_aprobador(self.request.user)
+        context['puede_autorizar'] = self.get_object().puede_autorizar(self.request.user)
         return context
 
     def get_breadcrumbs(self):
@@ -162,7 +170,8 @@ class RequisicionConfirmView(PermissionRequiredMixin, View):
         contacto = getattr(self.request.user, 'contacto', usuario)
 
         if not requisicion.puede_confirmar(self.request.user):
-            raise PermissionDenied("No puedes confirmar esta requisición")
+            messages.error(request, "No tienes permiso para confirmar esta requisición.")
+            return redirect("papeleria:requisiciones__detail", pk=pk)
 
         requisicion.aprobo_solicitante = True
         requisicion.estado = 'confirmada'
@@ -185,7 +194,8 @@ class RequisicionRequestConfirmView(PermissionRequiredMixin, View):
         aprobador = getattr(requisicion.aprobador, 'contacto', requisicion.aprobador)
 
         if not requisicion.puede_enviar_al_aprobador(self.request.user):
-            raise PermissionDenied("No puedes solicitar aprobación de esta requisición")
+            messages.error(request, "No tienes permiso para solicitar aprobación esta requisición.")
+            return redirect("papeleria:requisiciones__detail", pk=pk)
 
         requisicion.estado = 'enviada_aprobador'
         requisicion.save(update_fields=['estado'])
@@ -196,6 +206,221 @@ class RequisicionRequestConfirmView(PermissionRequiredMixin, View):
                          f'{contacto} solicitó aprobar la requisición, se enviará una notificación a {aprobador}')
 
         return redirect('papeleria:requisiciones__detail', requisicion.id)
+
+
+class RequisicionAprobarView(PermissionRequiredMixin, View):
+    permission_required = ['papeleria.aprobar_requisicion']
+
+    def post(self, request, *args, pk=None, **kwargs):
+        requisicion = get_object_or_404(Requisicion, pk=pk)
+        usuario = self.request.user
+        contacto = getattr(self.request.user, 'contacto', usuario)
+
+        aprobador = getattr(requisicion.aprobador, 'contacto', requisicion.aprobador)
+        compras = getattr(requisicion.compras, 'contacto', requisicion.compras)
+
+        if not requisicion.puede_aprobar(self.request.user):
+            messages.error(request, "No tienes permiso para aprobar esta requisición.")
+            return redirect("papeleria:requisiciones__detail", pk=pk)
+
+        if requisicion.aprobador == usuario:
+            requisicion.aprobo_aprobador = True
+            requisicion.estado = 'autorizada_aprobador'
+
+            if requisicion.aprobador != requisicion.compras:
+                requisicion.estado = 'enviada_compras'
+
+        if requisicion.compras == usuario:
+            requisicion.aprobo_compras = True
+            requisicion.estado = 'autorizada_compras'
+
+        requisicion.save(update_fields=['aprobo_compras', 'aprobo_aprobador', 'estado'])
+        messages.success(request, f'{contacto} aprobó la requisición')
+
+        return redirect('papeleria:requisiciones__detail', requisicion.id)
+
+
+class RequisicionRechazarView(PermissionRequiredMixin, View):
+    permission_required = ['papeleria.cancelar_requisicion']
+
+    def post(self, request, *args, pk=None, **kwargs):
+        requisicion = get_object_or_404(Requisicion, pk=pk)
+        usuario = self.request.user
+        contacto = getattr(self.request.user, 'contacto', usuario)
+
+        aprobador = getattr(requisicion.aprobador, 'contacto', requisicion.aprobador)
+        compras = getattr(requisicion.compras, 'contacto', requisicion.compras)
+
+        razon = request.POST['razon']
+
+        if not requisicion.puede_cancelar(self.request.user):
+            messages.error(request, "No tienes permiso para rechazar esta requisición.")
+            return redirect("papeleria:requisiciones__detail", pk=pk)
+
+        if requisicion.aprobador == usuario:
+            requisicion.aprobo_aprobador = False
+
+        if requisicion.compras == usuario:
+            requisicion.aprobo_compras = False
+
+        requisicion.rechazador = usuario
+        requisicion.razon_rechazo = razon
+        requisicion.estado = 'cancelada'
+        requisicion.save(update_fields=['rechazador', 'razon_rechazo', 'aprobo_compras', 'estado'])
+
+        messages.error(request, f'{usuario} rechazó la requisición')
+
+        return redirect('papeleria:requisiciones__detail', requisicion.id)
+
+
+class RequisicionEnviarContraloriaView(PermissionRequiredMixin, View):
+    permission_required = ['papeleria.enviar_requisicion_contraloria']
+
+    def post(self, request, *args, **kwargs):
+        ids = request.POST.getlist("requisiciones[]")
+
+        if not ids:
+            messages.warning(
+                request,
+                "No se seleccionaron requisiciones para enviar a Contraloría."
+            )
+            return redirect("papeleria:requisiciones__list")
+
+        requisiciones = Requisicion.objects.filter(
+            pk__in=ids,
+            estado='autorizada_compras',
+        )
+
+        if not requisiciones.exists():
+            messages.error(
+                request,
+                "Las requisiciones seleccionadas no son válidas o ya fueron procesadas."
+            )
+            return redirect("papeleria:requisiciones__list")
+
+        procesadas = 0
+
+        for req in requisiciones:
+            # Transición de estado
+            req.estado = 'enviada_contraloria'
+            req.save(update_fields=[
+                "estado",
+            ])
+
+            procesadas += 1
+
+        messages.success(
+            request,
+            f"{procesadas} requisición(es) enviadas correctamente a Contraloría."
+        )
+
+        return redirect('papeleria:requisiciones__list')
+
+
+class RequisicionAutorizarView(PermissionRequiredMixin, View):
+    permission_required = ['papeleria.autorizar_requisicion']
+
+    def post(self, request, *args, pk=None, **kwargs):
+        requisicion = get_object_or_404(
+            Requisicion,
+            pk=pk,
+            estado="enviada_contraloria"
+        )
+
+        if not requisicion.puede_autorizar(request.user):
+            messages.error(request, "No tienes permiso para autorizar esta requisición.")
+            return redirect("papeleria:requisiciones__detail", pk=pk)
+
+        detalles = requisicion.detalle_requisicion.all()
+
+        autorizaciones = {}
+        total_autorizado = 0
+        total_solicitado = 0
+
+        for d in detalles:
+            key = f"autorizar_{d.id}"
+            cantidad_liberada = int(request.POST.get(key, 0))
+
+            if cantidad_liberada < 0 or cantidad_liberada > d.cantidad:
+                messages.error(
+                    request,
+                    f"Cantidad inválida para {d.articulo}."
+                )
+                return redirect("papeleria:requisiciones__detail", pk=pk)
+
+            autorizaciones[d.id] = cantidad_liberada
+            total_autorizado += cantidad_liberada
+            total_solicitado += d.cantidad
+
+        if total_autorizado == 0:
+            messages.warning(
+                request,
+                "No se liberó ninguna cantidad. La requisición permanece en Contraloría."
+            )
+            return redirect("papeleria:requisiciones__detail", pk=pk)
+
+        # ---------------------------
+        # Caso 1: Liberación total
+        # ---------------------------
+        if total_autorizado == total_solicitado:
+            for d in detalles:
+                d.cantidad_autorizada = d.cantidad
+                d.save(update_fields=["cantidad_autorizada"])
+
+            requisicion.estado = "autorizada_contraloria"
+            requisicion.aprobo_contraloria = True
+            requisicion.save(update_fields=["estado", "aprobo_contraloria"])
+
+            messages.success(request, "Requisición liberada completamente.")
+            return redirect("papeleria:requisiciones__detail", pk=pk)
+
+        # ---------------------------
+        # Caso 2: Liberación parcial
+        # ---------------------------
+        nueva_requisicion = Requisicion.objects.create(
+            requisicion_relacionada=requisicion,
+            solicitante=requisicion.solicitante,
+            aprobador=requisicion.aprobador,
+            compras=requisicion.compras,
+            contraloria=requisicion.contraloria,
+            empresa=requisicion.empresa,
+            estado="enviada_compras",
+            aprobo_solicitante=True,
+            aprobo_aprobador=True,
+        )
+
+        for d in detalles:
+            autorizada = autorizaciones[d.id]
+            pendiente = d.cantidad - autorizada
+
+            # Actualiza requisición original
+            d.cantidad_autorizada = autorizada
+            d.save(update_fields=["cantidad_autorizada"])
+
+            # Si queda pendiente → va a nueva requisición
+            if pendiente > 0:
+                DetalleRequisicion.objects.create(
+                    requisicion=nueva_requisicion,
+                    articulo=d.articulo,
+                    cantidad=pendiente,
+                    notas=d.notas,
+                )
+
+        requisicion.estado = "autorizada_contraloria"
+        requisicion.aprobo_contraloria = True
+        requisicion.autorizado_por = request.user
+        requisicion.fecha_autorizacion_contraloria = now()
+        requisicion.save(
+            update_fields=["estado", "aprobo_contraloria", "autorizado_por", "fecha_autorizacion_contraloria"]
+        )
+
+        messages.success(
+            request,
+            f"Requisición liberada parcialmente. "
+            f"Se generó la requisición {nueva_requisicion.folio}."
+        )
+
+        return redirect('papeleria:requisiciones__detail', pk)
 
 
 class RequisicionExcelView(View):

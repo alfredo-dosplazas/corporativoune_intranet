@@ -26,7 +26,12 @@
         <div>
             {{ user.contacto.empresa }}
             {{ user.contacto }}
-            {{ user.contacto.area.aprobador_papeleria.contacto|default:user.contacto.area.aprobador_papeleria }}
+            {% if user.contacto %}
+                {% if user.contacto.area %}
+                    {{ user.contacto.area.aprobador_papeleria.contacto|default:user.contacto.area.aprobador_papeleria }}
+                {% endif %}
+            {% endif %}
+
             {{ user.contacto.area }}
         </div>
     {% endif %}

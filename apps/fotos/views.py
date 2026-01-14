@@ -1,12 +1,14 @@
 import os
 
 from django.core.paginator import Paginator
-from django.http import Http404, FileResponse
+from django.http import Http404, FileResponse, HttpResponseForbidden
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.generic import TemplateView
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.utils.network import get_client_ip, ip_in_allowed_range
+from apps.fotos.decorators import internal_network_required
 from apps.fotos.utils import get_thumbnail
 from intranet import settings
 
@@ -16,6 +18,16 @@ IMAGENES_EXT = (".jpg", ".jpeg", ".png", ".webp", ".gif")
 class ExploradorFotosView(BreadcrumbsMixin, TemplateView):
     template_name = "apps/fotos/explorador.html"
     paginate_by = 24
+
+    def dispatch(self, request, *args, **kwargs):
+        ip = get_client_ip(request)
+
+        if not ip_in_allowed_range(ip):
+            return HttpResponseForbidden(
+                "Acceso permitido solo desde la red interna."
+            )
+
+        return super().dispatch(request, *args, **kwargs)
 
     def get_breadcrumbs(self):
         ruta = (self.kwargs.get("ruta") or "").strip("/")
@@ -82,6 +94,7 @@ class ExploradorFotosView(BreadcrumbsMixin, TemplateView):
         return context
 
 
+@internal_network_required
 def ver_foto(request, ruta):
     path = (settings.FOTOS_ROOT / ruta).resolve()
 

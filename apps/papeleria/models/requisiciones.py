@@ -60,6 +60,18 @@ class Requisicion(models.Model):
     aprobo_compras = models.BooleanField(default=False)
     aprobo_contraloria = models.BooleanField(default=False)
 
+    rechazador = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="requisiciones_papeleria_rechazador",
+    )
+    razon_rechazo = models.TextField(blank=True, null=True, verbose_name='Razón de rechazo')
+
+    fecha_autorizacion_contraloria = models.DateTimeField(blank=True, null=True)
+    autorizado_por = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True)
+
     empresa = models.ForeignKey(
         Empresa, on_delete=models.CASCADE, related_name="requisiciones_papeleria"
     )
@@ -101,27 +113,47 @@ class Requisicion(models.Model):
         return False
 
     def puede_confirmar(self, user):
-        if user.is_superuser:
+        if user.is_superuser and self.estado == 'borrador':
             return True
         if user == self.solicitante and self.estado == 'borrador':
             return True
         return False
 
     def puede_enviar_al_aprobador(self, user):
-        if user.is_superuser:
+        if user.is_superuser and self.estado == 'confirmada':
             return True
         if user == self.solicitante and self.estado == 'confirmada':
             return True
         return False
 
     def puede_aprobar(self, user):
-        if user.is_superuser:
+        if user.is_superuser and self.estado in ['enviada_aprobador', 'enviada_compras']:
+            return True
+        if user == self.aprobador and self.estado == "enviada_aprobador":
+            return True
+        if user == self.compras and self.estado == "enviada_compras":
+            return True
+        return False
+
+    def puede_cancelar(self, user):
+        if user.is_superuser and self.estado in ['borrador', 'confirmada', 'enviada_aprobador', 'autorizada_aprobador',
+                                                 'enviada_compras', 'autorizada_compras', 'enviada_contraloria',
+                                                 'autorizada_contraloria']:
+            return True
+        if user == self.solicitante and self.estado == "borrador":
             return True
         if user == self.aprobador and self.estado == "enviada_aprobador":
             return True
         if user == self.compras and self.estado == "enviada_compras":
             return True
         if user == self.contraloria and self.estado == "enviada_contraloria":
+            return True
+        return False
+
+    def puede_autorizar(self, user):
+        if user.is_superuser and self.estado == 'enviada_contraloria':
+            return True
+        if user == self.contraloria and self.estado == 'enviada_contraloria':
             return True
         return False
 
@@ -149,9 +181,15 @@ class Requisicion(models.Model):
         return self.folio
 
     class Meta:
-        ordering = ["empresa", "-created_at"]
+        ordering = ["-created_at"]
         verbose_name = "Requisición"
         verbose_name_plural = "Requisiciones"
+        permissions = [
+            ("aprobar_requisicion", "Aprobar Requisiciones"),
+            ("cancelar_requisicion", "Cancelar o Rechazar Requisiciones"),
+            ("enviar_requisicion_contraloria", "Envíar requisiciones aprobadas por compras a contraloría"),
+            ("autorizar_requisicion", "Autorizar Requisiciones (Contraloría)"),
+        ]
 
 
 class DetalleRequisicion(models.Model):
@@ -162,23 +200,23 @@ class DetalleRequisicion(models.Model):
         Articulo, on_delete=models.CASCADE, related_name="detalle_requisicion"
     )
     cantidad = models.PositiveIntegerField()
-    cantidad_liberada = models.PositiveIntegerField(default=0)
+    cantidad_autorizada = models.PositiveIntegerField(default=0)
     notas = models.TextField(blank=True, null=True)
 
     @property
     def cantidad_pendiente(self):
-        return self.cantidad - self.cantidad_liberada
+        return self.cantidad - self.cantidad_autorizada
 
     @property
     def subtotal(self):
-        if self.cantidad_liberada > 0:
-            return self.cantidad_liberada * self.articulo.importe
+        if self.cantidad_autorizada > 0:
+            return self.cantidad_autorizada * self.articulo.importe
         if self.cantidad:
             return self.cantidad * self.articulo.importe
         return 0
 
     def __str__(self):
-        return f"Detalle Requisición {self.requisicion} | {self.articulo} x {self.cantidad}"
+        return f"Detalle Requisición {self.requisicion} | {self.articulo} x {self.cantidad} : {self.cantidad_autorizada}"
 
     class Meta:
         unique_together = ["requisicion", "articulo"]
