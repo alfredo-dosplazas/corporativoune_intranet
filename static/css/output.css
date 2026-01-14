@@ -3380,6 +3380,12 @@
   .z-1 {
     z-index: 1;
   }
+  .order-1 {
+    order: 1;
+  }
+  .order-2 {
+    order: 2;
+  }
   .modal-box {
     @layer daisyui.l1.l2.l3 {
       grid-column-start: 1;
@@ -5606,6 +5612,11 @@
       gap: calc(var(--spacing) * 6);
     }
   }
+  .md\:order-none {
+    @media (width >= 48rem) {
+      order: 0;
+    }
+  }
   .md\:steps-horizontal {
     @media (width >= 48rem) {
       @layer daisyui.l1.l2 {
@@ -5671,6 +5682,11 @@
       display: block;
     }
   }
+  .md\:flex {
+    @media (width >= 48rem) {
+      display: flex;
+    }
+  }
   .md\:col {
     @media (width >= 48rem) {
       flex: 1 0 0%;
@@ -5732,6 +5748,11 @@
   .md\:justify-between {
     @media (width >= 48rem) {
       justify-content: space-between;
+    }
+  }
+  .md\:justify-self-end {
+    @media (width >= 48rem) {
+      justify-self: flex-end;
     }
   }
   .md\:text-base {

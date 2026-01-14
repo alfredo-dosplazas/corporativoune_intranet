@@ -3,16 +3,21 @@
         <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
 
             <!-- START -->
-            <div class="justify-self-start">
+            <div class="order-1 md:order-none">
                 <h1 class="font-bold text-xl flex items-center gap-2"><span class="icon-[mingcute--pic-fill]"></span>
                     Fotos</h1>
                 <h2 class="text-muted text-sm">Fotos de los eventos corporativos.</h2>
             </div>
 
-            {% if page_obj.paginator.num_pages > 1 %}
-                <!-- END -->
-                <div class="justify-self-end">
+            <!-- MIDDLE -->
+            <div class="hidden md:flex justify-self-center w-full justify-center">
 
+            </div>
+
+
+            <!-- END -->
+            <div class="order-2 md:order-none md:justify-self-end">
+                {% if page_obj.paginator.num_pages > 1 %}
                     <div class="flex justify-center mt-6 gap-2">
                         {% if page_obj.has_previous %}
                             <a href="?page={{ page_obj.previous_page_number }}"
@@ -28,8 +33,8 @@
                                class="btn btn-sm">→</a>
                         {% endif %}
                     </div>
-                </div>
-            {% endif %}
+                {% endif %}
+            </div>
 
         </div>
 
