@@ -56,11 +56,17 @@
             </div>
 
             <!-- LOGO EMPRESA -->
-            {% if contacto.empresa and contacto.empresa.logo %}
-                <div class="shrink-0">
-                    <img src="{{ contacto.empresa.logo.url }}"
-                         alt="{{ contacto.empresa.nombre }}"
-                         class="h-10 object-contain"/>
+            {% if contacto.empresa and contacto.empresa.abreviatura %}
+                <div class="shrink-0 flex items-center">
+                    <c-component
+                            is="apps.empresas.logos.{{ contacto.empresa.abreviatura }}"
+                            class="
+                                h-10 w-auto
+                                text-primary
+                                opacity-80
+                                print:opacity-100
+                            "
+                    />
                 </div>
             {% endif %}
         </div>
@@ -126,6 +132,7 @@
                 {% if contacto.slack_id %}
                     <a href="{{ contacto.slack_url }}"
                        class="btn btn-xs btn-outline btn-primary">
+                        <span class="icon-[devicon--slack]"></span>
                         Slack
                     </a>
                 {% endif %}

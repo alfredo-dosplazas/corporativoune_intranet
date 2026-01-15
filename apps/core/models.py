@@ -28,6 +28,10 @@ class Empresa(models.Model):
         blank=True,
     )
 
+    @property
+    def slug(self):
+        return self.nombre_corto.lower().replace(" ", "-")
+
     def __str__(self):
         return self.nombre
 

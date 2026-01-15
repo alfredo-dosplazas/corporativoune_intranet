@@ -5261,6 +5261,9 @@
   .w-80 {
     width: calc(var(--spacing) * 80);
   }
+  .w-auto {
+    width: auto;
+  }
   .w-full {
     width: 100%;
   }
@@ -6886,6 +6889,11 @@
   .print\:border-base-300 {
     @media print {
       border-color: var(--color-base-300);
+    }
+  }
+  .print\:opacity-100 {
+    @media print {
+      opacity: 100%;
     }
   }
   .print\:shadow-none {

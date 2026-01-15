@@ -8,7 +8,7 @@ from apps.rrhh.models.puestos import Puesto
 class AreaAdmin(admin.ModelAdmin):
     search_fields = ['nombre']
     autocomplete_fields = ['jefe_area', 'aprobador_papeleria']
-    list_display = ("nombre", "empresa")
+    list_display = ("nombre", "empresa", "jefe_area", "aprobador_papeleria")
 
 
 @admin.register(Puesto)

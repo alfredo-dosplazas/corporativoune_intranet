@@ -12,7 +12,7 @@ def rename_contacto_image(instance, filename):
     ext = filename.split(".")[-1]
     empresa = instance.empresa
     new_filename = f"{instance.nombre_completo}{f'_{instance.numero_empleado}' or ''}.{ext}"
-    return os.path.join(f"{empresa.slug}/usuarios/perfiles/", new_filename)
+    return os.path.join(f"{empresa.slug}/directorio/contactos/", new_filename)
 
 
 class EmailContacto(models.Model):
