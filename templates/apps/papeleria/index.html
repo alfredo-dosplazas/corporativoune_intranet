@@ -39,5 +39,15 @@
                 permiso="perms.papeleria.view_requisicion"
                 descripcion=""
         />
+
+        <c-shared.modulos.card
+                url="{% url 'papeleria:reportes__index' %}"
+                icono="icon-[streamline-pixel--business-products-data-file-bars]"
+                nombre="Reportes"
+                permiso="perms.papeleria.acceder_papeleria_reportes"
+                descripcion=""
+        />
+
+
     </div>
 </c-layouts.app>

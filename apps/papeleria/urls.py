@@ -4,6 +4,7 @@ from apps.papeleria.autocompletes.articulos import ArticuloAutocomplete
 from apps.papeleria.views import PapeleriaView
 from apps.papeleria.views.articulos import ArticuloListView, ArticuloCreateView, ArticuloUpdateView, ArticuloDetailView, \
     ArticuloDeleteView
+from apps.papeleria.views.reportes import ReportesPapeleriaView, AcumuladoArticuloView, AcumuladoArticuloExcelView
 from apps.papeleria.views.requisiciones import RequisicionListView, RequisicionCreateView, RequisicionUpdateView, \
     RequisicionDeleteView, RequisicionDetailView, RequisicionExcelView, RequisicionConfirmView, \
     RequisicionRequestConfirmView, RequisicionAprobarView, RequisicionRechazarView, RequisicionEnviarContraloriaView, \
@@ -48,5 +49,12 @@ requisiciones_urlpatterns = [
     path('requisiciones/excel/<int:pk>/', RequisicionExcelView.as_view(), name='requisiciones__excel'),
 ]
 
+reportes_urlpatterns = [
+    path('reportes/', ReportesPapeleriaView.as_view(), name='reportes__index'),
+    path('reportes/acumulado-articulos/', AcumuladoArticuloView.as_view(), name='reportes__acumulado_articulos'),
+    path('reportes/acumulado-articulos/excel/', AcumuladoArticuloExcelView.as_view(), name='reportes__acumulado_articulos_excel'),
+]
+
 urlpatterns += articulos_urlpatterns
 urlpatterns += requisiciones_urlpatterns
+urlpatterns += reportes_urlpatterns

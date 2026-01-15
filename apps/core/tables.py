@@ -6,6 +6,9 @@ from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 from django_tables2 import Table, Column
 
+class EmpresaBadgeColumn(Column):
+    def render(self, value):
+        return mark_safe(f"<span data-theme='{value.theme}' class='badge badge-primary'>{value}</span>")
 
 class ImageColumn(Column):
     def render(self, value):

@@ -16,7 +16,11 @@
 
             <!-- END -->
             <div class="justify-self-end">
-
+                {% if perms.directorio.add_contacto %}
+                    <a href="{% url 'directorio:create' %}" class="btn btn-sm btn-primary">
+                        CREAR
+                    </a>
+                {% endif %}
             </div>
 
         </div>

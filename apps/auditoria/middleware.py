@@ -18,5 +18,13 @@ class UserAccessLogMiddleware:
                 method=request.method,
                 user_agent=request.META.get("HTTP_USER_AGENT", "")
             )
+        else:
+            UserAccessLog.objects.create(
+                user=None,
+                ip_address=get_client_ip(request),
+                path=request.path,
+                method=request.method,
+                user_agent=request.META.get("HTTP_USER_AGENT", "")
+            )
 
         return response

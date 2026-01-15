@@ -18,5 +18,8 @@ class DetalleRequisicionInline(admin.TabularInline):
 
 @admin.register(Requisicion)
 class RequisicionAdmin(admin.ModelAdmin):
+    search_fields = ['folio']
     inlines = [DetalleRequisicionInline]
+    autocomplete_fields = ['requisicion_relacionada', 'solicitante', 'aprobador', 'compras', 'contraloria',
+                           'rechazador', 'autorizado_por', 'empresa']
     list_display = ['folio', 'solicitante', 'aprobador', 'compras', 'contraloria', 'created_at', 'updated_at']

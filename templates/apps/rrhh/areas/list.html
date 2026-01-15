@@ -6,17 +6,16 @@
             <!-- START -->
             <div class="justify-self-start">
                 <h1 class="font-bold text-xl flex items-center gap-2">Áreas</h1>
-                <h2 class="text-muted text-sm mb-2">Gestione las áreas del corporativo</h2>
+                <h2 class="text-muted text-sm">Gestione las áreas del corporativo</h2>
+            </div>
+
+            <!-- MIDDLE -->
+            <div class="justify-self-center w-full flex justify-center">
                 {% if perms.rrhh.add_area %}
                     <a href="{% url 'rrhh:areas__create' %}" class="btn btn-sm btn-primary">
                         CREAR
                     </a>
                 {% endif %}
-            </div>
-
-            <!-- MIDDLE -->
-            <div class="justify-self-center w-full flex justify-center">
-
             </div>
 
 

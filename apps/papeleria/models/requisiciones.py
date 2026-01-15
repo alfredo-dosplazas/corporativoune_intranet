@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import models
+from django.urls import reverse
 from django.utils.timezone import now
 
 from apps.core.models import Empresa
@@ -98,6 +99,9 @@ class Requisicion(models.Model):
     @property
     def total(self):
         return sum([dr.subtotal for dr in self.detalle_requisicion.all()])
+
+    def get_absolute_url(self):
+        return reverse('papeleria:requisiciones__detail', args=(self.pk,))
 
     def puede_ver(self, usuario: User):
         if usuario.is_superuser:

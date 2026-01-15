@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
@@ -18,6 +20,8 @@ from apps.papeleria.inlines import DetalleRequisicionInline
 from apps.papeleria.models.requisiciones import Requisicion, DetalleRequisicion
 from apps.papeleria.services.requisicion_excel import requisicion_excel
 from apps.papeleria.tables.requisiciones import RequisicionTable
+
+from apps.slack.tasks import enviar_slack_task
 
 
 class RequisicionListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMixin, SingleTableMixin, ListView):
@@ -200,7 +204,21 @@ class RequisicionRequestConfirmView(PermissionRequiredMixin, View):
         requisicion.estado = 'enviada_aprobador'
         requisicion.save(update_fields=['estado'])
 
-        # Enviar notificación al aprobador en segundo plano: Slack o Email
+        if aprobador.slack_id:
+            mensaje = (
+                "*Tienes una requisición pendiente de aprobación*\n"
+                f"Requisición: #{requisicion.folio}\n"
+                f"Solicitante: {requisicion.solicitante}\n"
+                f"Monto: ${requisicion.total:,.2f}\n"
+                f"<{request.build_absolute_uri(requisicion.get_absolute_url())}|👉 Aprobar requisición>"
+            )
+
+            enviar_slack_task.delay(
+                slack_id=aprobador.slack_id,
+                mensaje=mensaje,
+            )
+        else:
+            print("enviar un correo")
 
         messages.success(request,
                          f'{contacto} solicitó aprobar la requisición, se enviará una notificación a {aprobador}')
@@ -216,6 +234,7 @@ class RequisicionAprobarView(PermissionRequiredMixin, View):
         usuario = self.request.user
         contacto = getattr(self.request.user, 'contacto', usuario)
 
+        solicitante = getattr(requisicion.solicitante, 'contacto', requisicion.solicitante)
         aprobador = getattr(requisicion.aprobador, 'contacto', requisicion.aprobador)
         compras = getattr(requisicion.compras, 'contacto', requisicion.compras)
 
@@ -227,12 +246,41 @@ class RequisicionAprobarView(PermissionRequiredMixin, View):
             requisicion.aprobo_aprobador = True
             requisicion.estado = 'autorizada_aprobador'
 
-            if requisicion.aprobador != requisicion.compras:
-                requisicion.estado = 'enviada_compras'
-
         if requisicion.compras == usuario:
             requisicion.aprobo_compras = True
             requisicion.estado = 'autorizada_compras'
+
+        if requisicion.compras != requisicion.aprobador and requisicion.estado == 'autorizada_aprobador':
+            requisicion.estado = 'enviada_compras'
+            if compras.slack_id:
+                mensaje = (
+                    "*Tienes una requisición pendiente de aprobación*\n"
+                    f"Requisición: #{requisicion.folio}\n"
+                    f"Solicitante: {requisicion.solicitante}\n"
+                    f"Monto: ${requisicion.total:,.2f}\n"
+                    f"<{request.build_absolute_uri(requisicion.get_absolute_url())}|👉 Aprobar requisición>"
+                )
+
+                enviar_slack_task.delay(
+                    slack_id=solicitante.slack_id,
+                    mensaje=mensaje,
+                )
+
+        if solicitante.slack_id:
+            mensaje = (
+                "✅ *Tu requisición fue aprobada*\n\n"
+                f"*Requisición:* #{requisicion.folio}\n"
+                f"*Aprobó:* {contacto}\n"
+                f"*Monto:* ${requisicion.total:,.2f}\n\n"
+                f"<{request.build_absolute_uri(requisicion.get_absolute_url())}|🔎 Ver requisición>"
+            )
+
+            enviar_slack_task.delay(
+                slack_id=solicitante.slack_id,
+                mensaje=mensaje,
+            )
+        else:
+            print("enviar un correo")
 
         requisicion.save(update_fields=['aprobo_compras', 'aprobo_aprobador', 'estado'])
         messages.success(request, f'{contacto} aprobó la requisición')
@@ -248,6 +296,7 @@ class RequisicionRechazarView(PermissionRequiredMixin, View):
         usuario = self.request.user
         contacto = getattr(self.request.user, 'contacto', usuario)
 
+        solicitante = getattr(requisicion.solicitante, 'contacto', requisicion.solicitante)
         aprobador = getattr(requisicion.aprobador, 'contacto', requisicion.aprobador)
         compras = getattr(requisicion.compras, 'contacto', requisicion.compras)
 
@@ -263,10 +312,31 @@ class RequisicionRechazarView(PermissionRequiredMixin, View):
         if requisicion.compras == usuario:
             requisicion.aprobo_compras = False
 
+        if requisicion.contraloria == usuario:
+            requisicion.aprobo_contraloria = False
+
         requisicion.rechazador = usuario
         requisicion.razon_rechazo = razon
         requisicion.estado = 'cancelada'
-        requisicion.save(update_fields=['rechazador', 'razon_rechazo', 'aprobo_compras', 'estado'])
+        requisicion.save(
+            update_fields=['rechazador', 'razon_rechazo', 'aprobo_aprobador', 'aprobo_compras', 'aprobo_contraloria',
+                           'estado'])
+
+        if solicitante.slack_id:
+            mensaje = (
+                "❌ *Tu requisición fue rechazada*\n\n"
+                f"*Requisición:* #{requisicion.folio}\n"
+                f"*Revisó:* {contacto}\n"
+                f"*Motivo:* {requisicion.razon_rechazo}\n\n"
+                f"<{request.build_absolute_uri(requisicion.get_absolute_url())}|🔎 Ver requisición>"
+            )
+
+            enviar_slack_task.delay(
+                slack_id=solicitante.slack_id,
+                mensaje=mensaje,
+            )
+        else:
+            print("enviar un correo")
 
         messages.error(request, f'{usuario} rechazó la requisición')
 
@@ -298,20 +368,49 @@ class RequisicionEnviarContraloriaView(PermissionRequiredMixin, View):
             )
             return redirect("papeleria:requisiciones__list")
 
-        procesadas = 0
+        req_procesadas = []
 
         for req in requisiciones:
-            # Transición de estado
             req.estado = 'enviada_contraloria'
-            req.save(update_fields=[
-                "estado",
-            ])
+            req.save(update_fields=["estado"])
+            req_procesadas.append(req)
 
-            procesadas += 1
+        requisiciones_por_contraloria = defaultdict(list)
+
+        for req in req_procesadas:
+            if req.contraloria:
+                requisiciones_por_contraloria[req.contraloria].append(req)
+
+        for contraloria, reqs in requisiciones_por_contraloria.items():
+            lineas = []
+
+            for req in reqs:
+                url = request.build_absolute_uri(req.get_absolute_url())
+                lineas.append(
+                    f"• Requisición #{req.folio} "
+                    f"(${req.total:,.2f}) "
+                    f"<{url}|Ver>"
+                )
+
+            mensaje = (
+                    "📌 *Requisiciones pendientes de aprobación*\n\n"
+                    "Las siguientes requisiciones requieren tu revisión:\n\n"
+                    + "\n".join(lineas)
+            )
+
+            contraloria = getattr(contraloria, 'contacto', contraloria)
+
+            if contraloria.slack_id:
+                enviar_slack_task.delay(
+                    slack_id=contraloria.slack_id,
+                    mensaje=mensaje,
+                )
+            else:
+                print(f"Enviar correo a {contraloria}")
 
         messages.success(
             request,
-            f"{procesadas} requisición(es) enviadas correctamente a Contraloría."
+            f"{len(req_procesadas)} requisición(es) enviadas correctamente a Contraloría."
         )
 
         return redirect('papeleria:requisiciones__list')
@@ -326,6 +425,9 @@ class RequisicionAutorizarView(PermissionRequiredMixin, View):
             pk=pk,
             estado="enviada_contraloria"
         )
+
+        solicitante = getattr(requisicion.solicitante, 'contacto', requisicion.solicitante)
+        contacto = getattr(request.user, 'contacto', request.user)
 
         if not requisicion.puede_autorizar(request.user):
             messages.error(request, "No tienes permiso para autorizar esta requisición.")
@@ -371,6 +473,22 @@ class RequisicionAutorizarView(PermissionRequiredMixin, View):
             requisicion.aprobo_contraloria = True
             requisicion.save(update_fields=["estado", "aprobo_contraloria"])
 
+            if solicitante.slack_id:
+                mensaje = (
+                    "✅ *Tu requisición fue autorizada*\n\n"
+                    f"*Requisición:* #{requisicion.folio}\n"
+                    f"*Autorízó:* {contacto}\n"
+                    f"*Monto:* ${requisicion.total:,.2f}\n\n"
+                    f"<{request.build_absolute_uri(requisicion.get_absolute_url())}|🔎 Ver requisición>"
+                )
+
+                enviar_slack_task.delay(
+                    slack_id=solicitante.slack_id,
+                    mensaje=mensaje,
+                )
+            else:
+                print("enviar un correo")
+
             messages.success(request, "Requisición liberada completamente.")
             return redirect("papeleria:requisiciones__detail", pk=pk)
 
@@ -413,6 +531,22 @@ class RequisicionAutorizarView(PermissionRequiredMixin, View):
         requisicion.save(
             update_fields=["estado", "aprobo_contraloria", "autorizado_por", "fecha_autorizacion_contraloria"]
         )
+
+        if solicitante.slack_id:
+            mensaje = (
+                "✅ *Tu requisición fue autorizada parcialmente*\n\n"
+                f"*Requisición:* #{requisicion.folio}\n"
+                f"*Autorízó:* {contacto}\n"
+                f"*Monto:* ${requisicion.total:,.2f}\n\n"
+                f"<{request.build_absolute_uri(requisicion.get_absolute_url())}|🔎 Ver requisición>"
+            )
+
+            enviar_slack_task.delay(
+                slack_id=solicitante.slack_id,
+                mensaje=mensaje,
+            )
+        else:
+            print("enviar un correo")
 
         messages.success(
             request,

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.core.models import Modulo, Empresa, ModuloEmpresa
+from apps.core.models import Modulo, Empresa, ModuloEmpresa, RazonSocial
 from apps.papeleria.models.configuracion import ConfiguracionEmpresaPapeleria
 
 
@@ -17,6 +17,11 @@ class ConfiguracionPapeleriaInline(admin.TabularInline):
     min_num = 1
     max_num = 1
     validate_min = True
+
+
+@admin.register(RazonSocial)
+class RazonSocialAdmin(admin.ModelAdmin):
+    list_display = ['nombre']
 
 
 @admin.register(Empresa)

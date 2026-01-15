@@ -1,0 +1,76 @@
+{% load crispy_forms_tags %}
+{% load django_tables2 %}
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <!-- START -->
+            <div class="justify-self-start">
+                <h1 class="font-bold text-xl flex items-center gap-2">Acumulado De Artículos</h1>
+            </div>
+
+            <!-- MIDDLE -->
+            <div class="justify-self-center w-full flex justify-center">
+
+            </div>
+
+
+            <!-- END -->
+            <div class="justify-self-end flex items-center gap-2">
+                <div class="flex items-center gap-2">
+                    <label for="filter-drawer" class="drawer-button btn btn-ghost btn-sm">
+                        <span class="icon-[mdi--filter-outline]"></span>
+                        Filtros
+                    </label>
+
+                    {% if is_filtered %}
+                        <span class="badge badge-primary badge-outline">
+                                Filtros activos
+                            </span>
+                    {% endif %}
+                </div>
+
+                <a href="{% url 'papeleria:reportes__acumulado_articulos_excel' %}{% querystring %}"
+                   class="btn bg-[#20744a] text-white btn-sm">
+                    <span class="icon-[file-icons--microsoft-excel]"></span>
+                    Excel
+                </a>
+            </div>
+        </div>
+
+    </c-slot>
+
+    <div class="drawer drawer-end">
+        <input id="filter-drawer" type="checkbox" class="drawer-toggle"/>
+        <div class="drawer-content">
+        </div>
+        <div class="drawer-side">
+            <label for="filter-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+            <div class="bg-base-200 min-h-full w-80 p-4">
+                <form method="get" class="flex flex-col h-full">
+
+                    <!-- CONTENIDO SCROLLABLE -->
+                    <div class="flex-1 overflow-y-auto pr-2 space-y-4">
+                        {% crispy filter %}
+                    </div>
+
+                    <!-- BARRA INFERIOR -->
+                    <div class="border-t pt-4 mt-4 flex gap-2 sticky bottom-0">
+                        <a href="{% url request.resolver_match.view_name %}"
+                           class="btn btn-outline btn-sm w-1/2">
+                            Limpiar
+                        </a>
+
+                        <button type="submit"
+                                class="btn btn-primary btn-sm w-1/2">
+                            Filtrar
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% render_table table %}
+</c-layouts.app>

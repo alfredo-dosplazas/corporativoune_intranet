@@ -40,12 +40,14 @@ INSTALLED_APPS = [
     'crispy_forms',
     'django_tables2',
     'extra_views',
+    'django_filters',
     'apps.core',
     'apps.auditoria',
     'apps.rrhh',
     'apps.papeleria',
     'apps.directorio',
     'apps.fotos',
+    'apps.slack',
 ]
 
 MIDDLEWARE = [
@@ -141,3 +143,43 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "daisyui5"
 CRISPY_TEMPLATE_PACK = "daisyui5"
 
 DJANGO_TABLES2_TEMPLATE = "django_tables2/daisyui5.html"
+
+SLACK_BOT_TOKEN = env('SLACK_BOT_TOKEN')
+SLACK_TEAM_ID = env('SLACK_TEAM_ID')
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+
+    "formatters": {
+        "simple": {
+            "format": "[{levelname}] {name}: {message}",
+            "style": "{",
+        },
+        "verbose": {
+            "format": "[{asctime}] {levelname} {name} ({funcName}) :: {message}",
+            "style": "{",
+        },
+    },
+
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "signals_file": {
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "logs/signals.log",
+            "formatter": "verbose",
+        },
+    },
+
+    "loggers": {
+        # Logger específico para signals
+        "signals": {
+            "handlers": ["console", "signals_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}

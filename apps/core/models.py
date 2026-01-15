@@ -1,6 +1,18 @@
 from django.db import models
 
 
+class RazonSocial(models.Model):
+    nombre = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.nombre
+
+    class Meta:
+        verbose_name_plural = "Razones sociales"
+        verbose_name = "Razón social"
+        ordering = ['nombre']
+
+
 class Empresa(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     nombre_corto = models.CharField(max_length=100, unique=True)

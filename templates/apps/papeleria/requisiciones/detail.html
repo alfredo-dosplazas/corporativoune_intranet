@@ -72,14 +72,14 @@
         <div class="card bg-base-100 shadow">
             <div class="card-body p-4">
                 <p class="text-sm opacity-60">Solicitante</p>
-                <p class="font-semibold">{{ requisicion.solicitante.get_full_name }}</p>
+                <p class="font-semibold">{{ requisicion.solicitante.contacto }}</p>
             </div>
         </div>
 
         <div class="card bg-base-100 shadow">
             <div class="card-body p-4">
                 <p class="text-sm opacity-60">Empresa</p>
-                <p class="font-semibold">{{ requisicion.empresa }}</p>
+                <p class="font-semibold">{{ requisicion.empresa }} <span class="font-normal text-base-content text-muted">({{ requisicion.solicitante.contacto.area.nombre|default:'Área no asignada' }})</span></p>
             </div>
         </div>
 

@@ -1,5 +1,6 @@
 import os
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
 
@@ -54,7 +55,9 @@ class Contacto(models.Model):
 
     empresa = models.ForeignKey(
         Empresa,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
         related_name="usuarios",
         help_text="Empresa en la que está dado de alta administrativamente (nómina).",
     )
@@ -98,8 +101,24 @@ class Contacto(models.Model):
         )
 
     @property
+    def email_principal(self):
+        return (
+            self.emails
+            .filter(es_principal=True, esta_activo=True)
+            .first()
+        )
+
+    @property
+    def telefono_principal(self):
+        return (
+            self.telefonos
+            .filter(es_principal=True, esta_activo=True)
+            .first()
+        )
+
+    @property
     def slack_url(self):
-        return f"slack://user?team=T07RU6L5Y74&id={self.slack_id}"
+        return f"slack://user?team={settings.SLACK_TEAM_ID}&id={self.slack_id}"
 
     def __str__(self):
         return f"{self.nombre_completo}"

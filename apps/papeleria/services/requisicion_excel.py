@@ -60,10 +60,11 @@ def requisicion_excel(requisicion: Requisicion):
     datos = [
         ("Empresa:", requisicion.empresa.nombre),
         ("Folio:", requisicion.folio),
-        ("Solicitante:", getattr(getattr(requisicion.solicitante, 'contacto', requisicion.solicitante.get_full_name()),
-                                 'nombre_completo', '')),
-        ("Departamento:",
-         requisicion.solicitante.profile.departamento if hasattr(requisicion.solicitante, "profile") else ""),
+        ("Solicitante:", requisicion.solicitante.contacto.nombre_completo),
+        (
+            "Departamento:",
+            requisicion.solicitante.contacto.area.nombre if requisicion.solicitante.contacto.area else ''
+        ),
         ("Fecha solicitud:", localtime(requisicion.created_at).strftime("%d/%m/%Y")),
     ]
 
@@ -84,7 +85,7 @@ def requisicion_excel(requisicion: Requisicion):
         "Número Papelería",
         "Artículo",
         "Cantidad",
-        "Cant. liberada",
+        "Cant. Autorizada",
         "Unidad",
         "Precio",
         "Impuesto",
@@ -109,7 +110,7 @@ def requisicion_excel(requisicion: Requisicion):
         ws[f"B{fila}"] = detalle.articulo.numero_papeleria
         ws[f"C{fila}"] = detalle.articulo.nombre
         ws[f"D{fila}"] = detalle.cantidad
-        ws[f"E{fila}"] = detalle.cantidad_liberada
+        ws[f"E{fila}"] = detalle.cantidad_autorizada
         ws[f"F{fila}"] = detalle.articulo.unidad.clave
         ws[f"G{fila}"] = detalle.articulo.precio
         ws[f"H{fila}"] = detalle.articulo.impuesto
