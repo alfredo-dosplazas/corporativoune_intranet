@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django_tables2',
     'extra_views',
     'django_filters',
+    'import_export',
     'apps.core',
     'apps.auditoria',
     'apps.rrhh',

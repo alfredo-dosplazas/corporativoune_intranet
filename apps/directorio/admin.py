@@ -1,6 +1,8 @@
 from django.contrib import admin, messages
+from import_export.admin import ImportExportActionModelAdmin
 
 from apps.directorio.models import Contacto, EmailContacto, TelefonoContacto
+from apps.directorio.resources import ContactoResource
 from apps.slack.tasks import enviar_slack_task
 
 
@@ -15,11 +17,13 @@ class EmailContactoInline(admin.TabularInline):
 
 
 @admin.register(Contacto)
-class ContactoAdmin(admin.ModelAdmin):
-    search_fields = ['prmer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido']
+class ContactoAdmin(ImportExportActionModelAdmin):
+    search_fields = ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido']
     autocomplete_fields = ('usuario', 'empresa', 'area', 'jefe_directo')
     list_display = ['nombre_completo']
     inlines = [EmailContactoInline, TelefonoContactoInline]
+
+    resource_class = ContactoResource
 
     actions = ['enviar_mensaje_slack']
 

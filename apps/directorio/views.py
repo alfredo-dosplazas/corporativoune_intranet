@@ -12,7 +12,7 @@ class DirectorioListView(PermissionRequiredMixin, BreadcrumbsMixin, ListView):
 
     template_name = "apps/directorio/list.html"
     model = Contacto
-    paginate_by = 20
+    paginate_by = 18
     context_object_name = 'contactos'
 
     def get_queryset(self):
