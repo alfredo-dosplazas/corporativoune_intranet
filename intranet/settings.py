@@ -43,12 +43,13 @@ INSTALLED_APPS = [
     'django_filters',
     'import_export',
     'apps.core',
+    'apps.slack',
     'apps.auditoria',
     'apps.rrhh',
     'apps.papeleria',
     'apps.directorio',
     'apps.fotos',
-    'apps.slack',
+    'apps.monitoreo_servicios',
 ]
 
 MIDDLEWARE = [
@@ -140,6 +141,12 @@ LOGIN_REDIRECT_URL = "/"
 
 LOGOUT_REDIRECT_URL = "/"
 
+EMAIL_USE_TLS = True
+EMAIL_HOST = env('EMAIL_HOST')
+EMAIL_PORT = env('EMAIL_PORT')
+EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+
 CRISPY_ALLOWED_TEMPLATE_PACKS = "daisyui5"
 CRISPY_TEMPLATE_PACK = "daisyui5"
 
@@ -147,6 +154,17 @@ DJANGO_TABLES2_TEMPLATE = "django_tables2/daisyui5.html"
 
 SLACK_BOT_TOKEN = env('SLACK_BOT_TOKEN')
 SLACK_TEAM_ID = env('SLACK_TEAM_ID')
+
+CCTV_USER = env('CCTV_USER')
+CCTV_PASSWORD = env('CCTV_PASSWORD')
+
+PBX_USER = env('PBX_USER')
+PBX_PASSWORD = env('PBX_PASSWORD')
+
+IDRAC_USER = env('IDRAC_USER')
+IDRAC_PASSWORD = env('IDRAC_PASSWORD')
+
+CORREO_SOPORTE_TI = env('CORREO_SOPORTE_TI')
 
 LOGGING = {
     "version": 1,
@@ -179,6 +197,16 @@ LOGGING = {
         # Logger específico para signals
         "signals": {
             "handlers": ["console", "signals_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "monitoreo_servicios.services.pbx": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "monitoreo_servicios.services.idrac": {
+            "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
         },

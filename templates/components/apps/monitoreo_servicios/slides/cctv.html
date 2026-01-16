@@ -1,0 +1,126 @@
+<section id="slide-cctv"
+         class="reporte-slide bg-white p-6 rounded-xl shadow-md w-[1200px] space-y-6">
+
+    <!-- HEADER -->
+    <div class="border-b pb-4">
+        <h2 class="text-2xl font-bold text-primary flex items-center gap-2">
+            📷 Reporte de Cámaras CCTV
+        </h2>
+        <p class="text-sm text-gray-600 mt-1">
+            Estado operativo de cámaras y grabación en NVR.
+        </p>
+    </div>
+
+    <!-- RESUMEN GENERAL -->
+    <div class="grid grid-cols-3 gap-4">
+
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Total Cámaras</div>
+            <div class="stat-value text-primary">{{ total_camaras }}</div>
+        </div>
+
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Operativas</div>
+            <div class="stat-value text-success">{{ camaras_ok }}</div>
+        </div>
+
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Sin señal</div>
+            <div class="stat-value text-error">{{ camaras_falla }}</div>
+        </div>
+
+    </div>
+
+    <!-- DETALLE POR NVR -->
+    {% for nvr in reporte_cctv %}
+        <div class="border rounded-lg p-4 space-y-3">
+
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-lg text-secondary">
+                    {{ nvr.nvr }}
+                </h3>
+
+                <div class="text-sm text-gray-500">
+                    Grabando desde:
+                    <strong>
+                        {% if nvr.grabando_desde %}
+                            {{ nvr.grabando_desde|date:"d/m/Y H:i" }}
+                        {% else %} —
+                        {% endif %}
+                    </strong>
+                    |
+                    Hasta:
+                    <strong>
+                        {% if nvr.grabando_hasta %}
+                            {{ nvr.grabando_hasta|date:"d/m/Y H:i" }}
+                        {% else %} —
+                        {% endif %}
+                    </strong>
+                </div>
+
+                <div class="text-sm text-gray-500">
+                    Total: {{ nvr.total }} |
+                    OK: {{ nvr.operativas }} |
+                    Fallas: {{ nvr.sin_senal }}
+                </div>
+            </div>
+
+            <!-- TABLA CAMARAS -->
+            <div class="overflow-x-auto">
+                <table class="table table-zebra table-sm w-full">
+                    <thead>
+                    <tr>
+                        <th>Snapshot</th>
+                        <th>Cámara</th>
+                        <th>IP</th>
+                        <th>Estado</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+
+                    {% for cam in nvr.camaras %}
+                        <tr>
+                            <td>
+                                {% if cam.snapshot_base64 %}
+                                    <img
+                                            src="data:image/jpeg;base64,{{ cam.snapshot_base64 }}"
+                                            class="w-32 rounded border"
+                                            alt="{{ cam.ip }}"
+                                    >
+                                {% else %}
+                                    <span class="text-error text-xs">Sin imagen</span>
+                                {% endif %}
+                            </td>
+
+                            <td class="font-medium">{{ cam.nombre }}</td>
+                            <td>{{ cam.ip }}</td>
+
+                            <td>
+                                {% if cam.estado == "online" %}
+                                    <span class="badge badge-success">Operativa</span>
+                                {% else %}
+                                    <span class="badge badge-error">Sin señal</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endfor %}
+
+    <!-- FOOTER -->
+    <div class="flex justify-between text-xs text-gray-500 border-t pt-3">
+        <div>
+            Generado por:
+            <span class="font-medium">{{ request.user.contacto }}</span>
+        </div>
+        <div>
+            Fecha de generación:
+            {% now 'd/m/Y H:i' %}
+        </div>
+    </div>
+
+</section>

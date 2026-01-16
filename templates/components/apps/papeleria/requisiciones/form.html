@@ -6,16 +6,23 @@
 <form id="requisicion-form" method="post" novalidate>
     {% csrf_token %}
 
+    <!-- ===================== -->
+    <!-- FORM PRINCIPAL -->
+    <!-- ===================== -->
     <div class="card bg-base-100 shadow mb-4">
         <div class="card-body">
             {% crispy form %}
         </div>
     </div>
 
+    <!-- ===================== -->
+    <!-- DETALLE / INLINE FORMSET -->
+    <!-- ===================== -->
     <div class="card bg-base-100 shadow">
-        <div class="card-body">
+        <div class="card-body space-y-3">
+
             {% if Detalle.non_form_errors %}
-                <div class="alert alert-error mb-4">
+                <div class="alert alert-error text-sm">
                     <ul class="list-disc pl-5">
                         {% for error in Detalle.non_form_errors %}
                             <li>{{ error }}</li>
@@ -26,26 +33,25 @@
 
             {{ Detalle.management_form }}
 
+            <!-- TEMPLATE VACÍO -->
             <div id="empty_row" class="hidden">
                 <table>
                     <tbody>
-                    <tr class="form-row">
+                    <tr class="form-row hover">
                         <td>
                             {{ Detalle.empty_form.id }}
                             {{ Detalle.empty_form.articulo|as_crispy_field }}
 
-                            <div class="link-articulo hidden">
-                                <a target="_blank">Ver artículo</a>
+                            <div class="link-articulo hidden text-xs mt-1">
+                                <a target="_blank" class="link link-primary">Ver</a>
                             </div>
                         </td>
-
                         <td>{{ Detalle.empty_form.cantidad|as_crispy_field }}</td>
                         <td>{{ Detalle.empty_form.notas|as_crispy_field }}</td>
-
-                        <td class="precio">-</td>
-                        <td class="impuesto">-</td>
-                        <td class="importe">-</td>
-                        <td class="subtotal">-</td>
+                        <td class="precio text-right">-</td>
+                        <td class="impuesto text-right">-</td>
+                        <td class="importe text-right">-</td>
+                        <td class="subtotal text-right font-medium">-</td>
 
                         {% if perms.papeleria.delete_detallerequisicion %}
                             <td class="text-center align-middle">
@@ -57,67 +63,76 @@
                 </table>
             </div>
 
-            <div class="flex justify-end mb-2">
-                <button class="btn btn-sm btn-secondary" type="button" id="add-form">Agregar Artículo</button>
-            </div>
-            <div class="overflow-x-auto h-80">
-                <table id="table-detalle" class="formset table table-sm w-full">
-                    <thead>
+            <!-- TABLA -->
+            <div class="overflow-x-auto relative">
+                <table
+                        id="table-detalle"
+                        class="formset table table-sm table-zebra w-full text-sm"
+                >
+                    <thead class="sticky top-0 bg-base-200 z-10">
                     <tr>
                         <th>Artículo</th>
-                        <th>Cantidad</th>
+                        <th class="w-24">Cant.</th>
                         <th>Notas</th>
-                        <th>Precio</th>
-                        <th>Impuesto</th>
-                        <th>Importe</th>
-                        <th>Subtotal</th>
+                        <th class="text-right">Precio</th>
+                        <th class="text-right">Imp.</th>
+                        <th class="text-right">Importe</th>
+                        <th class="text-right">Subtotal</th>
                         {% if perms.papeleria.delete_detallerequisicion %}
-                            <th class="text-center">Eliminar</th>
+                            <th class="text-center w-16">✕</th>
                         {% endif %}
                     </tr>
                     </thead>
 
                     <tbody>
                     {% for inline_form in Detalle %}
-                        <tr class="form-row {% if inline_form.errors %}bg-error/10{% endif %}">
+                        <tr
+                                class="form-row hover
+                            {% if inline_form.errors %}bg-error/10 border-l-4 border-error{% endif %}"
+                        >
                             <td>
                                 {{ inline_form.id }}
 
-                                {{ inline_form.articulo|as_crispy_field }}
+                                <div class="space-y-1">
+                                    {{ inline_form.articulo|as_crispy_field }}
 
-                                {% if inline_form.non_field_errors %}
-                                    <div class="text-error text-sm mt-1">
-                                        {% for error in inline_form.non_field_errors %}
-                                            <p>{{ error }}</p>
-                                        {% endfor %}
+                                    {% if inline_form.non_field_errors %}
+                                        <div class="text-error text-xs">
+                                            {% for error in inline_form.non_field_errors %}
+                                                <p>{{ error }}</p>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+
+                                    <div
+                                            class="link-articulo text-xs
+                                        {% if not inline_form.instance.articulo %}hidden{% endif %}"
+                                    >
+                                        <a
+                                                target="_blank"
+                                                href="{{ inline_form.instance.articulo.get_absolute_url }}"
+                                                class="link link-primary"
+                                        >
+                                            Ver artículo
+                                        </a>
                                     </div>
-                                {% endif %}
-
-                                <div class="link-articulo {% if not inline_form.instance.articulo %}hidden{% endif %}">
-                                    <a target="_blank" href="{{ inline_form.instance.articulo.get_absolute_url }}">Ver
-                                        artículo</a>
                                 </div>
                             </td>
 
-                            <td>
-                                {{ inline_form.cantidad|as_crispy_field }}
-                            </td>
+                            <td>{{ inline_form.cantidad|as_crispy_field }}</td>
+                            <td>{{ inline_form.notas|as_crispy_field }}</td>
 
-                            <td>
-                                {{ inline_form.notas|as_crispy_field }}
+                            <td class="precio text-right">
+                                {{ inline_form.instance.articulo.precio|money|default:"-" }}
                             </td>
-
-                            <td class="precio">
-                                {{ inline_form.instance.articulo.precio|money|default:'-' }}
+                            <td class="impuesto text-right">
+                                {{ inline_form.instance.articulo.impuesto|percent|default:"-" }}
                             </td>
-                            <td class="impuesto">
-                                {{ inline_form.instance.articulo.impuesto|percent|default:'-' }}
+                            <td class="importe text-right">
+                                {{ inline_form.instance.articulo.importe|money|default:"-" }}
                             </td>
-                            <td class="importe">
-                                {{ inline_form.instance.articulo.importe|money|default:'-' }}
-                            </td>
-                            <td class="subtotal">
-                                {{ inline_form.instance.subtotal|money|default:'-' }}
+                            <td class="subtotal text-right font-medium">
+                                {{ inline_form.instance.subtotal|money|default:"-" }}
                             </td>
 
                             {% if perms.papeleria.delete_detallerequisicion %}
@@ -125,32 +140,44 @@
                                     {{ inline_form.DELETE|as_crispy_field }}
                                 </td>
                             {% endif %}
-
                         </tr>
                     {% endfor %}
+
                     </tbody>
 
-                    <tfoot>
+                    <!-- TOTAL STICKY -->
+                    <tfoot class="sticky bottom-0 bg-base-200 font-semibold">
                     <tr>
-                        <th></th>
-                        <th></th>
-                        <th></th>
-                        <th></th>
-                        <th></th>
-                        <th>Total:</th>
-                        <th>
+                        <th colspan="5"></th>
+                        <th class="text-right">Total</th>
+                        <th id="total-general" class="text-right">
                             {% if form.instance.pk %}
                                 {{ form.instance.total|money }}
+                            {% else %}
+                                0.00
                             {% endif %}
                         </th>
+                        {% if perms.papeleria.delete_detallerequisicion %}
+                            <th></th>
+                        {% endif %}
                     </tr>
                     </tfoot>
                 </table>
+
+                <div class="flex justify-start w-full bg-base-100 p-4 border border-base-300">
+                    <button
+                            type="button"
+                            id="add-form"
+                            class="link link-success mt-4"
+                    >
+                        + Agregar artículo
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-
 </form>
+
 
 <script>
     $(function () {
@@ -161,15 +188,21 @@
             let totalForms = parseInt($totalForms.val());
 
             const template = $("#empty_row tbody").html();
-            const rowHtml = template.replace(/__prefix__/g, formIdx);
+            const rowHtml = template.replace(/__prefix__/g, totalForms);
             const $row = $(rowHtml);
 
-            totalForms += 1
-            $totalForms.val(totalForms);
-
+            $totalForms.val(totalForms + 1);
             $("#table-detalle tbody").append($row);
-            $("#id_form-TOTAL_FORMS").val(++formIdx);
+
+            // Feedback UX
+            $row[0].scrollIntoView({behavior: "smooth", block: "center"});
+            $row.addClass("bg-success/10");
+
+            setTimeout(() => {
+                $row.removeClass("bg-success/10");
+            }, 1500);
         });
+
     });
 </script>
 

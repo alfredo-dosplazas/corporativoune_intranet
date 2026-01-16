@@ -1,0 +1,74 @@
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <!-- START -->
+            <div class="justify-self-start">
+                <h1 class="text-primary font-bold text-xl flex items-center gap-2">Monitoreo Servicios</h1>
+                <h2 class="text-muted text-sm"></h2>
+            </div>
+
+            <!-- MIDDLE -->
+            <div class="justify-self-center w-full flex justify-center">
+
+            </div>
+
+
+            <!-- END -->
+            <div class="justify-self-end">
+                <button class="btn btn-primary" onclick="generarReporte()">
+                    Generar Reporte
+                </button>
+            </div>
+
+        </div>
+
+    </c-slot>
+
+    <div id="slides" class="space-y-4 p-4 flex flex-col items-center justify-center">
+        <c-apps.monitoreo_servicios.slides.cctv/>
+
+        <c-apps.monitoreo_servicios.slides.pbx/>
+
+        <c-apps.monitoreo_servicios.slides.idrac/>
+
+        <c-apps.monitoreo_servicios.slides.access_points/>
+    </div>
+
+    <div>
+        <label>
+            Observaciones
+            <textarea class="textarea w-full" name="observaciones" id="id_observaciones" cols="30" rows="10"></textarea>
+        </label>
+    </div>
+
+    <script>
+        async function generarReporte() {
+            const slides_container = document.getElementById('slides');
+
+            const rawBlob = await snapdom.toBlob(slides_container);
+            const imageBlob = new Blob([rawBlob], {type: "image/png"});
+
+            const formData = new FormData();
+            formData.append("screenshot", imageBlob, "reporte.png");
+            formData.append(
+                "observaciones",
+                document.getElementById("id_observaciones").value
+            );
+
+            const result = await fetch("{% url 'monitoreo_servicios:reporte__create' %}", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": '{{ csrf_token }}',
+                },
+                body: formData,
+            });
+
+            const data = await result.json()
+
+            console.log(data);
+
+            alert("Reporte generado y enviado a IT");
+        }
+    </script>
+</c-layouts.app>

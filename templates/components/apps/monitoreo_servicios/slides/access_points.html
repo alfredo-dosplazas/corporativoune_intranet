@@ -1,0 +1,80 @@
+<section id="slide-access-points"
+         class="reporte-slide bg-white p-6 rounded-xl shadow-md w-[1200px] space-y-6">
+
+    <!-- HEADER -->
+    <div class="border-b pb-4">
+        <h2 class="text-2xl font-bold text-primary">
+            Reporte de Access Points Operativos
+        </h2>
+        <p class="text-sm text-gray-600 mt-1">
+            Estado actual de los puntos de acceso monitoreados en la red corporativa.
+        </p>
+    </div>
+
+    <!-- RESUMEN -->
+    <div class="grid grid-cols-3 gap-4">
+
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Total AP</div>
+            <div class="stat-value text-primary">{{ total_ap }}</div>
+        </div>
+
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Conectados</div>
+            <div class="stat-value text-success">{{ ap_conectados }}</div>
+        </div>
+
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Desconectados</div>
+            <div class="stat-value text-error">{{ ap_desconectados }}</div>
+        </div>
+
+    </div>
+
+    <!-- TABLA DE ACCESS POINTS -->
+    <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+            <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>IP</th>
+                <th>Estado</th>
+                <th>Latencia</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for ap in access_points %}
+                <tr>
+                    <td class="font-medium">{{ ap.nombre }}</td>
+                    <td>{{ ap.ip }}</td>
+                    <td>
+                        {% if ap.estado == 'online' %}
+                            <span class="badge badge-success">Conectado</span>
+                        {% else %}
+                            <span class="badge badge-error">Desconectado</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ap.latencia %}
+                            {{ ap.latencia }} ms
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="flex justify-between text-xs text-gray-500 border-t pt-3">
+        <div>
+            Generado por: <span class="font-medium">{{ request.user.contacto }}</span>
+        </div>
+        <div>
+            Fecha de generación: {% now 'd/m/Y H:i' %}
+        </div>
+    </div>
+
+</section>

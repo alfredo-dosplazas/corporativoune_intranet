@@ -1,5 +1,27 @@
 import ipaddress
 
+import subprocess
+import platform
+import time
+
+
+def ping(ip):
+    param = "-n" if platform.system().lower() == "windows" else "-c"
+    command = ["ping", param, "1", ip]
+
+    start = time.time()
+    result = subprocess.run(
+        command,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
+    latency = int((time.time() - start) * 1000)
+
+    return {
+        "online": result.returncode == 0,
+        "latencia": latency if result.returncode == 0 else None
+    }
+
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")

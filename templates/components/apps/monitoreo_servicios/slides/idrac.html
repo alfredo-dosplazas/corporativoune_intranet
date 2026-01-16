@@ -1,0 +1,130 @@
+<section id="slide-idrac"
+         class="reporte-slide bg-white p-6 rounded-xl shadow-md w-[1200px] space-y-6">
+
+    <!-- HEADER -->
+    <div class="border-b pb-4">
+        <h2 class="text-2xl font-bold text-primary">
+            Reporte de Servidor (iDRAC)
+        </h2>
+        <p class="text-sm text-gray-600 mt-1">
+            Estado general del servidor y hardware monitoreado vía iDRAC.
+        </p>
+    </div>
+
+    <!-- RESUMEN -->
+    <div class="grid grid-cols-4 gap-4">
+
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Estado</div>
+            <div class="stat-value
+                {% if sistema.estado == 'Enabled' %}
+                    text-success
+                {% else %}
+                    text-error
+                {% endif %}
+            ">
+                {{ sistema.estado }}
+            </div>
+        </div>
+
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Salud general</div>
+            <div class="stat-value
+                {% if sistema.salud == 'OK' %}
+                    text-success
+                {% else %}
+                    text-warning
+                {% endif %}
+            ">
+                {{ sistema.salud }}
+            </div>
+        </div>
+
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Memoria</div>
+            <div class="stat-value text-primary">
+                {{ sistema.memoria_gib }} GiB
+            </div>
+        </div>
+
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">CPU</div>
+            <div class="stat-value text-primary text-xs">
+                <span class="text-wrap">
+                    {{ sistema.cpu_modelo }}
+                </span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ROLLUPS -->
+    <div class="grid grid-cols-3 gap-4">
+
+        {% for key, value in rollups.items %}
+            <div class="card bg-base-100 shadow">
+                <div class="card-body p-4">
+                    <h3 class="font-semibold capitalize">
+                        {{ key }}
+                    </h3>
+                    <span class="badge
+                        {% if value == 'OK' %}
+                            badge-success
+                        {% else %}
+                            badge-warning
+                        {% endif %}
+                    ">
+                        {{ value }}
+                    </span>
+                </div>
+            </div>
+        {% endfor %}
+
+    </div>
+
+    <!-- ALMACENAMIENTO -->
+    <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+            <thead>
+            <tr>
+                <th>Controlador</th>
+                <th>Modelo</th>
+                <th>Estado</th>
+                <th>Salud</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for disk in almacenamiento %}
+                <tr>
+                    <td class="font-medium">{{ disk.nombre }}</td>
+                    <td>{{ disk.modelo }}</td>
+                    <td>{{ disk.estado }}</td>
+                    <td>
+                        <span class="badge
+                            {% if disk.salud == 'OK' %}
+                                badge-success
+                            {% else %}
+                                badge-warning
+                            {% endif %}
+                        ">
+                            {{ disk.salud }}
+                        </span>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="flex justify-between text-xs text-gray-500 border-t pt-3">
+        <div>
+            Generado por:
+            <span class="font-medium">{{ request.user.contacto }}</span>
+        </div>
+        <div>
+            Fecha de generación: {% now 'd/m/Y H:i' %}
+        </div>
+    </div>
+
+</section>

@@ -1,0 +1,134 @@
+<section id="slide-pbx"
+         class="reporte-slide bg-white p-6 rounded-xl shadow-md w-[1200px] space-y-6">
+
+    <!-- HEADER -->
+    <div class="border-b pb-4">
+        <h2 class="text-2xl font-bold text-primary">
+            Reporte General del PBX
+        </h2>
+        <p class="text-sm text-gray-600 mt-1">
+            Estado actual de extensiones y troncales del sistema telefónico corporativo.
+        </p>
+    </div>
+
+    <!-- RESUMEN -->
+    <div class="grid grid-cols-4 gap-4">
+
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Extensiones totales</div>
+            <div class="stat-value text-primary">
+                {{ extensiones_total }}
+            </div>
+        </div>
+
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Extensiones desconectadas</div>
+            <div class="stat-value text-error">
+                {{ extensiones_desconectadas }}
+            </div>
+        </div>
+
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Trunks totales</div>
+            <div class="stat-value text-primary">
+                {{ trunks_total }}
+            </div>
+        </div>
+
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Trunks desconectados</div>
+            <div class="stat-value text-error">
+                {{ trunks_desconectados }}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- TABLA DE EXTENSIONES -->
+    <div class="overflow-x-auto">
+        <h3 class="font-semibold mb-2 text-gray-700">
+            Extensiones desconectadas
+        </h3>
+
+        <table class="table table-zebra w-full">
+            <thead>
+            <tr>
+                <th>Extensión</th>
+                <th>Nombre</th>
+                <th>Estado</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for ext in lista_extensiones_desconectadas %}
+                <tr>
+                    <td class="font-medium">{{ ext.extnumber }}</td>
+                    <td>{{ ext.username|default:"—" }}</td>
+                    <td>
+                        <span class="badge badge-error">
+                            {{ ext.status }}
+                        </span>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="3" class="text-center text-success">
+                        Todas las extensiones están registradas
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- TABLA DE TRUNKS -->
+    <div class="overflow-x-auto">
+        <h3 class="font-semibold mb-2 text-gray-700">
+            Trunks desconectados
+        </h3>
+
+        <table class="table table-zebra w-full">
+            <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>Puerto</th>
+                <th>Estado</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for trunk in lista_trunks_desconectados %}
+                <tr>
+                    <td class="font-medium">{{ trunk.trunkname }}</td>
+                    <td>{{ trunk.type|default:"—" }}</td>
+                    <td>{{ trunk.port|default:"—" }}</td>
+                    <td>
+                        <span class="badge badge-error">
+                            {{ trunk.status }}
+                        </span>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="3" class="text-center text-success">
+                        Todos los trunks están activos
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="flex justify-between text-xs text-gray-500 border-t pt-3">
+        <div>
+            Generado por:
+            <span class="font-medium">
+                {{ request.user.contacto }}
+            </span>
+        </div>
+        <div>
+            Fecha de generación: {% now 'd/m/Y H:i' %}
+        </div>
+    </div>
+
+</section>

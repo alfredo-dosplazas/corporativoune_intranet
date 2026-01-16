@@ -11,15 +11,22 @@ class ContactoColumn(Column):
 
         theme_attr = f'data-theme="{empresa.theme}"' if empresa and empresa.theme else ""
 
-        foto_html = ""
         if contacto.foto:
             foto_html = f"""
-                        <div class="avatar">
+                        <div {theme_attr} class="avatar">
                             <div class="w-10 h-10 rounded-full ring ring-primary ring-offset-2 ring-offset-base-100">
                                 <img src="{contacto.foto.url}" alt="{contacto.nombre_completo}" />
                             </div>
                         </div>
                     """
+        else:
+            foto_html = f"""
+                <div {theme_attr} class="avatar avatar-placeholder">
+                    <div class="w-10 h-10 rounded-full bg-primary text-primary-content">
+                        <span class="text-xl">{contacto.iniciales}</span>
+                    </div>
+                </div>
+            """
 
         estado_html = ""
         if contacto.usuario and not contacto.usuario.is_active:
@@ -36,8 +43,7 @@ class ContactoColumn(Column):
                     """
 
         return mark_safe(f"""
-                    <div {theme_attr}
-                         class="flex items-center gap-3 min-w-[220px] bg-transparent">
+                    <div class="flex items-center gap-3 min-w-[220px]">
 
                         {foto_html}
 

@@ -1,5 +1,12 @@
 {% load requisiciones_extras %}
 <c-table.actions>
+    {% if perms.papeleria.add_requisicion %}
+        <li>
+            <a href="{% url 'papeleria:requisiciones__create' %}{% querystring requisicion_id=record.pk %}">
+                Duplicar
+            </a>
+        </li>
+    {% endif %}
     {% if perms.papeleria.view_requisicion %}
         <li><a href="{% url 'papeleria:requisiciones__detail' record.pk %}">Detalle</a></li>
     {% endif %}

@@ -66,8 +66,13 @@ class RequisicionListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableL
         ]
 
 
-class RequisicionCreateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMessageMixin,
-                            NamedFormsetsMixin, CreateWithInlinesView):
+class RequisicionCreateView(
+    PermissionRequiredMixin,
+    BreadcrumbsMixin,
+    SuccessMessageMixin,
+    NamedFormsetsMixin,
+    CreateWithInlinesView
+):
     permission_required = ['papeleria.add_requisicion']
     template_name = "apps/papeleria/requisiciones/create.html"
     model = Requisicion
@@ -75,6 +80,14 @@ class RequisicionCreateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMe
     success_message = 'Requisición creada correctamente.'
     inlines = [DetalleRequisicionInline]
     inlines_names = ['Detalle']
+
+    def dispatch(self, request, *args, **kwargs):
+        requisicion_id = request.GET.get('requisicion_id')
+        self.requisicion = None
+        if requisicion_id:
+            self.requisicion = get_object_or_404(Requisicion, pk=requisicion_id)
+
+        return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -156,7 +169,7 @@ class RequisicionDetailView(PermissionRequiredMixin, BreadcrumbsMixin, DetailVie
         ]
 
 
-class RequisicionDeleteView(PermissionRequiredMixin, DeleteView):
+class RequisicionDeleteView(PermissionRequiredMixin, SuccessMessageMixin, DeleteView):
     permission_required = ['papeleria.delete_requisicion']
     model = Requisicion
     success_message = "Requisición eliminada correctamente."

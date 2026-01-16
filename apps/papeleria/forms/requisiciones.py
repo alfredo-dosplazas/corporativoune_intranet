@@ -125,6 +125,7 @@ class RequisicionForm(forms.ModelForm):
         else:
             self._configurar_admin()
 
+
 class DetalleRequisicionForm(forms.ModelForm):
     class Meta:
         model = DetalleRequisicion
@@ -156,3 +157,6 @@ class DetalleRequisicionForm(forms.ModelForm):
                 Column('notas'),
             ),
         )
+
+    def has_changed(self):
+        return super().has_changed() or self.initial
