@@ -13,8 +13,8 @@ class RequisicionTable(TableWithActions):
     empresa = EmpresaBadgeColumn()
     area = Column(empty_values=(None,), accessor='solicitante__contacto__area__nombre', verbose_name='Área')
 
-    solicitante = ContactoColumn(accessor='solicitante__contacto')
-    aprobador = ContactoColumn(accessor='aprobador__contacto')
+    solicitante = ContactoColumn(accessor='solicitante__contacto', verbose_name='Solicitante')
+    aprobador = ContactoColumn(accessor='aprobador__contacto', verbose_name='Aprobador')
 
     class Meta:
         model = Requisicion

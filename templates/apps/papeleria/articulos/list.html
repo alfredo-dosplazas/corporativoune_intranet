@@ -5,7 +5,10 @@
 
             <!-- START -->
             <div class="justify-self-start">
-                <h1 class="font-bold text-xl flex items-center gap-2">Artículos</h1>
+                <h1 class="text-primary font-bold text-xl flex items-center gap-2">
+                    <span class="icon-[ix--product]"></span>
+                    Artículos
+                </h1>
                 <h2 class="text-muted text-sm mb-2">Gestione los artículos de las empresas</h2>
                 {% if perms.papeleria.add_articulo %}
                     <a href="{% url 'papeleria:articulos__create' %}" class="btn btn-sm btn-primary">

@@ -1,27 +1,201 @@
 <c-layouts.app>
+
+    <!-- HEADER -->
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 
-            <!-- START -->
-            <div class="justify-self-start">
-                <h1 class="font-bold text-xl flex items-center gap-2">{{ contacto }}</h1>
-                <h2 class="text-muted text-sm">Información del contacto</h2>
+            <div>
+                <h1 class="text-primary text-xl font-bold leading-tight">
+                    {{ contacto.nombre_completo }}
+                </h1>
+                <p class="text-sm opacity-70">
+                    Perfil del contacto
+                </p>
             </div>
 
-            <!-- MIDDLE -->
-            <div class="justify-self-center w-full flex justify-center">
-
-            </div>
-
-
-            <!-- END -->
-            <div class="justify-self-end">
-
+            <div class="flex gap-2 print:hidden">
+                {% if perms.directorio.change_contacto %}
+                    <a href="{% url 'directorio:update' contacto.pk %}"
+                       class="btn btn-sm btn-outline btn-info">
+                        Editar
+                    </a>
+                {% endif %}
             </div>
 
         </div>
-
     </c-slot>
 
-    {{ contacto }}
+    <!-- HERO / PERFIL -->
+    <div data-theme="{{ contacto.empresa.theme }}"
+         class="card bg-base-100 border border-base-300 rounded-xl shadow-sm mb-6">
+
+        {% if contacto.empresa %}
+            <div class="h-1 rounded-t-xl bg-gradient-to-r
+                    from-[var(--color-primary-light)]
+                    via-primary
+                    to-[var(--color-primary-dark)]">
+            </div>
+        {% endif %}
+
+        <div class="card-body">
+
+            <div class="flex flex-col sm:flex-row gap-6 items-start">
+
+                <!-- FOTO -->
+                {% if contacto.foto %}
+                    <div class="avatar shrink-0">
+                        <div class="w-28 h-28 rounded-full ring ring-primary ring-offset-4 ring-offset-base-100">
+                            <img src="{{ contacto.foto.url }}"
+                                 alt="{{ contacto.nombre_completo }}"
+                                 class="object-cover"/>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- INFO PRINCIPAL -->
+                <div class="flex-1 space-y-1">
+
+                    <h2 class="text-primary text-2xl font-semibold">
+                        {{ contacto.nombre_completo }}
+                    </h2>
+
+                    {% if contacto.numero_empleado %}
+                        <p class="text-sm opacity-60">
+                            No. Empleado {{ contacto.numero_empleado }}
+                        </p>
+                    {% endif %}
+
+                    <p class="text-base">
+                        {% if contacto.area %}
+                            {{ contacto.area.nombre }}
+                        {% else %}
+                            Área no asignada
+                        {% endif %}
+                    </p>
+
+                    {% if contacto.empresa %}
+                        <div class="flex items-center gap-2 mt-2">
+                            {% if contacto.empresa %}
+                                <c-component
+                                        is="apps.empresas.logos.{{ contacto.empresa.abreviatura }}"
+                                        class="h-6 text-primary opacity-80"
+                                />
+                            {% endif %}
+                            <span class="text-sm uppercase tracking-wide opacity-60">
+                            {{ contacto.empresa.nombre_corto }}
+                        </span>
+                        </div>
+                    {% endif %}
+
+                    {% if contacto.usuario and not contacto.usuario.is_active %}
+                        <span class="badge mt-2">Usuario inactivo</span>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- GRID DE CONTENIDO -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- CONTACTO -->
+        <div class="card bg-base-100 border border-base-300 rounded-xl">
+            <div class="card-body">
+                <h3 class="font-semibold text-lg mb-4">
+                    Información de contacto
+                </h3>
+
+                <div class="space-y-3 text-sm">
+
+                    {% if contacto.email_principal %}
+                        <div class="flex items-center gap-3">
+                            <span class="icon-[material-symbols--mail-outline] text-primary"></span>
+                            <a href="mailto:{{ contacto.email_principal.email }}"
+                               class="hover:underline break-all">
+                                {{ contacto.email_principal.email }}
+                            </a>
+                        </div>
+                    {% endif %}
+
+                    {% if contacto.telefono_principal %}
+                        <div class="flex items-center gap-3">
+                            <span class="icon-[material-symbols--call-outline] text-primary"></span>
+                            <a href="tel:{{ contacto.telefono_principal.telefono }}">
+                                {{ contacto.telefono_principal.telefono }}
+                            </a>
+                        </div>
+                    {% endif %}
+
+                    {% if contacto.extension %}
+                        <div class="flex items-center gap-3 opacity-70">
+                            <span class="icon-[material-symbols--dialpad-outline]"></span>
+                            <span>Ext. {{ contacto.extension }}</span>
+                        </div>
+                    {% endif %}
+
+                    {% if contacto.slack_id %}
+                        <div class="flex items-center gap-3">
+                            <span class="icon-[devicon--slack] text-primary"></span>
+                            <a href="{{ contacto.slack_url }}">
+                                Slack
+                            </a>
+                        </div>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+
+        <!-- DATOS LABORALES -->
+        <div class="card bg-base-100 border border-base-300 rounded-xl">
+            <div class="card-body">
+                <h3 class="font-semibold text-lg mb-4">
+                    Datos laborales
+                </h3>
+
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+
+                    <div>
+                        <dt class="opacity-60">Empresa</dt>
+                        <dd>{{ contacto.empresa.nombre|default:"—" }}</dd>
+                    </div>
+
+                    <div>
+                        <dt class="opacity-60">Área</dt>
+                        <dd>{{ contacto.area.nombre|default:"—" }}</dd>
+                    </div>
+
+                    <div>
+                        <dt class="opacity-60">Fecha de ingreso</dt>
+                        <dd>{{ contacto.fecha_ingreso|date:"d/m/Y"|default:"—" }}</dd>
+                    </div>
+
+                    <div>
+                        <dt class="opacity-60">Fecha de egreso</dt>
+                        <dd>{{ contacto.fecha_egreso|date:"d/m/Y"|default:"—" }}</dd>
+                    </div>
+
+
+                    <div class="sm:col-span-2">
+                        <dt class="opacity-60">Jefe directo</dt>
+                        <dd>
+                            {% if contacto.jefe_directo %}
+                                <a class="link link-primary"
+                                   href="{% url 'directorio:detail' contacto.jefe_directo.pk %}">
+                                    {{ contacto.jefe_directo.nombre_completo|default:"—" }}
+                                </a>
+                            {% else %}
+                                —
+                            {% endif %}
+
+                        </dd>
+                    </div>
+
+                </dl>
+            </div>
+        </div>
+
+    </div>
+
 </c-layouts.app>
