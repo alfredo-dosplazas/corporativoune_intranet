@@ -135,3 +135,6 @@ class Contacto(models.Model):
             "primer_apellido",
             "segundo_apellido",
         ]
+        permissions = [
+            ('acceder_directorio', 'Acceder al Directorio'),
+        ]
