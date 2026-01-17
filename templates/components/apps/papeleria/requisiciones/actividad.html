@@ -1,0 +1,104 @@
+<div class="card bg-base-100 shadow mt-6">
+    <div class="card-body space-y-4">
+
+        <!-- ===================== -->
+        <!-- HEADER -->
+        <!-- ===================== -->
+        <div class="flex items-center justify-between">
+            <h2 class="font-bold text-lg">
+                Actividad
+            </h2>
+            <span class="text-xs text-base-content/60">
+                Seguimiento de la requisición
+            </span>
+        </div>
+
+        {% if perms.papeleria.add_actividadrequisicion %}
+            <!-- ===================== -->
+            <!-- FORMULARIO COMENTARIO -->
+            <!-- ===================== -->
+            <form method="post"
+                  action="{% url 'papeleria:requisiciones__agregar_actividad' requisicion.id %}"
+                  class="space-y-2">
+                {% csrf_token %}
+
+                <textarea
+                        name="contenido"
+                        rows="3"
+                        class="textarea textarea-bordered w-full text-sm"
+                        placeholder="Escribe un comentario o actualización…"
+                        required
+                ></textarea>
+
+                <div class="flex justify-end">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        Enviar comentario
+                    </button>
+                </div>
+            </form>
+        {% endif %}
+
+        <!-- ===================== -->
+        <!-- TIMELINE / ACTIVIDAD -->
+        <!-- ===================== -->
+        <div class="space-y-3">
+
+            {% for actividad in requisicion.actividad_requisicion.all %}
+                <div class="flex gap-3 items-start">
+
+                    <!-- AVATAR -->
+                    <a href="{% url 'directorio:detail' actividad.usuario.contacto.pk %}">
+                        <div {% if actividad.usuario.contacto.empresa %}data-theme="{{ actividad.usuario.contacto.empresa.theme }}"{% endif %}
+                             class="avatar avatar-placeholder">
+                            <div class="bg-primary text-primary-content w-8 rounded-full">
+                            <span class="text-xs font-bold">
+                                 {{ actividad.usuario.contacto.iniciales }}
+                            </span>
+                            </div>
+                        </div>
+                    </a>
+
+                    <!-- CONTENIDO -->
+                    <div class="flex-1">
+                        <div class="bg-base-200 rounded-lg px-3 py-2 text-sm">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-medium">
+                                    <a href="{% url 'directorio:detail' actividad.usuario.contacto.pk %}" class="link">
+                                        {{ actividad.usuario.contacto }}
+                                    </a>
+                                </span>
+                                <span class="text-xs text-base-content/60"
+                                      title="{{ actividad.created_at|date:'d M Y H:i' }}">
+                                    hace {{ actividad.created_at|timesince }}
+                                </span>
+                            </div>
+
+                            <p class="whitespace-pre-line">
+                                {{ actividad.contenido }}
+                            </p>
+                        </div>
+                    </div>
+
+                    {% if perms.papeleria.delete_actividadrequisicion %}
+                        <div>
+                            <form method="post"
+                                  action="{% url 'papeleria:actividad_requisicion__delete' actividad.pk %}"
+                            >
+                                {% csrf_token %}
+                                <button class="btn btn-xs btn-error">
+                                    Eliminar
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
+                </div>
+
+            {% empty %}
+                <div class="text-center text-sm text-base-content/60 py-6">
+                    No hay actividad registrada aún.
+                </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</div>

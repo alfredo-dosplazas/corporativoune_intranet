@@ -3,6 +3,20 @@
 {% load crispy_forms_filters %}
 {% load crispy_forms_tags %}
 
+{% if form.errors or Detalle.errors %}
+    <div id="form-errors-banner"
+         class="alert alert-error alert-soft shadow mb-4">
+        <div>
+            <span class="font-semibold">
+                Hay errores en el formulario
+            </span>
+            <p class="text-sm">
+                Por favor revisa los campos marcados en rojo antes de continuar.
+            </p>
+        </div>
+    </div>
+{% endif %}
+
 <form id="requisicion-form" method="post" novalidate>
     {% csrf_token %}
 
@@ -21,27 +35,16 @@
     <div class="card bg-base-100 shadow">
         <div class="card-body space-y-3">
 
-            {% if Detalle.non_form_errors %}
-                <div class="alert alert-error text-sm">
-                    <ul class="list-disc pl-5">
-                        {% for error in Detalle.non_form_errors %}
-                            <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            {% endif %}
-
             {{ Detalle.management_form }}
 
             <!-- TEMPLATE VACÍO -->
             <div id="empty_row" class="hidden">
                 <table>
                     <tbody>
-                    <tr class="form-row hover">
+                    <tr class="form-row hover" data-has-id="0">
                         <td>
                             {{ Detalle.empty_form.id }}
                             {{ Detalle.empty_form.articulo|as_crispy_field }}
-
                             <div class="link-articulo hidden text-xs mt-1">
                                 <a target="_blank" class="link link-primary">Ver</a>
                             </div>
@@ -52,35 +55,34 @@
                         <td class="impuesto text-right">-</td>
                         <td class="importe text-right">-</td>
                         <td class="subtotal text-right font-medium">-</td>
-
-                        {% if perms.papeleria.delete_detallerequisicion %}
-                            <td class="text-center align-middle">
-                                {{ Detalle.empty_form.DELETE|as_crispy_field }}
-                            </td>
-                        {% endif %}
+                        <td class="text-center">
+                            <input type="checkbox"
+                                   name="{{ Detalle.empty_form.DELETE.html_name }}"
+                                   class="hidden">
+                            <button type="button"
+                                    class="btn btn-ghost btn-xs text-error btn-delete-row">
+                                ✕
+                            </button>
+                        </td>
                     </tr>
                     </tbody>
                 </table>
             </div>
 
             <!-- TABLA -->
-            <div class="overflow-x-auto relative">
-                <table
-                        id="table-detalle"
-                        class="formset table table-sm table-zebra w-full text-sm"
-                >
-                    <thead class="sticky top-0 bg-base-200 z-10">
+            <div class="overflow-x-auto">
+                <table id="table-detalle"
+                       class="formset table table-sm table-zebra w-full text-sm">
+                    <thead class="bg-base-200 sticky top-0 z-10">
                     <tr>
                         <th>Artículo</th>
-                        <th class="w-24">Cant.</th>
+                        <th>Cant.</th>
                         <th>Notas</th>
                         <th class="text-right">Precio</th>
                         <th class="text-right">Imp.</th>
                         <th class="text-right">Importe</th>
                         <th class="text-right">Subtotal</th>
-                        {% if perms.papeleria.delete_detallerequisicion %}
-                            <th class="text-center w-16">✕</th>
-                        {% endif %}
+                        <th class="text-center w-16">✕</th>
                     </tr>
                     </thead>
 
@@ -88,40 +90,27 @@
                     {% for inline_form in Detalle %}
                         <tr
                                 class="form-row hover
-                            {% if inline_form.errors %}bg-error/10 border-l-4 border-error{% endif %}"
+                                {% if inline_form.errors %}
+                                    bg-error/10 border-l-4 border-error
+                                {% endif %}"
+                                data-has-id="{% if inline_form.instance.pk %}1{% else %}0{% endif %}"
                         >
                             <td>
                                 {{ inline_form.id }}
+                                {{ inline_form.articulo|as_crispy_field }}
 
-                                <div class="space-y-1">
-                                    {{ inline_form.articulo|as_crispy_field }}
-
-                                    {% if inline_form.non_field_errors %}
-                                        <div class="text-error text-xs">
-                                            {% for error in inline_form.non_field_errors %}
-                                                <p>{{ error }}</p>
-                                            {% endfor %}
-                                        </div>
-                                    {% endif %}
-
-                                    <div
-                                            class="link-articulo text-xs
-                                        {% if not inline_form.instance.articulo %}hidden{% endif %}"
-                                    >
-                                        <a
-                                                target="_blank"
-                                                href="{{ inline_form.instance.articulo.get_absolute_url }}"
-                                                class="link link-primary"
-                                        >
-                                            Ver artículo
-                                        </a>
+                                {% if inline_form.non_field_errors %}
+                                    <div class="mt-1 text-xs text-error">
+                                        {% for error in inline_form.non_field_errors %}
+                                            <div class="flex items-start gap-1">
+                                                <span>{{ error }}</span>
+                                            </div>
+                                        {% endfor %}
                                     </div>
-                                </div>
+                                {% endif %}
                             </td>
-
                             <td>{{ inline_form.cantidad|as_crispy_field }}</td>
                             <td>{{ inline_form.notas|as_crispy_field }}</td>
-
                             <td class="precio text-right">
                                 {{ inline_form.instance.articulo.precio|money|default:"-" }}
                             </td>
@@ -134,42 +123,34 @@
                             <td class="subtotal text-right font-medium">
                                 {{ inline_form.instance.subtotal|money|default:"-" }}
                             </td>
-
-                            {% if perms.papeleria.delete_detallerequisicion %}
-                                <td class="text-center align-middle">
-                                    {{ inline_form.DELETE|as_crispy_field }}
-                                </td>
-                            {% endif %}
+                            <td class="text-center">
+                                <input type="checkbox"
+                                       name="{{ inline_form.DELETE.html_name }}"
+                                       id="{{ inline_form.DELETE.id_for_label }}"
+                                       class="hidden">
+                                <button type="button"
+                                        class="btn btn-ghost btn-xs text-error btn-delete-row">
+                                    ✕
+                                </button>
+                            </td>
                         </tr>
                     {% endfor %}
-
                     </tbody>
 
-                    <!-- TOTAL STICKY -->
-                    <tfoot class="sticky bottom-0 bg-base-200 font-semibold">
+                    <tfoot class="bg-base-200 font-semibold sticky bottom-0">
                     <tr>
                         <th colspan="5"></th>
                         <th class="text-right">Total</th>
-                        <th id="total-general" class="text-right">
-                            {% if form.instance.pk %}
-                                {{ form.instance.total|money }}
-                            {% else %}
-                                0.00
-                            {% endif %}
-                        </th>
-                        {% if perms.papeleria.delete_detallerequisicion %}
-                            <th></th>
-                        {% endif %}
+                        <th id="total-general" class="text-right">0.00</th>
+                        <th></th>
                     </tr>
                     </tfoot>
                 </table>
 
-                <div class="flex justify-start w-full bg-base-100 p-4 border border-base-300">
-                    <button
-                            type="button"
+                <div class="p-4">
+                    <button type="button"
                             id="add-form"
-                            class="link link-success mt-4"
-                    >
+                            class="link link-success">
                         + Agregar artículo
                     </button>
                 </div>
@@ -178,103 +159,148 @@
     </div>
 </form>
 
-
 <script>
-    $(function () {
-        let formIdx = {{ Detalle.total_form_count }};
+    (function () {
 
-        $("#add-form").click(function () {
-            const $totalForms = $("#id_detalle_requisicion-TOTAL_FORMS");
-            let totalForms = parseInt($totalForms.val());
+        /* =============================
+         *  VARIABLES BASE
+         * ============================= */
+        const $table = $("#table-detalle");
+        const $totalForms = $("#id_detalle_requisicion-TOTAL_FORMS");
 
-            const template = $("#empty_row tbody").html();
-            const rowHtml = template.replace(/__prefix__/g, totalForms);
-            const $row = $(rowHtml);
+        const getTotalForms = () => parseInt($totalForms.val(), 10);
+        const setTotalForms = v => $totalForms.val(v);
 
-            $totalForms.val(totalForms + 1);
-            $("#table-detalle tbody").append($row);
+        /* =============================
+         *  UTILIDADES
+         * ============================= */
+        function reindexForms() {
+            $table.find("tbody tr").each(function (index) {
+                $(this).find(":input[name]").each(function () {
+                    this.name = this.name.replace(
+                        /detalle_requisicion-\d+-/,
+                        `detalle_requisicion-${index}-`
+                    );
+                });
+            });
+        }
 
-            // Feedback UX
+        function recalcularTotal() {
+            let total = 0;
+
+            $table.find("tbody tr").each(function () {
+                if ($(this).find("input[name$='-DELETE']").prop("checked")) return;
+                total += parseFloat($(this).find(".subtotal").text()) || 0;
+            });
+
+            $("#total-general").text(total.toFixed(2));
+        }
+
+        /* =============================
+         *  CÁLCULO POR FILA
+         * ============================= */
+        function actualizarFila($select) {
+            const $row = $select.closest("tr");
+            const data = $select.select2("data")[0];
+
+            if (!data) return;
+
+            const precio = parseFloat(data.precio) || 0;
+            const impuesto = parseFloat(data.impuesto) || 0;
+            const cantidad = parseFloat(
+                $row.find("input[name$='cantidad']").val()
+            ) || 1;
+
+            const importe = cantidad * precio;
+            const subtotal = importe * (1 + impuesto);
+
+            // Pintar valores
+            $row.find(".precio").text(precio.toFixed(2));
+            $row.find(".impuesto").text((impuesto * 100).toFixed(0) + "%");
+            $row.find(".importe").text(importe.toFixed(2));
+            $row.find(".subtotal").text(subtotal.toFixed(2));
+
+            // Link al artículo
+            const $linkBox = $row.find(".link-articulo");
+            if (data.url) {
+                $linkBox.removeClass("hidden");
+                $linkBox.find("a").attr("href", data.url);
+            } else {
+                $linkBox.addClass("hidden");
+            }
+
+            recalcularTotal();
+        }
+
+        /* =============================
+         *  FORMSET
+         * ============================= */
+        function addForm() {
+            const index = getTotalForms();
+            const html = $("#empty_row tbody").html()
+                .replace(/__prefix__/g, index);
+
+            const $row = $(html);
+            $table.find("tbody").append($row);
+
+            setTotalForms(index + 1);
+
+            // UX
             $row[0].scrollIntoView({behavior: "smooth", block: "center"});
             $row.addClass("bg-success/10");
-
-            setTimeout(() => {
-                $row.removeClass("bg-success/10");
-            }, 1500);
-        });
-
-    });
-</script>
-
-<script>
-    function actualizarFila($select) {
-        const row = $select.closest("tr");
-        const data = $select.select2("data")[0] || {};
-
-        const precio = parseFloat(data.precio) || 0;
-        const impuesto = parseFloat(data.impuesto) || 0;
-
-        const cantidad = parseFloat(
-            row.find("input[name$='cantidad']").val()
-        ) || 1;
-
-        const importe = cantidad * precio;
-        const subtotal = importe * (1 + impuesto);
-
-        row.find(".precio").text(precio.toFixed(2));
-        row.find(".impuesto").text((impuesto * 100).toFixed(0) + "%");
-        row.find(".importe").text(importe.toFixed(2));
-        row.find(".subtotal").text(subtotal.toFixed(2));
-
-        if (data.url) {
-            row.find(".link-articulo")
-                .removeClass("hidden");
-            row.find(".link-articulo a")
-                .attr("href", data.url);
-        } else {
-            row.find(".link-articulo")
-                .addClass("hidden");
+            setTimeout(() => $row.removeClass("bg-success/10"), 1200);
         }
 
-        recalcularTotal();
-    }
-</script>
+        function deleteForm($row) {
+            const hasId = $row.data("has-id") === 1;
+            const $delete = $row.find("input[name$='-DELETE']");
 
-<script>
-    function recalcularTotal() {
-        let total = 0;
-
-        $("#table-detalle tbody tr").each(function () {
-            const subtotal = parseFloat(
-                $(this).find(".subtotal").text()
-            ) || 0;
-            total += subtotal;
-        });
-
-        $("#table-detalle tfoot th:last")
-            .text(total.toFixed(2));
-    }
-</script>
-
-
-<script>
-    $("#table-detalle").on(
-        "select2:select select2:clear",
-        '[data-autocomplete-light-function="select2"]',
-        function () {
-            actualizarFila($(this));
-        }
-    );
-
-    $("#table-detalle").on(
-        "input",
-        "input[name$='cantidad']",
-        function () {
-            const row = $(this).closest("tr");
-            const select = row.find('[data-autocomplete-light-function="select2"]');
-            if (select.val()) {
-                actualizarFila(select);
+            if (hasId) {
+                $delete.prop("checked", true);
+                $row.hide();
+            } else {
+                $row.remove();
+                setTotalForms(getTotalForms() - 1);
+                reindexForms();
             }
+
+            recalcularTotal();
         }
-    );
+
+        /* =============================
+         *  EVENTOS
+         * ============================= */
+
+        // Agregar fila
+        $("#add-form").on("click", addForm);
+
+        // Eliminar fila
+        $table.on("click", ".btn-delete-row", function () {
+            deleteForm($(this).closest("tr"));
+        });
+
+        // Selección de artículo (DAL / Select2)
+        $table.on(
+            "select2:select select2:clear",
+            '[data-autocomplete-light-function="select2"]',
+            function () {
+                actualizarFila($(this));
+            }
+        );
+
+        // Cambio de cantidad
+        $table.on(
+            "input",
+            "input[name$='cantidad']",
+            function () {
+                const $row = $(this).closest("tr");
+                const $select = $row.find('[data-autocomplete-light-function="select2"]');
+
+                if ($select.val()) {
+                    actualizarFila($select);
+                }
+            }
+        );
+
+    })();
 </script>

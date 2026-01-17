@@ -35,23 +35,29 @@ class Requisicion(models.Model):
 
     solicitante = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="requisiciones_papeleria_solicitante",
     )
     aprobador = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="requisiciones_papaleria_aprobador",
     )
     compras = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="requisiciones_papeleria_compras",
     )
     contraloria = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="requisiciones_papeleria_contraloria",
+    )
+
+    creada_por = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name="requisiciones_papeleria_creada_por",
     )
 
     estado = models.CharField(max_length=255, choices=ESTADOS_CHOICES, default="borrador")
@@ -90,7 +96,7 @@ class Requisicion(models.Model):
             "enviada_compras": {"label": "En Compras", "color": "badge-warning"},
             "autorizada_compras": {"label": "Aprobada por Compras", "color": "badge-success"},
             "enviada_contraloria": {"label": "En Contraloría", "color": "badge-warning"},
-            "autorizada_contraloria": {"label": "Aprobada por Contraloría", "color": "badge-success"},
+            "autorizada_contraloria": {"label": "Autorizada por Contraloría", "color": "badge-success"},
             "esperando_entrega_articulo": {"label": "Esperando entrega", "color": "badge-accent"},
             "completada": {"label": "Completada", "color": "badge-success"},
             "cancelada": {"label": "Cancelada", "color": "badge-error"},
@@ -224,3 +230,16 @@ class DetalleRequisicion(models.Model):
 
     class Meta:
         unique_together = ["requisicion", "articulo"]
+
+
+class ActividadRequisicion(models.Model):
+    requisicion = models.ForeignKey(Requisicion, on_delete=models.CASCADE, related_name="actividad_requisicion")
+    usuario = models.ForeignKey(User, on_delete=models.PROTECT, related_name="actividad_requisicion")
+    created_at = models.DateTimeField(auto_now_add=True)
+    contenido = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Actividad {self.usuario} en {self.created_at}"
+
+    class Meta:
+        ordering = ["-created_at"]

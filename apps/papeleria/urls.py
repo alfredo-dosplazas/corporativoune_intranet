@@ -8,7 +8,7 @@ from apps.papeleria.views.reportes import ReportesPapeleriaView, AcumuladoArticu
 from apps.papeleria.views.requisiciones import RequisicionListView, RequisicionCreateView, RequisicionUpdateView, \
     RequisicionDeleteView, RequisicionDetailView, RequisicionExcelView, RequisicionConfirmView, \
     RequisicionRequestConfirmView, RequisicionAprobarView, RequisicionRechazarView, RequisicionEnviarContraloriaView, \
-    RequisicionAutorizarView
+    RequisicionAutorizarView, ActividadRequisicionCreateView, ActividadRequisicionDeleteView
 
 app_name = 'papeleria'
 
@@ -47,14 +47,27 @@ requisiciones_urlpatterns = [
     ),
     path('requisiciones/autorizar/<int:pk>/', RequisicionAutorizarView.as_view(), name='requisiciones__autorizar'),
     path('requisiciones/excel/<int:pk>/', RequisicionExcelView.as_view(), name='requisiciones__excel'),
+    path('requisiciones/<int:pk>/actividad/crear/', ActividadRequisicionCreateView.as_view(),
+         name='requisiciones__agregar_actividad'),
+]
+
+actividades_urlpatterns = [
+    path(
+        'actividad-requisicion/eliminar/<int:pk>/',
+        ActividadRequisicionDeleteView.as_view(),
+        name='actividad_requisicion__delete'
+    )
 ]
 
 reportes_urlpatterns = [
     path('reportes/', ReportesPapeleriaView.as_view(), name='reportes__index'),
     path('reportes/acumulado-articulos/', AcumuladoArticuloView.as_view(), name='reportes__acumulado_articulos'),
-    path('reportes/acumulado-articulos/excel/', AcumuladoArticuloExcelView.as_view(), name='reportes__acumulado_articulos_excel'),
+    path('reportes/acumulado-articulos/excel/', AcumuladoArticuloExcelView.as_view(),
+         name='reportes__acumulado_articulos_excel'),
 ]
 
 urlpatterns += articulos_urlpatterns
 urlpatterns += requisiciones_urlpatterns
+urlpatterns += actividades_urlpatterns
+
 urlpatterns += reportes_urlpatterns

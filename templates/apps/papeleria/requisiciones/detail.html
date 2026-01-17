@@ -79,7 +79,9 @@
         <div class="card bg-base-100 shadow">
             <div class="card-body p-4">
                 <p class="text-sm opacity-60">Empresa</p>
-                <p class="font-semibold">{{ requisicion.empresa }} <span class="font-normal text-base-content text-muted">({{ requisicion.solicitante.contacto.area.nombre|default:'Área no asignada' }})</span></p>
+                <p class="font-semibold">{{ requisicion.empresa }} <span
+                        class="font-normal text-base-content text-muted">({{ requisicion.solicitante.contacto.area.nombre|default:'Área no asignada' }})</span>
+                </p>
             </div>
         </div>
 
@@ -232,13 +234,5 @@
         </div>
     {% endif %}
 
-    <div class="card bg-base-100 shadow mt-6">
-        <div class="card-body">
-            <h2 class="font-bold mb-4">Actividad</h2>
-
-            <p class="text-sm opacity-60">
-                Próximamente: comentarios, rechazos y trazabilidad.
-            </p>
-        </div>
-    </div>
+    <c-apps.papeleria.requisiciones.actividad />
 </c-layouts.app>

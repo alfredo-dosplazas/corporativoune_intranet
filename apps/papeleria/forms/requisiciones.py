@@ -3,7 +3,7 @@ from crispy_forms.layout import Layout, Row, Column
 from dal import autocomplete
 from django import forms
 from django.core.exceptions import ValidationError
-from django.forms import Textarea, TextInput
+from django.forms import Textarea, TextInput, NumberInput
 
 from apps.papeleria.models.requisiciones import Requisicion, DetalleRequisicion
 
@@ -12,6 +12,7 @@ class RequisicionForm(forms.ModelForm):
     class Meta:
         model = Requisicion
         fields = "__all__"
+        exclude = ["creada_por"]
         widgets = {
             'fecha_autorizacion_contraloria': TextInput(attrs={'type': 'date'}),
             'razon_rechazo': Textarea(attrs={'class': 'h-16'}),
@@ -120,11 +121,23 @@ class RequisicionForm(forms.ModelForm):
         self.helper.form_tag = False
         self.helper.attrs = {'novalidate': 'novalidate'}
 
+        self.initial.update({
+            'creada_por': self.user,
+        })
+
         if not self.user.is_superuser:
             self._configurar_usuario_normal()
         else:
             self._configurar_admin()
 
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.creada_por = self.user
+
+        if commit:
+            instance.save()
+
+        return instance
 
 class DetalleRequisicionForm(forms.ModelForm):
     class Meta:
@@ -139,6 +152,7 @@ class DetalleRequisicionForm(forms.ModelForm):
                 attrs={'data-html': True, 'style': 'width: 100%;'}
             ),
             'notas': Textarea(attrs={'class': 'h-16'}),
+            'cantidad': NumberInput(attrs={'min': 1}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -157,6 +171,14 @@ class DetalleRequisicionForm(forms.ModelForm):
                 Column('notas'),
             ),
         )
+
+    def clean_cantidad(self):
+        cantidad = self.cleaned_data.get('cantidad')
+
+        if cantidad < 1:
+            raise ValidationError("La cantidad del artículo debe ser mayor a 0")
+
+        return cantidad
 
     def has_changed(self):
         return super().has_changed() or self.initial

@@ -1,7 +1,6 @@
 from dal import autocomplete
 from django.db.models import Q
 from django.utils.html import format_html
-from django.utils.safestring import mark_safe
 
 from apps.papeleria.models.articulos import Articulo
 
@@ -53,28 +52,37 @@ class ArticuloAutocomplete(autocomplete.Select2QuerySetView):
     def get_result_label(self, result):
         return format_html(
             """
-            <div class="flex gap-4 items-center"
-                 data-precio="{}"
-                 data-impuesto="{}"
-                 data-url="{}">
-                {}
-                <div class="flex gap-4 items-center">
-                    <p class="font-medium">{}</p>
-                    <span>|</span>
-                    <p>{}</p>
-                    <span>|</span>
-                    <p>{}</p>
+            <div class="flex items-center gap-3 py-1"
+                 data-precio="{precio}"
+                 data-impuesto="{impuesto}"
+                 data-url="{url}">
+
+                {imagen}
+
+                <div class="flex-1 min-w-0">
+                    <p class="font-medium leading-tight truncate">
+                        {nombre}
+                    </p>
+
+                    <p class="text-xs text-gray-500 truncate">
+                        {codigo}{numero}
+                    </p>
+                </div>
+
+                <div class="text-right text-sm font-semibold whitespace-nowrap">
+                    ${precio_fmt}
                 </div>
             </div>
             """,
-            result.precio or 0,
-            result.impuesto or 0,
-            result.get_absolute_url() if hasattr(result, "get_absolute_url") else "",
-            format_html(
-                '<img src="{}" class="h-10 w-10 rounded" />',
+            precio=result.precio or 0,
+            impuesto=result.impuesto or 0,
+            url=result.get_absolute_url(),
+            imagen=format_html(
+                '<img src="{}" class="h-8 w-8 rounded object-cover" />',
                 result.imagen.url
             ) if result.imagen else "",
-            result.nombre,
-            result.codigo_vs_dp or "",
-            result.numero_papeleria or "",
+            nombre=result.nombre,
+            codigo=f"{result.codigo_vs_dp} · " if result.codigo_vs_dp else "",
+            numero=result.numero_papeleria or "",
+            precio_fmt=f"{result.precio:.2f}",
         )
