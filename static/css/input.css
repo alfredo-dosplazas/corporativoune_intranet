@@ -402,6 +402,102 @@
     --noise: 0;
 }
 
+@plugin "daisyui/theme" {
+  name: "vpa";
+  default: false;
+  prefersdark: false;
+  color-scheme: "light";
+
+  /* Base */
+  --color-base-100: #F9FAFB;
+  --color-base-200: #F3F4F6;
+  --color-base-300: #E5E7EB;
+  --color-base-content: #1F2937;
+
+  /* Brand */
+  --color-primary: #283E60;
+  --color-primary-content: #FFFFFF;
+
+  --color-secondary: #B1B2B2;
+  --color-secondary-content: #1F2937;
+
+  /* UI feedback (neutros, no protagonistas) */
+  --color-accent: #4F9CF9;
+  --color-accent-content: #FFFFFF;
+
+  --color-neutral: #374151;
+  --color-neutral-content: #F9FAFB;
+
+  --color-info: #38BDF8;
+  --color-info-content: #0F172A;
+
+  --color-success: #22C55E;
+  --color-success-content: #052E16;
+
+  --color-warning: #FACC15;
+  --color-warning-content: #422006;
+
+  --color-error: #EF4444;
+  --color-error-content: #450A0A;
+
+  /* Shape & depth */
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+
+@plugin "daisyui/theme" {
+  name: "vpa_dark";
+  default: false;
+  prefersdark: false;
+  color-scheme: "dark";
+
+  /* Base */
+  --color-base-100: #0F172A;
+  --color-base-200: #020617;
+  --color-base-300: #1E293B;
+  --color-base-content: #E5E7EB;
+
+  /* Brand (MISMO que light) */
+  --color-primary: #283E60;
+  --color-primary-content: #FFFFFF;
+
+  --color-secondary: #B1B2B2;
+  --color-secondary-content: #020617;
+
+  /* UI feedback */
+  --color-accent: #60A5FA;
+  --color-accent-content: #020617;
+
+  --color-neutral: #1E293B;
+  --color-neutral-content: #E5E7EB;
+
+  --color-info: #38BDF8;
+  --color-info-content: #020617;
+
+  --color-success: #22C55E;
+  --color-success-content: #052E16;
+
+  --color-warning: #FACC15;
+  --color-warning-content: #422006;
+
+  --color-error: #EF4444;
+  --color-error-content: #450A0A;
+
+  /* Shape & depth */
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+
 html {
     scrollbar-gutter: auto !important;
 }

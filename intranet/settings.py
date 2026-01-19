@@ -61,6 +61,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'apps.auditoria.middleware.UserAccessLogMiddleware',
+    'apps.auditoria.middleware.AuditMiddleware',
 ]
 
 ROOT_URLCONF = 'intranet.urls'
@@ -195,8 +196,12 @@ LOGGING = {
     },
 
     "loggers": {
-        # Logger específico para signals
         "signals": {
+            "handlers": ["console", "signals_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "auditoria.signals": {
             "handlers": ["console", "signals_file"],
             "level": "INFO",
             "propagate": False,
