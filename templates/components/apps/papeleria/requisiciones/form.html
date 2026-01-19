@@ -30,7 +30,11 @@
             </div>
         </div>
     {% else %}
-        {% crispy form %}
+        <div class="card bg-base-100 shadow mb-4">
+            <div class="card-body">
+                {% crispy form %}
+            </div>
+        </div>
     {% endif %}
 
     <!-- ===================== -->

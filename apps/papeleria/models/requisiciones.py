@@ -89,7 +89,7 @@ class Requisicion(models.Model):
         verbose_name="¿Es papelería de stock?"
     )
 
-    notas = models.TextField(blank=True, null=True)
+    notas = models.TextField(blank=True, null=True, verbose_name="Notas Generales")
 
     created_at = models.DateTimeField("Creado el", auto_now_add=True)
     updated_at = models.DateTimeField("Actualizado el", auto_now=True)

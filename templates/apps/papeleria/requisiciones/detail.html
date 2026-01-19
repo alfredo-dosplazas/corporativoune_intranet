@@ -239,5 +239,17 @@
         </div>
     {% endif %}
 
+    {% if requisicion.notas %}
+        <div class="card bg-base-100 shadow my-6">
+            <div class="card-body">
+                <h2 class="font-bold mb-4">Notas Generales</h2>
+
+                <p class="text-muted text-sm text-base-content/80">
+                    {{ requisicion.notas }}
+                </p>
+            </div>
+        </div>
+    {% endif %}
+
     <c-apps.papeleria.requisiciones.actividad/>
 </c-layouts.app>

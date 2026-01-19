@@ -43,7 +43,8 @@ class RequisicionForm(forms.ModelForm):
             ),
             'requisicion_relacionada': autocomplete.ModelSelect2(
                 url='papeleria:requisiciones__autocomplete',
-            )
+            ),
+            'notas': Textarea(attrs={'class': 'h-16'}),
         }
 
     def _get_layout_admin(self):
@@ -76,7 +77,8 @@ class RequisicionForm(forms.ModelForm):
             Row(
                 Column('fecha_autorizacion_contraloria'),
                 Column('autorizado_por'),
-            )
+            ),
+            'notas',
         )
 
     def _get_layout_normal(self):
@@ -86,7 +88,7 @@ class RequisicionForm(forms.ModelForm):
                     'es_papeleria_stock',
                     css_class="md:col-12"
                 ),
-            ) if self.fields.get('es_papeleria_stock', None) else None,
+            ) if es_admin_papeleria(self.user) else None,
             Row(
                 Column('solicitante'),
                 Column('aprobador'),
@@ -95,6 +97,7 @@ class RequisicionForm(forms.ModelForm):
                 Column('empresa'),
                 Column('estado'),
             ),
+            'notas',
         )
 
     def _configurar_admin(self):
@@ -191,8 +194,6 @@ class RequisicionForm(forms.ModelForm):
             self._configurar_admin()
             self.tipo_usuario = 'admin'
         else:
-            if not es_admin_papeleria(self.user):
-                self.fields.pop("es_papeleria_stock", None)
             self._configurar_usuario_normal()
             self.tipo_usuario = 'normal'
 
