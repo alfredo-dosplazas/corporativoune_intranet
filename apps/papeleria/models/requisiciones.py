@@ -83,6 +83,12 @@ class Requisicion(models.Model):
         Empresa, on_delete=models.CASCADE, related_name="requisiciones_papeleria"
     )
 
+    es_papeleria_stock = models.BooleanField(
+        default=False,
+        help_text="Si se activa, la requisición se enviará directamente a Compras sin pasar por el aprobador del área.",
+        verbose_name="¿Es papelería de stock?"
+    )
+
     created_at = models.DateTimeField("Creado el", auto_now_add=True)
     updated_at = models.DateTimeField("Actualizado el", auto_now=True)
 

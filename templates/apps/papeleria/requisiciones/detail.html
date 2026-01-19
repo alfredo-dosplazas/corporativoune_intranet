@@ -9,6 +9,11 @@
                 <span class="badge {{ requisicion.estado_ui.color }} mt-1">
                     {{ requisicion.estado_ui.label }}
                 </span>
+                {% if requisicion.es_papeleria_stock %}
+                    <span class="badge badge-primary mt-1">
+                       Papelería De Stock
+                    </span>
+                {% endif %}
             </div>
 
             <div class="flex items-center gap-2">
@@ -234,5 +239,5 @@
         </div>
     {% endif %}
 
-    <c-apps.papeleria.requisiciones.actividad />
+    <c-apps.papeleria.requisiciones.actividad/>
 </c-layouts.app>

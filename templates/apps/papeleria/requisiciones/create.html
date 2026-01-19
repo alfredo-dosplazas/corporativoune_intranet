@@ -23,16 +23,46 @@
     </c-slot>
 
     {% if not user.is_superuser %}
-        <div>
-            {{ user.contacto.empresa }}
-            {{ user.contacto }}
-            {% if user.contacto %}
-                {% if user.contacto.area %}
-                    {{ user.contacto.area.aprobador_papeleria.contacto|default:user.contacto.area.aprobador_papeleria }}
-                {% endif %}
+        <div class="stats stats-vertical md:stats-horizontal shadow mb-4 bg-base-100">
+
+            <!-- Empresa -->
+            <div class="stat">
+                <div class="stat-title">Empresa</div>
+                <div class="stat-value text-base">
+                    {{ user.contacto.empresa }}
+                </div>
+            </div>
+
+            <!-- Solicitante -->
+            <div class="stat">
+                <div class="stat-title">Solicitante</div>
+                <div class="stat-value text-base">
+                    {{ user.contacto.nombre_completo }}
+                </div>
+            </div>
+
+            <!-- Área -->
+            {% if user.contacto.area %}
+                <div class="stat">
+                    <div class="stat-title">Área</div>
+                    <div class="stat-value text-base">
+                        {{ user.contacto.area }}
+                    </div>
+                </div>
             {% endif %}
 
-            {{ user.contacto.area }}
+            <!-- Aprobador -->
+            <div class="stat">
+                <div class="stat-title">Aprobador</div>
+                <div class="stat-value text-base">
+                    {% if user.contacto.area and user.contacto.area.aprobador_papeleria %}
+                        {{ user.contacto.area.aprobador_papeleria.contacto.nombre_completo }}
+                    {% else %}
+                        Aprobador de papelería no asignado
+                    {% endif %}
+                </div>
+            </div>
+
         </div>
     {% endif %}
 

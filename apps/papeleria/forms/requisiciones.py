@@ -8,6 +8,10 @@ from django.forms import Textarea, TextInput, NumberInput
 from apps.papeleria.models.requisiciones import Requisicion, DetalleRequisicion
 
 
+def es_admin_papeleria(user):
+    return user.groups.filter(name="ADMINISTRADOR PAPELERÍA").exists()
+
+
 class RequisicionForm(forms.ModelForm):
     class Meta:
         model = Requisicion
@@ -16,10 +20,40 @@ class RequisicionForm(forms.ModelForm):
         widgets = {
             'fecha_autorizacion_contraloria': TextInput(attrs={'type': 'date'}),
             'razon_rechazo': Textarea(attrs={'class': 'h-16'}),
+            'solicitante': autocomplete.ModelSelect2(
+                url='usuario__autocomplete',
+            ),
+            'aprobador': autocomplete.ModelSelect2(
+                url='usuario__autocomplete',
+            ),
+            'compras': autocomplete.ModelSelect2(
+                url='usuario__autocomplete',
+            ),
+            'contraloria': autocomplete.ModelSelect2(
+                url='usuario__autocomplete',
+            ),
+            'rechazador': autocomplete.ModelSelect2(
+                url='usuario__autocomplete',
+            ),
+            'autorizado_por': autocomplete.ModelSelect2(
+                url='usuario__autocomplete',
+            ),
+            'empresa': autocomplete.ModelSelect2(
+                url='empresa__autocomplete',
+            ),
+            'requisicion_relacionada': autocomplete.ModelSelect2(
+                url='papeleria:requisiciones__autocomplete',
+            )
         }
 
-    def _configurar_admin(self):
-        self.helper.layout = Layout(
+    def _get_layout_admin(self):
+        return Layout(
+            Row(
+                Column(
+                    'es_papeleria_stock',
+                    css_class="md:col-12"
+                ),
+            ),
             Row(
                 Column('solicitante'),
                 Column('aprobador'),
@@ -45,15 +79,35 @@ class RequisicionForm(forms.ModelForm):
             )
         )
 
+    def _get_layout_normal(self):
+        return Layout(
+            Row(
+                Column(
+                    'es_papeleria_stock',
+                    css_class="md:col-12"
+                ),
+            ) if self.fields.get('es_papeleria_stock', None) else None,
+            Row(
+                Column('solicitante'),
+                Column('aprobador'),
+                Column('compras'),
+                Column('contraloria'),
+                Column('empresa'),
+                Column('estado'),
+            ),
+        )
+
+    def _configurar_admin(self):
+        self.helper.layout = self._get_layout_admin()
+
     def _configurar_usuario_normal(self):
         usuario = self.user
-        empresa = getattr(getattr(usuario, 'contacto', None), 'empresa', None)
+        empresa = usuario.contacto.empresa
 
         # Valores por defecto
         self.initial.update({
             "solicitante": usuario,
-            "aprobador": getattr(getattr(getattr(usuario, 'contacto', None), 'area', None), 'aprobador_papeleria',
-                                 None),
+            "aprobador": usuario.contacto.area.aprobador_papeleria if usuario.contacto.area else None,
             "compras": empresa.configuracion_papeleria.compras,
             "contraloria": empresa.configuracion_papeleria.contraloria,
             "empresa": empresa,
@@ -80,17 +134,25 @@ class RequisicionForm(forms.ModelForm):
         ]:
             self.fields[field].widget = forms.HiddenInput()
 
-        self.helper.layout = Layout()
+        self.helper.layout = self._get_layout_normal()
 
     def clean(self):
         cleaned_data = super().clean()
 
         if not self.user.is_superuser:
             usuario = self.user
-            empresa = getattr(getattr(usuario, 'contacto', None), 'empresa', None)
-            aprobador = getattr(getattr(getattr(usuario, 'contacto', None), 'area', None), 'aprobador_papeleria',
-                                None)
+            empresa = usuario.contacto.empresa
+            aprobador = usuario.contacto.area.aprobador_papeleria if usuario.contacto.area else None
             compras = empresa.configuracion_papeleria.compras
+
+            if not (es_admin_papeleria(self.user) or self.user.is_superuser):
+                cleaned_data["es_papeleria_stock"] = False
+
+            es_stock = cleaned_data.get("es_papeleria_stock", False)
+
+            if es_stock:
+                aprobador = compras
+
             contraloria = empresa.configuracion_papeleria.contraloria
 
             if not empresa:
@@ -125,10 +187,14 @@ class RequisicionForm(forms.ModelForm):
             'creada_por': self.user,
         })
 
-        if not self.user.is_superuser:
-            self._configurar_usuario_normal()
-        else:
+        if self.user.is_superuser:
             self._configurar_admin()
+            self.tipo_usuario = 'admin'
+        else:
+            if not es_admin_papeleria(self.user):
+                self.fields.pop("es_papeleria_stock", None)
+            self._configurar_usuario_normal()
+            self.tipo_usuario = 'normal'
 
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -138,6 +204,7 @@ class RequisicionForm(forms.ModelForm):
             instance.save()
 
         return instance
+
 
 class DetalleRequisicionForm(forms.ModelForm):
     class Meta:

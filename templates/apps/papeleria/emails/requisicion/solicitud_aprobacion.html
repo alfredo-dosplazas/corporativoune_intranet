@@ -1,0 +1,140 @@
+{% load money %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Solicitud de Aprobación</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+        }
+
+        .header {
+            background-color: blue;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .content {
+            padding: 20px;
+            color: #333;
+        }
+
+        .content p {
+            margin-top: 0;
+        }
+
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .summary-table th, .summary-table td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .summary-table th {
+            background-color: #f7f9fc;
+            color: #555;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background-color: blue;
+            color: white;
+            padding: 12px 20px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            margin-top: 25px;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #aaa;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🔔 Requisición pendiente de aprobación</h1>
+    </div>
+    <div class="content">
+        <p>Estimado/a <strong>{{ aprobador }}</strong>,</p>
+        <p>Se ha generado una nueva solicitud de papelería que requiere su aprobación.</p>
+
+        <table class="summary-table">
+            <tr>
+                <th>Folio</th>
+                <td>{{ folio }}</td>
+            </tr>
+            <tr>
+                <th>Solicitante</th>
+                <td>{{ solicitante }}</td>
+            </tr>
+            <tr>
+                <th>Empresa</th>
+                <td>{{ empresa }}</td>
+            </tr>
+            <tr>
+                <th>Fecha de Solicitud</th>
+                <td>{{ fecha_solicitud|date:"d/m/Y H:i" }}</td>
+            </tr>
+            <tr>
+                <th>Estado Actual</th>
+                <td>{{ estado }}</td>
+            </tr>
+            <tr>
+                <th>Monto Total</th>
+                <td>${{ total|money }}</td>
+            </tr>
+        </table>
+
+        <h4 style="margin-top: 25px;">📝 Detalles de la Solicitud</h4>
+        <ul>
+            {% for detalle in detalles %}
+                <li>{{ detalle.articulo }} — {{ detalle.cantidad }} pza(s) —
+                    ${{ detalle.subtotal|money }}</li>
+            {% endfor %}
+        </ul>
+
+        <p>Puede revisar y autorizar esta solicitud desde el siguiente enlace:</p>
+
+        <p style="text-align: center;">
+            <a href="{{ requisicion_url }}" class="cta-button">Revisar Solicitud</a>
+        </p>
+
+        <p style="font-size: 13px; color: #888; text-align: center;">
+            O copie y pegue este enlace en su navegador:<br>
+            <a href="{{ requisicion_url }}">{{ requisicion_url }}</a>
+        </p>
+    </div>
+    <div class="footer">
+        Este es un correo automático enviado por la intranet del corporativo.
+    </div>
+</div>
+</body>
+</html>

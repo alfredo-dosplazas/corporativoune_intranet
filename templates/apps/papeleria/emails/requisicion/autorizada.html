@@ -1,0 +1,179 @@
+{% load money %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <title>
+        {% if parcial %}
+            Solicitud autorizada parcialmente
+        {% else %}
+            Solicitud aprobada
+        {% endif %}
+    </title>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6f9;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        }
+
+        .header {
+            background-color: {% if parcial %}#f39c12{% else %}#2ecc71{% endif %};
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .content {
+            padding: 20px;
+            color: #333;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .summary-table th,
+        .summary-table td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .summary-table th {
+            background-color: #f7f9fc;
+            color: #555;
+            width: 40%;
+        }
+
+        .button {
+            display: inline-block;
+            background-color: #1e40af;
+            color: #ffffff !important;
+            padding: 12px 20px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            padding: 20px;
+            background-color: #fafafa;
+        }
+
+        .note {
+            background: #fff8e1;
+            border-left: 4px solid #f39c12;
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>
+            {% if parcial %}
+                ⚠️ Solicitud Autorizada Parcialmente
+            {% else %}
+                ✅ Solicitud Aprobada
+            {% endif %}
+        </h1>
+    </div>
+
+    <div class="content">
+        <p>Hola <strong>{{ solicitante }}</strong>,</p>
+
+        {% if parcial %}
+            <p>
+                Tu solicitud de papelería con folio <strong>{{ folio }}</strong> fue
+                <strong>autorizada parcialmente</strong> por <strong>{{ aprobador }}</strong>.
+            </p>
+        {% else %}
+            <p>
+                Tu solicitud de papelería con folio <strong>{{ folio }}</strong> ha sido
+                <strong style="color: #2ecc71;">aprobada</strong> por
+                <strong>{{ aprobador }}</strong>.
+            </p>
+        {% endif %}
+
+        <h4>📝 Resumen de la solicitud</h4>
+
+        <table class="summary-table">
+            <tr>
+                <th>Empresa</th>
+                <td>{{ empresa }}</td>
+            </tr>
+            <tr>
+                <th>Fecha de solicitud</th>
+                <td>{{ fecha_solicitud|date:"d/m/Y H:i" }}</td>
+            </tr>
+            <tr>
+                <th>Estado actual</th>
+                <td>{{ estado }}</td>
+            </tr>
+            <tr>
+                <th>Monto total</th>
+                <td>{{ total|money }}</td>
+            </tr>
+        </table>
+
+        <p style="text-align:center;">
+            <a href="{{ requisicion_url }}" class="button">
+                Ver detalles de la solicitud
+            </a>
+        </p>
+
+        <p style="font-size: 12px; color: #888; text-align: center;">
+            O copie y pegue este enlace en su navegador:<br>
+            <a href="{{ requisicion_url }}">{{ requisicion_url }}</a>
+        </p>
+
+        {% if parcial %}
+            <div class="note">
+                <strong>Importante:</strong><br>
+                Los artículos no autorizados fueron enviados a una nueva requisición con
+                folio <strong>{{ nueva_requisicion_folio }}</strong>.
+                <br><br>
+
+                <a href="{{ nueva_requisicion_url }}" class="button" style="background-color:#f39c12;">
+                    Ver nueva requisición
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="footer">
+        Este es un correo automático enviado por la intranet del corporativo.
+    </div>
+</div>
+
+</body>
+</html>

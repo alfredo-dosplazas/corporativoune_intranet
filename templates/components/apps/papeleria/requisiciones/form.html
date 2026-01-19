@@ -23,11 +23,15 @@
     <!-- ===================== -->
     <!-- FORM PRINCIPAL -->
     <!-- ===================== -->
-    <div class="card bg-base-100 shadow mb-4">
-        <div class="card-body">
-            {% crispy form %}
+    {% if form.tipo_usuario == 'admin' %}
+        <div class="card bg-base-100 shadow mb-4">
+            <div class="card-body">
+                {% crispy form %}
+            </div>
         </div>
-    </div>
+    {% else %}
+        {% crispy form %}
+    {% endif %}
 
     <!-- ===================== -->
     <!-- DETALLE / INLINE FORMSET -->

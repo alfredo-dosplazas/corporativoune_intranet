@@ -84,6 +84,7 @@ def requisicion_excel(requisicion: Requisicion):
         "Código VS DP",
         "Número Papelería",
         "Artículo",
+        "Notas",
         "Cantidad",
         "Cant. Autorizada",
         "Unidad",
@@ -109,26 +110,27 @@ def requisicion_excel(requisicion: Requisicion):
         ws[f"A{fila}"] = detalle.articulo.codigo_vs_dp
         ws[f"B{fila}"] = detalle.articulo.numero_papeleria
         ws[f"C{fila}"] = detalle.articulo.nombre
-        ws[f"D{fila}"] = detalle.cantidad
-        ws[f"E{fila}"] = detalle.cantidad_autorizada
-        ws[f"F{fila}"] = detalle.articulo.unidad.clave
-        ws[f"G{fila}"] = detalle.articulo.precio
-        ws[f"H{fila}"] = detalle.articulo.impuesto
-        ws[f"I{fila}"] = detalle.articulo.importe
+        ws[f"D{fila}"] = detalle.notas
+        ws[f"E{fila}"] = detalle.cantidad
+        ws[f"F{fila}"] = detalle.cantidad_autorizada
+        ws[f"G{fila}"] = detalle.articulo.unidad.clave
+        ws[f"H{fila}"] = detalle.articulo.precio
+        ws[f"I{fila}"] = detalle.articulo.impuesto
+        ws[f"J{fila}"] = detalle.articulo.importe
 
-        ws[f"G{fila}"].number_format = currency
-        ws[f"H{fila}"].number_format = percent
+        ws[f"H{fila}"].number_format = currency
+        ws[f"I{fila}"].number_format = percent
 
         # Importe = Impuesto * Precio
-        ws[f"I{fila}"] = f"=(1+H{fila})*G{fila}"
-        ws[f"I{fila}"].number_format = currency
-
-        # Subtotal = Cantidad liberada * Importe (o cantidad)
-        ws[f"J{fila}"] = f"=IF(E{fila}>0,E{fila}*I{fila},D{fila}*I{fila})"
+        ws[f"J{fila}"] = f"=(1+I{fila})*H{fila}"
         ws[f"J{fila}"].number_format = currency
 
+        # Subtotal = Cantidad liberada * Importe (o cantidad)
+        ws[f"K{fila}"] = f"=IF(F{fila}>0,F{fila}*J{fila},E{fila}*J{fila})"
+        ws[f"K{fila}"].number_format = currency
+
         # Bordes
-        for col in range(1, 11):
+        for col in range(1, 12):
             ws.cell(row=fila, column=col).border = thin
 
         fila += 1
@@ -141,9 +143,9 @@ def requisicion_excel(requisicion: Requisicion):
     ws[f"A{fila}"].font = bold
     ws[f"A{fila}"].alignment = Alignment(horizontal="right")
 
-    ws[f"J{fila}"] = f"=SUM(J{fila_inicio_detalle}:J{fila - 1})"
-    ws[f"J{fila}"].font = bold
-    ws[f"J{fila}"].number_format = currency
+    ws[f"K{fila}"] = f"=SUM(K{fila_inicio_detalle}:K{fila - 1})"
+    ws[f"K{fila}"].font = bold
+    ws[f"K{fila}"].number_format = currency
 
     fila += 2
 
@@ -191,13 +193,14 @@ def requisicion_excel(requisicion: Requisicion):
         "A": 18,  # Código VS DP
         "B": 20,  # Número Papelería
         "C": 40,  # Artículo
-        "D": 12,  # Cantidad
-        "E": 15,  # Cant. liberada
-        "F": 12,  # Unidad
-        "G": 14,  # Precio
-        "H": 12,  # Impuesto
-        "I": 16,  # Importe
-        "J": 18,  # Subtotal
+        "D": 40,  # Notas
+        "E": 12,  # Cantidad
+        "F": 15,  # Cant. liberada
+        "G": 12,  # Unidad
+        "H": 14,  # Precio
+        "I": 12,  # Impuesto
+        "J": 16,  # Importe
+        "K": 18,  # Subtotal
     }
 
     for col, width in COLUMN_WIDTHS.items():

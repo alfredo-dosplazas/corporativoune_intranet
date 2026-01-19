@@ -1,6 +1,7 @@
 from django.contrib import admin, messages
 from import_export.admin import ImportExportActionModelAdmin
 
+from apps.core.tasks import enviar_correo_task
 from apps.directorio.models import Contacto, EmailContacto, TelefonoContacto
 from apps.directorio.resources import ContactoResource
 from apps.slack.tasks import enviar_slack_task
@@ -25,9 +26,9 @@ class ContactoAdmin(ImportExportActionModelAdmin):
 
     resource_class = ContactoResource
 
-    actions = ['enviar_mensaje_slack']
+    actions = ['enviar_mensaje_slack', 'enviar_correo']
 
-    @admin.action(description='Enviar mensaje Por Slack Al Usuario')
+    @admin.action(description='Enviar mensaje Por Slack')
     def enviar_mensaje_slack(self, request, queryset):
         for q in queryset:
             if q.slack_id:
@@ -35,4 +36,18 @@ class ContactoAdmin(ImportExportActionModelAdmin):
                     slack_id=q.slack_id,
                     mensaje="Mensaje de prueba envíado desde la intranet"
                 )
-        messages.success(request, 'Mensaje enviado con éxito.')
+        messages.info(request, 'Enviando mensaje...')
+
+    @admin.action(description='Enviar mensaje Por Correo Electrónico')
+    def enviar_correo(self, request, queryset):
+        for q in queryset:
+            email = q.emails.filter(es_principal=True, esta_activo=True).first()
+            if email:
+                enviar_correo_task.delay(
+                    subject="Mensaje de prueba - Intranet Corporativo UNE",
+                    to=[email.email],
+                    text_content="Este es un mensaje de prueba."
+                )
+            else:
+                messages.error(request, f'Email no encontrado ({q}).')
+        messages.info(request, 'Enviando correo...')

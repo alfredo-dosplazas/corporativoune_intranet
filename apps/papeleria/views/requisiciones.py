@@ -10,11 +10,12 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.timezone import now
 from django.views import View
-from django.views.generic import ListView, DeleteView, DetailView, CreateView
+from django.views.generic import ListView, DeleteView, DetailView
 from django_tables2 import SingleTableMixin
 from extra_views import SearchableListMixin, UpdateWithInlinesView, NamedFormsetsMixin, CreateWithInlinesView
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.tasks import enviar_correo_task
 from apps.papeleria.forms.requisiciones import RequisicionForm
 from apps.papeleria.inlines import DetalleRequisicionInline
 from apps.papeleria.models.requisiciones import Requisicion, DetalleRequisicion, ActividadRequisicion
@@ -125,8 +126,13 @@ class RequisicionCreateView(
         ]
 
 
-class RequisicionUpdateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMessageMixin, NamedFormsetsMixin,
-                            UpdateWithInlinesView):
+class RequisicionUpdateView(
+    PermissionRequiredMixin,
+    BreadcrumbsMixin,
+    SuccessMessageMixin,
+    NamedFormsetsMixin,
+    UpdateWithInlinesView
+):
     permission_required = ['papeleria.change_requisicion']
     template_name = "apps/papeleria/requisiciones/update.html"
     model = Requisicion
@@ -253,8 +259,31 @@ class RequisicionRequestConfirmView(PermissionRequiredMixin, View):
                 slack_id=aprobador.contacto.slack_id,
                 mensaje=mensaje,
             )
-        else:
-            print("enviar un correo")
+
+        if aprobador.contacto.email_principal:
+            enviar_correo_task.delay(
+                subject=f"Aprobación de requisición de papelería - {requisicion.folio}",
+                to=[aprobador.contacto.email_principal.email],
+                template_name="apps/papeleria/emails/requisicion/solicitud_aprobacion.html",
+                context={
+                    "aprobador": aprobador.contacto.nombre_completo,
+                    "folio": requisicion.folio,
+                    "solicitante": requisicion.solicitante.contacto.nombre_completo,
+                    "empresa": requisicion.empresa.nombre,
+                    "fecha_solicitud": requisicion.created_at,
+                    "estado": requisicion.get_estado_display(),
+                    "total": requisicion.total,
+                    "detalles": [
+                        {
+                            "articulo": d.articulo.nombre,
+                            "cantidad": d.cantidad,
+                            "subtotal": d.subtotal,
+                        }
+                        for d in requisicion.detalle_requisicion.all()
+                    ],
+                    "requisicion_url": request.build_absolute_uri(requisicion.get_absolute_url()),
+                }
+            )
 
         ActividadRequisicion.objects.create(
             requisicion=requisicion,
@@ -305,6 +334,8 @@ class RequisicionAprobarView(PermissionRequiredMixin, View):
             )
 
             requisicion.estado = 'enviada_compras'
+            messages.info(request, f'Se le notificará a compras')
+
             if compras.contacto.slack_id:
                 mensaje = (
                     "*Tienes una requisición pendiente de aprobación*\n"
@@ -319,7 +350,30 @@ class RequisicionAprobarView(PermissionRequiredMixin, View):
                     mensaje=mensaje,
                 )
 
-                messages.info(request, f'Se le notificará a compras')
+            if compras.contacto.email_principal:
+                enviar_correo_task.delay(
+                    subject=f"Aprobación de requisición de papelería - {requisicion.folio}",
+                    to=[compras.contacto.email_principal.email],
+                    template_name="apps/papeleria/emails/requisicion/solicitud_aprobacion.html",
+                    context={
+                        "aprobador": compras.contacto.nombre_completo,
+                        "folio": requisicion.folio,
+                        "solicitante": requisicion.solicitante.contacto.nombre_completo,
+                        "empresa": requisicion.empresa.nombre,
+                        "fecha_solicitud": requisicion.created_at,
+                        "estado": requisicion.get_estado_display(),
+                        "total": requisicion.total,
+                        "detalles": [
+                            {
+                                "articulo": d.articulo.nombre,
+                                "cantidad": d.cantidad,
+                                "subtotal": d.subtotal,
+                            }
+                            for d in requisicion.detalle_requisicion.all()
+                        ],
+                        "requisicion_url": request.build_absolute_uri(requisicion.get_absolute_url()),
+                    }
+                )
 
         if solicitante.contacto.slack_id:
             mensaje = (
@@ -334,8 +388,23 @@ class RequisicionAprobarView(PermissionRequiredMixin, View):
                 slack_id=solicitante.contacto.slack_id,
                 mensaje=mensaje,
             )
-        else:
-            print("enviar un correo")
+
+        if solicitante.contacto.email_principal:
+            enviar_correo_task.delay(
+                subject=f"Requisición de papelería aprobada - {requisicion.folio}",
+                to=[solicitante.contacto.email_principal.email],
+                template_name="apps/papeleria/emails/requisicion/solicitud_aprobada.html",
+                context={
+                    "aprobador": usuario.contacto.nombre_completo,
+                    "folio": requisicion.folio,
+                    "solicitante": requisicion.solicitante.contacto.nombre_completo,
+                    "empresa": requisicion.empresa.nombre,
+                    "fecha_solicitud": requisicion.created_at,
+                    "estado": requisicion.get_estado_display(),
+                    "total": requisicion.total,
+                    "requisicion_url": request.build_absolute_uri(requisicion.get_absolute_url()),
+                }
+            )
 
         requisicion.save(update_fields=['aprobo_compras', 'aprobo_aprobador', 'estado'])
         messages.success(request, f'{usuario.contacto} aprobó la requisición')
@@ -396,8 +465,24 @@ class RequisicionRechazarView(PermissionRequiredMixin, View):
                 slack_id=solicitante.contacto.slack_id,
                 mensaje=mensaje,
             )
-        else:
-            print("enviar un correo")
+
+        if solicitante.contacto.email_principal:
+            enviar_correo_task.delay(
+                subject=f"Requisición de papelería rechazada - {requisicion.folio}",
+                to=[solicitante.contacto.email_principal.email],
+                template_name="apps/papeleria/emails/requisicion/solicitud_rechazada.html",
+                context={
+                    "revisor": usuario.contacto.nombre_completo,
+                    "folio": requisicion.folio,
+                    "solicitante": requisicion.solicitante.contacto.nombre_completo,
+                    "empresa": requisicion.empresa.nombre,
+                    "fecha_solicitud": requisicion.created_at,
+                    "estado": requisicion.get_estado_display(),
+                    "total": requisicion.total,
+                    "razon_rechazo": requisicion.razon_rechazo,
+                    "requisicion_url": request.build_absolute_uri(requisicion.get_absolute_url()),
+                }
+            )
 
         messages.error(request, f'{usuario.contacto} rechazó la requisición')
 
@@ -467,15 +552,35 @@ class RequisicionEnviarContraloriaView(PermissionRequiredMixin, View):
                     + "\n".join(lineas)
             )
 
-            contraloria = getattr(contraloria, 'contacto', contraloria)
-
-            if contraloria.slack_id:
+            if contraloria.contacto.slack_id:
                 enviar_slack_task.delay(
-                    slack_id=contraloria.slack_id,
+                    slack_id=contraloria.contacto.slack_id,
                     mensaje=mensaje,
                 )
-            else:
-                print(f"Enviar correo a {contraloria}")
+
+            if contraloria.contacto.email_principal:
+                enviar_correo_task.delay(
+                    subject=f"Requisiciones pendientes de aprobación",
+                    to=[contraloria.contacto.email_principal.email],
+                    template_name="apps/papeleria/emails/requisicion/solicitudes_aprobacion_contraloria.html",
+                    context={
+                        "aprobador": contraloria.contacto.nombre_completo,
+                        "requisiciones": [
+                            {
+                                "folio": r.folio,
+                                "solicitante": r.solicitante.contacto.nombre_completo,
+                                "area": r.solicitante.contacto.area.nombre if r.solicitante.contacto.area else None,
+                                "empresa": r.empresa.nombre,
+                                "fecha_solicitud": r.created_at,
+                                "total": r.total,
+                                "absolute_url": request.build_absolute_uri(r.get_absolute_url()),
+                                "requisiciones_url": request.build_absolute_uri(
+                                    reverse('papeleria:requisiciones__list')),
+                            }
+                            for r in reqs
+                        ],
+                    }
+                )
 
         messages.success(
             request,
@@ -555,8 +660,23 @@ class RequisicionAutorizarView(PermissionRequiredMixin, View):
                     slack_id=solicitante.contacto.slack_id,
                     mensaje=mensaje,
                 )
-            else:
-                print("enviar un correo")
+
+            if solicitante.contacto.email_principal:
+                enviar_correo_task.delay(
+                    subject=f"Requisición Autorizada - {requisicion.folio}",
+                    to=[solicitante.contacto.email_principal.email],
+                    template_name="apps/papeleria/emails/requisicion/autorizada.html",
+                    context={
+                        "aprobador": usuario.contacto.nombre_completo,
+                        "folio": requisicion.folio,
+                        "solicitante": requisicion.solicitante.contacto.nombre_completo,
+                        "empresa": requisicion.empresa.nombre,
+                        "fecha_solicitud": requisicion.created_at,
+                        "estado": requisicion.get_estado_display(),
+                        "total": requisicion.total,
+                        "requisicion_url": request.build_absolute_uri(requisicion.get_absolute_url()),
+                    }
+                )
 
             messages.success(request, "Requisición liberada completamente.")
 
@@ -581,6 +701,7 @@ class RequisicionAutorizarView(PermissionRequiredMixin, View):
             estado="enviada_compras",
             aprobo_solicitante=True,
             aprobo_aprobador=True,
+            creada_por=usuario,
         )
 
         for d in detalles:
@@ -627,8 +748,26 @@ class RequisicionAutorizarView(PermissionRequiredMixin, View):
                 slack_id=solicitante.contacto.slack_id,
                 mensaje=mensaje,
             )
-        else:
-            print("enviar un correo")
+
+        if solicitante.contacto.email_principal:
+            enviar_correo_task.delay(
+                subject=f"Requisición Autorizada Parcialmente - {requisicion.folio}",
+                to=[solicitante.contacto.email_principal.email],
+                template_name="apps/papeleria/emails/requisicion/autorizada.html",
+                context={
+                    "aprobador": usuario.contacto.nombre_completo,
+                    "folio": requisicion.folio,
+                    "solicitante": requisicion.solicitante.contacto.nombre_completo,
+                    "empresa": requisicion.empresa.nombre,
+                    "fecha_solicitud": requisicion.created_at,
+                    "estado": requisicion.get_estado_display(),
+                    "total": requisicion.total,
+                    "requisicion_url": request.build_absolute_uri(requisicion.get_absolute_url()),
+                    "parcial": True,
+                    "nueva_requisicion_folio": nueva_requisicion.folio,
+                    "nueva_requisicion_url": request.build_absolute_uri(nueva_requisicion.get_absolute_url()),
+                }
+            )
 
         messages.success(
             request,

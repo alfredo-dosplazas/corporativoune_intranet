@@ -1,6 +1,7 @@
 from django.urls import path
 
 from apps.papeleria.autocompletes.articulos import ArticuloAutocomplete
+from apps.papeleria.autocompletes.requisiciones import RequisicionAutocomplete
 from apps.papeleria.views import PapeleriaView
 from apps.papeleria.views.articulos import ArticuloListView, ArticuloCreateView, ArticuloUpdateView, ArticuloDetailView, \
     ArticuloDeleteView
@@ -47,8 +48,16 @@ requisiciones_urlpatterns = [
     ),
     path('requisiciones/autorizar/<int:pk>/', RequisicionAutorizarView.as_view(), name='requisiciones__autorizar'),
     path('requisiciones/excel/<int:pk>/', RequisicionExcelView.as_view(), name='requisiciones__excel'),
-    path('requisiciones/<int:pk>/actividad/crear/', ActividadRequisicionCreateView.as_view(),
-         name='requisiciones__agregar_actividad'),
+    path(
+        'requisiciones/<int:pk>/actividad/crear/',
+        ActividadRequisicionCreateView.as_view(),
+        name='requisiciones__agregar_actividad'
+    ),
+    path(
+        'requisiciones/autocomplete/',
+        RequisicionAutocomplete.as_view(),
+        name="requisiciones__autocomplete",
+    )
 ]
 
 actividades_urlpatterns = [
