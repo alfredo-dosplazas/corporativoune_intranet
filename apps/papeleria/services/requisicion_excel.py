@@ -149,6 +149,20 @@ def requisicion_excel(requisicion: Requisicion):
 
     fila += 2
 
+    ws.merge_cells(f"A{fila}:K{fila}")
+    for col in range(1, 12):
+        ws.cell(row=fila, column=col).border = thin
+    ws[f"A{fila}"] = "NOTAS GENERALES"
+    ws[f"A{fila}"].font = bold
+    ws[f"A{fila}"].alignment = Alignment(horizontal="right")
+    fila += 1
+    ws.merge_cells(f"A{fila}:K{fila}")
+    for col in range(1, 12):
+        ws.cell(row=fila, column=col).border = thin
+    ws[f"A{fila}"] = requisicion.notas
+
+    fila += 5
+
     # =====================
     # FIRMAS
     # =====================
