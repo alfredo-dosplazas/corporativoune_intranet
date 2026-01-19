@@ -22,11 +22,11 @@ echo 🛑 Deteniendo servicios...
 
 timeout /t 5 /nobreak >nul
 
-echo Instalando Librerías...
+echo Instalando Librerias...
 %PYTHON% -m pip install -r %REQUIREMENTS%
 
 if %errorlevel% neq 0 (
-    echo ❌ Error en pip install -r requirements.txt
+    echo Error en pip install -r requirements.txt
     pause
     exit /b 1
 )
@@ -35,23 +35,23 @@ echo 🧱 Ejecutando migraciones...
 %PYTHON% %MANAGE% migrate --noinput
 
 if %errorlevel% neq 0 (
-    echo ❌ Error en migrate
+    echo Error en migrate
     pause
     exit /b 1
 )
 
-echo 🎨 Ejecutando collectstatic...
+echo Ejecutando collectstatic...
 %PYTHON% %MANAGE% collectstatic --noinput
 
 if %errorlevel% neq 0 (
-    echo ❌ Error en collectstatic
+    echo Error en collectstatic
     pause
     exit /b 1
 )
 
-echo ▶️ Iniciando servicios...
+echo Iniciando servicios...
 %NSSM% start %DJANGO_SERVICE%
 %NSSM% start %CELERY_SERVICE%
 
-echo ✅ Deploy terminado correctamente
+echo Deploy terminado correctamente
 pause
