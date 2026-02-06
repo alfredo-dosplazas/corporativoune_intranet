@@ -16,7 +16,7 @@ REM === Servicios ===
 set DJANGO_SERVICE=corporativoune_intranet
 set CELERY_SERVICE=corporativoune_intranet_celery_worker
 
-echo 🛑 Deteniendo servicios...
+echo Deteniendo servicios...
 %NSSM% stop %DJANGO_SERVICE%
 %NSSM% stop %CELERY_SERVICE%
 
@@ -31,7 +31,7 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo 🧱 Ejecutando migraciones...
+echo Ejecutando migraciones...
 %PYTHON% %MANAGE% migrate --noinput
 
 if %errorlevel% neq 0 (

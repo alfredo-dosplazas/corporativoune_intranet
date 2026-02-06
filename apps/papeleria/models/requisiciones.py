@@ -1,10 +1,19 @@
 from django.contrib.auth.models import User
-from django.db import models
+from django.db import models, transaction
 from django.urls import reverse
 from django.utils.timezone import now
 
 from apps.core.models import Empresa
 from apps.papeleria.models.articulos import Articulo
+
+
+class FolioRequisicion(models.Model):
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
+    year = models.PositiveIntegerField()
+    last_number = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ("empresa", "year")
 
 
 class Requisicion(models.Model):
@@ -22,8 +31,8 @@ class Requisicion(models.Model):
         ("cancelada", "CANCELADA"),
     ]
 
-    folio = models.CharField(max_length=100, unique=True, editable=False)
-    folio_consecutivo = models.PositiveIntegerField(editable=False)
+    folio = models.CharField(max_length=100, unique=True)
+    folio_consecutivo = models.PositiveIntegerField()
 
     requisicion_relacionada = models.ForeignKey(
         "Requisicion",
@@ -179,19 +188,18 @@ class Requisicion(models.Model):
         if not self.pk:
             current_year = now().year
 
-            ultimo = (
-                Requisicion.objects.filter(
-                    created_at__year=current_year, empresa=self.empresa
+            with transaction.atomic():
+                folio_control, _ = FolioRequisicion.objects.select_for_update().get_or_create(
+                    empresa=self.empresa,
+                    year=current_year,
                 )
-                .order_by("-folio_consecutivo")
-                .first()
-            )
-            if ultimo:
-                self.folio_consecutivo = ultimo.folio_consecutivo + 1
-            else:
-                self.folio_consecutivo = 1
 
-            self.folio = f"REQ-PAPE-{self.empresa.codigo}-{current_year}-{str(self.folio_consecutivo).zfill(5)}"
+                folio_control.last_number += 1
+                self.folio_consecutivo = folio_control.last_number
+
+                self.folio = f"REQ-PAPE-{self.empresa.codigo}-{current_year}-{str(self.folio_consecutivo).zfill(5)}"
+
+                folio_control.save()
 
         super().save(*args, **kwargs)
 

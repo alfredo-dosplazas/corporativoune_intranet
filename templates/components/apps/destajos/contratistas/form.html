@@ -1,0 +1,35 @@
+{% load crispy_forms_tags %}
+
+<div class="card bg-base-100 shadow-xl border border-base-300">
+    <div class="card-body gap-6">
+        <div class="flex justify-end">
+            {% if form.instance.pk %}
+                <button
+                        hx-target="#precios-container"
+                        hx-trigger="click"
+                        hx-get="{% url 'destajos:contratistas__precios' form.instance.pk %}"
+                        class="btn btn-sm btn-secondary"
+                        onclick="precios_contratista_modal.showModal()"
+                >
+                    Precios
+                </button>
+                <c-apps.destajos.contratistas.modal.precios :record="form.instance" />
+            {% endif %}
+        </div>
+
+        {% if form.errors %}
+            <div id="form-errors-banner" class="alert alert-error alert-soft mb-6">
+                <div>
+                    <h3 class="font-bold">
+                        No se pudo guardar el contratista
+                    </h3>
+                    <p class="text-sm opacity-90">
+                        Hay errores en el formulario. Revisa los campos marcados en rojo.
+                    </p>
+                </div>
+            </div>
+        {% endif %}
+
+        {% crispy form %}
+    </div>
+</div>

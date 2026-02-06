@@ -1,0 +1,52 @@
+<dialog id="precios_contratista_modal"
+        class="modal modal-bottom sm:modal-middle">
+
+    <div class="modal-box sm:w-11/12 sm:max-w-5xl h-[80vh] flex flex-col p-0">
+
+        <div class="px-6 pt-6 pb-4 border-b flex items-center justify-between">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+                Precios
+                <span class="text-sm text-base-content/60">{{ record }}</span>
+            </h3>
+
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost">✕</button>
+            </form>
+        </div>
+
+        <div class="flex-1 overflow-auto px-6 py-4">
+            <!-- CONTENIDO DINÁMICO -->
+            <div id="precios-container" class="min-h-[120px]"
+            >
+                {% include 'partials/apps/destajos/contratistas/precios.html' %}
+            </div>
+
+            <!-- INDICADOR HTMX -->
+            <div id="verificando-loader"
+                 class="htmx-indicator flex items-center gap-2 text-sm text-base-content/70">
+                <span class="loading loading-spinner loading-sm"></span>
+                Cargando precios...
+            </div>
+        </div>
+
+
+        <div class="border-t bg-base-100 px-6 py-4 flex justify-end gap-3">
+            <button
+                    type="submit"
+                    form="precios-form"
+                    class="btn btn-primary btn-sm whitespace-nowrap"
+            >
+                Guardar precios
+            </button>
+
+            <form method="dialog">
+                <button class="btn btn-ghost btn-sm">Cancelar</button>
+            </form>
+        </div>
+
+    </div>
+
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>

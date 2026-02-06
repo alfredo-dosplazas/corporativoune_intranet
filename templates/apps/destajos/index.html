@@ -25,10 +25,10 @@
 
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <c-shared.modulos.card
-                url=""
-                icono=""
-                nombre="Destajos"
-                permiso=""
+                url="{% url 'destajos:contratistas__list' %}"
+                icono="icon-[ion--construct]"
+                nombre="Contratistas"
+                permiso="destajos.view_contratista"
                 descripcion=""
         />
 

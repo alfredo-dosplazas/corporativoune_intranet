@@ -1,0 +1,116 @@
+{% load crispy_forms_filters %}
+<form
+        id="precios-form"
+        hx-target="#precios-container"
+        hx-trigger="submit"
+        hx-post="{% url 'destajos:contratistas__precios' contratista.pk %}"
+>
+    {% csrf_token %}
+
+    {% if saved %}
+        <div id="form-errors-banner" class="alert alert-success alert-soft mb-6">
+            <div>
+                <h3 class="font-bold">Precios guardados correctamente</h3>
+                <p class="text-sm">Todos los registros se guardaron sin errores.</p>
+            </div>
+        </div>
+    {% endif %}
+
+
+    {% if Precio.errors %}
+        <div id="form-errors-banner" class="alert alert-error alert-soft mb-6">
+            <div>
+                <h3 class="font-bold">
+                    No se pudo guardar los precios.
+                </h3>
+                <p class="text-sm opacity-90">
+                    Hay errores en el formulario. Revisa los campos marcados en rojo.
+                </p>
+            </div>
+        </div>
+    {% endif %}
+
+    {{ Precio.management_form }}
+
+    <div class="card overflow-auto bg-base-100 shadow-xl border border-base-300">
+        <div class="card-body">
+            <table class="table table-sm table-zebra">
+                <thead>
+                <tr class="bg-base-200">
+                    <th>Trabajo</th>
+                    <th>Precio</th>
+                    <th>Unidad</th>
+                    <th>Vigencia Desde</th>
+                    <th>Vigencia Hasta</th>
+                    {% if perms.destajos.delete_preciocontratista %}
+                        <th>
+                            ¿Eliminar?
+                        </th>
+                    {% endif %}
+                </tr>
+                </thead>
+                <tbody>
+                {% for form in Precio %}
+                    <tr
+                            class="
+                    {% if form.errors %}
+                        bg-error/20
+                    {% elif not form.instance.pk %}
+                        bg-info/10
+                    {% endif %}
+                "
+                    >
+                        <td>
+                            {{ form.id }}
+                            {{ form.trabajo|as_crispy_field }}
+                            {% if form.trabajo.errors %}
+                                <p class="text-error text-xs mt-1">
+                                    {{ form.trabajo.errors|join:", " }}
+                                </p>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ form.precio|as_crispy_field }}
+                            {% if form.precio.errors %}
+                                <p class="text-error text-xs mt-1">
+                                    {{ form.precio.errors|join:", " }}
+                                </p>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ form.unidad|as_crispy_field }}
+                            {% if form.unidad.errors %}
+                                <p class="text-error text-xs mt-1">
+                                    {{ form.unidad.errors|join:", " }}
+                                </p>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ form.vigente_desde|as_crispy_field }}
+                            {% if form.vigente_desde.errors %}
+                                <p class="text-error text-xs mt-1">
+                                    {{ form.vigente_desde.errors|join:", " }}
+                                </p>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ form.vigente_hasta|as_crispy_field }}
+                            {% if form.vigente_hasta.errors %}
+                                <p class="text-error text-xs mt-1">
+                                    {{ form.vigente_hasta.errors|join:", " }}
+                                </p>
+                            {% endif %}
+                        </td>
+                        {% if perms.destajos.delete_preciocontratista %}
+                            <td>
+                                {{ form.DELETE }}
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+    </div>
+</form>

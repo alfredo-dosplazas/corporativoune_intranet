@@ -42,12 +42,14 @@ INSTALLED_APPS = [
     'extra_views',
     'django_filters',
     'import_export',
+    'django_htmx',
     'apps.core',
     'apps.slack',
     'apps.auditoria',
     'apps.rrhh',
     'apps.papeleria',
     'apps.directorio',
+    'apps.destajos',
     'apps.fotos',
     'apps.monitoreo_servicios',
 ]
@@ -62,6 +64,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'apps.auditoria.middleware.UserAccessLogMiddleware',
     'apps.auditoria.middleware.AuditMiddleware',
+    'django_htmx.middleware.HtmxMiddleware',
 ]
 
 ROOT_URLCONF = 'intranet.urls'
