@@ -29,7 +29,13 @@ def ping(ip):
 
 
 def get_client_ip(request):
-    logger.info(f"Cliente accede desde la ip: remote: {request.META.get("REMOTE_ADDR")}, xff: {request.META.get("HTTP_X_FORWARDED_FOR")}")
+    logger.info(
+        f"Cliente accede desde la ip: remote: {request.META.get("REMOTE_ADDR")}, xff: {request.META.get("HTTP_X_FORWARDED_FOR")}"
+    )
+    xff = request.META.get("HTTP_X_FORWARDED_FOR")
+    if xff:
+        # Tomamos la primera IP de la lista
+        return xff.split(",")[0].strip()
     return request.META.get("REMOTE_ADDR")
 
 
