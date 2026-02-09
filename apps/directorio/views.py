@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
-from apps.core.utils.network import get_client_ip, ip_in_allowed_range, get_empresa_from_ip
+from apps.core.utils.network import get_client_ip, ip_in_allowed_range, get_empresa_from_ip, get_empresas_from_ip
 from apps.directorio.forms import ContactoForm
 from apps.directorio.models import Contacto
 
@@ -27,14 +27,14 @@ class DirectorioListView(BreadcrumbsMixin, ListView):
 
     def get_queryset(self):
         ip = get_client_ip(self.request)
-        empresa = get_empresa_from_ip(ip)
+        empresas = get_empresas_from_ip(ip)
 
         qs = super().get_queryset().filter(
             mostrar_en_directorio=True
         )
 
-        if empresa:
-            qs = qs.filter(empresa=empresa)
+        if empresas:
+            qs = qs.filter(empresa__in=empresas)
         else:
             qs = qs.none()
 

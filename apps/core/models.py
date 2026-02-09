@@ -46,7 +46,7 @@ class EmpresaIPRange(models.Model):
     empresa = models.ForeignKey(
         Empresa,
         on_delete=models.CASCADE,
-        related_name="ip_ranges"
+        related_name="allowed_networks"
     )
 
     cidr = models.CharField(max_length=50)

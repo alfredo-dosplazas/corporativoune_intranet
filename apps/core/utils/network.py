@@ -5,7 +5,7 @@ import subprocess
 import platform
 import time
 
-from apps.core.models import EmpresaIPRange
+from apps.core.models import EmpresaIPRange, Empresa
 
 logger = logging.getLogger("core.network")
 
@@ -42,7 +42,11 @@ def get_client_ip(request):
 
 
 ALLOWED_NETWORKS = [
-    ipaddress.ip_network("172.17.0.0/16"),
+    ipaddress.ip_network("172.17.4.0/24"),  # VLAN de Usuarios Ethernet
+    ipaddress.ip_network("172.17.5.0/24"),  # VLAN de Usuarios SSID Dos_Plazas
+    ipaddress.ip_network("172.17.6.0/24"),  # VLAN de Usuarios SSID Dos_Plazas_D
+    ipaddress.ip_network("172.17.7.0/24"),  # VLAN de Usuarios SSID Dos_Plazas_T
+    ipaddress.ip_network("200.92.196.66/32"),  # IP Pública de FP
     ipaddress.ip_network("127.0.0.1/32"),
     ipaddress.ip_network("::1/128"),
 ]
@@ -67,3 +71,16 @@ def get_empresa_from_ip(ip):
             return ip_range.empresa
 
     return None
+
+
+def get_empresas_from_ip(ip: str):
+    import ipaddress
+    ip_addr = ipaddress.ip_address(ip)
+    empresas = []
+
+    for empresa in Empresa.objects.all():
+        for net in empresa.allowed_networks.all():  # supongamos que cada empresa tiene un modelo relacionado de redes
+            if ip_addr in ipaddress.ip_network(net.cidr):
+                empresas.append(empresa)
+                break
+    return empresas
