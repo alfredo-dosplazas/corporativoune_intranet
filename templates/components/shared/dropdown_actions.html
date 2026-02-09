@@ -1,0 +1,15 @@
+<button class="btn btn-sm flex items-center" popovertarget="popover-dropdown-actions-{{ record.pk }}"
+        style="anchor-name:--anchor-dropdown-actions-{{ record.pk }}">
+    <span class="icon-[mdi--gear] size-4"></span>
+    Acciones
+</button>
+<ul class="dropdown dropdown-end menu w-52 rounded-box bg-base-100 shadow-sm"
+    popover id="popover-dropdown-actions-{{ record.pk }}"
+    style="position-anchor:--anchor-dropdown-actions-{{ record.pk }}">
+    {% for item in dropdown_actions %}
+        {% if item.perms in perms %}
+            <li><a href="{{ item.url }}">{{ item.title }}</a></li>
+        {% endif %}
+    {% endfor %}
+    {{ slot }}
+</ul>

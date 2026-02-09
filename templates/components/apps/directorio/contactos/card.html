@@ -38,11 +38,7 @@
                 <h2 class="text-primary text-lg font-semibold leading-tight truncate"
                     title="{{ contacto.nombre_completo }}"
                 >
-                    {% if perms.directorio.view_contacto %}
-                        <a href="{% url 'directorio:detail' contacto.pk %}">{{ contacto.nombre_completo }}</a>
-                    {% else %}
-                        {{ contacto.nombre_completo }}
-                    {% endif %}
+                    <a href="{% url 'directorio:detail' contacto.pk %}">{{ contacto.nombre_completo }}</a>
                 </h2>
 
                 {% if contacto.numero_empleado %}
@@ -120,12 +116,10 @@
 
             <div class="flex gap-2 print:hidden">
 
-                {% if perms.directorio.view_contacto %}
-                    <a href="{% url 'directorio:detail' contacto.pk %}"
-                       class="btn btn-xs btn-outline">
-                        Ver
-                    </a>
-                {% endif %}
+                <a href="{% url 'directorio:detail' contacto.pk %}"
+                   class="btn btn-xs btn-outline">
+                    Ver
+                </a>
 
                 {% if perms.directorio.change_contacto %}
                     <a href="{% url 'directorio:update' contacto.pk %}"

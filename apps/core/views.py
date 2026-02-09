@@ -1,11 +1,9 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView as BaseLoginView, LogoutView as BaseLogoutView
-from django.shortcuts import render
+from django.urls import reverse
 from django.views.generic import TemplateView
 
 from apps.core.forms import LoginForm
-from apps.core.models import Modulo
 from apps.core.querysets import modulos_visibles
 
 
@@ -25,7 +23,23 @@ class HomeView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        empresa = getattr(getattr(self.request.user, 'contacto', None), 'empresa', None)
+        user = self.request.user
+        empresa = getattr(user.contacto, 'empresa', None)
 
-        context['modulos'] = modulos_visibles(self.request, empresa)
+        modulos_disponibles = []
+        modulos_visibles_empresa = modulos_visibles(self.request, empresa)
+
+        for modulo in modulos_visibles_empresa:
+            permisos = modulo.permisos.split(',') if modulo.permisos else []
+
+            if all(user.has_perm(p) for p in permisos):
+                modulos_disponibles.append({
+                    "nombre": modulo.nombre,
+                    "icono": modulo.icono,
+                    "descripcion": modulo.descripcion,
+                    "url": reverse(modulo.url_name),
+                })
+
+        context['modulos'] = modulos_disponibles
+
         return context

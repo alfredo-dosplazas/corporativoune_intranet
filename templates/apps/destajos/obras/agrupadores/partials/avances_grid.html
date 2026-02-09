@@ -1,0 +1,69 @@
+{% load dict_extras %}
+<div class="overflow-x-auto">
+    <table class="table table-xs table-zebra">
+        <thead>
+        <tr>
+            <th class="text-xs">
+                TIPO VIVIENDA
+            </th>
+            {% for vivienda in viviendas %}
+                <th class="text-center whitespace-nowrap text-xs">
+                    {{ vivienda.estructura.abreviatura }}
+                </th>
+            {% endfor %}
+        </tr>
+
+        <tr>
+            <!-- esquina -->
+            <th class="sticky left-0 bg-base-100 z-20">
+                Trabajo
+            </th>
+
+            {% for vivienda in viviendas %}
+                <th class="text-center whitespace-nowrap">
+                    {{ vivienda.numero }}
+                </th>
+            {% endfor %}
+        </tr>
+        </thead>
+
+        <tbody>
+        {% for trabajo in trabajos %}
+            <tr>
+                <!-- fila fija izquierda -->
+                <td class="sticky left-0 bg-base-100 font-semibold z-10">
+                    {{ trabajo.nombre }}
+                </td>
+
+                {% for vivienda in viviendas %}
+                    {% with estado=vivienda.estados_por_trabajo|get_item:trabajo.id %}
+                        <td class="text-center">
+                            {% if estado %}
+                                {% if editar %}
+                                    <select
+                                            hx-post="{% url 'destajos:estado_trabajo_vivienda__update' estado.id %}"
+                                            hx-trigger="change"
+                                            hx-swap="none"
+                                            name="estado"
+                                            id="id_estado"
+                                    >
+                                        <option {% if estado.estado == 'pendiente' %}selected{% endif %} value="pendiente">p</option>
+                                        <option {% if estado.estado == 'por_realizar' %}selected{% endif %} value="por_realizar"></option>
+                                        <option {% if estado.estado == 'realizado' %}selected{% endif %} value="realizado">x</option>
+                                        <option {% if estado.estado == 'pagado' %}selected{% endif %} value="pagado">1</option>
+                                        <option {% if estado.estado == 'na' %}selected{% endif %} value="no aplica">na</option>
+                                    </select>
+                                {% else %}
+                                    {{ estado.estado_abreviatura }}
+                                {% endif %}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                    {% endwith %}
+                {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>

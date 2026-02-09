@@ -1,3 +1,20 @@
 {% load crispy_forms_tags %}
 
-{% crispy form %}
+<div class="card bg-base-100 shadow-xl border border-base-300">
+    <div class="card-body gap-6">
+        {% if form.errors %}
+            <div id="form-errors-banner" class="alert alert-error alert-soft mb-6">
+                <div>
+                    <h3 class="font-bold">
+                        No se pudo guardar el contacto
+                    </h3>
+                    <p class="text-sm opacity-90">
+                        Hay errores en el formulario. Revisa los campos marcados en rojo.
+                    </p>
+                </div>
+            </div>
+        {% endif %}
+
+        {% crispy form %}
+    </div>
+</div>

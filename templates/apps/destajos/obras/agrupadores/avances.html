@@ -1,0 +1,43 @@
+{% load crispy_forms_tags %}
+<c-layouts.app>
+
+    <!-- HEADER -->
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <!-- INFO -->
+            <div>
+                <h1 class="font-bold text-xl">
+                    {{ agrupador.nombre }}
+                </h1>
+                <h2 class="text-muted text-sm">
+                    Agrupador · {{ agrupador.tipo.nombre }}
+                </h2>
+            </div>
+
+            <!-- KPI -->
+            <div class="flex justify-center">
+                <div class="text-center">
+                    <div class="text-xs text-muted uppercase tracking-wide">
+                        Avance general
+                    </div>
+                    <div class="text-3xl font-bold text-primary">
+                        {{ avance_general }}%
+                    </div>
+                </div>
+            </div>
+
+            <!-- FILTRO PAQUETE -->
+            <div class="flex justify-end gap-2">
+                {% crispy filter %}
+            </div>
+
+        </div>
+    </c-slot>
+
+    <!-- GRID EXCEL -->
+    <div class="overflow-x-auto mt-6">
+        {% include "apps/destajos/obras/agrupadores/partials/avances_grid.html" %}
+    </div>
+
+</c-layouts.app>

@@ -1,0 +1,107 @@
+{% load humanize %}
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="flex flex-col gap-2">
+            <h1 class="text-xl font-bold">
+                {{ paquete.clave }} — {{ paquete.nombre }}
+            </h1>
+
+            {% if paquete.padre %}
+                <div class="text-sm opacity-70">
+                    Paquete padre:
+                    <a href="{% url 'destajos:paquetes__detail' paquete.padre.pk %}"
+                       class="link link-primary">
+                        {{ paquete.padre }}
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </c-slot>
+
+    <div class="space-y-8">
+
+        {# ===================== SUBPAQUETES ===================== #}
+        {% if paquete.subpaquetes.exists %}
+            <div class="card bg-base-100 shadow">
+                <div class="card-body">
+                    <h2 class="card-title">Subpaquetes</h2>
+
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra w-full">
+                            <thead>
+                            <tr>
+                                <th>Clave</th>
+                                <th>Nombre</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for sub in paquete.subpaquetes.all %}
+                                <tr class="hover">
+                                    <td class="font-mono">
+                                        <a href="{% url 'destajos:paquetes__detail' sub.pk %}"
+                                           class="link link-primary">
+                                            {{ sub.clave }}
+                                        </a>
+                                    </td>
+                                    <td>{{ sub.nombre }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        {# ===================== TRABAJOS ===================== #}
+        <div class="card bg-base-100 shadow">
+            <div class="card-body">
+                <div class="flex items-center justify-between">
+                    <h2 class="card-title">Trabajos</h2>
+                </div>
+
+                {% if paquete.trabajos.exists %}
+                    <div class="overflow-x-auto mt-4">
+                        <table class="table table-zebra w-full">
+                            <thead>
+                            <tr>
+                                <th>Clave</th>
+                                <th>Nombre</th>
+                                <th>Unidad</th>
+                                <th>Tipo</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for trabajo in paquete.trabajos.all %}
+                                <tr class="hover">
+                                    <td class="font-mono">
+                                        {{ trabajo.clave|default:"—" }}
+                                    </td>
+                                    <td>{{ trabajo.nombre }}</td>
+                                    <td>{{ trabajo.get_unidad_display }}</td>
+                                    <td>
+                                        {% if trabajo.es_unitario %}
+                                            <span class="badge badge-success">
+                                                    Unitario
+                                                </span>
+                                        {% else %}
+                                            <span class="badge badge-warning">
+                                                    Por vivienda
+                                                </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info mt-4">
+                        Este paquete aún no tiene trabajos registrados.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</c-layouts.app>

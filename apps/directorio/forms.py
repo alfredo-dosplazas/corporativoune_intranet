@@ -32,7 +32,9 @@ class ContactoForm(forms.ModelForm):
             ),
             Row(
                 Column('empresa'),
+                Column('sede_administrativa'),
                 Column('area'),
+                Column('puesto'),
                 Column('jefe_directo'),
             ),
             Row(

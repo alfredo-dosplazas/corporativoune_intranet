@@ -1,7 +1,7 @@
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.urls import reverse
-from django.views.generic import ListView, CreateView, UpdateView
+from django.views.generic import ListView, CreateView, UpdateView, DetailView, DeleteView
 from django_tables2 import SingleTableMixin
 from extra_views import SearchableListMixin
 
@@ -17,7 +17,7 @@ class ContratistaListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableL
     model = Contratista
     table_class = ContratistaTable
     paginate_by = 15
-    search_fields = ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido']
+    search_fields = ['nombre', 'rfc']
 
     def get_table(self, **kwargs):
         table = super().get_table(**kwargs)
@@ -51,6 +51,46 @@ class ContratistaCreateView(PermissionRequiredMixin, SuccessMessageMixin, Breadc
         ]
 
 
+class ContratistaDetailView(PermissionRequiredMixin, BreadcrumbsMixin, DetailView):
+    permission_required = ['destajos.view_contratista']
+    template_name = "apps/destajos/contratistas/detail.html"
+    model = Contratista
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        contratista = (
+            Contratista.objects
+            .prefetch_related(
+                'precios__trabajo__paquete',
+                'precios__estructura'
+            )
+            .get(pk=self.kwargs['pk'])
+        )
+
+        precios = (
+            contratista.precios
+            .select_related('trabajo', 'estructura', 'trabajo__paquete')
+            .order_by(
+                'trabajo__paquete__clave',
+                'trabajo__clave',
+                '-vigente_desde'
+            )
+        )
+
+        context['contratista'] = contratista
+        context['precios'] = precios
+        return context
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Destajos', 'url': reverse('destajos:index')},
+            {'title': 'Contratistas', 'url': reverse('destajos:contratistas__list')},
+            {'title': self.get_object()},
+        ]
+
+
 class ContratistaUpdateView(PermissionRequiredMixin, SuccessMessageMixin, BreadcrumbsMixin, UpdateView):
     permission_required = ['destajos.change_contratista']
     template_name = "apps/destajos/contratistas/update.html"
@@ -66,6 +106,15 @@ class ContratistaUpdateView(PermissionRequiredMixin, SuccessMessageMixin, Breadc
             {'title': 'Inicio', 'url': reverse('home')},
             {'title': 'Destajos', 'url': reverse('destajos:index')},
             {'title': 'Contratistas', 'url': reverse('destajos:contratistas__list')},
-            {'title': self.get_object()},
+            {'title': self.get_object(), 'url': reverse('destajos:contratistas__detail', args=(self.object.pk,))},
             {'title': 'Editar'},
         ]
+
+
+class ContratistaDeleteView(PermissionRequiredMixin, SuccessMessageMixin, DeleteView):
+    permission_required = ['destajos.delete_contratista']
+    model = Contratista
+    success_message = "Contratista eliminado correctamente"
+
+    def get_success_url(self):
+        return reverse('destajos:contratistas__list')

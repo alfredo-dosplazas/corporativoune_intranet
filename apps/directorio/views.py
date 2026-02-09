@@ -1,23 +1,43 @@
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.http import HttpResponseForbidden
 from django.urls import reverse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.utils.network import get_client_ip, ip_in_allowed_range, get_empresa_from_ip
 from apps.directorio.forms import ContactoForm
 from apps.directorio.models import Contacto
 
 
-class DirectorioListView(PermissionRequiredMixin, BreadcrumbsMixin, ListView):
-    permission_required = ['directorio.acceder_directorio']
-
+class DirectorioListView(BreadcrumbsMixin, ListView):
     template_name = "apps/directorio/list.html"
     model = Contacto
     paginate_by = 18
     context_object_name = 'contactos'
 
+    def dispatch(self, request, *args, **kwargs):
+        ip = get_client_ip(request)
+
+        if not ip_in_allowed_range(ip):
+            return HttpResponseForbidden(
+                "Acceso permitido solo desde la red interna."
+            )
+
+        return super().dispatch(request, *args, **kwargs)
+
     def get_queryset(self):
-        qs = super().get_queryset()
-        qs = qs.filter(mostrar_en_directorio=True)
+        ip = get_client_ip(self.request)
+        empresa = get_empresa_from_ip(ip)
+
+        qs = super().get_queryset().filter(
+            mostrar_en_directorio=True
+        )
+
+        if empresa:
+            qs = qs.filter(empresa=empresa)
+        else:
+            qs = qs.none()
+
         return qs
 
     def get_breadcrumbs(self):
@@ -58,11 +78,19 @@ class ContactoUpdateView(PermissionRequiredMixin, BreadcrumbsMixin, UpdateView):
         ]
 
 
-class ContactoDetailView(PermissionRequiredMixin, BreadcrumbsMixin, DetailView):
-    permission_required = ['directorio.view_contacto']
-
+class ContactoDetailView(BreadcrumbsMixin, DetailView):
     template_name = "apps/directorio/contacto/detail.html"
     model = Contacto
+
+    def dispatch(self, request, *args, **kwargs):
+        ip = get_client_ip(request)
+
+        if not ip_in_allowed_range(ip):
+            return HttpResponseForbidden(
+                "Acceso permitido solo desde la red interna."
+            )
+
+        return super().dispatch(request, *args, **kwargs)
 
     def get_breadcrumbs(self):
         return [

@@ -1,6 +1,6 @@
 {% load static django_htmx %}
 <!DOCTYPE html>
-<html lang="es" data-theme="{{ user.contacto.empresa.theme|default:'dos_plazas' }}">
+<html lang="es" data-theme="{{ empresa.theme|default:'dos_plazas' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -17,7 +17,6 @@
 
 </head>
 <body hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
-
 
 {{ slot }}
 

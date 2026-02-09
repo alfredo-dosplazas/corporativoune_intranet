@@ -24,30 +24,13 @@
     </c-slot>
 
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <c-shared.modulos.card
-                url="{% url 'papeleria:articulos__list' %}"
-                icono="icon-[ix--product]"
-                nombre="Artículos"
-                permiso="perms.papeleria.view_articulo"
-                descripcion=""
-        />
-
-        <c-shared.modulos.card
-                url="{% url 'papeleria:requisiciones__list' %}"
-                icono="icon-[et--document]"
-                nombre="Requisiciones"
-                permiso="perms.papeleria.view_requisicion"
-                descripcion=""
-        />
-
-        <c-shared.modulos.card
-                url="{% url 'papeleria:reportes__index' %}"
-                icono="icon-[streamline-pixel--business-products-data-file-bars]"
-                nombre="Reportes"
-                permiso="perms.papeleria.acceder_papeleria_reportes"
-                descripcion=""
-        />
-
-
+        {% for modulo in modulos %}
+            <c-shared.modulos.card
+                    :url="modulo.url"
+                    :icono="modulo.icono"
+                    :nombre="modulo.nombre"
+                    :descripcion="modulo.descripcion"
+            />
+        {% endfor %}
     </div>
 </c-layouts.app>

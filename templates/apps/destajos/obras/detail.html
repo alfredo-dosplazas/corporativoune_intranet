@@ -1,0 +1,86 @@
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <div class="justify-self-start">
+                <h1 class="font-bold text-xl">
+                    {{ obra.nombre }} <span class="opacity-60">| {{ obra.etapa }}</span>
+                </h1>
+            </div>
+
+            <div class="justify-self-center">
+            </div>
+
+            <div class="justify-self-end">
+                <a href="{% url 'destajos:obras__agrupador__create' obra.pk %}" class="btn btn-primary btn-sm">
+                    + Nuevo agrupador
+                </a>
+            </div>
+
+        </div>
+    </c-slot>
+
+    <!-- INFO OBRA -->
+    <div class="card bg-base-100 shadow mb-6">
+        <div class="card-body grid md:grid-cols-2 gap-4 text-sm">
+            <div><strong>Razón social:</strong> {{ obra.razon_social }}</div>
+            <div><strong>Dirección:</strong> {{ obra.direccion|default:"—" }}</div>
+            <div><strong>Inicio:</strong> {{ obra.fecha_inicio|default:"—" }}</div>
+            <div><strong>Fin:</strong> {{ obra.fecha_fin|default:"—" }}</div>
+        </div>
+    </div>
+
+    <!-- AGRUPADORES -->
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h2 class="text-lg font-semibold mb-4">
+                Agrupaciones de la obra
+            </h2>
+
+            {% if agrupadores %}
+                <div class="overflow-x-auto">
+                    <table class="table table-sm">
+                        <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Número</th>
+                            <th>Estructura</th>
+                            <th>Viviendas</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for a in agrupadores %}
+                            <tr>
+                                <td>{{ a.tipo.nombre }}</td>
+                                <td>{{ a.tipo.codigo }}-{{ a.numero }}</td>
+                                <td>{{ a.estructura }}</td>
+                                <td>
+                                    {{ a.viviendas.count }}
+                                    / {{ a.cantidad_viviendas }}
+                                </td>
+                                <td class="text-right">
+                                    <a href="{% url 'destajos:obras__agrupador__detail' obra.pk a.pk %}"
+                                       class="btn btn-xs"
+                                    >
+                                        Ver
+                                    </a>
+                                    <a href="{% url 'destajos:obras__agrupador__avances' obra.pk a.pk %}"
+                                       class="btn btn-xs"
+                                    >
+                                        Avances
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-sm text-gray-500">
+                    Esta obra aún no tiene agrupadores registrados.
+                </p>
+            {% endif %}
+        </div>
+    </div>
+</c-layouts.app>

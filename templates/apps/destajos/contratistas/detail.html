@@ -1,0 +1,107 @@
+{% load money %}
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="flex items-center justify-between">
+            <h1 class="text-xl font-bold">
+                {{ contratista.nombre }}
+            </h1>
+
+            <div class="text-sm text-gray-500">
+                {% if contratista.rfc %}
+                    RFC: {{ contratista.rfc }}
+                {% endif %}
+            </div>
+
+            <div>
+                <c-shared.dropdown-actions :record="contratista">
+                    {% if perms.destajos.change_contratista %}
+                        <li><a href="{% url 'destajos:contratistas__update' contratista.pk %}">Editar</a></li>
+                    {% endif %}
+                </c-shared.dropdown-actions>
+            </div>
+        </div>
+    </c-slot>
+
+    <!-- INFO BÁSICA -->
+    <div class="bg-base-100 rounded shadow p-4 mb-6">
+        <dl class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+                <dt class="text-gray-500">Correo</dt>
+                <dd>{{ contratista.correo_electronico|default:"—" }}</dd>
+            </div>
+            <div>
+                <dt class="text-gray-500">Teléfono</dt>
+                <dd>{{ contratista.telefono|default:"—" }}</dd>
+            </div>
+        </dl>
+    </div>
+
+    <!-- HISTÓRICO DE PRECIOS -->
+    <div class="bg-base-100 rounded shadow overflow-x-auto">
+        <table class="table w-full text-sm">
+            <thead>
+            <tr class="bg-base-200/80 text-left">
+                <th>Paquete</th>
+                <th>Trabajo</th>
+                <th>Estructura</th>
+                <th class="text-right">Precio</th>
+                <th>Unidad</th>
+                <th>Vigencia</th>
+                <th>Estado</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            {% for precio in precios %}
+                <tr class="border-b hover:bg-base-200">
+                    <td class="font-mono">
+                        {{ precio.trabajo.paquete.clave }}
+                    </td>
+
+                    <td>
+                        <div class="font-semibold">
+                            {{ precio.trabajo.clave }}
+                        </div>
+                        <div class="text-gray-500 text-xs">
+                            {{ precio.trabajo.nombre }}
+                        </div>
+                    </td>
+
+                    <td>
+                        {{ precio.estructura|default:"General" }}
+                    </td>
+
+                    <td class="text-right font-mono">
+                        {{ precio.precio|money }}
+                    </td>
+
+                    <td>{{ precio.get_unidad_display }}</td>
+
+                    <td class="text-xs">
+                        {{ precio.vigente_desde }}
+                        {% if precio.vigente_hasta %}
+                            – {{ precio.vigente_hasta }}
+                        {% else %}
+                            – Actual
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if not precio.vigente_hasta or precio.vigente_hasta >= today %}
+                            <span class="badge badge-success">Vigente</span>
+                        {% else %}
+                            <span class="badge badge-ghost">Histórico</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-gray-500 py-6">
+                        No hay precios registrados
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</c-layouts.app>

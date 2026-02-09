@@ -4,6 +4,8 @@ import subprocess
 import platform
 import time
 
+from apps.core.models import EmpresaIPRange
+
 
 def ping(ip):
     param = "-n" if platform.system().lower() == "windows" else "-c"
@@ -43,3 +45,16 @@ def ip_in_allowed_range(ip):
         return any(ip_obj in net for net in ALLOWED_NETWORKS)
     except ValueError:
         return False
+
+
+def get_empresa_from_ip(ip):
+    if not ip:
+        return None
+
+    ip_obj = ipaddress.ip_address(ip)
+
+    for ip_range in EmpresaIPRange.objects.filter(activa=True).select_related("empresa"):
+        if ip_obj in ipaddress.ip_network(ip_range.cidr):
+            return ip_range.empresa
+
+    return None

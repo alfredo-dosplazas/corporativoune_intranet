@@ -12,7 +12,13 @@
         <div class="hidden lg:block">
             <div class="dropdown dropdown-end">
                 <div tabindex="0" role="button" class="btn btn-primary btn-ghost avatar">
-                    <span class="ml-4 text-primary-content font-bold">{{ user }}</span>
+                    <span class="ml-4 text-primary-content font-bold">
+                        {% if user.is_authenticated %}
+                            {{ user }}
+                        {% else %}
+                            Invitado
+                        {% endif %}
+                    </span>
                 </div>
                 <ul
                         tabindex="0"
@@ -27,6 +33,12 @@
                     {% if user.is_authenticated %}
                         <li>
                             <button type="submit" form="logout-form">Cerrar Sesión</button>
+                        </li>
+                    {% endif %}
+
+                    {% if not user.is_authenticated %}
+                        <li>
+                            <a href="{% url 'login' %}">Iniciar Sesión</a>
                         </li>
                     {% endif %}
                 </ul>

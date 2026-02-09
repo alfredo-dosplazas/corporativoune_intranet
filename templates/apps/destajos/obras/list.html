@@ -1,0 +1,32 @@
+{% load django_tables2 %}
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <!-- START -->
+            <div class="justify-self-start">
+                <h1 class="font-bold text-xl flex items-center gap-2">Obras</h1>
+                <h2 class="text-muted text-sm">Catálogo de obras</h2>
+            </div>
+
+            <!-- MIDDLE -->
+            <div class="justify-self-center w-full flex justify-center">
+                <c-shared.searchbar/>
+            </div>
+
+
+            <!-- END -->
+            <div class="justify-self-end">
+                {% if perms.destajos.add_obra %}
+                    <a href="{% url 'destajos:obras__create' %}" class="btn btn-sm btn-primary">
+                        CREAR
+                    </a>
+                {% endif %}
+            </div>
+
+        </div>
+
+    </c-slot>
+
+    {% render_table table %}
+</c-layouts.app>

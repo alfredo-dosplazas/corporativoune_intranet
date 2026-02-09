@@ -1,0 +1,117 @@
+{% load crispy_forms_filters %}
+{% load crispy_forms_tags %}
+
+<div class="space-y-6">
+    {% if form.errors or Trabajo.non_form_errors %}
+        <div class="alert alert-error alert-soft">
+            <div>
+                <h3 class="font-bold">No se pudo guardar el paquete</h3>
+                <p class="text-sm opacity-90">
+                    Hay errores en el formulario. Revisa los campos marcados.
+                </p>
+            </div>
+        </div>
+    {% endif %}
+
+    <form id="paquete-form" method="POST" novalidate>
+        {% csrf_token %}
+
+        <div class="card bg-base-100 shadow-xl border border-base-300">
+            <div class="card-body gap-4">
+
+                <h2 class="text-lg font-bold flex items-center gap-2">
+                    📦 Datos del paquete
+                </h2>
+
+                {% crispy form %}
+            </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-xl border border-base-300 mt-4">
+            <div class="card-body gap-4">
+
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-bold flex items-center gap-2">
+                        🛠️ Trabajos del paquete
+                    </h2>
+
+                    <span class="text-sm opacity-60">
+                        Las claves se generan automáticamente
+                    </span>
+                </div>
+
+                {{ Trabajo.management_form }}
+
+                <div class="overflow-x-auto">
+                    <table class="table table-sm table-zebra w-full">
+                        <thead class="bg-base-200">
+                        <tr>
+                            <th class="w-[140px]">Clave</th>
+                            <th>Nombre</th>
+                            <th class="w-[140px]">Unidad</th>
+                            <th class="w-[120px] text-center">Unitario</th>
+                            <th class="w-[90px] text-center">Eliminar</th>
+                        </tr>
+                        </thead>
+
+                        <tbody>
+                        {% for form in Trabajo %}
+                            <tr
+                                    class="
+                                    {% if form.errors %}
+                                        bg-error/20
+                                    {% elif not form.instance.pk %}
+                                        bg-info/10
+                                    {% endif %}
+                                "
+                            >
+                                {# CLAVE (solo lectura visual) #}
+                                <td class="font-mono text-xs opacity-70">
+                                    {{ form.instance.clave|default:"(auto)" }}
+                                    {{ form.id }}
+                                </td>
+
+                                {# NOMBRE #}
+                                <td class="min-w-[320px]">
+                                    {{ form.nombre|as_crispy_field }}
+                                </td>
+
+                                {# UNIDAD #}
+                                <td>
+                                    {{ form.unidad|as_crispy_field }}
+                                </td>
+
+                                {# ES UNITARIO #}
+                                <td class="text-center">
+                                    {{ form.es_unitario }}
+                                </td>
+
+                                <td class="text-center">
+                                    {% if form.instance.pk %}
+                                        {{ form.DELETE }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+
+                            {% if form.errors %}
+                                <tr class="bg-error/10">
+                                    <td colspan="5" class="text-sm text-error">
+                                        {{ form.errors }}
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="text-xs opacity-60 mt-2">
+                    <span class="bg-info/20 px-2 py-1 rounded">Nuevo</span>
+                    registros se crearán al guardar.
+                </p>
+
+            </div>
+        </div>
+
+    </form>
+</div>

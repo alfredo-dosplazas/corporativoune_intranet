@@ -1,0 +1,73 @@
+<div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
+
+    {% for vivienda in viviendas %}
+        {% with pct=vivienda.porcentaje_completado %}
+            <a href="#"
+               class="group rounded-xl border shadow-sm p-3 text-center transition
+               hover:shadow-md hover:-translate-y-0.5
+               {% if pct == 100 %}
+                   bg-success/10 border-success
+               {% elif pct >= 50 %}
+                   bg-warning/10 border-warning
+               {% else %}
+                   bg-base-100
+               {% endif %}
+               ">
+
+                <!-- ICONO -->
+                <div class="flex justify-center mb-2">
+                    <span class="icon-[bi--house-door-fill] size-7
+                        {% if pct == 100 %}
+                            text-success
+                        {% elif pct >= 50 %}
+                            text-warning
+                        {% else %}
+                            text-primary
+                        {% endif %}
+                    "></span>
+                </div>
+
+                <!-- NÚMERO -->
+                <div class="font-semibold text-sm">
+                    V-{{ vivienda.numero }}
+                </div>
+
+                <!-- PORCENTAJE -->
+                <div class="text-xs mt-1 font-medium">
+                    {{ pct }}%
+                </div>
+
+                <!-- PROGRESS -->
+                <progress
+                        class="progress w-full mt-1
+                    {% if pct == 100 %}
+                        progress-success
+                    {% elif pct >= 50 %}
+                        progress-warning
+                    {% else %}
+                        progress-primary
+                    {% endif %}
+                    "
+                        value="{{ pct }}"
+                        max="100">
+                </progress>
+
+                <!-- ESTADO -->
+                <div class="text-[11px] mt-1 opacity-70">
+                    {% if pct == 100 %}
+                        Completada
+                    {% elif pct == 0 %}
+                        Sin iniciar
+                    {% else %}
+                        En progreso
+                    {% endif %}
+                </div>
+
+            </a>
+        {% endwith %}
+    {% empty %}
+        <div class="col-span-full text-center text-muted py-8">
+            No hay viviendas registradas
+        </div>
+    {% endfor %}
+</div>

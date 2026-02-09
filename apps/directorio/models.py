@@ -6,6 +6,7 @@ from django.db import models
 
 from apps.core.models import Empresa
 from apps.rrhh.models.areas import Area
+from apps.rrhh.models.puestos import Puesto
 
 
 def rename_contacto_image(instance, filename):
@@ -39,6 +40,16 @@ class TelefonoContacto(models.Model):
         unique_together = ("contacto", "telefono")
 
 
+class Sede(models.Model):
+    nombre = models.CharField(max_length=100)
+    codigo = models.CharField(max_length=20, unique=True)
+    ciudad = models.CharField(max_length=100, blank=True, null=True)
+    activa = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.nombre
+
+
 class Contacto(models.Model):
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, blank=True, null=True, related_name="contacto")
 
@@ -62,6 +73,24 @@ class Contacto(models.Model):
         help_text="Empresa en la que está dado de alta administrativamente (nómina).",
     )
 
+    # DONDE SE GESTIONA
+    sede_administrativa = models.ForeignKey(
+        Sede,
+        on_delete=models.PROTECT,
+        related_name="contactos_administrados",
+        help_text="Sede responsable del alta y gestión del contacto",
+        blank=True,
+        null=True,
+    )
+
+    # DONDE APARECE
+    sedes_visibles = models.ManyToManyField(
+        Sede,
+        related_name="contactos_visibles",
+        blank=True,
+        help_text="Sedes donde este contacto aparece en el directorio"
+    )
+
     jefe_directo = models.ForeignKey(
         "Contacto",
         on_delete=models.SET_NULL,
@@ -71,6 +100,7 @@ class Contacto(models.Model):
     )
 
     area = models.ForeignKey(Area, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Área')
+    puesto = models.ForeignKey(Puesto, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Puesto')
 
     extension = models.CharField(max_length=255, blank=True, null=True)
 

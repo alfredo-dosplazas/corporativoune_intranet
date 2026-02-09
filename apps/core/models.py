@@ -1,8 +1,12 @@
+import ipaddress
+
 from django.db import models
 
 
 class RazonSocial(models.Model):
-    nombre = models.CharField(max_length=100)
+    nombre = models.CharField(max_length=100, unique=True)
+    nombre_corto = models.CharField(max_length=100, null=True)
+    abreviatura = models.CharField(max_length=100, null=True)
 
     def __str__(self):
         return self.nombre
@@ -38,6 +42,19 @@ class Empresa(models.Model):
     class Meta:
         ordering = ["nombre_corto"]
 
+class EmpresaIPRange(models.Model):
+    empresa = models.ForeignKey(
+        Empresa,
+        on_delete=models.CASCADE,
+        related_name="ip_ranges"
+    )
+
+    cidr = models.CharField(max_length=50)
+
+    activa = models.BooleanField(default=True)
+
+    def contiene_ip(self, ip):
+        return ipaddress.ip_address(ip) in ipaddress.ip_network(self.cidr)
 
 class ModuloEmpresa(models.Model):
     empresa = models.ForeignKey(

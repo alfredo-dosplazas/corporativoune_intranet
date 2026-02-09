@@ -1,0 +1,59 @@
+<c-layouts.app>
+
+    <!-- HEADER -->
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <!-- INFO -->
+            <div>
+                <h1 class="font-bold text-xl">
+                    {{ agrupador.nombre }}
+                </h1>
+                <h2 class="text-muted text-sm">
+                    Agrupador · {{ agrupador.tipo.nombre }}
+                </h2>
+            </div>
+
+            <!-- KPI -->
+            <div class="flex justify-center">
+                <div class="text-center">
+                    <div class="text-xs text-muted uppercase tracking-wide">
+                        Avance general
+                    </div>
+                    <div class="text-3xl font-bold text-primary">
+                        {{ avance_general }}%
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACCIONES -->
+            <div class="flex justify-end gap-2">
+                {# aquí luego: filtros, exportar, ver estados #}
+            </div>
+
+        </div>
+    </c-slot>
+
+    <!-- CONTENIDO -->
+    <div class="space-y-8">
+
+        <!-- VIVIENDAS -->
+        <section>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold">
+                    Viviendas
+                </h2>
+
+                <span class="text-xs text-muted">
+                    {{ viviendas|length }} viviendas
+                </span>
+            </div>
+
+            <div id="viviendas-grid">
+                {% include "apps/destajos/obras/agrupadores/partials/viviendas_grid.html" %}
+            </div>
+        </section>
+
+    </div>
+
+</c-layouts.app>

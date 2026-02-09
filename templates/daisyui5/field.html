@@ -19,7 +19,7 @@
         {% endif %}
         <{% if field.use_fieldset %}legend{% else %}label{% endif %}
                 {% if field.id_for_label %}for="{{ field.id_for_label }}"{% endif %}
-                class="{% if 'form-horizontal' in form_class %}col-form-label pt-0{% else %}form-label{% endif %}{% if label_class %} {{ label_class }}{% endif %}{% if field.field.required %} requiredField{% endif %}{% if field.use_fieldset %} fs-6{% endif %}">
+                class="{% if field.errors %}text-error{% endif %} {% if 'form-horizontal' in form_class %}col-form-label pt-0{% else %}form-label{% endif %}{% if label_class %} {{ label_class }}{% endif %}{% if field.field.required %} requiredField{% endif %}{% if field.use_fieldset %} fs-6{% endif %}">
             {{ field.label }}{% if field.field.required %}
                 <span class="asteriskField text-xs text-error">*</span>{% endif %}
         </{% if field.use_fieldset %}legend{% else %}label{% endif %}>
@@ -39,7 +39,7 @@
                         {% crispy_field field 'class' 'checkbox checkbox-primary' %}
                     {% endif %}
                     <label for="{{ field.id_for_label }}"
-                           class="form-check-label{% if field.field.required %} requiredField{% endif %}">
+                           class="form-check-label{% if field.field.required %} requiredField{% endif %} {% if field.errors %}text-error{% endif %}">
                         {{ field.label }}{% if field.field.required %}
                             <span class="asteriskField text-xs text-error">*</span>{% endif %}
                     </label>
