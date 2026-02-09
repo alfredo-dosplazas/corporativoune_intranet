@@ -42,6 +42,7 @@ def get_client_ip(request):
 
 
 ALLOWED_NETWORKS = [
+    ipaddress.ip_network("172.17.2.254/32"), # DP-SERVER
     ipaddress.ip_network("172.17.4.0/24"),  # VLAN de Usuarios Ethernet
     ipaddress.ip_network("172.17.5.0/24"),  # VLAN de Usuarios SSID Dos_Plazas
     ipaddress.ip_network("172.17.6.0/24"),  # VLAN de Usuarios SSID Dos_Plazas_D
