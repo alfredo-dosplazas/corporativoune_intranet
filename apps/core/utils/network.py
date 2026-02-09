@@ -1,10 +1,13 @@
 import ipaddress
+import logging
 
 import subprocess
 import platform
 import time
 
 from apps.core.models import EmpresaIPRange
+
+logger = logging.getLogger("core.network")
 
 
 def ping(ip):
@@ -26,6 +29,7 @@ def ping(ip):
 
 
 def get_client_ip(request):
+    logger.info(f"Cliente accede desde la ip: remote: {request.META.get("REMOTE_ADDR")}, xff: {request.META.get("HTTP_X_FORWARDED_FOR")}")
     return request.META.get("REMOTE_ADDR")
 
 

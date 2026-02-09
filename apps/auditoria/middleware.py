@@ -22,13 +22,10 @@ class AuditMiddleware:
         _thread_locals.user = (
             request.user if request.user.is_authenticated else None
         )
-        _thread_locals.ip = self.get_client_ip(request)
+        _thread_locals.ip = get_client_ip(request)
 
         response = self.get_response(request)
         return response
-
-    def get_client_ip(self, request):
-        return request.META.get("REMOTE_ADDR")
 
 
 class UserAccessLogMiddleware:

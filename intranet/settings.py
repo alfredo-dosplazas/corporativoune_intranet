@@ -201,6 +201,11 @@ LOGGING = {
     },
 
     "loggers": {
+        "core.network": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
         "signals": {
             "handlers": ["console", "signals_file"],
             "level": "INFO",
