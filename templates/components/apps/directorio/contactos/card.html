@@ -117,15 +117,46 @@
             <div class="flex gap-2 print:hidden">
 
                 <a href="{% url 'directorio:detail' contacto.pk %}"
-                   class="btn btn-xs btn-outline">
+                   class="btn btn-xs">
                     Ver
                 </a>
 
                 {% if perms.directorio.change_contacto %}
                     <a href="{% url 'directorio:update' contacto.pk %}"
-                       class="btn btn-xs btn-outline btn-info">
+                       class="btn btn-xs btn-info">
                         Editar
                     </a>
+                {% endif %}
+
+                {% if perms.directorio.delete_contacto %}
+                    <button class="btn btn-xs btn-error" onclick="contacto_delete_modal_{{ contacto.pk }}.showModal()">
+                        Eliminar
+                    </button>
+
+
+                    <dialog id="contacto_delete_modal_{{ contacto.pk }}" class="modal modal-bottom sm:modal-middle">
+                        <div class="modal-box">
+                            <form method="dialog">
+                                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                            </form>
+                            <h3 class="text-lg font-bold">¿Eliminar {{ contacto }}?</h3>
+                            <p class="py-4">Esta acción no se podrá deshacer.</p>
+
+                            <div class="modal-action">
+                                <form action="{% url 'directorio:delete' contacto.pk %}" method="post">
+                                    {% csrf_token %}
+                                    <button class="btn btn-error">Confirmar</button>
+                                </form>
+                                <form method="dialog">
+                                    <button class="btn">Cancelar</button>
+                                </form>
+                            </div>
+
+                        </div>
+                        <form method="dialog" class="modal-backdrop">
+                            <button>close</button>
+                        </form>
+                    </dialog>
                 {% endif %}
 
                 {% if contacto.slack_id %}

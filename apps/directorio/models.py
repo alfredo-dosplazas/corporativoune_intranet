@@ -114,8 +114,6 @@ class Contacto(models.Model):
     )
     slack_id = models.CharField(max_length=255, blank=True, null=True)
 
-    mostrar_en_directorio = models.BooleanField(default=True)
-
     @property
     def iniciales(self):
         return self.primer_nombre[0] + self.primer_apellido[0]

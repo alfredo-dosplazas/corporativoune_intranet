@@ -13,12 +13,14 @@
 
             <!-- MIDDLE -->
             <div class="justify-self-center w-full flex justify-center">
-
+                <c-shared.searchbar/>
             </div>
 
 
             <!-- END -->
-            <div class="justify-self-end">
+            <div class="justify-self-end flex items-center gap-2">
+                <c-shared.filters />
+
                 {% if perms.directorio.add_contacto %}
                     <a href="{% url 'directorio:create' %}" class="btn btn-sm btn-primary">
                         CREAR
