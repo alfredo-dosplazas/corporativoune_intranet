@@ -26,10 +26,11 @@ class AuditMiddleware:
         return response
 
     def get_client_ip(self, request):
-        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-        if x_forwarded_for:
-            return x_forwarded_for.split(",")[0]
-        return request.META.get("REMOTE_ADDR")
+        return (
+                request.META.get("HTTP_X_REAL_IP")
+                or request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
+                or request.META.get("REMOTE_ADDR")
+        )
 
 class UserAccessLogMiddleware:
 
