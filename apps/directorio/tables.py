@@ -87,7 +87,7 @@ class ContactoTable(TableWithActions):
     correo = Column(empty_values=(), verbose_name='Correo')
     telefono = Column(empty_values=(), verbose_name='Teléfono')
     puesto_area = Column(empty_values=(), verbose_name="Puesto/Área")
-    slack = Column(empty_values=(None,), verbose_name="Slack")
+    slack = Column(empty_values=(), verbose_name="Slack")
 
     class Meta:
         model = Contacto
@@ -101,7 +101,7 @@ class ContactoTable(TableWithActions):
 
     def render_slack(self, record: Contacto):
         if record.slack_id is None:
-            return None
+            return '—'
         return mark_safe(f"""
             <a href="{record.slack_url}" class="btn btn-xs">
                 <span class="icon-[devicon--slack] text-primary"></span>
