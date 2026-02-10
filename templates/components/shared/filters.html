@@ -1,7 +1,13 @@
 {% load crispy_forms_tags %}
-<label for="filters-drawer" class="btn btn-sm btn-outline">
+<label for="filters-drawer" class="btn btn-sm btn-outline relative">
     <span class="icon-[mdi--filter] size-4"></span>
     Filtros
+
+    {% for field in filter.form %}
+        {% if field.value %}
+            <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-error rounded-full"></span>
+        {% endif %}
+    {% endfor %}
 </label>
 
 <div class="drawer drawer-end">
@@ -25,6 +31,12 @@
 
             <!-- CONTENIDO SCROLLABLE -->
             <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                {% for key, value in request.GET.items %}
+                    {% if key != 'page' and key not in filter.form.fields %}
+                        <input type="hidden" name="{{ key }}" value="{{ value }}">
+                    {% endif %}
+                {% endfor %}
+
                 {% crispy filter.form %}
             </div>
 

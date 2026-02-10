@@ -39,12 +39,18 @@ class PercentColumn(Column):
 
 
 class TableWithActions(Table):
-    actions = Column(empty_values=(), verbose_name='Acciones', attrs={'th': {'class': 'text-right'}}, orderable=False)
+    actions = Column(
+        empty_values=(),
+        verbose_name='Acciones',
+        attrs={'th': {'class': 'text-right'}},
+        orderable=False
+    )
 
     actions_template = 'components/table/actions.html'
 
     def render_actions(self, record):
-        context = {
-            'record': record,
-        }
-        return render_to_string(self.actions_template, context, request=self.request)
+        return render_to_string(
+            self.actions_template,
+            {'record': record},
+            request=self.request
+        )

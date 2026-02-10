@@ -22,6 +22,24 @@
             <div class="justify-self-end flex items-center gap-2">
                 <c-shared.filters/>
 
+                <div class="join">
+
+                    <a href="{% querystring 'vista'='tarjetas' %}"
+                       class="btn btn-sm join-item
+                        {% if vista == 'tarjetas' %}btn-active btn-primary{% else %}btn-outline{% endif %}"
+                       title="Vista de tarjetas">
+                        <span class="icon-[mdi--view-grid] text-lg"></span>
+                    </a>
+
+                    <a href="{% querystring 'vista'='lista' %}"
+                       class="btn btn-sm join-item
+                        {% if vista == 'lista' or vista is None %}btn-active btn-primary{% else %}btn-outline{% endif %}"
+                       title="Vista de lista">
+                        <span class="icon-[mdi--view-list] text-lg"></span>
+                    </a>
+
+                </div>
+
                 {% if perms.directorio.add_contacto %}
                     <a href="{% url 'directorio:create' %}" class="btn btn-sm btn-primary">
                         CREAR

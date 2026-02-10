@@ -1,21 +1,25 @@
-<form method="get" class="w-full max-w-lg">
-    <label class="input input-bordered flex items-center gap-2 w-full">
-        <span class="icon-[material-symbols--search] size-4 opacity-50"></span>
-
-        <input
-                type="search"
-                name="q"
-                value="{{ request.GET.q }}"
-                placeholder="Buscar..."
-                class="grow"
-                autofocus="autofocus"
-        />
-
+<div class="join w-full">
+    <form id="search-form" method="get" class="w-full max-w-lg">
         {% for key, value in request.GET.items %}
-            {% if key != 'q' %}
-            	<input type="hidden" name="{{ key }}" value="{{ value }}" />
+            {% if key != 'q' and key != 'page' %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}"/>
             {% endif %}
         {% endfor %}
 
-    </label>
-</form>
+        <label class="input flex items-center gap-2 w-full">
+            <span class="icon-[material-symbols--search] size-4 opacity-50"></span>
+
+
+            <input
+                    type="search"
+                    name="q"
+                    value="{{ request.GET.q }}"
+                    placeholder="Buscar..."
+                    class="grow"
+                    autofocus="autofocus"
+            />
+        </label>
+    </form>
+
+    <button form="search-form" class="btn join-item">Buscar</button>
+</div>
