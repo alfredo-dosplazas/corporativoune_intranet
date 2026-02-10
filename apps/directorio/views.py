@@ -14,7 +14,7 @@ from apps.core.utils.network import get_client_ip, ip_in_allowed_range, get_empr
     get_sede_from_ip
 from apps.directorio.filters import ContactoFilter
 from apps.directorio.forms import ContactoForm
-from apps.directorio.helpers import puede_editar_contacto, puede_eliminar_contacto
+from apps.directorio.helpers import puede_editar_contacto, puede_eliminar_contacto, puede_ver_contacto
 from apps.directorio.inlines import EmailContactoInline, TelefonoContactoInline
 from apps.directorio.models import Contacto
 from apps.directorio.tables import ContactoTable
@@ -186,7 +186,7 @@ class ContactoDetailView(BreadcrumbsMixin, DetailView):
                 "Acceso permitido solo desde la red interna."
             )
 
-        if not puede_editar_contacto(request.user, self.get_object()):
+        if not puede_ver_contacto(request.user, self.get_object(), request):
             return redirect('directorio:list')
 
         return super().dispatch(request, *args, **kwargs)

@@ -20,9 +20,10 @@ def puede_ver_contacto(user, contacto, request):
         ip = get_client_ip(request)
         empresas = get_empresas_from_ip(ip)
         sede = get_sede_from_ip(ip)
+
         return (
             contacto.sede_administrativa == sede or
-            sede in contacto.sedes_visibles and
+            sede in contacto.sedes_visibles.all() and
             contacto.empresa in empresas
         )
 
