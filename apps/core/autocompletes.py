@@ -9,12 +9,12 @@ from apps.directorio.utils import es_frescopack
 
 class EmpresaAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
+        qs = Empresa.objects.all()
+
         if not self.request.user.is_authenticated:
             ip = get_client_ip(self.request)
             empresas = get_empresas_from_ip(ip)
-            return empresas
-
-        qs = Empresa.objects.all()
+            qs = qs.filter(id__in=[empresa.id for empresa in empresas])
 
         user = self.request.user
 
@@ -28,7 +28,6 @@ class EmpresaAutocomplete(autocomplete.Select2QuerySetView):
             )
 
         return qs
-
 
 
 class UsuarioAutocomplete(autocomplete.Select2QuerySetView):

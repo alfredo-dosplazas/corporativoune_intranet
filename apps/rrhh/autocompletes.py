@@ -9,12 +9,12 @@ from apps.rrhh.models.puestos import Puesto
 
 class AreaAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
+        qs = Area.objects.all()
+
         if not self.request.user.is_authenticated:
             ip = get_client_ip(self.request)
             empresas = get_empresas_from_ip(ip)
-            return Area.objects.filter(empresa__in=empresas)
-
-        qs = Area.objects.all()
+            qs = qs.filter(empresa__in=empresas)
 
         empresa_id = self.forwarded.get('empresa')
         if es_frescopack(self.request.user):
@@ -33,12 +33,12 @@ class AreaAutocomplete(autocomplete.Select2QuerySetView):
 
 class PuestoAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
+        qs = Puesto.objects.all()
+
         if not self.request.user.is_authenticated:
             ip = get_client_ip(self.request)
             empresas = get_empresas_from_ip(ip)
-            return Puesto.objects.filter(empresa__in=empresas)
-
-        qs = Puesto.objects.all()
+            qs = qs.filter(empresa__in=empresas)
 
         empresa_id = self.forwarded.get('empresa')
         if es_frescopack(self.request.user):
