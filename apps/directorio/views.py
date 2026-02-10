@@ -56,28 +56,45 @@ class DirectorioListView(BreadcrumbsMixin, SearchableListMixin, SingleTableMixin
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        # Filtrado por ip
         ip = get_client_ip(self.request)
-        empresas = get_empresas_from_ip(ip)
-        sede = get_sede_from_ip(ip)
+        empresas_ip = get_empresas_from_ip(ip)
+        sede = sede = get_sede_from_ip(ip)
 
         user = self.request.user
-
         qs = super().get_queryset()
 
+        # Superusuario ve todo
         if user.is_superuser:
-            return qs
+            return qs.distinct()
 
-        if empresas:
-            qs = qs.filter(empresa__in=empresas)
+        # Empresas visibles por IP
+        if not empresas_ip:
+            return qs.none()
+
+        qs = qs.filter(empresa__in=empresas_ip)
+
+        # Restricción adicional por usuario
+        if user.is_authenticated and hasattr(user, "contacto"):
+            contacto = user.contacto
+
+            sedes = []
+
+            if contacto.sede_administrativa:
+                sedes.append(contacto.sede_administrativa)
+
+            sedes.extend(contacto.sedes_visibles.all())
+
+            if sedes:
+                qs = qs.filter(
+                    Q(sede_administrativa__in=sedes) |
+                    Q(sedes_visibles__in=sedes)
+                )
         else:
-            qs = qs.none()
-
-        if sede:
-            qs = qs.filter(
-                Q(sede_administrativa=sede) |
-                Q(sedes_visibles=sede)
-            )
+            if sede:
+                qs = qs.filter(
+                    Q(sede_administrativa=sede) |
+                    Q(sedes_visibles=sede)
+                )
 
         return qs.distinct()
 
