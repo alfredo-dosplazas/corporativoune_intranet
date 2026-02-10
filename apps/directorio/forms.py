@@ -13,7 +13,7 @@ from apps.rrhh.models.puestos import Puesto
 class ContactoForm(forms.ModelForm):
     class Meta:
         model = Contacto
-        fields = '__all__'
+        exclude = ['usuario', 'slack_id', 'email_slack']
         widgets = {
             'area': autocomplete.ModelSelect2(url='rrhh:areas__autocomplete'),
             'puesto': autocomplete.ModelSelect2(url='rrhh:puestos__autocomplete'),
@@ -84,10 +84,6 @@ class ContactoForm(forms.ModelForm):
                 Column('area'),
                 Column('puesto'),
                 Column('jefe_directo'),
-            ),
-
-            Row(
-                Column('extension'),
             ),
 
             Row(

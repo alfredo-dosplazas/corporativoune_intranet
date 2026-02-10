@@ -2,6 +2,7 @@ from django.utils.safestring import mark_safe
 from django_tables2 import Column
 
 from apps.core.tables import TableWithActions
+from apps.directorio.helpers import format_telefono
 from apps.directorio.models import Contacto
 
 
@@ -158,18 +159,27 @@ class ContactoTable(TableWithActions):
         return mark_safe(html)
 
     def render_telefono(self, record: Contacto):
-        telefono_principal = record.telefono_principal
-        telefonos_secundarios = record.telefonos_secundarios
+        telefono_principal = record.telefonos.filter(
+            es_principal=True, esta_activo=True
+        ).first()
+
+        telefonos_secundarios = record.telefonos.filter(
+            es_principal=False, esta_activo=True
+        )
 
         html = '<div class="flex flex-col gap-1">'
 
+        # 📞 PRINCIPAL
         if telefono_principal:
+            icon = "mdi--mobile-phone" if telefono_principal.es_celular else "mdi--phone"
+            label = format_telefono(telefono_principal)
+
             html += f"""
             <div class="flex items-center gap-2 group">
                 <span class="font-medium text-sm flex items-center gap-2">
-                    <span class="icon-[mdi--phone]"></span>
+                    <span class="icon-[{icon}]"></span>
                     <a href="tel:{telefono_principal.telefono}">
-                        {telefono_principal.telefono}
+                        {label}
                     </a>
                 </span>
 
@@ -184,13 +194,21 @@ class ContactoTable(TableWithActions):
             </div>
             """
 
+        # 📎 SECUNDARIOS
         for tel in telefonos_secundarios:
+            icon = "mdi--mobile-phone" if tel.es_celular else "mdi--phone"
+            label = format_telefono(tel)
+
             html += f"""
             <div class="flex items-center gap-2 ml-6 group">
-                <a href="tel:{tel.telefono}"
-                   class="text-xs text-base-content/60">
-                    {tel.telefono}
-                </a>
+                <span class="flex items-center gap-2 text-xs text-base-content/70">
+                    <span class="icon-[{icon}]"></span>
+                    <a href="tel:{tel.telefono}">
+                        {label}
+                    </a>
+                </span>
+
+                {"<span class='badge badge-outline badge-xs'>Celular</span>" if tel.es_celular else ""}
 
                 <button
                     class="opacity-0 group-hover:opacity-100 transition text-base-content/40 hover:text-primary tooltip"

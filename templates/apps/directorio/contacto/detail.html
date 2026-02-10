@@ -1,3 +1,4 @@
+{% load phone_filters %}
 <c-layouts.app>
 
     <!-- HEADER -->
@@ -152,9 +153,12 @@
                     {% if contacto.telefono_principal %}
                         <div class="flex items-center gap-2 group">
                             <div class="flex items-center gap-3">
-                                <span class="icon-[material-symbols--call-outline] text-primary"></span>
+                                <span class="{% if contacto.telefono_principal.es_celular %}icon-[mdi--mobile-phone]{% else %}icon-[material-symbols--call-outline]{% endif %} text-primary"></span>
                                 <a href="tel:{{ contacto.telefono_principal.telefono }}">
-                                    {{ contacto.telefono_principal.telefono }}
+                                    {{ contacto.telefono_principal.telefono|phone_format }}
+                                    {% if contacto.telefono_principal.extension %}
+                                        ext. {{ contacto.telefono_principal.extension }}
+                                    {% endif %}
                                 </a>
                             </div>
 
@@ -172,9 +176,12 @@
                     {% for tel in contacto.telefonos_secundarios %}
                         <div class="flex items-center gap-2 group">
                             <div class="flex items-center gap-3 opacity-70">
-                                <span class="icon-[material-symbols--call]"></span>
+                                <span class="{% if tel.es_celular %}icon-[mdi--mobile-phone]{% else %}icon-[material-symbols--call-outline]{% endif %}"></span>
                                 <a href="tel:{{ tel.telefono }}">
-                                    {{ tel.telefono }}
+                                    {{ tel.telefono|phone_format }}
+                                    {% if tel.extension %}
+                                        ext. {{ tel.extension }}
+                                    {% endif %}
                                 </a>
                             </div>
 

@@ -24,7 +24,7 @@ class HomeView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
 
         user = self.request.user
-        empresa = getattr(user.contacto, 'empresa', None)
+        empresa = getattr(getattr(self.request.user, 'contacto', None), 'empresa', None)
 
         modulos_disponibles = []
         modulos_visibles_empresa = modulos_visibles(self.request, empresa)

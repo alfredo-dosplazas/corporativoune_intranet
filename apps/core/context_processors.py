@@ -12,7 +12,7 @@ def empresas(request):
 
 def empresa(request):
     if request.user.is_authenticated:
-        empresa = request.user.contacto.empresa
+        empresa = getattr(getattr(request.user, 'contacto', None), 'empresa', None)
     else:
         ip = get_client_ip(request)
         empresa = get_empresa_from_ip(ip)

@@ -177,7 +177,9 @@
                     <thead>
                     <tr>
                         <th>Teléfono</th>
+                        <th>Extensión</th>
                         <th class="text-center">Principal</th>
+                        <th class="text-center">¿Es Celular?</th>
                         <th class="text-center">Activo</th>
                         <th></th>
                     </tr>
@@ -214,11 +216,27 @@
                                     {% endfor %}
                                 </td>
 
+                                <td>
+                                    {% if telefono_form.extension.errors %}
+                                        {% render_field telefono_form.extension class+="w-full input input-error" %}
+                                    {% else %}
+                                        {% render_field telefono_form.extension class+="w-full input" %}
+                                    {% endif %}
+                                </td>
+
                                 <td class="text-center">
                                     {% if telefono_form.es_principal.errors %}
                                         {% render_field telefono_form.es_principal class+="checkbox checkbox-error" %}
                                     {% else %}
                                         {% render_field telefono_form.es_principal class+="checkbox checkbox-primary" %}
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-center">
+                                    {% if telefono_form.es_celular.errors %}
+                                        {% render_field telefono_form.es_celular class+="checkbox checkbox-error" %}
+                                    {% else %}
+                                        {% render_field telefono_form.es_celular class+="checkbox checkbox-primary" %}
                                     {% endif %}
                                 </td>
 

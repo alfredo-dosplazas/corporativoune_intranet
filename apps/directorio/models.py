@@ -33,11 +33,13 @@ class TelefonoContacto(models.Model):
         "Contacto", on_delete=models.CASCADE, related_name="telefonos"
     )
     telefono = models.CharField(max_length=11)
+    extension = models.PositiveIntegerField(blank=True, null=True)
     es_principal = models.BooleanField(default=False)
     esta_activo = models.BooleanField(default=False)
+    es_celular = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = ("contacto", "telefono")
+        unique_together = ("contacto", "telefono", "extension")
 
 
 class Sede(models.Model):
@@ -110,8 +112,6 @@ class Contacto(models.Model):
                              related_name='contactos')
     puesto = models.ForeignKey(Puesto, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Puesto',
                                related_name='contactos')
-
-    extension = models.CharField(max_length=255, blank=True, null=True, verbose_name='Extensión')
 
     fecha_nacimiento = models.DateField(blank=True, null=True)
 
