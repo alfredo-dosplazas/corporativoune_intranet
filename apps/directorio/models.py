@@ -1,3 +1,4 @@
+import ipaddress
 import os
 
 from django.conf import settings
@@ -50,6 +51,21 @@ class Sede(models.Model):
 
     def __str__(self):
         return self.nombre
+
+
+class SedeIPRange(models.Model):
+    sede = models.ForeignKey(
+        Sede,
+        on_delete=models.CASCADE,
+        related_name="allowed_networks"
+    )
+
+    cidr = models.CharField(max_length=50)
+
+    activa = models.BooleanField(default=True)
+
+    def contiene_ip(self, ip):
+        return ipaddress.ip_address(ip) in ipaddress.ip_network(self.cidr)
 
 
 class Contacto(models.Model):

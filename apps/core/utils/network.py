@@ -6,6 +6,7 @@ import platform
 import time
 
 from apps.core.models import EmpresaIPRange, Empresa
+from apps.directorio.models import SedeIPRange
 
 logger = logging.getLogger("core.network")
 
@@ -37,7 +38,7 @@ def get_client_ip(request):
 
 
 ALLOWED_NETWORKS = [
-    ipaddress.ip_network("172.17.2.254/32"), # DP-SERVER
+    ipaddress.ip_network("172.17.2.254/32"),  # DP-SERVER
     ipaddress.ip_network("172.17.4.0/24"),  # VLAN de Usuarios Ethernet
     ipaddress.ip_network("172.17.5.0/24"),  # VLAN de Usuarios SSID Dos_Plazas
     ipaddress.ip_network("172.17.6.0/24"),  # VLAN de Usuarios SSID Dos_Plazas_D
@@ -70,7 +71,6 @@ def get_empresa_from_ip(ip):
 
 
 def get_empresas_from_ip(ip: str):
-    import ipaddress
     ip_addr = ipaddress.ip_address(ip)
     empresas = []
 
@@ -80,3 +80,16 @@ def get_empresas_from_ip(ip: str):
                 empresas.append(empresa)
                 break
     return empresas
+
+
+def get_sede_from_ip(ip: str):
+    if not ip:
+        return None
+
+    ip_obj = ipaddress.ip_address(ip)
+
+    for ip_range in SedeIPRange.objects.filter(activa=True).select_related("sede"):
+        if ip_obj in ipaddress.ip_network(ip_range.cidr):
+            return ip_range.sede
+
+    return None
