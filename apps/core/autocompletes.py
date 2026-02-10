@@ -3,13 +3,16 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 
 from apps.core.models import Empresa
+from apps.core.utils.network import get_empresas_from_ip, get_client_ip
 from apps.directorio.utils import es_frescopack
 
 
 class EmpresaAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         if not self.request.user.is_authenticated:
-            return Empresa.objects.none()
+            ip = get_client_ip(self.request)
+            empresas = get_empresas_from_ip(ip)
+            return empresas
 
         qs = Empresa.objects.all()
 
