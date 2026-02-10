@@ -11,7 +11,7 @@ def puede_editar_contacto(user, contacto):
 
     return (
             user.has_perm("directorio.change_contacto")
-            and user.contacto.sede_administrativa == contacto.sede_administrativa
+            and (user.contacto.sede_administrativa == contacto.sede_administrativa or user.contacto.sede_administrativa in contacto.sedes_visibles.all())
     )
 
 
@@ -32,7 +32,7 @@ def puede_ver_contacto(user, contacto, request):
 
     return (
             user.has_perm("directorio.view_contacto")
-            and user.contacto.sede_administrativa == contacto.sede_administrativa
+            and (user.contacto.sede_administrativa == contacto.sede_administrativa or user.contacto.sede_administrativa in contacto.sedes_visibles.all())
     )
 
 
@@ -45,7 +45,7 @@ def puede_eliminar_contacto(user, contacto):
 
     return (
             user.has_perm("directorio.delete_contacto")
-            and user.contacto.sede_administrativa == contacto.sede_administrativa
+            and (user.contacto.sede_administrativa == contacto.sede_administrativa or user.contacto.sede_administrativa in contacto.sedes_visibles.all())
     )
 
 
