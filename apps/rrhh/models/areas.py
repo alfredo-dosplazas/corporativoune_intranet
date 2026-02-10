@@ -9,7 +9,9 @@ class Area(models.Model):
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='areas')
     jefe_area = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='jefe_areas')
 
-    aprobador_papeleria = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="aprobador_papeleria_areas", help_text='Encargado de aprobar la papelería del área')
+    aprobador_papeleria = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,
+                                            related_name="aprobador_papeleria_areas",
+                                            help_text='Encargado de aprobar la papelería del área')
 
     def __str__(self):
         return f'{self.nombre} ({self.empresa.nombre_corto})'
@@ -18,3 +20,6 @@ class Area(models.Model):
         verbose_name_plural = "Áreas"
         verbose_name = "Área"
         ordering = ("empresa", "nombre")
+        permissions = [
+            ('acceder_rrhh', 'Acceder al módulo de RRHH'),
+        ]

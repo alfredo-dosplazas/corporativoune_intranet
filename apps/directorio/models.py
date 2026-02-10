@@ -69,8 +69,13 @@ class Contacto(models.Model):
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
-        related_name="usuarios",
+        related_name="contactos",
         help_text="Empresa en la que está dado de alta administrativamente (nómina).",
+    )
+    empresas_relacionadas = models.ManyToManyField(
+        Empresa,
+        blank=True,
+        related_name='contactos_empresas_relacionadas',
     )
 
     # DONDE SE GESTIONA
@@ -99,8 +104,8 @@ class Contacto(models.Model):
         related_name="a_cargo_de",
     )
 
-    area = models.ForeignKey(Area, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Área')
-    puesto = models.ForeignKey(Puesto, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Puesto')
+    area = models.ForeignKey(Area, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Área', related_name='contactos')
+    puesto = models.ForeignKey(Puesto, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Puesto', related_name='contactos')
 
     extension = models.CharField(max_length=255, blank=True, null=True)
 

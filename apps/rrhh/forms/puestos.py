@@ -4,12 +4,12 @@ from django import forms
 
 from apps.core.models import Empresa
 from apps.directorio.utils import es_frescopack
-from apps.rrhh.models.areas import Area
+from apps.rrhh.models.puestos import Puesto
 
 
-class AreaForm(forms.ModelForm):
+class PuestoForm(forms.ModelForm):
     class Meta:
-        model = Area
+        model = Puesto
         fields = '__all__'
 
     def _configurar_frescopack(self):
@@ -28,7 +28,7 @@ class AreaForm(forms.ModelForm):
         self._configurar_frescopack()
 
         self.helper = FormHelper()
-        self.helper.form_id = 'area-form'
+        self.helper.form_id = 'puesto-form'
         self.helper.attrs = {'novalidate': 'novalidate'}
 
 

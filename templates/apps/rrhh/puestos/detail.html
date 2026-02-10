@@ -1,0 +1,32 @@
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <!-- START -->
+            <div class="justify-self-start">
+                <h1 class="font-bold text-xl flex items-center gap-2">
+                    {{ puesto.nombre }}
+                </h1>
+            </div>
+
+            <!-- MIDDLE -->
+            <div class="justify-self-center">
+                <span class="badge badge-outline">
+                    {{ puesto.contactos.count }} personas
+                </span>
+            </div>
+
+            <!-- END -->
+            <div class="justify-self-end">
+            </div>
+
+        </div>
+    </c-slot>
+
+    <div class="mt-6">
+
+        {{ puesto }}
+
+    </div>
+
+</c-layouts.app>

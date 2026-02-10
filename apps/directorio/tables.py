@@ -1,12 +1,15 @@
 from django.utils.safestring import mark_safe
 from django_tables2 import Column
 
+from apps.core.tables import TableWithActions
+from apps.directorio.models import Contacto
+
 
 class ContactoColumn(Column):
     empty_values = ()
 
-    def render(self, value):
-        contacto = value
+    def render(self, record):
+        contacto = getattr(record, "contacto", record)
         empresa = contacto.empresa
 
         theme_attr = f'data-theme="{empresa.theme}"' if empresa and empresa.theme else ""
@@ -63,3 +66,23 @@ class ContactoColumn(Column):
                         </div>
                     </div>
                 """)
+
+
+class ContactoTable(TableWithActions):
+    actions_template = "components/apps/directorio/contactos/table/actions.html"
+
+    contacto = ContactoColumn(verbose_name="Nombre")
+    puesto_area = Column(verbose_name="Puesto/Área")
+
+    class Meta:
+        model = Contacto
+        fields = [
+            'contacto',
+            'puesto_area',
+            'email_principal.email',
+            'telefono_principal',
+            'celular',
+        ]
+
+    def render_puesto_area(self, record):
+        return mark_safe(f"{record.puesto} - {record.area}")

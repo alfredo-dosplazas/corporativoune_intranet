@@ -7,17 +7,17 @@ from django_tables2 import SingleTableMixin
 from extra_views import SearchableListMixin
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
-from apps.rrhh.forms.areas import AreaForm
-from apps.rrhh.helpers.areas import puede_editar_area, puede_eliminar_area, puede_ver_area
-from apps.rrhh.models.areas import Area
-from apps.rrhh.tables.areas import AreaTable
+from apps.rrhh.forms.puestos import PuestoForm
+from apps.rrhh.helpers.puestos import puede_eliminar_puesto, puede_editar_puesto, puede_ver_puesto
+from apps.rrhh.models.puestos import Puesto
+from apps.rrhh.tables.puestos import PuestoTable
 
 
-class AreaListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMixin, SingleTableMixin, ListView):
-    permission_required = ['rrhh.view_area']
-    template_name = "apps/rrhh/areas/list.html"
-    model = Area
-    table_class = AreaTable
+class PuestoListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMixin, SingleTableMixin, ListView):
+    permission_required = ['rrhh.view_puesto']
+    template_name = "apps/rrhh/puestos/list.html"
+    model = Puesto
+    table_class = PuestoTable
     paginate_by = 15
     search_fields = ['nombre']
 
@@ -30,7 +30,7 @@ class AreaListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMixi
         return [
             {'title': 'Inicio', 'url': reverse('home')},
             {'title': 'RRHH', 'url': reverse('rrhh:index')},
-            {'title': 'Áreas'},
+            {'title': 'Puestos'},
         ]
 
     def get_queryset(self):
@@ -47,12 +47,12 @@ class AreaListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMixi
         return qs
 
 
-class AreaCreateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMessageMixin, CreateView):
-    permission_required = ['rrhh.add_area']
-    template_name = "apps/rrhh/areas/create.html"
-    model = Area
-    form_class = AreaForm
-    success_message = "Área creada correctamente."
+class PuestoCreateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMessageMixin, CreateView):
+    permission_required = ['rrhh.add_puesto']
+    template_name = "apps/rrhh/puestos/create.html"
+    model = Puesto
+    form_class = PuestoForm
+    success_message = "Puesto creada correctamente."
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -60,27 +60,27 @@ class AreaCreateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMessageMi
         return kwargs
 
     def get_success_url(self):
-        return reverse('rrhh:areas__update', args=(self.object.id,))
+        return reverse('rrhh:puestos__update', args=(self.object.id,))
 
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
             {'title': 'RRHH', 'url': reverse('rrhh:index')},
-            {'title': 'Áreas', 'url': reverse('rrhh:areas__list')},
+            {'title': 'Puestos', 'url': reverse('rrhh:puestos__list')},
             {'title': 'Crear'},
         ]
 
 
-class AreaUpdateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMessageMixin, UpdateView):
-    permission_required = ['rrhh.change_area']
-    template_name = "apps/rrhh/areas/update.html"
-    model = Area
-    form_class = AreaForm
-    success_message = "Área actualizada correctamente."
+class PuestoUpdateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMessageMixin, UpdateView):
+    permission_required = ['rrhh.change_puesto']
+    template_name = "apps/rrhh/puestos/update.html"
+    model = Puesto
+    form_class = PuestoForm
+    success_message = "Puesto actualizada correctamente."
 
     def dispatch(self, request, *args, **kwargs):
-        if not puede_editar_area(request.user, self.get_object()):
-            return redirect('rrhh:areas__list')
+        if not puede_editar_puesto(request.user, self.get_object()):
+            return redirect('rrhh:puestos__list')
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
@@ -89,46 +89,46 @@ class AreaUpdateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMessageMi
         return kwargs
 
     def get_success_url(self):
-        return reverse('rrhh:areas__update', args=(self.get_object().id,))
+        return reverse('rrhh:puestos__update', args=(self.get_object().id,))
 
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
             {'title': 'RRHH', 'url': reverse('rrhh:index')},
-            {'title': 'Áreas', 'url': reverse('rrhh:areas__list')},
-            {'title': self.get_object(), 'url': reverse('rrhh:areas__detail', args=(self.get_object().id,))},
+            {'title': 'Puestos', 'url': reverse('rrhh:puestos__list')},
+            {'title': self.get_object(), 'url': reverse('rrhh:puestos__detail', args=(self.get_object().id,))},
             {'title': 'Editar'},
         ]
 
 
-class AreaDetailView(PermissionRequiredMixin, BreadcrumbsMixin, DetailView):
-    permission_required = ['rrhh.view_area']
-    template_name = "apps/rrhh/areas/detail.html"
-    model = Area
+class PuestoDetailView(PermissionRequiredMixin, BreadcrumbsMixin, DetailView):
+    permission_required = ['rrhh.view_puesto']
+    template_name = "apps/rrhh/puestos/detail.html"
+    model = Puesto
 
     def dispatch(self, request, *args, **kwargs):
-        if not puede_ver_area(request.user, self.get_object()):
-            return redirect('rrhh:areas__list')
+        if not puede_ver_puesto(request.user, self.get_object()):
+            return redirect('rrhh:puestos__list')
         return super().dispatch(request, *args, **kwargs)
 
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
             {'title': 'RRHH', 'url': reverse('rrhh:index')},
-            {'title': 'Áreas', 'url': reverse('rrhh:areas__list')},
+            {'title': 'Puestos', 'url': reverse('rrhh:puestos__list')},
             {'title': self.get_object()},
         ]
 
 
-class AreaDeleteView(PermissionRequiredMixin, SuccessMessageMixin, DeleteView):
-    permission_required = ['rrhh.delete_area']
-    model = Area
-    success_message = "Área eliminada correctamente."
+class PuestoDeleteView(PermissionRequiredMixin, SuccessMessageMixin, DeleteView):
+    permission_required = ['rrhh.delete_puesto']
+    model = Puesto
+    success_message = "Puesto eliminado correctamente."
 
     def dispatch(self, request, *args, **kwargs):
-        if not puede_eliminar_area(request.user, self.get_object()):
-            return redirect('rrhh:areas__list')
+        if not puede_eliminar_puesto(request.user, self.get_object()):
+            return redirect('rrhh:puestos__list')
         return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
-        return reverse('rrhh:areas__list')
+        return reverse('rrhh:puestos__list')

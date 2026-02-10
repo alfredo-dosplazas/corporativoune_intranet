@@ -4,6 +4,7 @@ from django.http import HttpResponseForbidden
 from django.urls import reverse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django_filters.views import FilterView
+from django_tables2 import SingleTableMixin
 from extra_views import SearchableListMixin
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
@@ -11,15 +12,28 @@ from apps.core.utils.network import get_client_ip, ip_in_allowed_range, get_empr
 from apps.directorio.filters import ContactoFilter
 from apps.directorio.forms import ContactoForm
 from apps.directorio.models import Contacto
+from apps.directorio.tables import ContactoTable
 
 
-class DirectorioListView(BreadcrumbsMixin, SearchableListMixin, FilterView):
+class DirectorioListView(BreadcrumbsMixin, SearchableListMixin, SingleTableMixin, FilterView):
     template_name = "apps/directorio/list.html"
     model = Contacto
+    table_class = ContactoTable
     paginate_by = 18
     context_object_name = 'contactos'
     search_fields = ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido']
     filterset_class = ContactoFilter
+
+    def get_table(self, **kwargs):
+        table = super().get_table(**kwargs)
+        table.auto_height = True
+        return table
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['vista'] = self.request.GET.get('vista')
+
+        return context
 
     def dispatch(self, request, *args, **kwargs):
         ip = get_client_ip(request)
@@ -32,8 +46,11 @@ class DirectorioListView(BreadcrumbsMixin, SearchableListMixin, FilterView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
+        # Filtrado por ip
         ip = get_client_ip(self.request)
         empresas = get_empresas_from_ip(ip)
+
+        user = self.request.user
 
         qs = super().get_queryset()
 
@@ -41,6 +58,9 @@ class DirectorioListView(BreadcrumbsMixin, SearchableListMixin, FilterView):
             qs = qs.filter(empresa__in=empresas)
         else:
             qs = qs.none()
+
+        if user.is_authenticated:
+            qs = qs.filter(empresa__in=[user.contacto.empresa])
 
         return qs
 
@@ -59,6 +79,11 @@ class ContactoCreateView(PermissionRequiredMixin, SuccessMessageMixin, Breadcrum
     form_class = ContactoForm
     success_message = 'Contacto creado correctamente'
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def get_success_url(self):
         return reverse('directorio:update', args=(self.object.pk,))
 
@@ -76,6 +101,11 @@ class ContactoUpdateView(PermissionRequiredMixin, SuccessMessageMixin, Breadcrum
     model = Contacto
     form_class = ContactoForm
     success_message = 'Contacto actualizado correctamente'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
     def get_success_url(self):
         return reverse('directorio:update', args=(self.get_object().pk,))

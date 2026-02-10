@@ -24,13 +24,13 @@
     </c-slot>
 
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <c-shared.modulos.card
-                url="{% url 'rrhh:areas__list' %}"
-                icono="icon-[ix--product]"
-                nombre="Áreas"
-                permiso="perms.rrhh.view_area"
-                descripcion=""
-        />
-
+        {% for modulo in modulos %}
+            <c-shared.modulos.card
+                    :url="modulo.url"
+                    :icono="modulo.icono"
+                    :nombre="modulo.nombre"
+                    :descripcion="modulo.descripcion"
+            />
+        {% endfor %}
     </div>
 </c-layouts.app>

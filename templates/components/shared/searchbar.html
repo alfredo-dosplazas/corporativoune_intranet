@@ -10,5 +10,12 @@
                 class="grow"
                 autofocus="autofocus"
         />
+
+        {% for key, value in request.GET.items %}
+            {% if key != 'q' %}
+            	<input type="hidden" name="{{ key }}" value="{{ value }}" />
+            {% endif %}
+        {% endfor %}
+
     </label>
 </form>

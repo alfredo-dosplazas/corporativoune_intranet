@@ -1,3 +1,4 @@
+{% load django_tables2 %}
 <c-layouts.app>
     <c-slot name="header">
         <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
@@ -19,7 +20,7 @@
 
             <!-- END -->
             <div class="justify-self-end flex items-center gap-2">
-                <c-shared.filters />
+                <c-shared.filters/>
 
                 {% if perms.directorio.add_contacto %}
                     <a href="{% url 'directorio:create' %}" class="btn btn-sm btn-primary">
@@ -32,32 +33,36 @@
 
     </c-slot>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {% for contacto in contactos %}
-            <c-apps.directorio.contactos.card :contacto="contacto"/>
-        {% empty %}
-            <p>No hay contactos para mostrar.</p>
-        {% endfor %}
-    </div>
+    {% if vista == 'tarjetas' %}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% for contacto in contactos %}
+                <c-apps.directorio.contactos.card :contacto="contacto"/>
+            {% empty %}
+                <p>No hay contactos para mostrar.</p>
+            {% endfor %}
+        </div>
 
-    <!-- PAGINACIÓN -->
-    <div class="mt-6 flex justify-center space-x-2">
-        {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-sm btn-outline">Anterior</a>
-        {% endif %}
-
-        {% for num in page_obj.paginator.page_range %}
-            {% if num == page_obj.number %}
-                <span class="btn btn-sm btn-primary">{{ num }}</span>
-            {% else %}
-                <a href="?page={{ num }}" class="btn btn-sm btn-outline">{{ num }}</a>
+        <!-- PAGINACIÓN -->
+        <div class="mt-6 flex justify-center space-x-2">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-sm btn-outline">Anterior</a>
             {% endif %}
-        {% endfor %}
 
-        {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}" class="btn btn-sm btn-outline">Siguiente</a>
-        {% endif %}
-    </div>
+            {% for num in page_obj.paginator.page_range %}
+                {% if num == page_obj.number %}
+                    <span class="btn btn-sm btn-primary">{{ num }}</span>
+                {% else %}
+                    <a href="?page={{ num }}" class="btn btn-sm btn-outline">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="btn btn-sm btn-outline">Siguiente</a>
+            {% endif %}
+        </div>
+    {% else %}
+        {% render_table table %}
+    {% endif %}
 
 
 </c-layouts.app>
