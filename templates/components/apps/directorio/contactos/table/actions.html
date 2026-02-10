@@ -1,7 +1,6 @@
 <c-table.actions>
-    {% if perms.directorio.view_contacto %}
-        <li><a href="{% url 'directorio:detail' record.pk %}">Detalle</a></li>
-    {% endif %}
+    <li><a href="{% url 'directorio:detail' record.pk %}">Detalle</a></li>
+
     {% if perms.directorio.change_contacto %}
         <li><a href="{% url 'directorio:update' record.pk %}">Editar</a></li>
     {% endif %}

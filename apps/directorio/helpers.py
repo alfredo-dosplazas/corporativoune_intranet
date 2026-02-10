@@ -1,7 +1,11 @@
 from apps.core.templatetags.phone_filters import phone_format
+from apps.core.utils.network import get_empresas_from_ip, get_client_ip, get_sede_from_ip
 
 
 def puede_editar_contacto(user, contacto):
+    if not user.is_authenticated:
+        return False
+
     if not user.contacto:
         return False
 
@@ -11,7 +15,17 @@ def puede_editar_contacto(user, contacto):
     )
 
 
-def puede_ver_contacto(user, contacto):
+def puede_ver_contacto(user, contacto, request):
+    if not user.is_authenticated:
+        ip = get_client_ip(request)
+        empresas = get_empresas_from_ip(ip)
+        sede = get_sede_from_ip(ip)
+        return (
+            contacto.sede_administrativa == sede or
+            sede in contacto.sedes_visibles and
+            contacto.empresa in empresas
+        )
+
     if not user.contacto:
         return False
 
@@ -22,6 +36,9 @@ def puede_ver_contacto(user, contacto):
 
 
 def puede_eliminar_contacto(user, contacto):
+    if not user.is_authenticated:
+        return False
+
     if not user.contacto:
         return False
 
