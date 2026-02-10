@@ -29,7 +29,7 @@ class ContactoForm(forms.ModelForm):
     def _configurar_frescopack(self):
         if self.user and es_frescopack(self.user):
             empresa_fp = Empresa.objects.get(nombre_corto="Frescopack")
-            sede_fp = Sede.objects.get(nombre="Frescopack Planta Celaya")
+            sede_fp = Sede.objects.get_or_create(nombre="Frescopack Planta Celaya", defaults={'codigo': 'FP-CELAYA', ciudad: 'Celaya', 'activa': True})
 
             self.fields["area"].queryset = Area.objects.filter(empresa=empresa_fp)
             self.fields["puesto"].queryset = Puesto.objects.filter(empresa=empresa_fp)
