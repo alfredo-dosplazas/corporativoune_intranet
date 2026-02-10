@@ -21,6 +21,12 @@
 
             <!-- END -->
             <div class="justify-self-end">
+                {% if perms.rrhh.add_area %}
+                    <a href="{% url 'rrhh:areas__update' area.pk %}"
+                       class="btn btn-sm btn-outline">
+                        Editar
+                    </a>
+                {% endif %}
             </div>
 
         </div>

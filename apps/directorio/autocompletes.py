@@ -2,7 +2,7 @@ from dal import autocomplete
 from django.db.models import Q
 
 from apps.core.models import Empresa
-from apps.directorio.models import Contacto
+from apps.directorio.models import Contacto, Sede
 from apps.directorio.utils import es_frescopack
 
 
@@ -26,6 +26,21 @@ class ContactoAutocomplete(autocomplete.Select2QuerySetView):
                 Q(segundo_nombre__icontains=self.q) |
                 Q(primer_apellido__icontains=self.q) |
                 Q(segundo_apellido__icontains=self.q)
+            )
+
+        return qs
+
+
+class SedeAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Sede.objects.none()
+
+        qs = Sede.objects.all()
+
+        if self.q:
+            qs = qs.filter(
+                Q(nombre__icontains=self.q)
             )
 
         return qs

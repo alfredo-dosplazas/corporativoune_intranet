@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 
 from apps.core.models import Empresa
+from apps.directorio.utils import es_frescopack
 
 
 class EmpresaAutocomplete(autocomplete.Select2QuerySetView):
@@ -11,6 +12,11 @@ class EmpresaAutocomplete(autocomplete.Select2QuerySetView):
             return Empresa.objects.none()
 
         qs = Empresa.objects.all()
+
+        user = self.request.user
+
+        if es_frescopack(user):
+            qs = qs.filter(nombre='Frescopack')
 
         if self.q:
             qs = qs.filter(

@@ -16,7 +16,7 @@
             <div class="flex gap-2 print:hidden">
                 {% if perms.directorio.change_contacto %}
                     <a href="{% url 'directorio:update' contacto.pk %}"
-                       class="btn btn-sm btn-outline btn-info">
+                       class="btn btn-sm btn-info">
                         Editar
                     </a>
                 {% endif %}
@@ -25,32 +25,34 @@
         </div>
     </c-slot>
 
-    <!-- HERO / PERFIL -->
+    <!-- HERO -->
     <div data-theme="{{ contacto.empresa.theme }}"
-         class="card bg-base-100 border border-base-300 rounded-xl shadow-sm mb-6">
+         class="card bg-base-100 border border-base-300 rounded-xl shadow-sm mb-6 overflow-hidden">
 
         {% if contacto.empresa %}
-            <div class="h-1 rounded-t-xl bg-gradient-to-r
-                    from-[var(--color-primary-light)]
-                    via-primary
-                    to-[var(--color-primary-dark)]">
-            </div>
+            <div class="h-1 bg-gradient-to-r
+                        from-[var(--color-primary-light)]
+                        via-primary
+                        to-[var(--color-primary-dark)]"></div>
         {% endif %}
 
         <div class="card-body">
-
             <div class="flex flex-col sm:flex-row gap-6 items-start">
 
-                <!-- FOTO -->
-                {% if contacto.foto %}
-                    <div class="avatar shrink-0">
-                        <div class="w-28 h-28 rounded-full ring ring-primary ring-offset-4 ring-offset-base-100">
+                <!-- AVATAR -->
+                <div class="avatar shrink-0">
+                    <div class="w-28 h-28 rounded-full ring ring-primary ring-offset-4 ring-offset-base-100 bg-base-200">
+                        {% if contacto.foto %}
                             <img src="{{ contacto.foto.url }}"
                                  alt="{{ contacto.nombre_completo }}"
                                  class="object-cover"/>
-                        </div>
+                        {% else %}
+                            <span class="flex items-center justify-center h-full text-xl font-semibold opacity-50">
+                                {{ contacto.iniciales }}
+                            </span>
+                        {% endif %}
                     </div>
-                {% endif %}
+                </div>
 
                 <!-- INFO PRINCIPAL -->
                 <div class="flex-1 space-y-1">
@@ -61,34 +63,32 @@
 
                     {% if contacto.numero_empleado %}
                         <p class="text-sm opacity-60">
-                            No. Empleado {{ contacto.numero_empleado }}
+                            No. empleado {{ contacto.numero_empleado }}
                         </p>
                     {% endif %}
 
                     <p class="text-base">
-                        {% if contacto.area %}
-                            {{ contacto.area.nombre }}
-                        {% else %}
-                            Área no asignada
-                        {% endif %}
+                        {{ contacto.puesto.nombre|default:"Puesto no asignado" }}
+                        ·
+                        {{ contacto.area.nombre|default:"Área no asignada" }}
                     </p>
 
                     {% if contacto.empresa %}
                         <div class="flex items-center gap-2 mt-2">
-                            {% if contacto.empresa %}
-                                <c-component
-                                        is="apps.empresas.logos.{{ contacto.empresa.abreviatura }}"
-                                        class="h-6 text-primary opacity-80"
-                                />
-                            {% endif %}
+                            <c-component
+                                    is="apps.empresas.logos.{{ contacto.empresa.abreviatura }}"
+                                    class="h-6 text-primary opacity-80"
+                            />
                             <span class="text-sm uppercase tracking-wide opacity-60">
-                            {{ contacto.empresa.nombre_corto }}
-                        </span>
+                                {{ contacto.empresa.nombre_corto }}
+                            </span>
                         </div>
                     {% endif %}
 
                     {% if contacto.usuario and not contacto.usuario.is_active %}
-                        <span class="badge mt-2">Usuario inactivo</span>
+                        <span class="badge badge-warning mt-2">
+                            Usuario inactivo
+                        </span>
                     {% endif %}
                 </div>
 
@@ -96,7 +96,7 @@
         </div>
     </div>
 
-    <!-- GRID DE CONTENIDO -->
+    <!-- GRID -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         <!-- CONTACTO -->
@@ -109,23 +109,85 @@
                 <div class="space-y-3 text-sm">
 
                     {% if contacto.email_principal %}
-                        <div class="flex items-center gap-3">
-                            <span class="icon-[material-symbols--mail-outline] text-primary"></span>
-                            <a href="mailto:{{ contacto.email_principal.email }}"
-                               class="hover:underline break-all">
-                                {{ contacto.email_principal.email }}
-                            </a>
+                        <div class="flex items-center gap-2 group">
+                            <div class="flex items-center gap-3">
+                                <span class="icon-[material-symbols--mail-outline] text-primary"></span>
+                                <a href="mailto:{{ contacto.email_principal.email }}"
+                                   class="hover:underline break-all">
+                                    {{ contacto.email_principal.email }}
+                                </a>
+                            </div>
+
+                            <button
+                                    class="opacity-0 group-hover:opacity-100 transition text-base-content/50 hover:text-primary tooltip"
+                                    data-tip="Copiar"
+                                    onclick="copyToClipboard('{{ contacto.email_principal.email }}')"
+                                    type="button"
+                            >
+                                <span class="icon-[mdi--content-copy]"></span>
+                            </button>
                         </div>
                     {% endif %}
 
+                    {% for email in contacto.emails_secundarios %}
+                        <div class="flex items-center gap-2 group">
+                            <div class="flex items-center gap-3 opacity-70">
+                                <span class="icon-[material-symbols--alternate-email]"></span>
+                                <a href="mailto:{{ email.email }}" class="hover:underline break-all">
+                                    {{ email.email }}
+                                </a>
+                            </div>
+
+                            <button
+                                    class="opacity-0 group-hover:opacity-100 transition text-base-content/50 hover:text-primary tooltip"
+                                    data-tip="Copiar"
+                                    onclick="copyToClipboard('{{ email.email }}')"
+                                    type="button"
+                            >
+                                <span class="icon-[mdi--content-copy]"></span>
+                            </button>
+                        </div>
+                    {% endfor %}
+
                     {% if contacto.telefono_principal %}
-                        <div class="flex items-center gap-3">
-                            <span class="icon-[material-symbols--call-outline] text-primary"></span>
-                            <a href="tel:{{ contacto.telefono_principal.telefono }}">
-                                {{ contacto.telefono_principal.telefono }}
-                            </a>
+                        <div class="flex items-center gap-2 group">
+                            <div class="flex items-center gap-3">
+                                <span class="icon-[material-symbols--call-outline] text-primary"></span>
+                                <a href="tel:{{ contacto.telefono_principal.telefono }}">
+                                    {{ contacto.telefono_principal.telefono }}
+                                </a>
+                            </div>
+
+                            <button
+                                    class="opacity-0 group-hover:opacity-100 transition text-base-content/50 hover:text-primary tooltip"
+                                    data-tip="Copiar"
+                                    onclick="copyToClipboard('{{ contacto.telefono_principal.telefono }}')"
+                                    type="button"
+                            >
+                                <span class="icon-[mdi--content-copy]"></span>
+                            </button>
                         </div>
                     {% endif %}
+
+                    {% for tel in contacto.telefonos_secundarios %}
+                        <div class="flex items-center gap-2 group">
+                            <div class="flex items-center gap-3 opacity-70">
+                                <span class="icon-[material-symbols--call]"></span>
+                                <a href="tel:{{ tel.telefono }}">
+                                    {{ tel.telefono }}
+                                </a>
+                            </div>
+
+                            <button
+                                    class="opacity-0 group-hover:opacity-100 transition text-base-content/50 hover:text-primary tooltip"
+                                    data-tip="Copiar"
+                                    onclick="copyToClipboard('{{ tel.telefono }}')"
+                                    type="button"
+                            >
+                                <span class="icon-[mdi--content-copy]"></span>
+                            </button>
+                        </div>
+                    {% endfor %}
 
                     {% if contacto.extension %}
                         <div class="flex items-center gap-3 opacity-70">
@@ -137,12 +199,17 @@
                     {% if contacto.slack_id %}
                         <div class="flex items-center gap-3">
                             <span class="icon-[devicon--slack] text-primary"></span>
-                            <a href="{{ contacto.slack_url }}">
+                            <a href="{{ contacto.slack_url }}" class="hover:underline">
                                 Slack
                             </a>
                         </div>
                     {% endif %}
 
+                    {% if not contacto.email_principal and not contacto.telefono_principal %}
+                        <p class="text-sm opacity-50">
+                            No hay información de contacto registrada
+                        </p>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -158,12 +225,13 @@
 
                     <div>
                         <dt class="opacity-60">Empresa</dt>
-                        <dd>{{ contacto.empresa.nombre|default:"—" }}</dd>
+                        <dd data-theme="{{ contacto.empresa.theme }}"
+                            class="text-primary">{{ contacto.empresa.nombre|default:"—" }}</dd>
                     </div>
 
                     <div>
-                        <dt class="opacity-60">Área</dt>
-                        <dd>{{ contacto.area.nombre|default:"—" }}</dd>
+                        <dt class="opacity-60">Sede administrativa</dt>
+                        <dd>{{ contacto.sede_administrativa.nombre|default:"—" }}</dd>
                     </div>
 
                     <div>
@@ -176,21 +244,32 @@
                         <dd>{{ contacto.fecha_egreso|date:"d/m/Y"|default:"—" }}</dd>
                     </div>
 
-
                     <div class="sm:col-span-2">
                         <dt class="opacity-60">Jefe directo</dt>
                         <dd>
                             {% if contacto.jefe_directo %}
-                                <a class="link link-primary"
-                                   href="{% url 'directorio:detail' contacto.jefe_directo.pk %}">
-                                    {{ contacto.jefe_directo.nombre_completo|default:"—" }}
+                                <a href="{% url 'directorio:detail' contacto.jefe_directo.pk %}"
+                                   class="link link-primary">
+                                    {{ contacto.jefe_directo.nombre_completo }}
                                 </a>
                             {% else %}
                                 —
                             {% endif %}
-
                         </dd>
                     </div>
+
+                    {% if contacto.empresas_relacionadas.exists %}
+                        <div class="sm:col-span-2">
+                            <dt class="opacity-60">Empresas relacionadas</dt>
+                            <dd class="flex flex-wrap gap-2 mt-1">
+                                {% for empresa in contacto.empresas_relacionadas.all %}
+                                    <span data-theme="{{ empresa.theme }}" class="badge badge-primary badge-outline">
+                                        {{ empresa.nombre_corto }}
+                                    </span>
+                                {% endfor %}
+                            </dd>
+                        </div>
+                    {% endif %}
 
                 </dl>
             </div>

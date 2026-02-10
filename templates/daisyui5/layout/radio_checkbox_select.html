@@ -1,37 +1,53 @@
 {% load crispy_forms_filters %}
 {% load l10n %}
 
-<div {% if field_class %}class="{{ field_class }}"{% endif %}{% if flat_attrs %} {{ flat_attrs }}{% endif %}>
+<div class="flex flex-col gap-2 {% if field_class %}{{ field_class }}{% endif %}" {% if flat_attrs %} {{ flat_attrs }}{% endif %}>
 
     {% for group, options, index in field|optgroups %}
-        {% if group %}<strong>{{ group }}</strong>{% endif %}
-        {% for option in options %}
-            <div class="form-check{% if inline_class %} form-check-inline{% endif %}">
-                <input type="{{ option.type }}"
-                       class="checkbox {% if field.errors %} checkbox-error {% else %} checkbox-primary{% endif %}"
-                       name="{{ field.html_name }}"
-                       value="{{ option.value|unlocalize }}" {% include "daisyui5/layout/attrs.html" with widget=option %}>
-                <label for="{{ option.attrs.id }}" class="form-check-label">
-                    {{ option.label|unlocalize }}
+        {% if group %}
+            <p class="mb-2 text-sm font-medium text-base-content/70">
+                {{ group }}
+            </p>
+        {% endif %}
+
+        <div class="{% if inline_class %}flex flex-wrap gap-4{% else %}flex flex-col gap-2{% endif %}">
+            {% for option in options %}
+                <label
+                        for="{{ option.attrs.id }}"
+                        class="flex items-center gap-2 cursor-pointer select-none"
+                >
+                    <input
+                            type="{{ option.type }}"
+                            name="{{ field.html_name }}"
+                            value="{{ option.value|unlocalize }}"
+                            class="
+                            checkbox
+                            {% if field.errors %}checkbox-error{% else %}checkbox-primary{% endif %}
+                        "
+                            {% include "daisyui5/layout/attrs.html" with widget=option %}
+                    >
+
+                    <span class="text-sm">
+                        {{ option.label|unlocalize }}
+                    </span>
                 </label>
-                {% if field.errors and forloop.last and not inline_class and forloop.parentloop.last %}
-                    {% include 'daisyui5/layout/field_errors_block.html' %}
-                {% endif %}
-            </div>
-        {% endfor %}
+            {% endfor %}
+        </div>
     {% endfor %}
 
 </div>
-{% if field.errors and inline_class %}
+{# ================= ERRORES ================= #}
+{% if field.errors %}
     {% if field.errors.field_id %}
-        {# Django 5.2+ #}
-        <div id="{{ field.errors.field_id }}_error" class="text-error">
+        <div id="{{ field.errors.field_id }}_error" class="mt-2 text-error text-sm">
     {% else %}
-        <div id="{{ field.auto_id }}_error" class="text-error">
+        <div id="{{ field.auto_id }}_error" class="mt-2 text-error text-sm">
     {% endif %}
 {% for error in field.errors %}
-    <p id="error_{{ forloop.counter }}_{{ field.auto_id }}"><strong>{{ error }}</strong></p>
+    <p>{{ error }}</p>
 {% endfor %}
 </div>
 {% endif %}
-{% include 'daisyui5/layout/help_text.html' %}
+
+{# ================= HELP TEXT ================= #}
+{#{% include "daisyui5/layout/help_text.html" %}#}

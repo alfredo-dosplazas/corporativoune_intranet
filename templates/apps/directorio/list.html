@@ -9,7 +9,7 @@
                     <span class="icon-[fluent--book-contacts-28-filled]"></span>
                     Directorio
                 </h1>
-                <h2 class="text-muted text-sm">Contactos del corporativo</h2>
+                <h2 class="text-muted text-sm">Contactos de la empresa</h2>
             </div>
 
             <!-- MIDDLE -->
@@ -38,7 +38,7 @@
             {% for contacto in contactos %}
                 <c-apps.directorio.contactos.card :contacto="contacto"/>
             {% empty %}
-                <p>No hay contactos para mostrar.</p>
+                {% include 'apps/directorio/partials/empty_state.html' %}
             {% endfor %}
         </div>
 
@@ -61,7 +61,11 @@
             {% endif %}
         </div>
     {% else %}
-        {% render_table table %}
+        {% if table.page.object_list %}
+            {% render_table table %}
+        {% else %}
+            {% include "apps/directorio/partials/empty_state.html" %}
+        {% endif %}
     {% endif %}
 
 

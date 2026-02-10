@@ -1,10 +1,11 @@
+{% load crispy_forms_tags %}
 <label for="filters-drawer" class="btn btn-sm btn-outline">
     <span class="icon-[mdi--filter] size-4"></span>
     Filtros
 </label>
 
 <div class="drawer drawer-end">
-    <input id="filters-drawer" type="checkbox" class="drawer-toggle" />
+    <input id="filters-drawer" type="checkbox" class="drawer-toggle"/>
 
     <div class="drawer-content"></div>
 
@@ -24,7 +25,7 @@
 
             <!-- CONTENIDO SCROLLABLE -->
             <div class="flex-1 overflow-y-auto p-4 space-y-4">
-                {{ filter.form }}
+                {% crispy filter.form %}
             </div>
 
             <!-- FOOTER -->

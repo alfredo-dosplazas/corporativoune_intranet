@@ -20,6 +20,10 @@
 
 {{ slot }}
 
+
+<script src="{% static 'js/toasts.js' %}"></script>
+<script src="{% static 'js/copy_to_clipboard.js' %}"></script>
+
 <script>
     document.addEventListener('htmx:afterSettle', () => {
         const selects = document.querySelectorAll('[data-autocomplete-light-function="select2"]');
@@ -36,5 +40,10 @@
 <script src="{% static 'autocomplete_light/autocomplete_light.js' %}"></script>
 <script src="{% static 'autocomplete_light/select2.js' %}"></script>
 <script src="{% static 'autocomplete_light/i18n/es.js' %}"></script>
+
+<div id="toast-container"
+     class="toast toast-top toast-end z-50">
+</div>
+
 </body>
 </html>

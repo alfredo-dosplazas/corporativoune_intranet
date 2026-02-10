@@ -3,64 +3,78 @@
 {% load static %}
 
 {% for widget in field.subwidgets %}
-    {% if widget.data.is_initial %}
-        <div class="input-group mb-2">
-            <span class="input-group-text">{{ widget.data.initial_text }}</span>
 
-            <div class="form-control d-flex gap-4 h-auto items-start">
-                {% with file=field.value %}
-                    {% if file %}
-                        {% with ext=file.name|lower %}
-                            {% if ext|endswith:".jpg" or ext|endswith:".jpeg" or ext|endswith:".png" or ext|endswith:".webp" or ext|endswith:".gif" %}
-                                <!-- PREVIEW DE IMAGEN -->
-                                <img
-                                        src="{{ file.url }}"
-                                        alt="{{ file.name }}"
-                                        class="h-20 w-20 object-cover rounded border"
-                                />
-                            {% endif %}
-                        {% endwith %}
+    {# ================= IMAGEN ACTUAL ================= #}
+    {% if widget.data.is_initial and field.value %}
+        {% with file=field.value %}
+            <div class="mb-3 rounded-lg border border-base-300 bg-base-200/40 p-3">
+                <div class="flex items-center gap-4">
 
-                        <div class="flex-grow-1 text-break">
-                            <a class="link link-primary" href="{{ file.url }}" target="_blank">
-                                {{ file.name }}
-                            </a>
-                        </div>
+                    {# Preview #}
+                    {% with ext=file.name|lower %}
+                        {% if ext|endswith:".jpg" or ext|endswith:".jpeg" or ext|endswith:".png" or ext|endswith:".webp" or ext|endswith:".gif" %}
+                            <img
+                                    src="{{ file.url }}"
+                                    alt="{{ file.name }}"
+                                    class="h-20 w-20 object-cover rounded-full ring-2 ring-base-300 hover:ring-primary transition"
+                            />
+                        {% else %}
+                            <div class="h-20 w-20 rounded-full bg-base-300 flex items-center justify-center text-base-content/50">
+                                <span class="icon-[mdi--file-image-outline] text-3xl"></span>
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+
+                    {# Info #}
+                    <div class="flex-1">
+                        <p class="text-xs text-base-content/60">Imagen actual</p>
+                        <a
+                                href="{{ file.url }}"
+                                target="_blank"
+                                class="link link-primary text-sm font-medium"
+                        >
+                            Ver archivo
+                        </a>
+                    </div>
+
+                    {# Clear checkbox #}
+                    {% if not widget.data.required %}
+                        <label class="flex items-center gap-2 text-sm text-error">
+                            <input
+                                    type="checkbox"
+                                    name="{{ widget.data.checkbox_name }}"
+                                    id="{{ widget.data.checkbox_id }}"
+                                    class="checkbox checkbox-error"
+                                    {% if field.field.disabled %}disabled{% endif %}
+                            >
+                            Eliminar
+                        </label>
                     {% endif %}
-                {% endwith %}
+
+                </div>
             </div>
-        </div>
+        {% endwith %}
     {% endif %}
 
-    <div{% if field.errors %} class="text-error"{% endif %}>
-        <div class="flex items-center gap-2">
-            <input
-                    type="{{ widget.data.type }}"
-                    name="{{ widget.data.name }}"
-                    class="file-input{% if widget.data.attrs.class %} {{ widget.data.attrs.class }}{% endif %}{% if field.errors %} file-input-error{% endif %}"
-                    {% if field.field.disabled %}disabled{% endif %}
-                            {% for name, value in widget.data.attrs.items %}
-                                {% if value is not False and name != 'class' %}
-                                    {{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}
-                                {% endif %}
-                            {% endfor %}
-            >
-            {% include 'daisyui5/layout/help_text_and_errors.html' %}
+    {# ================= INPUT FILE ================= #}
+    <div class="{% if field.errors %}text-error{% endif %}">
+        <input
+                type="{{ widget.data.type }}"
+                name="{{ widget.data.name }}"
+                class="
+                file-input file-input-bordered w-full
+                {% if widget.data.attrs.class %}{{ widget.data.attrs.class }}{% endif %}
+                {% if field.errors %}file-input-error{% endif %}
+            "
+                {% if field.field.disabled %}disabled{% endif %}
+                        {% for name, value in widget.data.attrs.items %}
+                            {% if value is not False and name != 'class' %}
+                                {{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}
+                            {% endif %}
+                        {% endfor %}
+        >
 
-            {% if not widget.data.required %}
-                <div class="align-self-center ml-2">
-                    <label class="form-check flex items-center gap-2 mb-0">
-                        <input
-                                type="checkbox"
-                                name="{{ widget.data.checkbox_name }}"
-                                id="{{ widget.data.checkbox_id }}"
-                                class="checkbox checkbox-primary"
-                                {% if field.field.disabled %}disabled{% endif %}
-                        >
-                        {{ widget.data.clear_checkbox_label }}
-                    </label>
-                </div>
-            {% endif %}
-        </div>
+        {% include "daisyui5/layout/help_text_and_errors.html" %}
     </div>
+
 {% endfor %}

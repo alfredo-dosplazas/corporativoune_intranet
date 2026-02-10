@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django_filters',
     'import_export',
     'django_htmx',
+    'widget_tweaks',
     'apps.core',
     'apps.slack',
     'apps.auditoria',

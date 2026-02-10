@@ -56,7 +56,8 @@ class Contacto(models.Model):
     foto = models.ImageField(upload_to=rename_contacto_image, blank=True, null=True)
 
     numero_empleado = models.CharField(
-        max_length=255, blank=True, null=True, unique=True
+        max_length=255, blank=True, null=True, unique=True,
+        verbose_name='Número De Empleado'
     )
 
     primer_nombre = models.CharField(max_length=50)
@@ -76,6 +77,7 @@ class Contacto(models.Model):
         Empresa,
         blank=True,
         related_name='contactos_empresas_relacionadas',
+        help_text="Empresas adicionales con las que este contacto tiene relación."
     )
 
     # DONDE SE GESTIONA
@@ -104,10 +106,12 @@ class Contacto(models.Model):
         related_name="a_cargo_de",
     )
 
-    area = models.ForeignKey(Area, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Área', related_name='contactos')
-    puesto = models.ForeignKey(Puesto, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Puesto', related_name='contactos')
+    area = models.ForeignKey(Area, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Área',
+                             related_name='contactos')
+    puesto = models.ForeignKey(Puesto, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Puesto',
+                               related_name='contactos')
 
-    extension = models.CharField(max_length=255, blank=True, null=True)
+    extension = models.CharField(max_length=255, blank=True, null=True, verbose_name='Extensión')
 
     fecha_nacimiento = models.DateField(blank=True, null=True)
 
@@ -146,11 +150,25 @@ class Contacto(models.Model):
         )
 
     @property
+    def emails_secundarios(self):
+        return (
+            self.emails
+            .filter(es_principal=False, esta_activo=True)
+        )
+
+    @property
     def telefono_principal(self):
         return (
             self.telefonos
             .filter(es_principal=True, esta_activo=True)
             .first()
+        )
+
+    @property
+    def telefonos_secundarios(self):
+        return (
+            self.telefonos
+            .filter(es_principal=False, esta_activo=True)
         )
 
     @property

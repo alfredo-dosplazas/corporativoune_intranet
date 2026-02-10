@@ -1,31 +1,136 @@
 <c-layouts.app>
+
     <c-slot name="header">
         <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
 
             <!-- START -->
             <div class="justify-self-start">
                 <h1 class="font-bold text-xl flex items-center gap-2">
+                    <span class="icon-[mdi--briefcase] text-xl"></span>
                     {{ puesto.nombre }}
                 </h1>
             </div>
 
             <!-- MIDDLE -->
             <div class="justify-self-center">
-                <span class="badge badge-outline">
+                <span class="badge badge-outline badge-lg">
                     {{ puesto.contactos.count }} personas
                 </span>
             </div>
 
             <!-- END -->
-            <div class="justify-self-end">
+            <div class="justify-self-end flex gap-2">
+                {% if perms.rrhh.change_puesto %}
+                    <a href="{% url 'rrhh:puestos__update' puesto.pk %}"
+                       class="btn btn-sm btn-outline">
+                        Editar
+                    </a>
+                {% endif %}
             </div>
 
         </div>
     </c-slot>
 
-    <div class="mt-6">
+    <div class="mt-6 space-y-6">
 
-        {{ puesto }}
+        <!-- Info general -->
+        <div class="card bg-base-100 border border-base-300">
+            <div class="card-body gap-4">
+                <h2 class="text-lg font-semibold flex items-center gap-2">
+                    <span class="icon-[mdi--information-outline]"></span>
+                    Información del puesto
+                </h2>
+
+                <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+
+                    <div>
+                        <dt class="opacity-60">Nombre</dt>
+                        <dd class="font-medium">{{ puesto.nombre }}</dd>
+                    </div>
+
+                    {% if puesto.area %}
+                        <div>
+                            <dt class="opacity-60">Área</dt>
+                            <dd class="font-medium">{{ puesto.area.nombre }}</dd>
+                        </div>
+                    {% endif %}
+
+                    {% if puesto.empresa %}
+                        <div>
+                            <dt class="opacity-60">Empresa</dt>
+                            <dd class="font-medium">{{ puesto.empresa.nombre }}</dd>
+                        </div>
+                    {% endif %}
+
+                    <div>
+                        <dt class="opacity-60">Personas asignadas</dt>
+                        <dd class="font-medium">
+                            {{ puesto.contactos.count }}
+                        </dd>
+                    </div>
+
+                </dl>
+            </div>
+        </div>
+
+        <!-- Personas -->
+        <div class="card bg-base-100 border border-base-300">
+            <div class="card-body gap-4">
+
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold flex items-center gap-2">
+                        <span class="icon-[mdi--account-multiple]"></span>
+                        Personas con este puesto
+                    </h2>
+                </div>
+
+                {% if puesto.contactos.exists %}
+                    <div class="overflow-x-auto">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Empresa</th>
+                                    <th>Área</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for contacto in puesto.contactos.all %}
+                                    <tr class="hover">
+                                        <td>
+                                            <a href="{% url 'directorio:detail' contacto.pk %}"
+                                               class="link link-hover font-medium">
+                                                {{ contacto.nombre_completo }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            {{ contacto.empresa.nombre_corto|default:"—" }}
+                                        </td>
+                                        <td>
+                                            {{ contacto.area.nombre|default:"—" }}
+                                        </td>
+                                        <td class="text-right">
+                                            <a href="{% url 'directorio:detail' contacto.pk %}"
+                                               class="btn btn-ghost btn-xs">
+                                                Ver
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info alert-soft">
+                        <span>
+                            No hay personas asignadas a este puesto.
+                        </span>
+                    </div>
+                {% endif %}
+
+            </div>
+        </div>
 
     </div>
 

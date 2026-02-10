@@ -5,12 +5,13 @@ from django.urls import reverse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin
-from extra_views import SearchableListMixin
+from extra_views import SearchableListMixin, CreateWithInlinesView, NamedFormsetsMixin, UpdateWithInlinesView
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.utils.network import get_client_ip, ip_in_allowed_range, get_empresa_from_ip, get_empresas_from_ip
 from apps.directorio.filters import ContactoFilter
 from apps.directorio.forms import ContactoForm
+from apps.directorio.inlines import EmailContactoInline, TelefonoContactoInline
 from apps.directorio.models import Contacto
 from apps.directorio.tables import ContactoTable
 
@@ -23,6 +24,11 @@ class DirectorioListView(BreadcrumbsMixin, SearchableListMixin, SingleTableMixin
     context_object_name = 'contactos'
     search_fields = ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido']
     filterset_class = ContactoFilter
+
+    def get_filterset_kwargs(self, filterset_class):
+        kwargs = super().get_filterset_kwargs(filterset_class)
+        kwargs['user'] = self.request.user
+        return kwargs
 
     def get_table(self, **kwargs):
         table = super().get_table(**kwargs)
@@ -54,6 +60,9 @@ class DirectorioListView(BreadcrumbsMixin, SearchableListMixin, SingleTableMixin
 
         qs = super().get_queryset()
 
+        if user.is_superuser:
+            return qs
+
         if empresas:
             qs = qs.filter(empresa__in=empresas)
         else:
@@ -71,13 +80,21 @@ class DirectorioListView(BreadcrumbsMixin, SearchableListMixin, SingleTableMixin
         ]
 
 
-class ContactoCreateView(PermissionRequiredMixin, SuccessMessageMixin, BreadcrumbsMixin, CreateView):
+class ContactoCreateView(
+    PermissionRequiredMixin,
+    SuccessMessageMixin,
+    BreadcrumbsMixin,
+    CreateWithInlinesView,
+    NamedFormsetsMixin
+):
     permission_required = ['directorio.add_contacto']
 
     template_name = "apps/directorio/contacto/create.html"
     model = Contacto
     form_class = ContactoForm
     success_message = 'Contacto creado correctamente'
+    inlines = [EmailContactoInline, TelefonoContactoInline]
+    inlines_names = ['Email', 'Telefono']
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -95,12 +112,20 @@ class ContactoCreateView(PermissionRequiredMixin, SuccessMessageMixin, Breadcrum
         ]
 
 
-class ContactoUpdateView(PermissionRequiredMixin, SuccessMessageMixin, BreadcrumbsMixin, UpdateView):
+class ContactoUpdateView(
+    PermissionRequiredMixin,
+    SuccessMessageMixin,
+    BreadcrumbsMixin,
+    UpdateWithInlinesView,
+    NamedFormsetsMixin
+):
     permission_required = ['directorio.change_contacto']
     template_name = "apps/directorio/contacto/update.html"
     model = Contacto
     form_class = ContactoForm
     success_message = 'Contacto actualizado correctamente'
+    inlines = [EmailContactoInline, TelefonoContactoInline]
+    inlines_names = ['Email', 'Telefono']
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()

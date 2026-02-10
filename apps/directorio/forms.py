@@ -4,7 +4,7 @@ from dal import autocomplete
 from django import forms
 
 from apps.core.models import Empresa
-from apps.directorio.models import Contacto, Sede
+from apps.directorio.models import Contacto, Sede, EmailContacto
 from apps.directorio.utils import es_frescopack
 from apps.rrhh.models.areas import Area
 from apps.rrhh.models.puestos import Puesto
@@ -18,6 +18,12 @@ class ContactoForm(forms.ModelForm):
             'area': autocomplete.ModelSelect2(url='rrhh:areas__autocomplete'),
             'puesto': autocomplete.ModelSelect2(url='rrhh:puestos__autocomplete'),
             'jefe_directo': autocomplete.ModelSelect2(url='directorio:autocomplete'),
+            'fecha_nacimiento': forms.TextInput(attrs={'type': 'date'}),
+            'fecha_ingreso': forms.TextInput(attrs={'type': 'date'}),
+            'fecha_egreso': forms.TextInput(attrs={'type': 'date'}),
+            'empresas_relacionadas': forms.CheckboxSelectMultiple(),
+            'empresa': autocomplete.ModelSelect2(url='empresa__autocomplete'),
+            'sede_administrativa': autocomplete.ModelSelect2(url='directorio:sede__autocomplete'),
         }
 
     def _configurar_frescopack(self):
@@ -45,33 +51,52 @@ class ContactoForm(forms.ModelForm):
         self.helper.form_id = 'contacto-form'
         self.helper.attrs = {'novalidate': 'novalidate'}
         self.helper.include_media = False
+        self.helper.form_tag = False
 
         self._configurar_frescopack()
 
         self.helper.layout = Layout(
             Row(
-                Column('foto'),
+                Column('foto', css_class='md:w-1/4'),
+                Column(
+                    Row(
+                        Column('primer_nombre'),
+                        Column('segundo_nombre'),
+                    ),
+                    Row(
+                        Column('primer_apellido'),
+                        Column('segundo_apellido'),
+                    ),
+                    css_class='md:w-3/4'
+                ),
             ),
+
             Row(
-                Column('numero_empleado'),
+                Column('numero_empleado', css_class='md:w-1/4'),
             ),
-            Row(
-                Column('primer_nombre'),
-                Column('segundo_nombre'),
-                Column('primer_apellido'),
-                Column('segundo_apellido'),
-            ),
+
             Row(
                 Column('empresa'),
                 Column('sede_administrativa'),
+            ),
+
+            Row(
                 Column('area'),
                 Column('puesto'),
                 Column('jefe_directo'),
             ),
+
             Row(
                 Column('extension'),
+            ),
+
+            Row(
                 Column('fecha_nacimiento'),
+            ),
+            Row(
                 Column('fecha_ingreso'),
                 Column('fecha_egreso'),
             ),
+
+            Column('empresas_relacionadas'),
         )
