@@ -33,7 +33,8 @@ class SedeAdmin(admin.ModelAdmin):
 class ContactoAdmin(ImportExportActionModelAdmin):
     search_fields = ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido']
     autocomplete_fields = ('usuario', 'empresa', 'area', 'jefe_directo')
-    list_display = ['nombre_completo']
+    list_display = ['nombre_completo', 'empresa', 'area', 'puesto', 'jefe_directo']
+    list_filter = ['empresa']
     inlines = [EmailContactoInline, TelefonoContactoInline]
 
     resource_class = ContactoResource
