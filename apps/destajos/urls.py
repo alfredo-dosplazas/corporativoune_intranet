@@ -7,6 +7,8 @@ from apps.destajos.views.contratistas import ContratistaListView, ContratistaCre
 from apps.destajos.views.contratistas_precios import precios_formset
 from apps.destajos.views.destajos import DestajosView
 from apps.destajos.views.estado_trabajo_vivienda import estado_trabajo_update
+from apps.destajos.views.estructuras import EstructuraListView, EstructuraCreateView, EstructuraUpdateView, \
+    EstructuraDetailView
 from apps.destajos.views.obras import ObraListView, ObraCreateView, ObraUpdateView, ObraDetailView, ObraDeleteView
 from apps.destajos.views.paquetes import PaqueteListView, PaqueteCreateView, PaqueteUpdateView, PaqueteDetailView, \
     PaqueteDeleteView
@@ -15,6 +17,14 @@ app_name = 'destajos'
 
 urlpatterns = [
     path('', DestajosView.as_view(), name='index'),
+]
+
+estructuras_urlpatterns = [
+    path('estructuras/', EstructuraListView.as_view(), name='estructuras__list'),
+    path('estructuras/crear/', EstructuraCreateView.as_view(), name='estructuras__create'),
+    path('estructuras/editar/<int:pk>/', EstructuraUpdateView.as_view(), name='estructuras__update'),
+    path('estructuras/detalle/<int:pk>/', EstructuraDetailView.as_view(), name='estructuras__detail'),
+    path('estructuras/eliminar/<int:pk>/', EstructuraDetailView.as_view(), name='estructuras__delete'),
 ]
 
 paquetes_urlpatterns = [
@@ -67,6 +77,7 @@ estado_trabajo_vivienda_urlpatterns = [
 ]
 
 urlpatterns += paquetes_urlpatterns
+urlpatterns += estructuras_urlpatterns
 urlpatterns += contratistas_urlpatterns
 urlpatterns += trabajos_urlpatterns
 urlpatterns += obras_urlpatterns

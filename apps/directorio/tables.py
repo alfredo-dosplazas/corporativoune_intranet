@@ -10,12 +10,24 @@ class ContactoColumn(Column):
     empty_values = ()
 
     def __init__(self, **kwargs):
+        self.contacto_accessor = kwargs.pop('contacto_accessor', None)
         self.mostrar_empresa = kwargs.pop('mostrar_empresa', True)
         self.mostrar_area = kwargs.pop('mostrar_area', True)
         super().__init__(**kwargs)
 
     def render(self, record):
-        contacto = getattr(record, "contacto", record)
+        contacto = record
+
+        if self.contacto_accessor:
+            parts = self.contacto_accessor.split('__')
+            for part in parts:
+                contacto = getattr(contacto, part, None)
+
+        empresa = getattr(record, 'empresa', None)
+
+        if empresa is None:
+            return None
+
         empresa = contacto.empresa
 
         theme_attr = f'data-theme="{empresa.theme}"' if empresa and empresa.theme else ""

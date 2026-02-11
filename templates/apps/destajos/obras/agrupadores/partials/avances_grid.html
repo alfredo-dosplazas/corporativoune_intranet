@@ -1,69 +1,181 @@
 {% load dict_extras %}
-<div class="overflow-x-auto">
-    <table class="table table-xs table-zebra">
-        <thead>
-        <tr>
-            <th class="text-xs">
-                TIPO VIVIENDA
-            </th>
-            {% for vivienda in viviendas %}
-                <th class="text-center whitespace-nowrap text-xs">
-                    {{ vivienda.estructura.abreviatura }}
-                </th>
-            {% endfor %}
-        </tr>
 
-        <tr>
-            <!-- esquina -->
-            <th class="sticky left-0 bg-base-100 z-20">
-                Trabajo
-            </th>
+<div class="relative">
 
-            {% for vivienda in viviendas %}
-                <th class="text-center whitespace-nowrap">
-                    {{ vivienda.numero }}
-                </th>
-            {% endfor %}
-        </tr>
-        </thead>
+    <div class="overflow-x-auto h-[480px] border border-base-300 rounded-lg">
+        <table class="table table-xs table-zebra table-pin-rows table-pin-cols">
 
-        <tbody>
-        {% for trabajo in trabajos %}
+            <thead>
             <tr>
-                <!-- fila fija izquierda -->
-                <td class="sticky left-0 bg-base-100 font-semibold z-10">
-                    {{ trabajo.nombre }}
-                </td>
-
+                <th class="text-xs sticky left-0 z-30 bg-base-100">
+                    TIPO VIVIENDA
+                </th>
                 {% for vivienda in viviendas %}
-                    {% with estado=vivienda.estados_por_trabajo|get_item:trabajo.id %}
-                        <td class="text-center">
-                            {% if estado %}
-                                {% if editar %}
-                                    <select
-                                            hx-post="{% url 'destajos:estado_trabajo_vivienda__update' estado.id %}"
-                                            hx-trigger="change"
-                                            hx-swap="none"
-                                            name="estado"
-                                            id="id_estado"
-                                    >
-                                        <option {% if estado.estado == 'pendiente' %}selected{% endif %} value="pendiente">p</option>
-                                        <option {% if estado.estado == 'por_realizar' %}selected{% endif %} value="por_realizar"></option>
-                                        <option {% if estado.estado == 'realizado' %}selected{% endif %} value="realizado">x</option>
-                                        <option {% if estado.estado == 'pagado' %}selected{% endif %} value="pagado">1</option>
-                                        <option {% if estado.estado == 'na' %}selected{% endif %} value="no aplica">na</option>
-                                    </select>
-                                {% else %}
-                                    {{ estado.estado_abreviatura }}
-                                {% endif %}
-                            {% else %}
-                                —
-                            {% endif %}
-                        </td>
-                    {% endwith %}
+                    <th class="text-center whitespace-nowrap text-xs">
+                        {{ vivienda.estructura.abreviatura|default:vivienda.estructura.nombre }}
+                    </th>
                 {% endfor %}
             </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+
+            <tr>
+                <th class="sticky left-0 bg-base-100 z-30 font-semibold">
+                    Trabajo
+                </th>
+                {% for vivienda in viviendas %}
+                    <th class="text-center whitespace-nowrap text-xs">
+                        {{ vivienda.numero }}
+                    </th>
+                {% endfor %}
+            </tr>
+            </thead>
+
+            <tbody>
+            {% for trabajo in trabajos %}
+                <tr>
+                    <!-- Trabajo fijo -->
+                    <td class="sticky left-0 bg-base-100 font-semibold z-20 whitespace-nowrap">
+                        {{ trabajo.nombre }}
+                    </td>
+
+                    {% for vivienda in viviendas %}
+                        {% with estado=vivienda.estados_por_trabajo|get_item:trabajo.id %}
+                            <td class="text-center relative group">
+
+                                {% if estado %}
+
+                                    {% if editar %}
+                                        <!-- Checkbox bulk (solo visible hover) -->
+                                        <input
+                                                type="checkbox"
+                                                class="checkbox checkbox-xs absolute top-1 left-1 opacity-0 group-hover:opacity-100"
+                                                data-estado-id="{{ estado.id }}"
+                                        >
+
+                                        <!-- Dropdown estado -->
+                                        <div class="dropdown dropdown-hover">
+                                            <label tabindex="0" class="cursor-pointer">
+                        <span class="
+                          badge badge-sm
+                          {% if estado.estado == 'pendiente' %}badge-ghost{% endif %}
+                          {% if estado.estado == 'por_realizar' %}badge-warning{% endif %}
+                          {% if estado.estado == 'realizado' %}badge-success{% endif %}
+                          {% if estado.estado == 'pagado' %}badge-info{% endif %}
+                          {% if estado.estado == 'na' %}badge-outline{% endif %}
+                        ">
+                          {{ estado.estado_abreviatura }}
+                        </span>
+                                            </label>
+
+                                            <ul tabindex="0"
+                                                class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-44 z-50">
+                                                <li>
+                                                    <a hx-post="{% url 'destajos:estado_trabajo_vivienda__update' estado.id %}"
+                                                       hx-vals='{"estado":"pendiente"}'
+                                                       hx-swap="none">Pendiente</a>
+                                                </li>
+                                                <li>
+                                                    <a hx-post="{% url 'destajos:estado_trabajo_vivienda__update' estado.id %}"
+                                                       hx-vals='{"estado":"por_realizar"}'
+                                                       hx-swap="none">Por realizar</a>
+                                                </li>
+                                                <li>
+                                                    <a hx-post="{% url 'destajos:estado_trabajo_vivienda__update' estado.id %}"
+                                                       hx-vals='{"estado":"realizado"}'
+                                                       hx-swap="none">Realizado</a>
+                                                </li>
+                                                <li>
+                                                    <a hx-post="{% url 'destajos:estado_trabajo_vivienda__update' estado.id %}"
+                                                       hx-vals='{"estado":"pagado"}'
+                                                       hx-swap="none">Pagado</a>
+                                                </li>
+                                                <li>
+                                                    <a hx-post="{% url 'destajos:estado_trabajo_vivienda__update' estado.id %}"
+                                                       hx-vals='{"estado":"na"}'
+                                                       hx-swap="none">No aplica</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+
+                                    {% else %}
+                                        <!-- Modo lectura -->
+                                        <span class="
+                      badge badge-sm
+                      {% if estado.estado == 'pendiente' %}badge-ghost{% endif %}
+                      {% if estado.estado == 'por_realizar' %}badge-warning{% endif %}
+                      {% if estado.estado == 'realizado' %}badge-success{% endif %}
+                      {% if estado.estado == 'pagado' %}badge-info{% endif %}
+                      {% if estado.estado == 'na' %}badge-outline{% endif %}
+                    ">
+                      {{ estado.estado_abreviatura }}
+                    </span>
+                                    {% endif %}
+
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        {% endwith %}
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- =========================
+         BULK ACTION BAR
+         ========================= -->
+    {% if editar %}
+        <div
+                id="bulk-bar"
+                class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-base-100 shadow-xl border border-base-300 rounded-xl px-4 py-2 hidden z-50"
+        >
+            <div class="flex items-center gap-3">
+      <span class="text-sm">
+        <span id="bulk-count">0</span> seleccionados
+      </span>
+
+                <select id="bulk-estado" class="select select-sm select-bordered">
+                    <option value="">Cambiar estado…</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="por_realizar">Por realizar</option>
+                    <option value="realizado">Realizado</option>
+                    <option value="pagado">Pagado</option>
+                    <option value="na">No aplica</option>
+                </select>
+
+                <button id="bulk-apply" class="btn btn-sm btn-primary">
+                    Aplicar
+                </button>
+            </div>
+        </div>
+    {% endif %}
+
 </div>
+
+{% if editar %}
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const selected = new Set()
+            const bulkBar = document.getElementById("bulk-bar")
+            const countEl = document.getElementById("bulk-count")
+
+            document.querySelectorAll('[data-estado-id]').forEach(cb => {
+                cb.addEventListener("change", e => {
+                    const id = e.target.dataset.estadoId
+                    e.target.checked ? selected.add(id) : selected.delete(id)
+
+                    bulkBar.classList.toggle("hidden", selected.size === 0)
+                    countEl.textContent = selected.size
+                })
+            })
+
+            document.getElementById("bulk-apply").addEventListener("click", () => {
+                const estado = document.getElementById("bulk-estado").value
+                if (!estado || selected.size === 0) return
+
+                console.log('bulk apply')
+            })
+        })
+    </script>
+{% endif %}

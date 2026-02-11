@@ -94,6 +94,9 @@ class AvancesViviendaView(
         context = super().get_context_data(**kwargs)
         agrupador: Agrupador = self.object
 
+        puede_editar_avances = self.request.GET.get('editar')
+        modo = 'edicion' or 'lectura'
+
         paquete_id = self.request.GET.get('paquete')
 
         # ──────────────────────────────
@@ -169,7 +172,7 @@ class AvancesViviendaView(
             'viviendas': viviendas,
             'trabajos': trabajos,
             'filter': AvanceFilterForm(self.request.GET),
-            'editar': True,
+            'editar': puede_editar_avances,
         })
 
         return context

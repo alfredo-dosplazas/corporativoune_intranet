@@ -16,7 +16,7 @@ DESTAJOS_MODULOS = [
     {
         "key": "estructuras",
         "nombre": "Estructuras",
-        "url_name": "destajos:contratistas__list",
+        "url_name": "destajos:estructuras__list",
         "icono": "icon-[ion--construct]",
         "permisos": ["destajos.view_estructura"],
         "descripcion": "Catálogo de tipos de viviendas",

@@ -28,7 +28,13 @@
             </div>
 
             <!-- FILTRO PAQUETE -->
-            <div class="flex justify-end gap-2">
+            <div class="flex items-center justify-end gap-2">
+                {% if editar %}
+                    <a class="btn btn-sm" href="?">Bloquear</a>
+                {% else %}
+                    <a class="btn btn-sm btn-primary" href="?editar=1">Editar</a>
+                {% endif %}
+
                 {% crispy filter %}
             </div>
 

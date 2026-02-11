@@ -34,6 +34,7 @@ class TrabajoAdmin(ImportExportActionModelAdmin, admin.ModelAdmin):
 
 class EstructuraTrabajoInline(admin.TabularInline):
     model = EstructuraTrabajo
+    autocomplete_fields = ['trabajo']
 
 
 @admin.register(Estructura)
