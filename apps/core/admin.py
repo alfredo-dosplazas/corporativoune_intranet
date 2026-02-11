@@ -21,6 +21,7 @@ class ConfiguracionPapeleriaInline(admin.TabularInline):
 
 @admin.register(RazonSocial)
 class RazonSocialAdmin(admin.ModelAdmin):
+    search_fields = ['nombre']
     list_display = ['nombre', 'nombre_corto', 'abreviatura']
 
 
