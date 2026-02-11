@@ -1,4 +1,7 @@
 def puede_ver_puesto(user, puesto):
+    if user.is_superuser:
+        return True
+
     if not user.contacto:
         return False
 
@@ -9,6 +12,9 @@ def puede_ver_puesto(user, puesto):
 
 
 def puede_editar_puesto(user, puesto):
+    if user.is_superuser:
+        return True
+
     if not user.contacto:
         return False
 
@@ -19,6 +25,9 @@ def puede_editar_puesto(user, puesto):
 
 
 def puede_eliminar_puesto(user, puesto):
+    if user.is_superuser:
+        return True
+
     if not user.contacto:
         return False
 
