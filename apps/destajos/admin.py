@@ -62,7 +62,8 @@ class ContratistaAdmin(ImportExportActionModelAdmin, admin.ModelAdmin):
 
 @admin.register(Obra)
 class ObraAdmin(ImportExportActionModelAdmin, admin.ModelAdmin):
-    list_display = ('nombre', 'etapa', 'fecha_inicio')
+    autocomplete_fields = ['razon_social']
+    list_display = ('nombre', 'etapa', 'razon_social', 'fecha_inicio', 'fecha_fin')
 
 
 @admin.register(TipoAgrupador)
@@ -79,6 +80,7 @@ class ViviendaInline(admin.TabularInline):
 @admin.register(Agrupador)
 class AgrupadorAdmin(admin.ModelAdmin):
     inlines = [ViviendaInline]
+    search_fields = ['obra__nombre', 'obra__etapa']
     list_display = ('obra', 'numero', 'estructura', 'cantidad_viviendas')
 
 
@@ -98,6 +100,7 @@ class PrecioContratistaAdmin(ImportExportActionModelAdmin, admin.ModelAdmin):
 
 class DetalleDestajoInline(admin.TabularInline):
     model = DestajoDetalle
+    autocomplete_fields = ['trabajo']
     min_num = 1
     extra = 1
 
@@ -105,6 +108,7 @@ class DetalleDestajoInline(admin.TabularInline):
 @admin.register(Destajo)
 class DestajoAdmin(admin.ModelAdmin):
     inlines = [DetalleDestajoInline]
+    autocomplete_fields = ['agrupador', 'contratista', 'solicitante', 'autoriza']
     list_display = ('contratista', 'solicitante', 'agrupador', 'autoriza', 'created_at', 'updated_at')
 
 

@@ -1,3 +1,4 @@
+{% load widget_tweaks %}
 {% load crispy_forms_filters %}
 {% load crispy_forms_tags %}
 
@@ -55,48 +56,54 @@
                         </thead>
 
                         <tbody>
-                        {% for form in Trabajo %}
+                        {% for trabajo_form in Trabajo %}
                             <tr
                                     class="
-                                    {% if form.errors %}
+                                    {% if trabajo_form.errors %}
                                         bg-error/20
-                                    {% elif not form.instance.pk %}
+                                    {% elif not trabajo_form.instance.pk %}
                                         bg-info/10
                                     {% endif %}
                                 "
                             >
                                 {# CLAVE (solo lectura visual) #}
                                 <td class="font-mono text-xs opacity-70">
-                                    {{ form.instance.clave|default:"(auto)" }}
-                                    {{ form.id }}
+                                    {{ trabajo_form.instance.clave|default:"(auto)" }}
+                                    {{ trabajo_form.id }}
                                 </td>
 
                                 {# NOMBRE #}
                                 <td class="min-w-[320px]">
-                                    {{ form.nombre|as_crispy_field }}
+                                    {{ trabajo_form.nombre|as_crispy_field }}
                                 </td>
 
                                 {# UNIDAD #}
                                 <td>
-                                    {{ form.unidad|as_crispy_field }}
+                                    {{ trabajo_form.unidad|as_crispy_field }}
                                 </td>
 
                                 {# ES UNITARIO #}
                                 <td class="text-center">
-                                    {{ form.es_unitario }}
+                                    {% render_field trabajo_form.es_unitario class+="checkbox checkbox-primary" %}
                                 </td>
 
-                                <td class="text-center">
-                                    {% if form.instance.pk %}
-                                        {{ form.DELETE }}
+                                <td class="text-left">
+                                    {% if trabajo_form.instance.pk %}
+                                        {% render_field trabajo_form.DELETE class+="checkbox checkbox-error" %}
+                                    {% else %}
+                                        <button type="button"
+                                                class="btn btn-xs btn-error"
+                                                data-formset-remove>
+                                            Eliminar
+                                        </button>
                                     {% endif %}
                                 </td>
                             </tr>
 
-                            {% if form.errors %}
+                            {% if trabajo_form.errors %}
                                 <tr class="bg-error/10">
                                     <td colspan="5" class="text-sm text-error">
-                                        {{ form.errors }}
+                                        {{ trabajo_form.errors }}
                                     </td>
                                 </tr>
                             {% endif %}
@@ -110,8 +117,95 @@
                     registros se crearán al guardar.
                 </p>
 
+                <div class="flex justify-end">
+                    <button type="button"
+                            class="btn btn-sm btn-outline btn-primary"
+                            data-formset-add="trabajos">
+                        <span class="icon-[mdi--plus]"></span>
+                        Agregar Trabajo
+                    </button>
+                </div>
+
             </div>
         </div>
 
     </form>
 </div>
+
+<template id="trabajos-empty-form">
+    <tr class="bg-info/10">
+        <td class="font-mono text-xs opacity-70">
+            {{ Trabajo.empty_form.id }}
+        </td>
+
+        <td class="min-w-[320px]">
+            {{ Trabajo.empty_form.nombre|as_crispy_field }}
+        </td>
+
+        {# UNIDAD #}
+        <td>
+            {{ Trabajo.empty_form.unidad|as_crispy_field }}
+        </td>
+
+        {# ES UNITARIO #}
+        <td class="text-center">
+            {% render_field Trabajo.empty_form.es_unitario class+="checkbox checkbox-primary" %}
+        </td>
+
+        <td class="text-left">
+            <button type="button"
+                    class="btn btn-xs btn-error"
+                    data-formset-remove>
+                Eliminar
+            </button>
+        </td>
+    </tr>
+</template>
+
+<script>
+    $(function () {
+        const PaqueteForm = {
+            init: function () {
+                this.setupFormset('trabajos');
+            },
+
+            setupFormset: function (prefix) {
+                const addBtn = document.querySelector(`[data-formset-add="${prefix}"]`);
+                if (!addBtn) return;
+
+                const totalForms = document.querySelector(`#id_${prefix}-TOTAL_FORMS`);
+                const tbody = addBtn.closest('.card-body').querySelector('tbody');
+                const template = document.getElementById(`${prefix}-empty-form`);
+
+                addBtn.addEventListener('click', () => {
+                    const index = parseInt(totalForms.value, 10);
+                    let html = template.innerHTML.replace(/__prefix__/g, index);
+
+                    const temp = document.createElement('tbody');
+                    temp.innerHTML = html.trim();
+
+                    tbody.appendChild(temp.firstElementChild);
+                    totalForms.value = index + 1;
+                });
+
+                tbody.addEventListener('click', (e) => {
+                    if (!e.target.closest('[data-formset-remove]')) return;
+
+                    const row = e.target.closest('tr');
+                    const deleteInput = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+
+                    if (deleteInput) {
+                        deleteInput.checked = true;
+                        row.classList.add('opacity-40');
+                        row.style.display = 'none';
+                    } else {
+                        row.remove();
+                        totalForms.value = totalForms.value - 1;
+                    }
+                });
+            },
+        }
+
+        PaqueteForm.init();
+    });
+</script>

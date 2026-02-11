@@ -6,6 +6,7 @@ from django.forms.widgets import Select
 
 from apps.destajos.models import Paquete, Trabajo
 
+
 class AvanceFilterForm(forms.Form):
     paquete = forms.ModelChoiceField(queryset=Paquete.objects, widget=Select(attrs={'onchange': 'this.form.submit()'}))
 
@@ -19,6 +20,7 @@ class AvanceFilterForm(forms.Form):
         self.helper.layout = Layout(
             'paquete',
         )
+
 
 class PaqueteForm(forms.ModelForm):
     class Meta:
@@ -37,6 +39,7 @@ class PaqueteForm(forms.ModelForm):
         self.helper.form_id = 'paquete-form'
         self.helper.attrs = {'novalidate': 'novalidate'}
         self.helper.form_tag = False
+        self.helper.include_media = False
 
         self.helper.layout = Layout(
             Row(
@@ -64,3 +67,4 @@ class TrabajoForm(forms.ModelForm):
         self.helper.attrs = {'novalidate': 'novalidate'}
         self.helper.form_tag = False
         self.helper.form_show_labels = False
+        self.helper.include_media = False

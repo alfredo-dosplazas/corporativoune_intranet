@@ -1,0 +1,52 @@
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <!-- START -->
+            <div class="justify-self-start">
+                <div class="flex items-center gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold">
+                            {% if form.instance.pk %}
+                                {{ form.instance.folio }}
+                            {% else %}
+                                Nuevo Destajo
+                            {% endif %}
+                        </h2>
+
+                        <div class="text-sm opacity-70">
+                            Fecha: {{ form.instance.fecha|default:"—" }}
+                        </div>
+                    </div>
+
+                    {% if form.instance.estado %}
+                        <div>
+                    <span class="badge
+                        {% if form.instance.estado == 'borrador' %}badge-warning
+                        {% elif form.instance.estado == 'publicado' %}badge-success
+                        {% elif form.instance.estado == 'cancelado' %}badge-error
+                        {% endif %}
+                    ">
+                        {{ form.instance.get_estado_display }}
+                    </span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- MIDDLE -->
+            <div class="justify-self-center w-full flex justify-center">
+
+            </div>
+
+
+            <!-- END -->
+            <div class="justify-self-end">
+                <button form="destajo-form" class="btn btn-primary btn-sm">Crear</button>
+            </div>
+        </div>
+
+    </c-slot>
+
+    <c-apps.destajos.form/>
+</c-layouts.app>

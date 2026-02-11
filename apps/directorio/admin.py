@@ -32,7 +32,7 @@ class SedeAdmin(admin.ModelAdmin):
 @admin.register(Contacto)
 class ContactoAdmin(ImportExportActionModelAdmin):
     search_fields = ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido']
-    autocomplete_fields = ('usuario', 'empresa', 'area', 'jefe_directo')
+    autocomplete_fields = ('usuario', 'empresa', 'area', 'puesto', 'jefe_directo', 'sede_administrativa', 'sedes_visibles')
     list_display = ['nombre_completo', 'empresa', 'area', 'puesto', 'jefe_directo']
     list_filter = ['empresa']
     inlines = [EmailContactoInline, TelefonoContactoInline]

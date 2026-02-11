@@ -1,19 +1,19 @@
 <c-table.actions>
-    {% if perms.destajos.view_obra %}
-        <li><a href="{% url 'destajos:obras__detail' record.pk %}">Detalle</a></li>
+    {% if perms.destajos.view_destajo %}
+        <li><a href="{% url 'destajos:detail' record.pk %}">Detalle</a></li>
     {% endif %}
-    {% if perms.destajos.change_obra %}
-        <li><a href="{% url 'destajos:obras__update' record.pk %}">Editar</a></li>
+    {% if perms.destajos.change_destajo %}
+        <li><a href="{% url 'destajos:update' record.pk %}">Editar</a></li>
     {% endif %}
-    {% if perms.destajos.delete_obra %}
+    {% if perms.destajos.delete_destajo %}
         <li>
-            <button onclick="obra_delete_modal_{{ record.pk }}.showModal()">Eliminar</button>
+            <button onclick="destajo_delete_modal_{{ record.pk }}.showModal()">Eliminar</button>
         </li>
     {% endif %}
 
 
-    {% if perms.destajos.delete_obra %}
-        <dialog id="obra_delete_modal_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
+    {% if perms.destajos.delete_destajo %}
+        <dialog id="destajo_delete_modal_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
             <div class="modal-box">
                 <form method="dialog">
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
@@ -22,7 +22,7 @@
                 <p class="py-4">Esta acción no se podrá deshacer.</p>
 
                 <div class="modal-action">
-                    <form action="{% url 'destajos:obras__delete' record.pk %}" method="post">
+                    <form action="{% url 'destajos:delete' record.pk %}" method="post">
                         {% csrf_token %}
                         <button class="btn btn-error">Confirmar</button>
                     </form>

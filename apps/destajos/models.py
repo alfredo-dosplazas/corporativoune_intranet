@@ -66,13 +66,12 @@ class Trabajo(models.Model):
     unidad = models.CharField(
         max_length=50,
         blank=True,
-        help_text="m2, pza, vivienda, ml, etc",
         choices=UNIDADES,
         default='vivienda'
     )
 
     def save(self, *args, **kwargs):
-        if not self.clave:
+        if self.clave is None:
             prefijo = self.paquete.clave  # ej. CIM, EST-PB
 
             # Buscar el último consecutivo del paquete
@@ -275,7 +274,7 @@ class Agrupador(models.Model):
             self.generar_viviendas()
 
     def __str__(self):
-        return f"{self.tipo.codigo}-{self.numero} | {self.estructura}"
+        return f"{self.obra} | {self.tipo.codigo}-{self.numero} | {self.estructura}"
 
 
 class Vivienda(models.Model):
@@ -394,15 +393,16 @@ class Destajo(models.Model):
         ['cancelado', 'CANCELADO'],
     )
 
-    folio = models.CharField(max_length=100, unique=True)
-    folio_consecutivo = models.PositiveIntegerField()
+    folio = models.CharField(max_length=100, unique=True, blank=True)
+    folio_consecutivo = models.PositiveIntegerField(blank=True)
 
     estado = models.CharField(max_length=20, choices=ESTADOS, default="borrador")
 
     agrupador = models.ForeignKey(
         Agrupador,
         on_delete=models.PROTECT,
-        related_name="destajos"
+        related_name="destajos",
+        verbose_name='Fraccionamiento'
     )
 
     contratista = models.ForeignKey(
@@ -429,6 +429,10 @@ class Destajo(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def total(self):
+        return sum([d.subtotal for d in self.detalles.all()])
 
     def save(self, *args, **kwargs):
         if not self.pk:
@@ -511,7 +515,9 @@ class DestajoDetalle(models.Model):
     def clean(self):
         super().clean()
 
-        manzana = self.destajo.agrupador
+        agrupador = getattr(self.destajo, "agrupador", None)
+        if agrupador is None:
+            return
         estructura = self.destajo.agrupador.estructura
 
         estructura_trabajo = EstructuraTrabajo.objects.filter(
@@ -525,12 +531,12 @@ class DestajoDetalle(models.Model):
             })
 
         cantidad_presupuestada = estructura_trabajo.cantidad_base
-        cantidad_maxima = cantidad_presupuestada * Decimal(manzana.cantidad_viviendas)
+        cantidad_maxima = cantidad_presupuestada * Decimal(agrupador.cantidad_viviendas)
 
         cantidad_usada = (
                 DestajoDetalle.objects
                 .filter(
-                    destajo__manzana=manzana,
+                    destajo__agrupador=agrupador,
                     trabajo=self.trabajo
                 )
                 .exclude(pk=self.pk)

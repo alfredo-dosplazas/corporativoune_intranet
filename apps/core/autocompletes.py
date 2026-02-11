@@ -49,7 +49,13 @@ class UsuarioAutocomplete(autocomplete.Select2QuerySetView):
         return qs
 
     def get_result_label(self, result):
-        return result.contacto.nombre_completo
+        contacto = getattr(result, 'contacto', None)
+        if contacto:
+            return contacto.nombre_completo
+        return str(result)
 
     def get_selected_result_label(self, result):
-        return result.contacto.nombre_completo
+        contacto = getattr(result, 'contacto', None)
+        if contacto:
+            return contacto.nombre_completo
+        return str(result)

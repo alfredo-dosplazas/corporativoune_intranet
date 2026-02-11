@@ -26,7 +26,7 @@ class DirectorioListView(BreadcrumbsMixin, SearchableListMixin, SingleTableMixin
     table_class = ContactoTable
     paginate_by = 18
     context_object_name = 'contactos'
-    search_fields = ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido']
+    search_fields = ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido', 'emails__email', 'telefonos__telefono']
     filterset_class = ContactoFilter
 
     def get_filterset_kwargs(self, filterset_class):

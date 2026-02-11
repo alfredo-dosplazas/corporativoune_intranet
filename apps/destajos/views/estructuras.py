@@ -1,5 +1,8 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db.models import ProtectedError
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView
 from django_tables2 import SingleTableMixin
@@ -177,3 +180,9 @@ class EstructuraDeleteView(PermissionRequiredMixin, SuccessMessageMixin, DeleteV
 
     def get_success_url(self):
         return reverse('destajos:estructuras__list')
+
+    def post(self, request, *args, **kwargs):
+        try:
+            return self.delete(request, *args, **kwargs)
+        except ProtectedError as error:
+            return render(request, "errors/protected_error.html", {'error': error, 'object': self.get_object()})

@@ -1,0 +1,38 @@
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="flex items-center gap-2">
+            <span class="icon-[material-symbols--warning-rounded] text-warning text-2xl"></span>
+            <h1 class="font-bold text-xl">
+                No se puede eliminar este objeto: {{ object }}
+            </h1>
+        </div>
+    </c-slot>
+
+    <div class="max-w-2xl space-y-4">
+
+        <p class="text-muted">
+            {{ object }} tiene elementos asociados que están protegidos.
+            Debes eliminarlos o reasignarlos antes de poder continuar.
+        </p>
+
+        <div class="bg-base-200 p-4 rounded-lg">
+            <h2 class="font-semibold mb-2">
+                Objetos relacionados ({{ error.protected_objects|length }})
+            </h2>
+
+            <ul class="list-disc list-inside space-y-1 text-sm">
+                {% for object in error.protected_objects %}
+                    <li>{{ object }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="flex gap-3 pt-4">
+            <a href="{% url 'destajos:estructuras__list' %}"
+               class="btn btn-outline">
+                Volver al listado
+            </a>
+        </div>
+
+    </div>
+</c-layouts.app>

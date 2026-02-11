@@ -1,0 +1,302 @@
+{% load widget_tweaks %}
+{% load crispy_forms_filters %}
+{% load crispy_forms_tags %}
+
+<div class="max-w-7xl mx-auto space-y-6">
+    {% if form.errors or Detalle.errors %}
+        <div class="alert alert-soft alert-error shadow-md">
+            <div>
+                <h3 class="font-bold">No se pudo guardar el destajo</h3>
+                <div class="text-sm">
+                    Revisa los campos marcados en rojo.
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+
+    <form id="destajo-form" method="POST" class="space-y-6" novalidate>
+        {% csrf_token %}
+
+        <div class="card bg-base-100 shadow-md border border-base-300">
+            <div class="card-body">
+                <h3 class="font-semibold text-lg mb-4">
+                    Información General
+                </h3>
+
+                {% crispy form %}
+            </div>
+        </div>
+
+
+        <div class="card bg-base-100 shadow-md border border-base-300">
+            <div class="card-body p-0">
+
+                <div class="px-6 pt-6 pb-4 border-b flex justify-between items-center">
+                    <div>
+                        <h3 class="font-semibold text-lg">
+                            Detalles del Destajo
+                        </h3>
+                        <p class="text-xs opacity-60">
+                            Agrega los trabajos realizados en este destajo.
+                        </p>
+                    </div>
+
+                    <button type="button"
+                            id="add-detalle"
+                            class="btn btn-sm btn-primary">
+                        + Agregar trabajo
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    {{ Detalle.management_form }}
+
+                    <table class="table table-sm">
+                        <thead>
+                        <tr class="bg-base-200">
+                            <th class="w-72">Trabajo</th>
+                            <th class="w-28">Cantidad</th>
+                            <th class="w-28">Unidad</th>
+                            <th class="w-32">Precio</th>
+                            <th class="w-28">Desc %</th>
+                            <th class="w-28">Surtido</th>
+                            <th class="w-32 text-right">Subtotal</th>
+                            <th class="w-16"></th>
+                        </tr>
+                        </thead>
+
+                        <tbody id="detalle-body">
+                        {% for form_detalle in Detalle %}
+                            <tr class="hover detalle-row">
+                                <td>
+                                    {{ form_detalle.id }}
+                                    {% render_field form_detalle.trabajo class+="w-full" %}
+                                    <div class="detalle-info text-xs mt-1 opacity-70"></div>
+                                </td>
+
+                                <td>
+                                    {% render_field form_detalle.cantidad class+="input input-sm w-full" %}
+                                </td>
+
+                                <td>
+                                    {% render_field form_detalle.unidad class+="input input-sm w-full" %}
+                                </td>
+
+                                <td>
+                                    {% render_field form_detalle.precio class+="input input-sm w-full" %}
+                                </td>
+
+                                <td>
+                                    {% render_field form_detalle.porcentaje_descuento class+="input input-sm w-full" %}
+                                </td>
+
+                                <td>
+                                    {% render_field form_detalle.surtido class+="input input-sm w-full" %}
+                                </td>
+
+                                <td class="text-right font-semibold subtotal-cell">
+                                    $0.00
+                                </td>
+
+                                <td>
+                                    <button type="button"
+                                            class="btn btn-xs btn-error remove-row">
+                                        ✕
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+
+        <div class="card bg-base-100 shadow-md border border-base-300">
+            <div class="card-body">
+                <h3 class="font-semibold text-lg mb-4">
+                    Observaciones
+                </h3>
+
+                {{ form.observaciones }}
+            </div>
+        </div>
+
+
+        <div class="sticky bottom-0 bg-base-100 border-t border-base-300 py-4 px-6 shadow-inner flex justify-between items-center">
+
+            <div class="text-sm opacity-60">
+                Total estimado del destajo
+            </div>
+
+            <div class="text-2xl font-bold total-estimado">
+                $0.00
+            </div>
+
+        </div>
+
+    </form>
+
+</div>
+
+<script>
+    $(function () {
+        const DestajoForm = {
+            endpoint: '{% url 'destajos:detalle_destajo_data' %}',
+
+            init() {
+                this.bindEvents();
+                this.initExistingRows();
+                this.calculateTotal();
+            },
+
+            bindEvents() {
+                const self = this;
+
+                // Trabajo seleccionado
+                $(document).on("select2:select", "select[name$='trabajo']", function () {
+                    const $row = $(this).closest(".detalle-row");
+                    self.fetchTrabajoData($row, $(this).val());
+                });
+
+                // Recalcular fila
+                $(document).on("input", "input[name$='cantidad'], input[name$='precio'], input[name$='porcentaje_descuento']", function () {
+                    const $row = $(this).closest(".detalle-row");
+                    self.calculateRow($row);
+                    self.calculateTotal();
+                });
+
+                // Eliminar fila
+                $(document).on("click", ".remove-row", function () {
+                    $(this).closest(".detalle-row").remove();
+                    self.calculateTotal();
+                });
+            },
+
+            initExistingRows() {
+                const self = this;
+                $(".detalle-row").each(function () {
+                    self.calculateRow($(this));
+                });
+            },
+
+            fetchTrabajoData($row, trabajoId) {
+
+                const self = this;
+
+                if (!trabajoId) return;
+
+                $.get(this.endpoint, {
+                    trabajo_id: trabajoId,
+                    agrupador_id: $("[name='agrupador']").val(),
+                    contratista_id: $("[name='contratista']").val(),
+                    fecha: $("[name='fecha']").val()
+                })
+                    .done(function (data) {
+
+                        if (data.error) {
+                            self.showRowError($row, data.error);
+                            return;
+                        }
+
+                        self.populateRow($row, data);
+                    })
+                    .fail(function () {
+                        showToast("Error obteniendo datos del trabajo", "error");
+                    });
+            },
+
+            populateRow($row, data) {
+
+                const $precio = $row.find("input[name$='precio']");
+                const $info = $row.find(".detalle-info");
+
+                if (data.precio) {
+                    $precio.val(data.precio).prop("readonly", true);
+                }
+
+                $info.data(data);
+
+                this.renderDisponibilidad($row);
+                this.calculateRow($row);
+                this.calculateTotal();
+            },
+
+            renderDisponibilidad($row) {
+
+                const $info = $row.find(".detalle-info");
+                const data = $info.data();
+
+                const cantidad = parseFloat($row.find("input[name$='cantidad']").val()) || 0;
+                const disponible = parseFloat(data.disponible || 0);
+
+                let color = "text-success";
+
+                if (cantidad > disponible) {
+                    color = "text-error";
+                    $row.find("input[name$='cantidad']").addClass("input-error");
+                } else {
+                    $row.find("input[name$='cantidad']").removeClass("input-error");
+                }
+
+                $info.html(`
+                <div>
+                    Disponible:
+                    <span class="${color} font-semibold">${disponible}</span>
+                </div>
+                <div class="opacity-60">
+                    Presupuestado: ${data.presupuestado} |
+                    Usado: ${data.usado}
+                </div>
+            `);
+            },
+
+            calculateRow($row) {
+
+                const cantidad = parseFloat($row.find("input[name$='cantidad']").val()) || 0;
+                const precio = parseFloat($row.find("input[name$='precio']").val()) || 0;
+                const descuento = parseFloat($row.find("input[name$='porcentaje_descuento']").val()) || 0;
+
+                let subtotal = cantidad * precio;
+                subtotal -= subtotal * (descuento / 100);
+
+                $row.find(".subtotal-cell").text(
+                    subtotal.toLocaleString("es-MX", {
+                        style: "currency",
+                        currency: "MXN"
+                    })
+                );
+            },
+
+            calculateTotal() {
+
+                let total = 0;
+
+                $(".detalle-row").each(function () {
+
+                    const text = $(this).find(".subtotal-cell").text();
+                    const value = parseFloat(text.replace(/[^0-9.-]+/g, "")) || 0;
+                    total += value;
+                });
+
+                $(".total-estimado").text(
+                    total.toLocaleString("es-MX", {
+                        style: "currency",
+                        currency: "MXN"
+                    })
+                );
+            },
+
+            showRowError($row, message) {
+                $row.find(".detalle-info").html(
+                    `<span class="text-error">${message}</span>`
+                );
+            }
+        };
+
+        DestajoForm.init();
+    });
+</script>

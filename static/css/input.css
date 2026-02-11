@@ -506,3 +506,8 @@ html {
 .select2-container {
     min-width: 0 !important;
 }
+
+.is-invalid .select2-selection,
+.needs-validation ~ span > .select2-dropdown {
+    border-color: red !important;
+}
