@@ -1,23 +1,9 @@
+{% load widget_tweaks %}
 {% load crispy_forms_tags %}
 
 <div class="card bg-base-100 shadow-xl border border-base-300">
     <div class="card-body gap-6">
-        <div class="flex justify-end">
-            {% if form.instance.pk %}
-                <button
-                        hx-target="#precios-container"
-                        hx-trigger="click"
-                        hx-get="{% url 'destajos:contratistas__precios' form.instance.pk %}"
-                        class="btn btn-sm btn-secondary"
-                        onclick="precios_contratista_modal.showModal()"
-                >
-                    Precios
-                </button>
-                <c-apps.destajos.contratistas.modal.precios :record="form.instance" />
-            {% endif %}
-        </div>
-
-        {% if form.errors %}
+        {% if form.errors or Precio.errors %}
             <div id="form-errors-banner" class="alert alert-error alert-soft mb-6">
                 <div>
                     <h3 class="font-bold">
@@ -30,6 +16,278 @@
             </div>
         {% endif %}
 
-        {% crispy form %}
+        <form id="contratista-form" method="POST" novalidate>
+            {% csrf_token %}
+
+            <div class="card bg-base-100 shadow-xl border border-base-300">
+                <div class="card-body gap-4">
+
+                    <h2 class="text-lg font-bold flex items-center gap-2">
+                        Datos del contratista
+                    </h2>
+
+                    {% crispy form %}
+                </div>
+            </div>
+
+            <div class="card bg-base-100 shadow-xl border border-base-300 mt-4">
+                <div class="card-body gap-4">
+
+                    <h2 class="text-lg font-bold flex items-center gap-2">
+                        Lista De Precios
+                    </h2>
+
+                    {{ Precio.management_form }}
+
+                    <div class="overflow-x-auto">
+                        <table class="table table-sm table-zebra w-full">
+                            <thead class="bg-base-200">
+                            <tr>
+                                <th>Trabajo</th>
+                                <th>Estructura</th>
+                                <th>Precio</th>
+                                <th>Unidad</th>
+                                <th>Vigente Desde</th>
+                                <th>Vigente Hasta</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+
+                            <tbody>
+                            {% for form_precio in Precio %}
+                                <tr
+                                        class="
+                                        {% if form_precio.errors %}
+                                            bg-error/20
+                                        {% elif not form_precio.instance.pk %}
+                                            bg-info/10
+                                        {% endif %}
+                                        "
+                                >
+                                    <td class="align-top">
+                                        <div class="flex flex-col gap-1">
+                                            {{ form_precio.id }}
+
+                                            {% if form_precio.trabajo.errors %}
+                                                {% render_field form_precio.trabajo class+="is-invalid" %}
+                                            {% else %}
+                                                {% render_field form_precio.trabajo class+="" %}
+                                            {% endif %}
+
+                                            {% if form_precio.non_field_errors %}
+                                                <div class="text-error text-xs bg-error/10 p-2 rounded-md">
+                                                    {{ form_precio.non_field_errors|striptags }}
+                                                </div>
+                                            {% endif %}
+
+                                            {% if form_precio.trabajo.errors %}
+                                                <p class="text-error text-xs leading-tight">
+                                                    {{ form_precio.trabajo.errors|striptags }}
+                                                </p>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td class="align-top">
+                                        <div class="flex flex-col gap-1">
+                                            {% if form_precio.estructura.errors %}
+                                                {% render_field form_precio.estructura class+="w-full select select-error" %}
+                                            {% else %}
+                                                {% render_field form_precio.estructura class+="w-full select" %}
+                                            {% endif %}
+
+                                            {% if form_precio.estructura.errors %}
+                                                <p class="text-error text-xs leading-tight">
+                                                    {{ form_precio.estructura.errors|striptags }}
+                                                </p>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td class="align-top">
+                                        <div class="flex flex-col gap-1">
+                                            {% if form_precio.precio.errors %}
+                                                {% render_field form_precio.precio class+="w-full input input-error" %}
+                                            {% else %}
+                                                {% render_field form_precio.precio class+="w-full input" %}
+                                            {% endif %}
+
+                                            {% if form_precio.precio.errors %}
+                                                <p class="text-error text-xs leading-tight">
+                                                    {{ form_precio.precio.errors|striptags }}
+                                                </p>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td class="align-top">
+                                        <div class="flex flex-col gap-1">
+                                            {% if form_precio.unidad.errors %}
+                                                {% render_field form_precio.unidad class+="w-full input input-error" %}
+                                            {% else %}
+                                                {% render_field form_precio.unidad class+="w-full input" %}
+                                            {% endif %}
+
+                                            {% if form_precio.unidad.errors %}
+                                                <p class="text-error text-xs leading-tight">
+                                                    {{ form_precio.unidad.errors|striptags }}
+                                                </p>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td class="align-top">
+                                        <div class="flex flex-col gap-1">
+                                            {% if form_precio.vigente_desde.errors %}
+                                                {% render_field form_precio.vigente_desde class+="w-full input input-error" %}
+                                            {% else %}
+                                                {% render_field form_precio.vigente_desde class+="w-full input" %}
+                                            {% endif %}
+
+                                            {% if form_precio.vigente_desde.errors %}
+                                                <p class="text-error text-xs leading-tight">
+                                                    {{ form_precio.vigente_desde.errors|striptags }}
+                                                </p>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td class="align-top">
+                                        <div class="flex flex-col gap-1">
+                                            {% if form_precio.vigente_hasta.errors %}
+                                                {% render_field form_precio.vigente_hasta class+="w-full input input-error" %}
+                                            {% else %}
+                                                {% render_field form_precio.vigente_hasta class+="w-full input" %}
+                                            {% endif %}
+
+                                            {% if form_precio.vigente_hasta.errors %}
+                                                <p class="text-error text-xs leading-tight">
+                                                    {{ form_precio.vigente_hasta.errors|striptags }}
+                                                </p>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if form_precio.instance.pk %}
+                                            <label class="flex gap-2 items-center cursor-pointer">
+                                                {% render_field form_precio.DELETE class+="checkbox checkbox-error" %}
+
+                                                <span class="text-error text-xs">Eliminar</span>
+                                            </label>
+                                        {% else %}
+                                            <button type="button"
+                                                    class="btn btn-xs btn-error"
+                                                    data-formset-remove>
+                                                Eliminar
+                                            </button>
+                                        {% endif %}
+                                    </td>
+
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button type="button"
+                                class="btn btn-sm btn-outline btn-primary"
+                                data-formset-add="precios">
+                            <span class="icon-[mdi--plus]"></span>
+                            Agregar Precio
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+
+        </form>
     </div>
 </div>
+
+<template id="precios-empty-form">
+    <tr class="bg-info/10">
+        <td class="align-top">
+            <div class="flex flex-col gap-1">
+                {{ Precio.empty_form.id }}
+
+                {% render_field Precio.empty_form.trabajo class+="" %}
+            </div>
+        </td>
+        <td class="align-top">
+            <div class="flex flex-col gap-1">
+                {% render_field Precio.empty_form.estructura class+="w-full select" %}
+            </div>
+        </td>
+        <td class="align-top">
+            <div class="flex flex-col gap-1">
+                {% render_field Precio.empty_form.precio class+="w-full input" %}
+            </div>
+        </td>
+        <td class="align-top">
+            <div class="flex flex-col gap-1">
+                {% render_field Precio.empty_form.unidad class+="w-full input" %}
+            </div>
+        </td>
+        <td class="align-top">
+            <div class="flex flex-col gap-1">
+                {% render_field Precio.empty_form.vigente_desde class+="w-full input" %}
+            </div>
+        </td>
+        <td class="align-top">
+            <div class="flex flex-col gap-1">
+                {% render_field Precio.empty_form.vigente_hasta class+="w-full input" %}
+            </div>
+        </td>
+        <td class="text-left">
+            <button type="button"
+                    class="btn btn-xs btn-error"
+                    data-formset-remove>
+                Eliminar
+            </button>
+        </td>
+    </tr>
+</template>
+
+<script>
+    $(function () {
+        const ConstratistaForm = {
+            init: function () {
+                this.setupFormset('precios');
+            },
+
+            setupFormset: function (prefix) {
+                const addBtn = document.querySelector(`[data-formset-add="${prefix}"]`);
+                if (!addBtn) return;
+
+                const totalForms = document.querySelector(`#id_${prefix}-TOTAL_FORMS`);
+                const tbody = addBtn.closest('.card-body').querySelector('tbody');
+                const template = document.getElementById(`${prefix}-empty-form`);
+
+                addBtn.addEventListener('click', () => {
+                    const index = parseInt(totalForms.value, 10);
+                    let html = template.innerHTML.replace(/__prefix__/g, index);
+
+                    const temp = document.createElement('tbody');
+                    temp.innerHTML = html.trim();
+
+                    tbody.appendChild(temp.firstElementChild);
+                    totalForms.value = index + 1;
+                });
+
+                tbody.addEventListener('click', (e) => {
+                    if (!e.target.closest('[data-formset-remove]')) return;
+
+                    const row = e.target.closest('tr');
+                    const deleteInput = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+
+                    if (deleteInput) {
+                        deleteInput.checked = true;
+                        row.classList.add('opacity-40');
+                        row.style.display = 'none';
+                    } else {
+                        row.remove();
+                        totalForms.value = totalForms.value - 1;
+                    }
+                });
+            },
+        }
+
+        ConstratistaForm.init();
+    });
+</script>

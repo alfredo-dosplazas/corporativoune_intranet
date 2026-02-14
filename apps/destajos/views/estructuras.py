@@ -1,9 +1,11 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import ProtectedError
-from django.shortcuts import redirect, render
+from django.db.models import ProtectedError, Q
+from django.http import HttpResponse
+from django.shortcuts import redirect, render, get_object_or_404
 from django.urls import reverse
+from django.views import View
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView
 from django_tables2 import SingleTableMixin
 from extra_views import SearchableListMixin, UpdateWithInlinesView, NamedFormsetsMixin
@@ -11,7 +13,8 @@ from extra_views import SearchableListMixin, UpdateWithInlinesView, NamedFormset
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.destajos.forms.estructuras import EstructuraForm
 from apps.destajos.inlines import EstructuraTrabajoInline
-from apps.destajos.models import Estructura, Paquete, EstructuraTrabajo
+from apps.destajos.models import Estructura, Paquete, EstructuraTrabajo, Contratista, Trabajo
+from apps.destajos.services.estructura_trabajos_excel import estructura_trabajos_excel
 from apps.destajos.tables.estructuras import EstructuraTable
 
 
@@ -59,6 +62,50 @@ class EstructuraDetailView(PermissionRequiredMixin, BreadcrumbsMixin, DetailView
     permission_required = ['destajos.view_estructura']
     template_name = "apps/destajos/estructuras/detail.html"
     model = Estructura
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data()
+        estructura: Estructura = self.get_object()
+
+        trabajos = estructura.trabajos.all()
+
+        q = self.request.GET.get("q")
+        contratista_id = self.request.GET.get("contratista")
+        contratista_actual = None
+
+        contratistas = set(t.contratista for t in trabajos if t.contratista)
+
+        if q:
+            trabajos = trabajos.filter(
+                Q(trabajo__nombre__icontains=q) |
+                Q(trabajo__clave__icontains=q) |
+                Q(trabajo__paquete__clave__icontains=q)
+            ).distinct()
+
+        if contratista_id:
+            contratista_actual = Contratista.objects.get(pk=contratista_id)
+            trabajos = [t for t in trabajos if t.contratista == contratista_actual]
+
+        context.update({
+            "contratistas": contratistas,
+            "contratista_actual": contratista_actual,
+            "kpis": {
+                "total_trabajos": estructura.trabajos.count(),
+                "total_paquetes": Paquete.objects.filter(
+                    trabajos__estructuratrabajo__estructura=estructura
+                ).distinct().count(),
+                "costo_total_base": estructura.costo_total_base,
+                "total_contratistas": len(contratistas),
+            },
+            "trabajos": trabajos,
+            "resumen": {
+                "agrupadores": ...,
+                "viviendas": ...,
+                "total_destajos": ...,
+            }
+        })
+
+        return context
 
     def get_breadcrumbs(self):
         return [
@@ -186,3 +233,22 @@ class EstructuraDeleteView(PermissionRequiredMixin, SuccessMessageMixin, DeleteV
             return self.delete(request, *args, **kwargs)
         except ProtectedError as error:
             return render(request, "errors/protected_error.html", {'error': error, 'object': self.get_object()})
+
+
+class EstructuraTrabajosExcelView(View):
+    permission_required = []
+
+    def dispatch(self, request, *args, **kwargs):
+        self.estructura = get_object_or_404(Estructura, pk=kwargs['pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, *args, **kwargs):
+        wb = estructura_trabajos_excel(self.estructura)
+
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        response["Content-Disposition"] = f'attachment; filename="{self.estructura.nombre} Trabajos.xlsx"'
+        wb.save(response)
+
+        return response

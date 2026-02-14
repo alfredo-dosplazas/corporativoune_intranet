@@ -8,6 +8,7 @@ from django.db import models
 from apps.core.models import Empresa
 from apps.rrhh.models.areas import Area
 from apps.rrhh.models.puestos import Puesto
+from apps.slack.client import SlackClient
 
 
 def rename_contacto_image(instance, filename):
@@ -139,6 +140,9 @@ class Contacto(models.Model):
     )
     slack_id = models.CharField(max_length=255, blank=True, null=True)
 
+    mostrar_en_directorio = models.BooleanField(default=True, verbose_name='Mostrar en Directorio')
+    mostrar_en_cumpleanios = models.BooleanField(default=True, verbose_name='Mostrar en Cumpleaños')
+
     @property
     def iniciales(self):
         return self.primer_nombre[0] + self.primer_apellido[0]
@@ -190,6 +194,25 @@ class Contacto(models.Model):
     @property
     def slack_url(self):
         return f"slack://user?team={settings.SLACK_TEAM_ID}&id={self.slack_id}"
+
+    def json(self):
+        return {
+            'nombre_completo': self.nombre_completo,
+            'numero_empleado': self.numero_empleado,
+            'empresa': self.empresa.nombre if self.empresa else None,
+            'area': self.area.nombre if self.area else None,
+            'puesto': self.puesto.nombre if self.puesto else None,
+            'sede_administrativa': self.sede_administrativa.nombre if self.sede_administrativa else None,
+            'email_principal': self.email_principal.email if self.email_principal else None,
+            'telefono_principal': self.telefono_principal.telefono if self.telefono_principal else None,
+            'telefono_principal__extension': self.telefono_principal.extension if self.telefono_principal else None
+
+        }
+
+    def save(self, *args, **kwargs):
+        if self.slack_id is None and self.email_slack:
+            self.slack_id = SlackClient().get_slack_id_by_email(self.email_slack)
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.nombre_completo}"

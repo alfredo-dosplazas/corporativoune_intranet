@@ -372,3 +372,14 @@
 
     })();
 </script>
+
+<script>
+    const form = document.getElementById('contacto-form');
+
+    form.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            confirmar_contacto.showModal();
+        }
+    });
+</script>

@@ -1,0 +1,84 @@
+<dialog id="confirmar_contacto"
+        class="modal modal-bottom sm:modal-middle">
+
+    <div class="modal-box sm:w-11/12 sm:max-w-2xl space-y-6">
+
+        <!-- Close -->
+        <form method="dialog">
+            <button
+                    class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                    aria-label="Cerrar">
+                ✕
+            </button>
+        </form>
+
+        <!-- Header -->
+        <div>
+            <h3 class="text-lg font-bold">
+                {% if tipo == 'crear' %}
+                    Confirmar creación de contacto
+                {% else %}
+                    Confirmar actualización de contacto
+                {% endif %}
+            </h3>
+            <p class="text-sm text-base-content/70 mt-2">
+                {% if tipo == 'crear' %}
+                    Puedes crear el contacto normalmente o crear y enviar una notificación a
+                    <strong>Sistemas</strong> para que estén enterados del contacto y puedan darlo de alta en Odoo,
+                    Intranet
+                    u otros sistemas internos.
+                {% else %}
+                    Puedes actualizar el contacto normalmente o actualizar y enviar una notificación a
+                    <strong>Sistemas</strong> para que estén enterados del contacto y puedan ajustarlo en Odoo,
+                    Intranet
+                    u otros sistemas internos.
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Actions -->
+        <div class="modal-action justify-between">
+
+            <!-- Cancel -->
+            <form method="dialog">
+                <button class="btn btn-ghost">
+                    Cancelar
+                </button>
+            </form>
+
+
+            <div class="flex gap-3">
+
+                <button
+                        form="contacto-form"
+                        name="accion"
+                        value="crear"
+                        class="btn btn-primary">
+                    {% if tipo == 'crear' %}
+                        Crear
+                    {% else %}
+                        Guardar
+                    {% endif %}
+                </button>
+
+                <button
+                        form="contacto-form"
+                        name="accion"
+                        value="notificar"
+                        class="btn btn-secondary">
+                    {% if tipo == 'crear' %}
+                        Crear y Notificar
+                    {% else %}
+                        Guardar y Notificar
+                    {% endif %}
+                </button>
+
+            </div>
+
+        </div>
+    </div>
+
+    <form method="dialog" class="modal-backdrop">
+        <button aria-label="Cerrar"></button>
+    </form>
+</dialog>

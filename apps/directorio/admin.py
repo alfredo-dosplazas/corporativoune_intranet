@@ -46,7 +46,7 @@ class ContactoAdmin(ImportExportActionModelAdmin):
         for q in queryset:
             if q.slack_id:
                 enviar_slack_task.delay(
-                    slack_id=q.slack_id,
+                    user_id=q.slack_id,
                     mensaje="Mensaje de prueba envíado desde la intranet"
                 )
         messages.info(request, 'Enviando mensaje...')

@@ -16,7 +16,6 @@ class Command(BaseCommand):
         slack_client = SlackClient()
         user_list = slack_client.get_user_list()
 
-        # Mapa email -> slack_id
         user_map = {}
         for user in user_list.get('members', []):
             profile = user.get('profile', {})

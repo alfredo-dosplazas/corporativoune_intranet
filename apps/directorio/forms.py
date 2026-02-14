@@ -13,7 +13,7 @@ from apps.rrhh.models.puestos import Puesto
 class ContactoForm(forms.ModelForm):
     class Meta:
         model = Contacto
-        exclude = ['usuario', 'slack_id', 'email_slack', 'sedes_visibles']
+        exclude = ['usuario', 'slack_id', 'sedes_visibles']
         widgets = {
             'area': autocomplete.ModelSelect2(url='rrhh:areas__autocomplete'),
             'puesto': autocomplete.ModelSelect2(url='rrhh:puestos__autocomplete'),
@@ -29,7 +29,9 @@ class ContactoForm(forms.ModelForm):
     def _configurar_frescopack(self):
         if self.user and es_frescopack(self.user):
             empresa_fp = Empresa.objects.get(nombre_corto="Frescopack")
-            sede_fp, _ = Sede.objects.get_or_create(nombre="Frescopack Planta Celaya", defaults={'codigo': 'FP-CELAYA', 'ciudad': 'Celaya', 'activa': True})
+            sede_fp, _ = Sede.objects.get_or_create(nombre="Frescopack Planta Celaya",
+                                                    defaults={'codigo': 'FP-CELAYA', 'ciudad': 'Celaya',
+                                                              'activa': True})
 
             self.fields["area"].queryset = Area.objects.filter(empresa=empresa_fp)
             self.fields["puesto"].queryset = Puesto.objects.filter(empresa=empresa_fp)
@@ -52,6 +54,9 @@ class ContactoForm(forms.ModelForm):
         self.helper.attrs = {'novalidate': 'novalidate'}
         self.helper.include_media = False
         self.helper.form_tag = False
+
+        if self.instance.slack_id:
+            self.fields["email_slack"].help_text += f" (ID Slack: {self.instance.slack_id})"
 
         self._configurar_frescopack()
 
@@ -92,6 +97,15 @@ class ContactoForm(forms.ModelForm):
             Row(
                 Column('fecha_ingreso'),
                 Column('fecha_egreso'),
+            ),
+
+            Row(
+                Column('email_slack', css_class='col md:col-6')
+            ),
+
+            Row(
+                Column('mostrar_en_directorio', css_class='col md:col-3'),
+                Column('mostrar_en_cumpleanios', css_class='col md:col-3'),
             ),
 
             Column('empresas_relacionadas'),

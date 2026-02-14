@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.db.models import Sum, Q, Max
+from django.db.models import Sum, Q, Max, OuterRef, Subquery, F
 from django.utils.timezone import now
 
 from apps.core.models import RazonSocial
@@ -18,6 +18,11 @@ class Estructura(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     descripcion = models.TextField(blank=True, null=True)
     abreviatura = models.CharField(blank=True, null=True, max_length=50)
+
+    @property
+    def costo_total_base(self):
+        trabajos = self.trabajos.all()
+        return sum(t.precio_vigente for t in trabajos)
 
     def __str__(self):
         return self.nombre
@@ -71,6 +76,8 @@ class Trabajo(models.Model):
     )
 
     def save(self, *args, **kwargs):
+        self.nombre = self.nombre.upper().strip()
+
         if self.clave is None:
             prefijo = self.paquete.clave  # ej. CIM, EST-PB
 
@@ -117,6 +124,42 @@ class EstructuraTrabajo(models.Model):
         default=1
     )
 
+    @property
+    def contratista(self):
+        precio = (
+            PrecioContratista.objects.filter(
+                trabajo=self.trabajo,
+                estructura=self.estructura,
+                vigente_desde__lte=now(),
+            )
+            .filter(
+                Q(vigente_hasta__gte=now()) |
+                Q(vigente_hasta__isnull=True)
+            )
+            .order_by('-vigente_desde')
+            .first()
+        )
+
+        return precio.contratista if precio else None
+
+    @property
+    def precio_vigente(self):
+        precio = (
+            PrecioContratista.objects.filter(
+                trabajo=self.trabajo,
+                estructura=self.estructura,
+                vigente_desde__lte=now(),
+            )
+            .filter(
+                Q(vigente_hasta__gte=now()) |
+                Q(vigente_hasta__isnull=True)
+            )
+            .order_by('-vigente_desde')
+            .first()
+        )
+
+        return precio.precio if precio else 0
+
     class Meta:
         unique_together = ("estructura", "trabajo")
 
@@ -128,6 +171,7 @@ class Contratista(models.Model):
 
     correo_electronico = models.EmailField(blank=True, null=True, verbose_name='Correo electrónico')
     telefono = models.CharField(max_length=11, blank=True, null=True, verbose_name='Teléfono')
+
 
     def __str__(self):
         return self.nombre
@@ -141,9 +185,8 @@ class PrecioContratista(models.Model):
     trabajo = models.ForeignKey(Trabajo, on_delete=models.CASCADE)
     estructura = models.ForeignKey(
         Estructura,
-        null=True,
-        blank=True,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name='precios'
     )
 
     precio = models.DecimalField(max_digits=10, decimal_places=2)
@@ -172,7 +215,7 @@ class PrecioContratista(models.Model):
         )
 
     class Meta:
-        unique_together = ("contratista", "trabajo", "precio", "vigente_desde", "vigente_hasta")
+        unique_together = ("contratista", "trabajo", "estructura", "precio", "vigente_desde", "vigente_hasta")
         indexes = [
             models.Index(fields=["contratista", "trabajo", "vigente_desde"]),
         ]

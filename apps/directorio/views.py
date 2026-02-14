@@ -4,12 +4,13 @@ from django.db.models import Q
 from django.http import HttpResponseForbidden
 from django.shortcuts import redirect
 from django.urls import reverse
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.views.generic import DetailView, DeleteView
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin
 from extra_views import SearchableListMixin, CreateWithInlinesView, NamedFormsetsMixin, UpdateWithInlinesView
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.services.notificaciones import notificar_soporte
 from apps.core.utils.network import get_client_ip, ip_in_allowed_range, get_empresas_from_ip, \
     get_sede_from_ip
 from apps.directorio.filters import ContactoFilter
@@ -26,7 +27,8 @@ class DirectorioListView(BreadcrumbsMixin, SearchableListMixin, SingleTableMixin
     table_class = ContactoTable
     paginate_by = 18
     context_object_name = 'contactos'
-    search_fields = ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido', 'emails__email', 'telefonos__telefono']
+    search_fields = ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido', 'emails__email',
+                     'telefonos__telefono']
     filterset_class = ContactoFilter
 
     def get_filterset_kwargs(self, filterset_class):
@@ -89,12 +91,17 @@ class DirectorioListView(BreadcrumbsMixin, SearchableListMixin, SingleTableMixin
                     Q(sede_administrativa__in=sedes) |
                     Q(sedes_visibles__in=sedes)
                 )
+
+            # Filtrado de vista en directorio
+            if not (user.has_perm('directorio.change_contacto') or user.has_perm('directorio.delete_contacto')):
+                qs = qs.filter(mostrar_en_directorio=True)
         else:
             if sede:
                 qs = qs.filter(
                     Q(sede_administrativa=sede) |
                     Q(sedes_visibles=sede)
                 )
+            qs = qs.filter(mostrar_en_directorio=True)
 
         return qs.distinct()
 
@@ -120,6 +127,29 @@ class ContactoCreateView(
     success_message = 'Contacto creado correctamente'
     inlines = [EmailContactoInline, TelefonoContactoInline]
     inlines_names = ['Email', 'Telefono']
+
+    def forms_valid(self, form, inlines):
+        user = self.request.user
+        empresa = getattr(user.contacto, 'empresa', None)
+
+        response = super().forms_valid(form, inlines)
+
+        accion = self.request.POST.get("accion")
+
+        if accion == "notificar":
+            context = {
+                **self.object.json(),
+                'es_nuevo': True,
+            }
+            notificar_soporte(
+                empresa,
+                'Nuevo Contacto Directorio',
+                template_name_email='apps/directorio/emails/sistemas_contacto.html',
+                template_name_slack='apps/directorio/slack/sistemas_contacto.txt',
+                context=context,
+            )
+
+        return response
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -151,6 +181,29 @@ class ContactoUpdateView(
     success_message = 'Contacto actualizado correctamente'
     inlines = [EmailContactoInline, TelefonoContactoInline]
     inlines_names = ['Email', 'Telefono']
+
+    def forms_valid(self, form, inlines):
+        user = self.request.user
+        empresa = getattr(user.contacto, 'empresa', None)
+
+        response = super().forms_valid(form, inlines)
+
+        accion = self.request.POST.get("accion")
+
+        if accion == "notificar":
+            context = {
+                **self.get_object().json(),
+                'es_nuevo': False,
+            }
+            notificar_soporte(
+                empresa,
+                'Contacto Actualizado Directorio',
+                template_name_email='apps/directorio/emails/sistemas_contacto.html',
+                template_name_slack='apps/directorio/slack/sistemas_contacto.txt',
+                context=context,
+            )
+
+        return response
 
     def dispatch(self, request, *args, **kwargs):
         if not puede_editar_contacto(request.user, self.get_object()):

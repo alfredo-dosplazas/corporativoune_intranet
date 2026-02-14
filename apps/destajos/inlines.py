@@ -26,6 +26,15 @@ PrecioFormset = inlineformset_factory(
 )
 
 
+class PrecioContratistaInline(InlineFormSetFactory):
+    model = PrecioContratista
+    form_class = PrecioForm
+    factory_kwargs = {
+        'can_delete': True,
+        'extra': 1,
+    }
+
+
 class EstructuraTrabajoInline(InlineFormSetFactory):
     model = EstructuraTrabajo
     form_class = EstructuraTrabajoForm

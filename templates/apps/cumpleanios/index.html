@@ -1,0 +1,38 @@
+{% load django_tables2 %}
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <!-- START -->
+            <div class="justify-self-start">
+                <h1 class="text-primary font-bold text-xl flex items-center gap-2">
+                    Cumpleañeros de {{ mes_actual }}
+                </h1>
+            </div>
+
+            <!-- MIDDLE -->
+            <div class="justify-self-center w-full flex justify-center">
+                <c-shared.searchbar/>
+            </div>
+
+
+            <!-- END -->
+            <div class="justify-self-end">
+                <form method="GET">
+                    <label>
+                        <select onchange="this.form.submit()" name="mes" id="id_mes" class="select">
+                            {% for numero, mes in meses.items %}
+                                <option value="{{ numero }}"  {% if numero_mes_actual == numero %}
+                                        selected {% endif %}>{{ mes }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                </form>
+            </div>
+
+        </div>
+
+    </c-slot>
+
+    {% render_table table %}
+</c-layouts.app>

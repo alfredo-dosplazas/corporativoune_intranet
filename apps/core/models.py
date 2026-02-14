@@ -42,6 +42,41 @@ class Empresa(models.Model):
     class Meta:
         ordering = ["nombre_corto"]
 
+
+class EmpresaSoporteSistemas(models.Model):
+    empresa = models.OneToOneField(
+        Empresa,
+        on_delete=models.CASCADE,
+        related_name="config_soporte"
+    )
+
+    notificar_por_correo = models.BooleanField(default=True)
+    notificar_por_slack = models.BooleanField(default=False)
+
+    correo_soporte = models.EmailField(
+        blank=True,
+        null=True,
+        help_text="Correo donde se recibirán notificaciones de tickets"
+    )
+
+    slack_channel = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="ID del canal de Slack"
+    )
+
+    activo = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Soporte - {self.empresa.nombre}"
+
+    class Meta:
+        verbose_name = "Configuración Soporte Sistemas"
+        verbose_name_plural = "Configuraciones Soporte Sistemas"
+
+
 class EmpresaIPRange(models.Model):
     empresa = models.ForeignKey(
         Empresa,
@@ -55,6 +90,7 @@ class EmpresaIPRange(models.Model):
 
     def contiene_ip(self, ip):
         return ipaddress.ip_address(ip) in ipaddress.ip_network(self.cidr)
+
 
 class ModuloEmpresa(models.Model):
     empresa = models.ForeignKey(

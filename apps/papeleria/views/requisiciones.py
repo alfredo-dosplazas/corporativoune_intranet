@@ -256,7 +256,7 @@ class RequisicionRequestConfirmView(PermissionRequiredMixin, View):
             )
 
             enviar_slack_task.delay(
-                slack_id=aprobador.contacto.slack_id,
+                user_id=aprobador.contacto.slack_id,
                 mensaje=mensaje,
             )
 
@@ -346,7 +346,7 @@ class RequisicionAprobarView(PermissionRequiredMixin, View):
                 )
 
                 enviar_slack_task.delay(
-                    slack_id=solicitante.contacto.slack_id,
+                    user_id=solicitante.contacto.slack_id,
                     mensaje=mensaje,
                 )
 
@@ -385,7 +385,7 @@ class RequisicionAprobarView(PermissionRequiredMixin, View):
             )
 
             enviar_slack_task.delay(
-                slack_id=solicitante.contacto.slack_id,
+                user_id=solicitante.contacto.slack_id,
                 mensaje=mensaje,
             )
 
@@ -462,7 +462,7 @@ class RequisicionRechazarView(PermissionRequiredMixin, View):
             )
 
             enviar_slack_task.delay(
-                slack_id=solicitante.contacto.slack_id,
+                user_id=solicitante.contacto.slack_id,
                 mensaje=mensaje,
             )
 
@@ -554,7 +554,7 @@ class RequisicionEnviarContraloriaView(PermissionRequiredMixin, View):
 
             if contraloria.contacto.slack_id:
                 enviar_slack_task.delay(
-                    slack_id=contraloria.contacto.slack_id,
+                    user_id=contraloria.contacto.slack_id,
                     mensaje=mensaje,
                 )
 
@@ -657,7 +657,7 @@ class RequisicionAutorizarView(PermissionRequiredMixin, View):
                 )
 
                 enviar_slack_task.delay(
-                    slack_id=solicitante.contacto.slack_id,
+                    user_id=solicitante.contacto.slack_id,
                     mensaje=mensaje,
                 )
 
@@ -745,7 +745,7 @@ class RequisicionAutorizarView(PermissionRequiredMixin, View):
             )
 
             enviar_slack_task.delay(
-                slack_id=solicitante.contacto.slack_id,
+                user_id=solicitante.contacto.slack_id,
                 mensaje=mensaje,
             )
 

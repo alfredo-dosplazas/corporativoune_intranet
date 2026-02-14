@@ -1,0 +1,35 @@
+:bell: {% if es_nuevo %}*Nuevo Contacto Creado*{% else %} Contacto Actualizado {% endif %}
+
+*Nombre:* {{ nombre_completo }}
+
+{% if numero_empleado %}
+*No. Empleado:* {{ numero_empleado }}
+{% endif %}
+
+{% if empresa %}
+*Empresa:* {{ empresa.nombre }}
+{% endif %}
+
+{% if area %}
+*Área:* {{ area }}
+{% endif %}
+
+{% if puesto %}
+*Puesto:* {{ puesto }}
+{% endif %}
+
+{% if sede_administrativa %}
+*Sede Administrativa:* {{ sede_administrativa.nombre }}
+{% endif %}
+
+{% if email_principal %}
+*Email:* {{ email_principal.email }}
+{% endif %}
+
+{% if telefono_principal %}
+*Teléfono:* {{ telefono_principal.telefono }}{% if telefono_principal__extension %} Ext. {{ telefono_principal__extension }}{% endif %}
+{% endif %}
+
+{% if es_nuevo %}
+:white_check_mark: Contacto listo para alta en sistemas.
+{% endif %}

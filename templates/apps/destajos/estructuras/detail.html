@@ -1,25 +1,240 @@
-{% load django_tables2 %}
+{% load money %}
+{% load humanize %}
 <c-layouts.app>
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
-
-            <!-- START -->
-            <div class="justify-self-start">
-                <h1 class="font-bold text-xl flex items-center gap-2">{{ estructura }}</h1>
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold">
+                    {{ estructura.nombre }}
+                </h1>
+                {% if estructura.abreviatura %}
+                    <p class="text-sm text-gray-500">
+                        {{ estructura.abreviatura }}
+                    </p>
+                {% endif %}
             </div>
 
-            <!-- MIDDLE -->
-            <div class="justify-self-center w-full flex justify-center">
+            <div class="flex gap-2">
+                <a href="{% url 'destajos:estructuras__update' estructura.pk %}" class="btn btn-sm btn-primary">
+                    Editar
+                </a>
+            </div>
+        </div>
+    </c-slot>
+
+
+    <div class="space-y-8">
+
+        <!-- ===================== -->
+        <!-- KPIs -->
+        <!-- ===================== -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+            <div class="card bg-base-100 shadow">
+                <div class="card-body p-4">
+                    <p class="text-sm text-gray-500">Trabajos</p>
+                    <p class="text-2xl font-bold">{{ kpis.total_trabajos|default:0 }}</p>
+                </div>
             </div>
 
+            <div class="card bg-base-100 shadow">
+                <div class="card-body p-4">
+                    <p class="text-sm text-gray-500">Paquetes</p>
+                    <p class="text-2xl font-bold">{{ kpis.total_paquetes|default:0 }}</p>
+                </div>
+            </div>
 
-            <!-- END -->
-            <div class="justify-self-end">
+            <div class="card bg-base-100 shadow">
+                <div class="card-body p-4">
+                    <p class="text-sm text-gray-500">Costo Base por Vivienda</p>
+                    <p class="text-2xl font-bold">
+                        ${{ kpis.costo_total_base|floatformat:2|intcomma }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 shadow">
+                <div class="card-body p-4">
+                    <p class="text-sm text-gray-500">Contratistas Involucrados</p>
+                    <p class="text-2xl font-bold">{{ kpis.total_contratistas|default:0 }}</p>
+                </div>
             </div>
 
         </div>
 
-    </c-slot>
 
-    {{ estructura }}
+        <!-- ===================== -->
+        <!-- DESCRIPCIÓN -->
+        <!-- ===================== -->
+        {% if estructura.descripcion %}
+            <div class="card bg-base-100 shadow">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">Descripción</h2>
+                    <p class="text-sm text-gray-600 whitespace-pre-line">
+                        {{ estructura.descripcion }}
+                    </p>
+                </div>
+            </div>
+        {% endif %}
+
+
+        <!-- ===================== -->
+        <!-- TABLA DE TRABAJOS -->
+        <!-- ===================== -->
+        <div class="card bg-base-100 shadow">
+            <div class="card-body p-0">
+
+                <div class="p-4 border-b">
+                    <div class="flex justify-between items-center gap-4">
+
+                        <h2 class="text-lg font-semibold">
+                            Trabajos de la estructura
+                        </h2>
+
+                        <form method="get" class="flex gap-2 items-center">
+                            <input
+                                    type="text"
+                                    name="q"
+                                    value="{{ request.GET.q }}"
+                                    placeholder="Buscar trabajo"
+                                    class="input input-bordered input-sm w-64"
+                            >
+
+                            <select name="contratista" id="id_contratista">
+                                <option value="">Ninguno</option>
+                                {% for contratista in contratistas %}
+                                    <option value="{{ contratista.pk }}" {% if contratista_actual == contratista %}selected{% endif %}>{{ contratista }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                Buscar
+                            </button>
+
+                            {% if request.GET.q %}
+                                <a href="?" class="btn btn-sm btn-ghost">
+                                    Limpiar
+                                </a>
+                            {% endif %}
+
+                            <a href="{% url 'destajos:estructuras__trabajos_excel' estructura.pk %}" class="btn btn-sm">
+                                Excel
+                            </a>
+                        </form>
+
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto max-h-[600px]">
+                    <table class="table table-zebra w-full text-sm">
+                        <thead class="sticky top-0 bg-base-200 z-10">
+                        <tr>
+                            <th>Paquete</th>
+                            <th>Clave</th>
+                            <th>Trabajo</th>
+                            <th class="text-right">Cant. Base</th>
+                            <th>Unitario</th>
+                            <th>Contratista</th>
+                            <th class="text-right">Precio Vigente</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for item in trabajos %}
+                            <tr>
+                                <td>
+                                    {{ item.trabajo.paquete.clave }}
+                                </td>
+
+                                <td>
+                                    {{ item.trabajo.clave }}
+                                </td>
+
+                                <td class="font-medium">
+                                    {{ item.trabajo.nombre }}
+                                </td>
+
+                                <td class="text-right">
+                                    {{ item.cantidad_base }}
+                                </td>
+
+                                <td>
+                                    {% if item.trabajo.es_unitario %}
+                                        <span class="badge badge-info badge-sm">
+                                                {{ item.trabajo.unidad }}
+                                            </span>
+                                    {% else %}
+                                        <span class="badge badge-ghost badge-sm">
+                                                Fijo
+                                            </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if item.contratista %}
+                                        {{ item.contratista }}
+                                    {% else %}
+                                        <span class="text-gray-400">—</span>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-right">
+                                    {% if item.precio_vigente %}
+                                        {{ item.precio_vigente|money }}
+                                    {% else %}
+                                        <span class="text-gray-400">—</span>
+                                    {% endif %}
+                                </td>
+
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center py-8 text-gray-400">
+                                    No hay trabajos registrados en esta estructura.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ===================== -->
+        <!-- RESUMEN DE EJECUCIÓN -->
+        <!-- ===================== -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+            <div class="card bg-base-100 shadow">
+                <div class="card-body p-4">
+                    <p class="text-sm text-gray-500">Agrupadores</p>
+                    <p class="text-xl font-bold">
+                        {{ resumen.agrupadores|default:0 }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 shadow">
+                <div class="card-body p-4">
+                    <p class="text-sm text-gray-500">Viviendas</p>
+                    <p class="text-xl font-bold">
+                        {{ resumen.viviendas|default:0 }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 shadow">
+                <div class="card-body p-4">
+                    <p class="text-sm text-gray-500">Total Ejecutado (Destajos)</p>
+                    <p class="text-xl font-bold">
+                        ${{ resumen.total_destajos|floatformat:2|intcomma }}
+                    </p>
+                </div>
+            </div>
+
+        </div>
+
+
+    </div>
+
 </c-layouts.app>

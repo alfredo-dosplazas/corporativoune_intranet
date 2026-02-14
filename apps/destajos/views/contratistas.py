@@ -3,10 +3,11 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.urls import reverse
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, DeleteView
 from django_tables2 import SingleTableMixin
-from extra_views import SearchableListMixin
+from extra_views import SearchableListMixin, UpdateWithInlinesView, NamedFormsetsMixin
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.destajos.forms.contratistas import ContratistaForm
+from apps.destajos.inlines import PrecioContratistaInline
 from apps.destajos.models import Contratista
 from apps.destajos.tables.contratistas import ContratistaTable
 
@@ -91,11 +92,19 @@ class ContratistaDetailView(PermissionRequiredMixin, BreadcrumbsMixin, DetailVie
         ]
 
 
-class ContratistaUpdateView(PermissionRequiredMixin, SuccessMessageMixin, BreadcrumbsMixin, UpdateView):
+class ContratistaUpdateView(
+    PermissionRequiredMixin,
+    SuccessMessageMixin,
+    BreadcrumbsMixin,
+    UpdateWithInlinesView,
+    NamedFormsetsMixin,
+):
     permission_required = ['destajos.change_contratista']
     template_name = "apps/destajos/contratistas/update.html"
     model = Contratista
     form_class = ContratistaForm
+    inlines = [PrecioContratistaInline]
+    inlines_names = ['Precio']
     success_message = "Contratista guardado correctamente"
 
     def get_success_url(self):

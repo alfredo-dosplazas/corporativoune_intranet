@@ -42,6 +42,14 @@ DESTAJOS_MODULOS = [
         "descripcion": "Catálogo de tipos de viviendas",
     },
     {
+        "key": "lista_precios",
+        "nombre": "Lista De Precios",
+        "url_name": "destajos:lista_precios__list",
+        "icono": "icon-[ion--construct]",
+        "permisos": ["destajos.view_preciocontratista"],
+        "descripcion": "",
+    },
+    {
         "key": "paquetes",
         "nombre": "Paquetes",
         "url_name": "destajos:paquetes__list",

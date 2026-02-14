@@ -1,20 +1,40 @@
 {% load humanize %}
 <c-layouts.app>
     <c-slot name="header">
-        <div class="flex flex-col gap-2">
-            <h1 class="text-xl font-bold">
-                {{ paquete.clave }} — {{ paquete.nombre }}
-            </h1>
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+            <!-- START -->
+            <div class="justify-self-start">
+                <div class="flex flex-col gap-2">
+                    <h1 class="text-xl font-bold">
+                        {{ paquete.clave }} — {{ paquete.nombre }}
+                    </h1>
 
-            {% if paquete.padre %}
-                <div class="text-sm opacity-70">
-                    Paquete padre:
-                    <a href="{% url 'destajos:paquetes__detail' paquete.padre.pk %}"
-                       class="link link-primary">
-                        {{ paquete.padre }}
-                    </a>
+                    {% if paquete.padre %}
+                        <div class="text-sm opacity-70">
+                            Paquete padre:
+                            <a href="{% url 'destajos:paquetes__detail' paquete.padre.pk %}"
+                               class="link link-primary">
+                                {{ paquete.padre }}
+                            </a>
+                        </div>
+                    {% endif %}
                 </div>
-            {% endif %}
+            </div>
+
+            <!-- MIDDLE -->
+            <div class="justify-self-center w-full flex justify-center">
+
+            </div>
+
+
+            <!-- END -->
+            <div class="justify-self-end">
+                <c-shared.dropdown-actions>
+                    {% if perms.directorio.change_paquete %}
+                        <li><a href="{% url 'destajos:paquetes__update' paquete.pk %}">Editar</a></li>
+                    {% endif %}
+                </c-shared.dropdown-actions>
+            </div>
         </div>
     </c-slot>
 

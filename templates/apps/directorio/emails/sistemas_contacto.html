@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Nuevo Contacto Creado</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 20px;">
+
+<table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+        <td align="center">
+
+            <table width="600" cellpadding="20" cellspacing="0"
+                   style="background-color: #ffffff; border-radius: 8px;">
+
+                <!-- Header -->
+                <tr>
+                    <td style="border-bottom: 1px solid #e5e7eb;">
+                        <h2 style="margin: 0; color: #1f2937;">
+                            {% if es_nuevo %}
+                                Nuevo Contacto Creado
+                            {% else %}
+                                Contacto actualizado
+                            {% endif %}
+                        </h2>
+                        <p style="margin: 5px 0 0; color: #6b7280;">
+                            {% if es_nuevo %}
+                                Se ha registrado un nuevo contacto en el sistema.
+                            {% else %}
+                                Se ha actualizado un contacto en el sistema.
+                            {% endif %}
+                        </p>
+                    </td>
+                </tr>
+
+                <!-- Body -->
+                <tr>
+                    <td>
+
+                        <p><strong>Nombre:</strong> {{ nombre_completo }}</p>
+
+                        {% if numero_empleado %}
+                            <p><strong>No. Empleado:</strong> {{ numero_empleado }}</p>
+                        {% endif %}
+
+                        {% if empresa %}
+                            <p><strong>Empresa:</strong> {{ empresa }}</p>
+                        {% endif %}
+
+                        {% if area %}
+                            <p><strong>Área:</strong> {{ area }}</p>
+                        {% endif %}
+
+                        {% if puesto %}
+                            <p><strong>Puesto:</strong> {{ puesto }}</p>
+                        {% endif %}
+
+                        {% if sede_administrativa %}
+                            <p><strong>Sede Administrativa:</strong> {{ sede_administrativa }}</p>
+                        {% endif %}
+
+                        {% if email_principal %}
+                            <p><strong>Email Principal:</strong> {{ email_principal.email }}</p>
+                        {% endif %}
+
+                        {% if telefono_principal %}
+                            <p>
+                                <strong>Teléfono Principal:</strong>
+                                {{ telefono_principal.telefono }}
+                                {% if telefono_principal__extension %}
+                                    Ext. {{ telefono_principal__extension }}
+                                {% endif %}
+                            </p>
+                        {% endif %}
+
+                    </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                    <td style="border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 12px;">
+                        Este mensaje fue generado automáticamente por la Intranet Del Corporativo UNE.
+                    </td>
+                </tr>
+
+            </table>
+
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>

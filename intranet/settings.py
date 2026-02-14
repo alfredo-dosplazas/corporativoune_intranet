@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'django_htmx',
     'widget_tweaks',
     'apps.core',
+    'apps.cumpleanios',
     'apps.slack',
     'apps.auditoria',
     'apps.rrhh',
