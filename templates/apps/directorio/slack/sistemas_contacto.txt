@@ -7,7 +7,7 @@
 {% endif %}
 
 {% if empresa %}
-*Empresa:* {{ empresa.nombre }}
+*Empresa:* {{ empresa }}
 {% endif %}
 
 {% if area %}
@@ -19,15 +19,15 @@
 {% endif %}
 
 {% if sede_administrativa %}
-*Sede Administrativa:* {{ sede_administrativa.nombre }}
+*Sede Administrativa:* {{ sede_administrativa }}
 {% endif %}
 
 {% if email_principal %}
-*Email:* {{ email_principal.email }}
+*Email:* {{ email_principal }}
 {% endif %}
 
 {% if telefono_principal %}
-*Teléfono:* {{ telefono_principal.telefono }}{% if telefono_principal__extension %} Ext. {{ telefono_principal__extension }}{% endif %}
+*Teléfono:* {{ telefono_principal }}{% if telefono_principal__extension %} Ext. {{ telefono_principal__extension }}{% endif %}
 {% endif %}
 
 {% if es_nuevo %}
