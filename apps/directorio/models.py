@@ -1,4 +1,3 @@
-import ipaddress
 import os
 
 from django.conf import settings
@@ -8,6 +7,7 @@ from django.db import models
 from apps.core.models import Empresa
 from apps.rrhh.models.areas import Area
 from apps.rrhh.models.puestos import Puesto
+from apps.rrhh.models.sedes import Sede
 from apps.slack.client import SlackClient
 
 
@@ -48,31 +48,6 @@ class TelefonoContacto(models.Model):
         unique_together = ("contacto", "telefono", "extension")
 
 
-class Sede(models.Model):
-    nombre = models.CharField(max_length=100)
-    codigo = models.CharField(max_length=20, unique=True)
-    ciudad = models.CharField(max_length=100, blank=True, null=True)
-    activa = models.BooleanField(default=True)
-
-    def __str__(self):
-        return self.nombre
-
-
-class SedeIPRange(models.Model):
-    sede = models.ForeignKey(
-        Sede,
-        on_delete=models.CASCADE,
-        related_name="allowed_networks"
-    )
-
-    cidr = models.CharField(max_length=50)
-
-    activa = models.BooleanField(default=True)
-
-    def contiene_ip(self, ip):
-        return ipaddress.ip_address(ip) in ipaddress.ip_network(self.cidr)
-
-
 class Contacto(models.Model):
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, blank=True, null=True, related_name="contacto")
 
@@ -90,9 +65,7 @@ class Contacto(models.Model):
 
     empresa = models.ForeignKey(
         Empresa,
-        on_delete=models.SET_NULL,
-        blank=True,
-        null=True,
+        on_delete=models.CASCADE,
         related_name="contactos",
         help_text="Empresa en la que está dado de alta administrativamente (nómina).",
     )
@@ -109,8 +82,6 @@ class Contacto(models.Model):
         on_delete=models.PROTECT,
         related_name="contactos_administrados",
         help_text="Sede responsable del alta y gestión del contacto",
-        blank=True,
-        null=True,
     )
 
     # DONDE APARECE
@@ -129,10 +100,19 @@ class Contacto(models.Model):
         related_name="a_cargo_de",
     )
 
-    area = models.ForeignKey(Area, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Área',
-                             related_name='contactos')
-    puesto = models.ForeignKey(Puesto, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Puesto',
-                               related_name='contactos')
+    area = models.ForeignKey(
+        Area,
+        on_delete=models.CASCADE,
+        verbose_name='Área',
+        related_name='contactos',
+    )
+
+    puesto = models.ForeignKey(
+        Puesto,
+        on_delete=models.CASCADE,
+        verbose_name='Puesto',
+        related_name='contactos',
+    )
 
     fecha_nacimiento = models.DateField(blank=True, null=True)
 
@@ -214,9 +194,22 @@ class Contacto(models.Model):
         }
 
     def save(self, *args, **kwargs):
+        if not self.empresa_id:
+            self.empresa = Empresa.get_default()
+
+        if not self.sede_administrativa_id:
+            self.sede_administrativa = Sede.get_default()
+
+        if not self.area_id:
+            self.area = Area.get_default(self.empresa)
+
+        if not self.puesto_id:
+            self.puesto = Puesto.get_default()
+
         if self.slack_id is None and self.email_slack:
             self.slack_id = SlackClient().get_slack_id_by_email(self.email_slack)
-        return super().save(*args, **kwargs)
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.nombre_completo}"

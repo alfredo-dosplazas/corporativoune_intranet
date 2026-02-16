@@ -15,8 +15,8 @@ class ContactoForm(forms.ModelForm):
         model = Contacto
         exclude = ['usuario', 'slack_id', 'sedes_visibles']
         widgets = {
-            'area': autocomplete.ModelSelect2(url='rrhh:areas__autocomplete'),
-            'puesto': autocomplete.ModelSelect2(url='rrhh:puestos__autocomplete'),
+            'area': autocomplete.ModelSelect2(url='rrhh:areas__autocomplete', forward=['empresa']),
+            'puesto': autocomplete.ModelSelect2(url='rrhh:puestos__autocomplete', forward=['empresa']),
             'jefe_directo': autocomplete.ModelSelect2(url='directorio:autocomplete'),
             'fecha_nacimiento': forms.TextInput(attrs={'type': 'date'}),
             'fecha_ingreso': forms.TextInput(attrs={'type': 'date'}),

@@ -14,7 +14,7 @@ class Area(models.Model):
                                             help_text='Encargado de aprobar la papelería del área')
 
     def __str__(self):
-        return f'{self.nombre} ({self.empresa.nombre_corto})'
+        return f'{self.nombre}'
 
     class Meta:
         verbose_name_plural = "Áreas"
@@ -23,3 +23,15 @@ class Area(models.Model):
         permissions = [
             ('acceder_rrhh', 'Acceder al módulo de RRHH'),
         ]
+
+    @classmethod
+    def get_default(cls, empresa=None):
+        if empresa is None:
+            empresa = Empresa.get_default()
+
+        obj, _ = cls.objects.get_or_create(
+            nombre='General',
+            empresa=empresa
+        )
+
+        return obj

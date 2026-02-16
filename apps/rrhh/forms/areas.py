@@ -10,7 +10,10 @@ from apps.rrhh.models.areas import Area
 class AreaForm(forms.ModelForm):
     class Meta:
         model = Area
-        fields = '__all__'
+        fields = [
+            'nombre',
+            'empresa',
+        ]
 
     def _configurar_frescopack(self):
         if self.user and es_frescopack(self.user):
@@ -30,8 +33,6 @@ class AreaForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_id = 'area-form'
         self.helper.attrs = {'novalidate': 'novalidate'}
-
-
 
         self.helper.layout = Layout(
             Row(

@@ -6,7 +6,7 @@ import platform
 import time
 
 from apps.core.models import EmpresaIPRange, Empresa
-from apps.directorio.models import SedeIPRange
+from apps.rrhh.models.sedes import SedeIPRange
 
 logger = logging.getLogger("core.network")
 

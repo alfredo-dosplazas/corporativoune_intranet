@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 from import_export.admin import ImportExportActionModelAdmin
 
 from apps.core.tasks import enviar_correo_task
-from apps.directorio.models import Contacto, EmailContacto, TelefonoContacto, Sede, SedeIPRange
+from apps.directorio.models import Contacto, EmailContacto, TelefonoContacto
 from apps.directorio.resources import ContactoResource
 from apps.slack.tasks import enviar_slack_task
 
@@ -15,18 +15,6 @@ class TelefonoContactoInline(admin.TabularInline):
 class EmailContactoInline(admin.TabularInline):
     model = EmailContacto
     extra = 1
-
-
-class SedeIpRangeInline(admin.TabularInline):
-    model = SedeIPRange
-    extra = 1
-
-
-@admin.register(Sede)
-class SedeAdmin(admin.ModelAdmin):
-    search_fields = ['nombre']
-    inlines = [SedeIpRangeInline]
-    list_display = ['nombre', 'codigo', 'ciudad', 'activa']
 
 
 @admin.register(Contacto)

@@ -36,6 +36,19 @@ class Empresa(models.Model):
     def slug(self):
         return self.nombre_corto.lower().replace(" ", "-")
 
+    @classmethod
+    def get_default(cls):
+        obj, _ = cls.objects.get_or_create(
+            nombre='Inmobiliaria Dos Plazas',
+            defaults={
+                'nombre_corto': 'Dos Plazas',
+                'abreviatura': 'DP',
+                'codigo': 'DP',
+                'theme': 'dos_plazas',
+            },
+        )
+        return
+
     def __str__(self):
         return self.nombre
 
