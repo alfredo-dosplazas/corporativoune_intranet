@@ -170,7 +170,7 @@
 
                                 {% if tel.es_celular %}
                                     <a target="_blank"
-                                       href="https://api.whatsapp.com/send/?phone={{ tel.telefono }}"
+                                       href="{{ tel.whatsapp }}"
                                        class="opacity-100 sm:opacity-0 sm:group-hover:opacity-100
                                        transition text-base-content/50 hover:text-primary tooltip"
                                        data-tip="WhatsApp">

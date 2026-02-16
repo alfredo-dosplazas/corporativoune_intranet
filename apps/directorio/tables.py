@@ -191,7 +191,7 @@ class ContactoTable(TableWithActions):
         if telefono.es_celular:
             whatsapp_html = f"""
                 <a target="_blank"
-                   href="https://api.whatsapp.com/send/?phone={telefono.telefono}"
+                   href="{telefono.whatsapp}"
                    class="tooltip"
                    data-tip="WhatsApp">
                     <span class="icon-[logos--whatsapp-icon] text-green-500"></span>

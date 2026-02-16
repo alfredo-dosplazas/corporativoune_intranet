@@ -40,6 +40,10 @@ class TelefonoContacto(models.Model):
     esta_activo = models.BooleanField(default=False)
     es_celular = models.BooleanField(default=False)
 
+    @property
+    def whatsapp(self):
+        return f"https://api.whatsapp.com/send/?phone=521{self.telefono}"
+
     class Meta:
         unique_together = ("contacto", "telefono", "extension")
 
