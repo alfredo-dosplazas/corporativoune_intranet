@@ -1,3 +1,4 @@
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django_tables2 import Column
 
@@ -72,23 +73,22 @@ class ContactoColumn(Column):
                     """
 
         return mark_safe(f"""
-                    <div class="flex items-center gap-3 min-w-[220px]">
-
-                        {foto_html}
-
-                        <div class="min-w-0">
-                            <div class="font-medium truncate">
-                                {contacto.nombre_completo}
+                    <a href="{reverse('directorio:detail', args=(contacto.id,))}" class="flex items-center gap-3 min-w-[220px]">
+                            {foto_html}
+    
+                            <div class="min-w-0">
+                                <div class="font-medium truncate">
+                                    {contacto.nombre_completo}
+                                </div>
+    
+                                {area_html}
+    
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    {empresa_html}
+                                    {estado_html}
+                                </div>
                             </div>
-
-                            {area_html}
-
-                            <div class="flex items-center gap-2 mt-0.5">
-                                {empresa_html}
-                                {estado_html}
-                            </div>
-                        </div>
-                    </div>
+                    </a>
                 """)
 
 
@@ -121,119 +121,109 @@ class ContactoTable(TableWithActions):
             </a>
         """)
 
-    def render_correo(self, record: Contacto):
-        correo_principal = record.email_principal
-        correos_secundarios = record.emails_secundarios
-
-        html = '<div class="flex flex-col gap-1">'
-
-        if correo_principal:
-            html += f"""
-            <div class="flex items-center gap-2 group">
-                <span class="font-medium text-sm flex items-center gap-2">
+    def _render_email_item(self, correo):
+        return f"""
+            <span class="font-medium text-sm flex items-center gap-2">
                     <span class="icon-[ic--baseline-email]"></span>
-                    <a href="mailto:{correo_principal.email}">
-                        {correo_principal.email}
+                    <a href="mailto:{correo.email}">
+                        {correo.email}
                     </a>
                 </span>
 
                 <button
                     class="opacity-0 group-hover:opacity-100 transition text-base-content/50 hover:text-primary tooltip"
-                    data-tip="Copiar"
-                    onclick="copyToClipboard('{correo_principal.email}')"
-                    type="button"
-                >
-                    <span class="icon-[mdi--content-copy]"></span>
-                </button>
-            </div>
-            """
-
-        for correo in correos_secundarios:
-            html += f"""
-            <div class="flex items-center gap-2 ml-6 group">
-                <a href="mailto:{correo.email}"
-                   class="text-xs text-base-content/60">
-                    {correo.email}
-                </a>
-
-                <button
-                    class="opacity-0 group-hover:opacity-100 transition text-base-content/40 hover:text-primary tooltip"
                     data-tip="Copiar"
                     onclick="copyToClipboard('{correo.email}')"
                     type="button"
                 >
                     <span class="icon-[mdi--content-copy]"></span>
                 </button>
-            </div>
-            """
+        """
+
+    def render_correo(self, record: Contacto):
+        correos = record.emails.filter(
+            esta_activo=True
+        ).order_by('-es_principal')
+
+        if not correos.exists():
+            return "—"
+
+        html = '<div class="flex items-center gap-2 group">'
+
+        for correo in correos:
+            html += self._render_email_item(correo)
 
         html += "</div>"
+
         return mark_safe(html)
 
-    def render_telefono(self, record: Contacto):
-        telefono_principal = record.telefonos.filter(
-            es_principal=True, esta_activo=True
-        ).first()
+    def _render_telefono_item(self, telefono):
+        icon = "mdi--mobile-phone" if telefono.es_celular else "mdi--phone"
+        label = format_telefono(telefono)
 
-        telefonos_secundarios = record.telefonos.filter(
-            es_principal=False, esta_activo=True
-        )
+        size_class = "font-medium text-sm" if telefono.es_principal else "text-xs text-base-content/70"
+        margin_class = "" if telefono.es_principal else "ml-6"
+
+        return f"""
+            <div class="flex items-center gap-2 group {margin_class}">
+                <span class="{size_class} flex items-center gap-2">
+                    <span class="icon-[{icon}]"></span>
+                    <a href="tel:{telefono.telefono}">
+                        {label}
+                    </a>
+                </span>
+
+                {self._telefono_actions(telefono)}
+            </div>
+        """
+
+    def _telefono_actions(self, telefono):
+        whatsapp_html = ""
+
+        if telefono.es_celular:
+            whatsapp_html = f"""
+                <a target="_blank"
+                   href="https://api.whatsapp.com/send/?phone={telefono.telefono}"
+                   class="tooltip"
+                   data-tip="WhatsApp">
+                    <span class="icon-[logos--whatsapp-icon] text-green-500"></span>
+                </a>
+            """
+
+        return f"""
+            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                <a href="tel:{telefono.telefono}" class="tooltip" data-tip="Llamar">
+                    <span class="icon-[mdi--phone] text-base-content/60 hover:text-primary"></span>
+                </a>
+
+                {whatsapp_html}
+
+                <button
+                    onclick="copyToClipboard('{telefono.telefono}')"
+                    class="tooltip"
+                    data-tip="Copiar"
+                    type="button"
+                >
+                    <span class="icon-[mdi--content-copy] text-base-content/50 hover:text-primary"></span>
+                </button>
+            </div>
+        """
+
+    def render_telefono(self, record: Contacto):
+        telefonos = record.telefonos.filter(
+            esta_activo=True
+        ).order_by('-es_principal')
+
+        if not telefonos.exists():
+            return "—"
 
         html = '<div class="flex flex-col gap-1">'
 
-        # 📞 PRINCIPAL
-        if telefono_principal:
-            icon = "mdi--mobile-phone" if telefono_principal.es_celular else "mdi--phone"
-            label = format_telefono(telefono_principal)
-
-            html += f"""
-            <div class="flex items-center gap-2 group">
-                <span class="font-medium text-sm flex items-center gap-2">
-                    <span class="icon-[{icon}]"></span>
-                    <a href="tel:{telefono_principal.telefono}">
-                        {label}
-                    </a>
-                </span>
-
-                <button
-                    class="opacity-0 group-hover:opacity-100 transition text-base-content/50 hover:text-primary tooltip"
-                    data-tip="Copiar"
-                    onclick="copyToClipboard('{telefono_principal.telefono}')"
-                    type="button"
-                >
-                    <span class="icon-[mdi--content-copy]"></span>
-                </button>
-            </div>
-            """
-
-        # 📎 SECUNDARIOS
-        for tel in telefonos_secundarios:
-            icon = "mdi--mobile-phone" if tel.es_celular else "mdi--phone"
-            label = format_telefono(tel)
-
-            html += f"""
-            <div class="flex items-center gap-2 ml-6 group">
-                <span class="flex items-center gap-2 text-xs text-base-content/70">
-                    <span class="icon-[{icon}]"></span>
-                    <a href="tel:{tel.telefono}">
-                        {label}
-                    </a>
-                </span>
-
-                {"<span class='badge badge-outline badge-xs'>Celular</span>" if tel.es_celular else ""}
-
-                <button
-                    class="opacity-0 group-hover:opacity-100 transition text-base-content/40 hover:text-primary tooltip"
-                    data-tip="Copiar"
-                    onclick="copyToClipboard('{tel.telefono}')"
-                    type="button"
-                >
-                    <span class="icon-[mdi--content-copy]"></span>
-                </button>
-            </div>
-            """
+        for tel in telefonos:
+            html += self._render_telefono_item(tel)
 
         html += "</div>"
+
         return mark_safe(html)
 
     def render_puesto_area(self, record):

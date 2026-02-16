@@ -14,7 +14,17 @@
 
 
             <!-- END -->
-            <div class="justify-self-end">
+            <div class="flex gap-2 justify-self-end items-center">
+                <c-shared.dropdown-actions>
+                    {% if perms.directorio.view_contacto %}
+                        <li>
+                            <a href="{% url 'directorio:detail' contacto.pk %}">
+                                Detalle
+                            </a>
+                        </li>
+                    {% endif %}
+                </c-shared.dropdown-actions>
+
                 <c-apps.directorio.contactos.modal.confirmar tipo="actualizar"/>
                 <button type="button" onclick="confirmar_contacto.showModal()" class="btn btn-primary btn-sm">
                     Guardar

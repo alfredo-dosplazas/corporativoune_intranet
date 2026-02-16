@@ -15,12 +15,22 @@
             </div>
 
             <div class="flex gap-2 print:hidden">
-                {% if perms.directorio.change_contacto %}
-                    <a href="{% url 'directorio:update' contacto.pk %}"
-                       class="btn btn-sm btn-info">
-                        Editar
-                    </a>
-                {% endif %}
+                <c-shared.dropdown-actions>
+                    {% if perms.directorio.change_contacto %}
+                        <li>
+                            <a href="{% url 'directorio:update' contacto.pk %}">
+                                Editar
+                            </a>
+                        </li>
+                    {% endif %}
+                    {% if contacto.slack_id %}
+                        <li>
+                            <a href="{{ contacto.slack_url }}">
+                                Slack
+                            </a>
+                        </li>
+                    {% endif %}
+                </c-shared.dropdown-actions>
             </div>
 
         </div>
@@ -37,18 +47,26 @@
                         to-[var(--color-primary-dark)]"></div>
         {% endif %}
 
-        <div class="card-body">
-            <div class="flex flex-col sm:flex-row gap-6 items-start">
+        <div class="card-body p-6 sm:p-8">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-8">
 
                 <!-- AVATAR -->
                 <div class="avatar shrink-0">
-                    <div class="w-28 h-28 rounded-full ring ring-primary ring-offset-4 ring-offset-base-100 bg-base-200">
+                    <div class="w-28 h-28 rounded-full
+                                ring ring-primary ring-offset-4 ring-offset-base-100
+                                {% if contacto.foto %}
+                                    bg-base-200
+                                {% else %}
+                                    bg-primary text-primary-content
+                                {% endif %}">
+
                         {% if contacto.foto %}
                             <img src="{{ contacto.foto.url }}"
                                  alt="{{ contacto.nombre_completo }}"
-                                 class="object-cover"/>
+                                 class="object-cover w-full h-full"/>
                         {% else %}
-                            <span class="flex items-center justify-center h-full text-xl font-semibold opacity-50">
+                            <span class="flex items-center justify-center
+                                         w-full h-full text-3xl font-semibold">
                                 {{ contacto.iniciales }}
                             </span>
                         {% endif %}
@@ -56,9 +74,9 @@
                 </div>
 
                 <!-- INFO PRINCIPAL -->
-                <div class="flex-1 space-y-1">
+                <div class="flex-1 flex flex-col justify-center space-y-2">
 
-                    <h2 class="text-primary text-2xl font-semibold">
+                    <h2 class="text-2xl sm:text-3xl font-semibold text-primary leading-tight">
                         {{ contacto.nombre_completo }}
                     </h2>
 
@@ -68,7 +86,7 @@
                         </p>
                     {% endif %}
 
-                    <p class="text-base">
+                    <p class="text-base opacity-80">
                         {{ contacto.puesto.nombre|default:"Puesto no asignado" }}
                         ·
                         {{ contacto.area.nombre|default:"Área no asignada" }}
@@ -87,10 +105,11 @@
                     {% endif %}
 
                     {% if contacto.usuario and not contacto.usuario.is_active %}
-                        <span class="badge badge-warning mt-2">
+                        <span class="badge badge-warning mt-2 w-fit">
                             Usuario inactivo
                         </span>
                     {% endif %}
+
                 </div>
 
             </div>
@@ -101,159 +120,138 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         <!-- CONTACTO -->
-        <div class="card bg-base-100 border border-base-300 rounded-xl">
-            <div class="card-body">
-                <h3 class="font-semibold text-lg mb-4">
+        <div class="card bg-base-100 border border-base-300 rounded-xl shadow-sm">
+            <div class="card-body p-6 flex flex-col">
+
+                <h3 class="font-semibold text-lg mb-6">
                     Información de contacto
                 </h3>
 
-                <div class="space-y-3 text-sm">
+                <div class="flex-1 flex flex-col gap-4 text-sm">
 
-                    {% if contacto.email_principal %}
-                        <div class="flex items-center gap-2 group">
-                            <div class="flex items-center gap-3">
-                                <span class="icon-[material-symbols--mail-outline] text-primary"></span>
-                                <a href="mailto:{{ contacto.email_principal.email }}"
-                                   class="hover:underline break-all">
-                                    {{ contacto.email_principal.email }}
-                                </a>
-                            </div>
-
-                            <button
-                                    class="opacity-0 group-hover:opacity-100 transition text-base-content/50 hover:text-primary tooltip"
-                                    data-tip="Copiar"
-                                    onclick="copyToClipboard('{{ contacto.email_principal.email }}')"
-                                    type="button"
-                            >
-                                <span class="icon-[mdi--content-copy]"></span>
-                            </button>
-                        </div>
-                    {% endif %}
-
-                    {% for email in contacto.emails_secundarios %}
-                        <div class="flex items-center gap-2 group">
-                            <div class="flex items-center gap-3 opacity-70">
-                                <span class="icon-[material-symbols--alternate-email]"></span>
-                                <a href="mailto:{{ email.email }}" class="hover:underline break-all">
+                    {% for email in contacto.emails.all %}
+                        <div class="flex items-center justify-between gap-3 group">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <span class="icon-[material-symbols--mail-outline] text-primary shrink-0"></span>
+                                <a href="mailto:{{ email.email }}"
+                                   class="hover:underline break-all truncate">
                                     {{ email.email }}
                                 </a>
                             </div>
 
                             <button
-                                    class="opacity-0 group-hover:opacity-100 transition text-base-content/50 hover:text-primary tooltip"
+                                    class="opacity-100 sm:opacity-0 sm:group-hover:opacity-100
+                                       transition text-base-content/50 hover:text-primary tooltip"
                                     data-tip="Copiar"
                                     onclick="copyToClipboard('{{ email.email }}')"
-                                    type="button"
-                            >
+                                    type="button">
                                 <span class="icon-[mdi--content-copy]"></span>
                             </button>
                         </div>
                     {% endfor %}
 
-                    {% if contacto.telefono_principal %}
-                        <div class="flex items-center gap-2 group">
-                            <div class="flex items-center gap-3">
-                                <span class="{% if contacto.telefono_principal.es_celular %}icon-[mdi--mobile-phone]{% else %}icon-[material-symbols--call-outline]{% endif %} text-primary"></span>
-                                <a href="tel:{{ contacto.telefono_principal.telefono }}">
-                                    {{ contacto.telefono_principal.telefono|phone_format }}
-                                    {% if contacto.telefono_principal.extension %}
-                                        ext. {{ contacto.telefono_principal.extension }}
-                                    {% endif %}
-                                </a>
-                            </div>
-
-                            <button
-                                    class="opacity-0 group-hover:opacity-100 transition text-base-content/50 hover:text-primary tooltip"
-                                    data-tip="Copiar"
-                                    onclick="copyToClipboard('{{ contacto.telefono_principal.telefono }}')"
-                                    type="button"
-                            >
-                                <span class="icon-[mdi--content-copy]"></span>
-                            </button>
-                        </div>
-                    {% endif %}
-
-                    {% for tel in contacto.telefonos_secundarios %}
-                        <div class="flex items-center gap-2 group">
-                            <div class="flex items-center gap-3 opacity-70">
-                                <span class="{% if tel.es_celular %}icon-[mdi--mobile-phone]{% else %}icon-[material-symbols--call-outline]{% endif %}"></span>
+                    {% for tel in contacto.telefonos.all %}
+                        <div class="flex items-center justify-between gap-3 group">
+                            <div class="flex items-center gap-3 min-w-0 opacity-80">
+                                <span class="{% if tel.es_celular %}icon-[mdi--mobile-phone]{% else %}icon-[material-symbols--call-outline]{% endif %} shrink-0"></span>
                                 <a href="tel:{{ tel.telefono }}">
                                     {{ tel.telefono|phone_format }}
-                                    {% if tel.extension %}
-                                        ext. {{ tel.extension }}
-                                    {% endif %}
+                                    {% if tel.extension %} ext. {{ tel.extension }}{% endif %}
                                 </a>
                             </div>
 
-                            <button
-                                    class="opacity-0 group-hover:opacity-100 transition text-base-content/50 hover:text-primary tooltip"
-                                    data-tip="Copiar"
-                                    onclick="copyToClipboard('{{ tel.telefono }}')"
-                                    type="button"
-                            >
-                                <span class="icon-[mdi--content-copy]"></span>
-                            </button>
+                            <div class="flex gap-3">
+                                <a href="tel:{{ tel.telefono }}"
+                                   class="opacity-100 sm:opacity-0 sm:group-hover:opacity-100
+                                       transition text-base-content/50 hover:text-primary tooltip"
+                                   data-tip="Llamar">
+                                    <span class="icon-[mdi--phone] text-base-content/60 hover:text-primary"></span>
+                                </a>
+
+                                {% if tel.es_celular %}
+                                    <a target="_blank"
+                                       href="https://api.whatsapp.com/send/?phone={{ tel.telefono }}"
+                                       class="opacity-100 sm:opacity-0 sm:group-hover:opacity-100
+                                       transition text-base-content/50 hover:text-primary tooltip"
+                                       data-tip="WhatsApp">
+                                        <span class="icon-[logos--whatsapp-icon] text-green-500"></span>
+                                    </a>
+                                {% endif %}
+
+                                <button
+                                        class="opacity-100 sm:opacity-0 sm:group-hover:opacity-100
+                                       transition text-base-content/50 hover:text-primary tooltip"
+                                        data-tip="Copiar"
+                                        onclick="copyToClipboard('{{ tel.telefono }}')"
+                                        type="button">
+                                    <span class="icon-[mdi--content-copy]"></span>
+                                </button>
+                            </div>
                         </div>
                     {% endfor %}
 
-                    {% if contacto.extension %}
-                        <div class="flex items-center gap-3 opacity-70">
-                            <span class="icon-[material-symbols--dialpad-outline]"></span>
-                            <span>Ext. {{ contacto.extension }}</span>
-                        </div>
-                    {% endif %}
-
-                    {% if contacto.slack_id %}
-                        <div class="flex items-center gap-3">
-                            <span class="icon-[devicon--slack] text-primary"></span>
-                            <a href="{{ contacto.slack_url }}" class="hover:underline">
-                                Slack
-                            </a>
-                        </div>
-                    {% endif %}
-
-                    {% if not contacto.email_principal and not contacto.telefono_principal %}
-                        <p class="text-sm opacity-50">
+                    {% if not contacto.emails.exists and not contacto.telefonos.exists %}
+                        <p class="opacity-50">
                             No hay información de contacto registrada
                         </p>
                     {% endif %}
+
                 </div>
+
             </div>
         </div>
 
         <!-- DATOS LABORALES -->
-        <div class="card bg-base-100 border border-base-300 rounded-xl">
-            <div class="card-body">
-                <h3 class="font-semibold text-lg mb-4">
+        <div class="card bg-base-100 border border-base-300 rounded-xl shadow-sm">
+            <div class="card-body p-6 flex flex-col">
+
+                <h3 class="font-semibold text-lg mb-6">
                     Datos laborales
                 </h3>
 
-                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 text-sm">
 
                     <div>
-                        <dt class="opacity-60">Empresa</dt>
-                        <dd data-theme="{{ contacto.empresa.theme }}"
-                            class="text-primary">{{ contacto.empresa.nombre|default:"—" }}</dd>
+                        <dt class="text-xs uppercase tracking-wide opacity-50">
+                            Empresa
+                        </dt>
+                        <dd class="mt-1 font-medium text-primary">
+                            {{ contacto.empresa.nombre|default:"—" }}
+                        </dd>
                     </div>
 
                     <div>
-                        <dt class="opacity-60">Sede administrativa</dt>
-                        <dd>{{ contacto.sede_administrativa.nombre|default:"—" }}</dd>
+                        <dt class="text-xs uppercase tracking-wide opacity-50">
+                            Sede administrativa
+                        </dt>
+                        <dd class="mt-1 font-medium">
+                            {{ contacto.sede_administrativa.nombre|default:"—" }}
+                        </dd>
                     </div>
 
                     <div>
-                        <dt class="opacity-60">Fecha de ingreso</dt>
-                        <dd>{{ contacto.fecha_ingreso|date:"d/m/Y"|default:"—" }}</dd>
+                        <dt class="text-xs uppercase tracking-wide opacity-50">
+                            Fecha de ingreso
+                        </dt>
+                        <dd class="mt-1 font-medium">
+                            {{ contacto.fecha_ingreso|date:"d/m/Y"|default:"—" }}
+                        </dd>
                     </div>
 
                     <div>
-                        <dt class="opacity-60">Fecha de egreso</dt>
-                        <dd>{{ contacto.fecha_egreso|date:"d/m/Y"|default:"—" }}</dd>
+                        <dt class="text-xs uppercase tracking-wide opacity-50">
+                            Fecha de egreso
+                        </dt>
+                        <dd class="mt-1 font-medium">
+                            {{ contacto.fecha_egreso|date:"d/m/Y"|default:"—" }}
+                        </dd>
                     </div>
 
                     <div class="sm:col-span-2">
-                        <dt class="opacity-60">Jefe directo</dt>
-                        <dd>
+                        <dt class="text-xs uppercase tracking-wide opacity-50">
+                            Jefe directo
+                        </dt>
+                        <dd class="mt-1 font-medium">
                             {% if contacto.jefe_directo %}
                                 <a href="{% url 'directorio:detail' contacto.jefe_directo.pk %}"
                                    class="link link-primary">
@@ -265,20 +263,8 @@
                         </dd>
                     </div>
 
-                    {% if contacto.empresas_relacionadas.exists %}
-                        <div class="sm:col-span-2">
-                            <dt class="opacity-60">Empresas relacionadas</dt>
-                            <dd class="flex flex-wrap gap-2 mt-1">
-                                {% for empresa in contacto.empresas_relacionadas.all %}
-                                    <span data-theme="{{ empresa.theme }}" class="badge badge-primary badge-outline">
-                                        {{ empresa.nombre_corto }}
-                                    </span>
-                                {% endfor %}
-                            </dd>
-                        </div>
-                    {% endif %}
-
                 </dl>
+
             </div>
         </div>
 

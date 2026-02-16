@@ -1,3 +1,4 @@
+{% load phone_filters %}
 <div id="card_{{ contacto.pk }}"
      data-theme="{{ contacto.empresa.theme }}"
      class="relative card w-full bg-base-100 rounded-xl
@@ -17,37 +18,40 @@
         </div>
     {% endif %}
 
-    <div class="card-body p-5 gap-4">
+    <div class="card-body p-5 flex flex-col min-h-[320px]">
 
-        <!-- HEADER -->
-        <div class="flex items-start gap-4">
+        <div class="flex items-start gap-4 min-h-[80px]">
 
-            <!-- FOTO USUARIO -->
-            {% if contacto.foto %}
-                <div class="avatar shrink-0">
-                    <div class="w-16 h-16 rounded-full ring ring-primary ring-offset-2 ring-offset-base-100">
+            <!-- FOTO -->
+            <div class="avatar shrink-0">
+                <div class="w-16 h-16 rounded-full ring ring-primary ring-offset-2 ring-offset-base-100">
+                    {% if contacto.foto %}
                         <img src="{{ contacto.foto.url }}"
                              alt="{{ contacto.nombre_completo }}"
                              class="object-cover"/>
-                    </div>
+                    {% else %}
+                        <div class="bg-primary text-primary-content flex items-center justify-center w-full h-full text-xl font-semibold">
+                            {{ contacto.iniciales }}
+                        </div>
+                    {% endif %}
                 </div>
-            {% endif %}
+            </div>
 
-            <!-- INFO PRINCIPAL -->
+            <!-- INFO -->
             <div class="flex-1 min-w-0">
-                <h2 class="text-primary text-lg font-semibold leading-tight truncate"
-                    title="{{ contacto.nombre_completo }}"
-                >
-                    <a href="{% url 'directorio:detail' contacto.pk %}">{{ contacto.nombre_completo }}</a>
+
+                <h2 class="text-lg font-semibold leading-tight truncate">
+                    <a href="{% url 'directorio:detail' contacto.pk %}"
+                       class="hover:text-primary transition">
+                        {{ contacto.nombre_completo }}
+                    </a>
                 </h2>
 
-                {% if contacto.numero_empleado %}
-                    <p class="text-xs opacity-60">
-                        No. Empleado {{ contacto.numero_empleado }}
-                    </p>
-                {% endif %}
-
                 <p class="text-sm opacity-80 truncate">
+                    {{ contacto.puesto.nombre|default:"Sin puesto" }}
+                </p>
+
+                <p class="text-xs opacity-60 truncate">
                     {{ contacto.area.nombre|default:"Área no asignada" }}
                 </p>
 
@@ -58,15 +62,10 @@
 
             <!-- LOGO EMPRESA -->
             {% if contacto.empresa and contacto.empresa.abreviatura %}
-                <div class="shrink-0 flex items-center">
+                <div class="hidden sm:flex shrink-0 items-center">
                     <c-component
                             is="apps.empresas.logos.{{ contacto.empresa.abreviatura }}"
-                            class="
-                                h-10 w-auto
-                                text-primary
-                                opacity-80
-                                print:opacity-100
-                            "
+                            class="h-10 w-auto text-primary opacity-80"
                     />
                 </div>
             {% endif %}
@@ -75,95 +74,116 @@
         <!-- DIVIDER -->
         <div class="divider my-1"></div>
 
-        <!-- CONTACTO -->
-        <div class="grid gap-2 text-sm">
+        <div class="flex-1 flex flex-col justify-start gap-3 text-sm">
 
             {% if contacto.email_principal %}
-                <div class="flex items-center gap-2">
-                    <span class="icon-[material-symbols--mail-outline] text-primary"></span>
-                    <a href="mailto:{{ contacto.email_principal.email }}"
-                       class="truncate hover:underline">
-                        {{ contacto.email_principal.email }}
-                    </a>
+                <div class="flex items-center justify-between group">
+
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="icon-[material-symbols--mail-outline] text-primary"></span>
+                        <a href="mailto:{{ contacto.email_principal.email }}"
+                           class="truncate hover:underline">
+                            {{ contacto.email_principal.email }}
+                        </a>
+                    </div>
+
+                    <button
+                            onclick="copyToClipboard('{{ contacto.email_principal.email }}')"
+                            class="opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                            type="button"
+                    >
+                        <span class="icon-[mdi--content-copy]"></span>
+                    </button>
                 </div>
             {% endif %}
 
-            {% if contacto.telefono_principal %}
-                <div class="flex items-center gap-2">
-                    <span class="icon-[material-symbols--call-outline] text-primary"></span>
-                    <a href="tel:{{ contacto.telefono_principal.telefono }}">
-                        {{ contacto.telefono_principal.telefono }}
-                    </a>
-                </div>
-            {% endif %}
 
-            {% if contacto.extension %}
-                <div class="flex items-center gap-2 opacity-70">
-                    <span class="icon-[material-symbols--dialpad-outline]"></span>
-                    <span>Ext. {{ contacto.extension }}</span>
+            {% for telefono in contacto.telefonos.all %}
+                <div class="flex items-center justify-between group">
+
+                    <div class="flex items-center gap-2">
+                        <span class="icon-[material-symbols--call-outline] text-primary"></span>
+                        <a href="tel:{{ telefono.telefono }}">
+                            {{ telefono.telefono|phone_format }}
+                        </a>
+                    </div>
+
+                    <div class="flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition">
+
+                        <a href="tel:{{ telefono.telefono }}"
+                           class="tooltip"
+                           data-tip="Llamar">
+                            <span class="icon-[mdi--phone] text-base-content/60 hover:text-primary"></span>
+                        </a>
+
+                        {% if telefono.es_celular %}
+                            <a target="_blank"
+                               href="https://api.whatsapp.com/send/?phone={{ telefono.telefono }}"
+                               class="tooltip"
+                               data-tip="WhatsApp">
+                                <span class="icon-[logos--whatsapp-icon] text-green-500"></span>
+                            </a>
+                        {% endif %}
+
+                        <button
+                                onclick="copyToClipboard('{{ telefono.telefono }}')"
+                                type="button"
+                                class="tooltip"
+                                data-tip="Copiar"
+                        >
+                            <span class="icon-[mdi--content-copy] text-base-content/50 hover:text-primary"></span>
+                        </button>
+
+                    </div>
                 </div>
-            {% endif %}
+            {% endfor %}
+
+
         </div>
 
         <!-- FOOTER -->
-        <div class="flex items-center justify-between pt-3">
+        <div class="mt-auto pt-4 border-t border-base-200">
 
-            {% if contacto.empresa %}
-                <span class="text-xs uppercase tracking-wide opacity-60">
-                {{ contacto.empresa.nombre_corto }}
-            </span>
-            {% endif %}
+            <div class="flex items-center gap-2 print:hidden">
 
-            <div class="flex gap-2 print:hidden">
+                <!-- Mobile icons -->
+                <div class="flex sm:hidden gap-2">
 
-                <a href="{% url 'directorio:detail' contacto.pk %}"
-                   class="btn btn-xs">
-                    Ver
-                </a>
-
-                {% if perms.directorio.change_contacto %}
-                    <a href="{% url 'directorio:update' contacto.pk %}"
-                       class="btn btn-xs btn-info">
-                        Editar
+                    <a href="{% url 'directorio:detail' contacto.pk %}"
+                       class="btn btn-xs btn-ghost">
+                        <span class="icon-[mdi--eye-outline]"></span>
                     </a>
-                {% endif %}
 
-                {% if perms.directorio.delete_contacto %}
-                    <button class="btn btn-xs btn-error" onclick="contacto_delete_modal_{{ contacto.pk }}.showModal()">
-                        Eliminar
-                    </button>
+                    {% if perms.directorio.change_contacto %}
+                        <a href="{% url 'directorio:update' contacto.pk %}"
+                           class="btn btn-xs btn-ghost text-info">
+                            <span class="icon-[mdi--pencil-outline]"></span>
+                        </a>
+                    {% endif %}
 
+                </div>
 
-                    <dialog id="contacto_delete_modal_{{ contacto.pk }}" class="modal modal-bottom sm:modal-middle">
-                        <div class="modal-box">
-                            <form method="dialog">
-                                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                            </form>
-                            <h3 class="text-lg font-bold">¿Eliminar {{ contacto }}?</h3>
-                            <p class="py-4">Esta acción no se podrá deshacer.</p>
+                <!-- Desktop buttons -->
+                <div class="hidden sm:flex gap-2">
 
-                            <div class="modal-action">
-                                <form action="{% url 'directorio:delete' contacto.pk %}" method="post">
-                                    {% csrf_token %}
-                                    <button class="btn btn-error">Confirmar</button>
-                                </form>
-                                <form method="dialog">
-                                    <button class="btn">Cancelar</button>
-                                </form>
-                            </div>
+                    <a href="{% url 'directorio:detail' contacto.pk %}"
+                       class="btn btn-xs">
+                        Ver
+                    </a>
 
-                        </div>
-                        <form method="dialog" class="modal-backdrop">
-                            <button>close</button>
-                        </form>
-                    </dialog>
-                {% endif %}
+                    {% if perms.directorio.change_contacto %}
+                        <a href="{% url 'directorio:update' contacto.pk %}"
+                           class="btn btn-xs btn-info">
+                            Editar
+                        </a>
+                    {% endif %}
+
+                </div>
 
                 {% if contacto.slack_id %}
                     <a href="{{ contacto.slack_url }}"
                        class="btn btn-xs btn-outline btn-primary">
                         <span class="icon-[devicon--slack]"></span>
-                        Slack
                     </a>
                 {% endif %}
 
