@@ -25,6 +25,7 @@ class ContactoFilter(django_filters.FilterSet):
         field_name='area',
         widget=autocomplete.ModelSelect2(
             url='rrhh:areas__autocomplete',
+            forward=['empresa'],
             attrs={'style': 'width: 100%;'}
         )
     )
@@ -33,6 +34,7 @@ class ContactoFilter(django_filters.FilterSet):
         field_name='puesto',
         widget=autocomplete.ModelSelect2(
             url='rrhh:puestos__autocomplete',
+            forward=['empresa'],
             attrs={'style': 'width: 100%;'}
         )
     )
