@@ -121,23 +121,31 @@ class ContactoTable(TableWithActions):
             </a>
         """)
 
-    def _render_email_item(self, correo):
-        return f"""
-            <span class="font-medium text-sm flex items-center gap-2">
-                    <span class="icon-[ic--baseline-email]"></span>
-                    <a href="mailto:{correo.email}">
-                        {correo.email}
-                    </a>
-                </span>
+    def _render_email_item(self, email):
+        icon = "ic--baseline-email"
+        label = email.email
 
-                <button
-                    class="opacity-0 group-hover:opacity-100 transition text-base-content/50 hover:text-primary tooltip"
-                    data-tip="Copiar"
-                    onclick="copyToClipboard('{correo.email}')"
-                    type="button"
-                >
-                    <span class="icon-[mdi--content-copy]"></span>
-                </button>
+        size_class = "font-medium text-sm" if email.es_principal else "text-xs text-base-content/70"
+        margin_class = "" if email.es_principal else "ml-6"
+
+        return f"""
+                <div class="flex items-center gap-2 group {margin_class}">
+                    <span class="flex items-center gap-2 {size_class}">
+                        <span class="icon-[{icon}]"></span>
+                        <a href="mailto:{label}">
+                            {label}
+                        </a>
+                    </span>
+    
+                    <button
+                        class="opacity-0 group-hover:opacity-100 transition text-base-content/50 hover:text-primary tooltip"
+                        data-tip="Copiar"
+                        onclick="copyToClipboard('{label}')"
+                        type="button"
+                    >
+                        <span class="icon-[mdi--content-copy]"></span>
+                    </button>
+                </div>
         """
 
     def render_correo(self, record: Contacto):
@@ -148,7 +156,7 @@ class ContactoTable(TableWithActions):
         if not correos.exists():
             return "—"
 
-        html = '<div class="flex items-center gap-2 group">'
+        html = '<div class="flex flex-col gap-1 group">'
 
         for correo in correos:
             html += self._render_email_item(correo)
