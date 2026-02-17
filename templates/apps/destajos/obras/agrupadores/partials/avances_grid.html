@@ -1,28 +1,53 @@
 {% load dict_extras %}
 
-<div class="relative">
+<style>
+    /* ============================= */
+    /*   SELECCIÓN VISUAL DEFINITIVA */
+    /* ============================= */
 
-    <div class="overflow-x-auto h-[480px] border border-base-300 rounded-lg">
-        <table class="table table-xs table-zebra table-pin-rows table-pin-cols">
+    .estado-cell {
+        position: relative;
+        transition: background-color 120ms ease;
+    }
+
+    /* Fondo azul suave visible */
+    .estado-cell.selected {
+        background-color: rgba(59, 130, 246, 0.18) !important; /* blue-500 */
+    }
+
+    /* Borde visible por encima de TODO */
+    .estado-cell.selected::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border: 2px solid #3b82f6; /* blue-500 */
+        pointer-events: none;
+        z-index: 20;
+    }
+
+    /* Badge resaltado */
+    .estado-cell.selected .badge {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 2px #3b82f6;
+        transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+</style>
+
+<div id="tabla-container" class="relative">
+
+    <div class="overflow-auto h-[480px] border border-base-300 rounded-lg relative">
+        <table class="table table-xs table-zebra table-pin-rows table-pin-cols w-full">
 
             <thead>
             <tr>
-                <th class="text-xs sticky left-0 z-30 bg-base-100">
-                    TIPO VIVIENDA
-                </th>
-                {% for vivienda in viviendas %}
-                    <th class="text-center whitespace-nowrap text-xs">
-                        {{ vivienda.estructura.abreviatura|default:vivienda.estructura.nombre }}
-                    </th>
-                {% endfor %}
-            </tr>
-
-            <tr>
-                <th class="sticky left-0 bg-base-100 z-30 font-semibold">
+                <th id="col-trabajo"
+                    class="sticky left-0 bg-base-100 z-30">
                     Trabajo
+                    <div class="resizer"></div>
                 </th>
+
                 {% for vivienda in viviendas %}
-                    <th class="text-center whitespace-nowrap text-xs">
+                    <th class="text-center whitespace-nowrap">
                         {{ vivienda.numero }}
                     </th>
                 {% endfor %}
@@ -30,152 +55,305 @@
             </thead>
 
             <tbody>
-            {% for trabajo in trabajos %}
-                <tr>
-                    <!-- Trabajo fijo -->
-                    <td class="sticky left-0 bg-base-100 font-semibold z-20 whitespace-nowrap">
-                        {{ trabajo.nombre }}
+            {% for grupo in trabajos_por_paquete %}
+
+                <tr class="bg-base-200 paquete-row cursor-pointer"
+                    data-paquete="{{ grupo.paquete.id }}">
+                    <td class="sticky left-0 bg-base-200 font-bold z-20 whitespace-nowrap">
+                        {{ grupo.paquete.nombre }}
                     </td>
-
                     {% for vivienda in viviendas %}
-                        {% with estado=vivienda.estados_por_trabajo|get_item:trabajo.id %}
-                            <td class="text-center relative group">
-
-                                {% if estado %}
-
-                                    {% if editar %}
-                                        <!-- Checkbox bulk (solo visible hover) -->
-                                        <input
-                                                type="checkbox"
-                                                class="checkbox checkbox-xs absolute top-1 left-1 opacity-0 group-hover:opacity-100"
-                                                data-estado-id="{{ estado.id }}"
-                                        >
-
-                                        <!-- Dropdown estado -->
-                                        <div class="dropdown dropdown-hover">
-                                            <label tabindex="0" class="cursor-pointer">
-                        <span class="
-                          badge badge-sm
-                          {% if estado.estado == 'pendiente' %}badge-ghost{% endif %}
-                          {% if estado.estado == 'por_realizar' %}badge-warning{% endif %}
-                          {% if estado.estado == 'realizado' %}badge-success{% endif %}
-                          {% if estado.estado == 'pagado' %}badge-info{% endif %}
-                          {% if estado.estado == 'na' %}badge-outline{% endif %}
-                        ">
-                          {{ estado.estado_abreviatura }}
-                        </span>
-                                            </label>
-
-                                            <ul tabindex="0"
-                                                class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-44 z-50">
-                                                <li>
-                                                    <a hx-post="{% url 'destajos:estado_trabajo_vivienda__update' estado.id %}"
-                                                       hx-vals='{"estado":"pendiente"}'
-                                                       hx-swap="none">Pendiente</a>
-                                                </li>
-                                                <li>
-                                                    <a hx-post="{% url 'destajos:estado_trabajo_vivienda__update' estado.id %}"
-                                                       hx-vals='{"estado":"por_realizar"}'
-                                                       hx-swap="none">Por realizar</a>
-                                                </li>
-                                                <li>
-                                                    <a hx-post="{% url 'destajos:estado_trabajo_vivienda__update' estado.id %}"
-                                                       hx-vals='{"estado":"realizado"}'
-                                                       hx-swap="none">Realizado</a>
-                                                </li>
-                                                <li>
-                                                    <a hx-post="{% url 'destajos:estado_trabajo_vivienda__update' estado.id %}"
-                                                       hx-vals='{"estado":"pagado"}'
-                                                       hx-swap="none">Pagado</a>
-                                                </li>
-                                                <li>
-                                                    <a hx-post="{% url 'destajos:estado_trabajo_vivienda__update' estado.id %}"
-                                                       hx-vals='{"estado":"na"}'
-                                                       hx-swap="none">No aplica</a>
-                                                </li>
-                                            </ul>
-                                        </div>
-
-                                    {% else %}
-                                        <!-- Modo lectura -->
-                                        <span class="
-                      badge badge-sm
-                      {% if estado.estado == 'pendiente' %}badge-ghost{% endif %}
-                      {% if estado.estado == 'por_realizar' %}badge-warning{% endif %}
-                      {% if estado.estado == 'realizado' %}badge-success{% endif %}
-                      {% if estado.estado == 'pagado' %}badge-info{% endif %}
-                      {% if estado.estado == 'na' %}badge-outline{% endif %}
-                    ">
-                      {{ estado.estado_abreviatura }}
-                    </span>
-                                    {% endif %}
-
-                                {% else %}
-                                    —
-                                {% endif %}
-                            </td>
-                        {% endwith %}
+                        <td></td>
                     {% endfor %}
                 </tr>
+
+                {% for trabajo in grupo.trabajos %}
+                    <tr class="trabajo-row paquete-{{ grupo.paquete.id }}">
+                        <td class="sticky left-0 bg-base-100 font-semibold z-20 whitespace-nowrap trabajo-cell">
+                            {{ trabajo.nombre }}
+                        </td>
+
+                        {% for vivienda in viviendas %}
+                            {% with estado=vivienda.estados_por_trabajo|get_item:trabajo.id %}
+                                <td
+                                        id="estado-{{ estado.id }}"
+                                        data-id="{{ estado.id }}"
+                                        data-col="{{ forloop.counter0 }}"
+                                        tabindex="0"
+                                        class="estado-cell text-center cursor-pointer select-none"
+                                >
+                                    {% if estado %}
+                                        <span class="badge badge-sm
+                                            {% if estado.estado == 'pendiente' %}badge-ghost{% endif %}
+                                            {% if estado.estado == 'por_realizar' %}badge-warning{% endif %}
+                                            {% if estado.estado == 'realizado' %}badge-success{% endif %}
+                                            {% if estado.estado == 'pagado' %}badge-info{% endif %}
+                                            {% if estado.estado == 'na' %}badge-outline{% endif %}
+                                        ">
+                                            {{ estado.estado_abreviatura }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            {% endwith %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+
             {% endfor %}
             </tbody>
+
         </table>
     </div>
 
-    <!-- =========================
-         BULK ACTION BAR
-         ========================= -->
-    {% if editar %}
-        <div
-                id="bulk-bar"
-                class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-base-100 shadow-xl border border-base-300 rounded-xl px-4 py-2 hidden z-50"
-        >
-            <div class="flex items-center gap-3">
-      <span class="text-sm">
-        <span id="bulk-count">0</span> seleccionados
-      </span>
+    <!-- BULK BAR -->
+    <div id="bulk-bar"
+         class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-base-100 shadow-xl border border-base-300 rounded-xl px-4 py-2 hidden z-50">
 
-                <select id="bulk-estado" class="select select-sm select-bordered">
-                    <option value="">Cambiar estado…</option>
-                    <option value="pendiente">Pendiente</option>
-                    <option value="por_realizar">Por realizar</option>
-                    <option value="realizado">Realizado</option>
-                    <option value="pagado">Pagado</option>
-                    <option value="na">No aplica</option>
-                </select>
+        <div class="flex items-center gap-3">
+            <span class="text-sm">
+                <span id="bulk-count">0</span> seleccionados
+            </span>
 
-                <button id="bulk-apply" class="btn btn-sm btn-primary">
-                    Aplicar
-                </button>
-            </div>
+            <select id="bulk-estado" class="select select-sm select-bordered">
+                <option value="">Cambiar estado…</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="por_realizar">Por realizar</option>
+                <option value="realizado">Realizado</option>
+                <option value="pagado">Pagado</option>
+                <option value="na">No aplica</option>
+            </select>
+
+            <button id="bulk-apply" class="btn btn-sm btn-primary">
+                Aplicar
+            </button>
         </div>
-    {% endif %}
+    </div>
+
+    <form id="bulk-form"
+          hx-post="{% url 'destajos:estado_trabajo_vivienda__bulk_update' obra.pk agrupador.pk %}"
+          hx-target="#tabla-container"
+          hx-swap="innerHTML">
+        {% csrf_token %}
+        <input type="hidden" name="estado" id="bulk-estado-input">
+        <input type="hidden" name="ids" id="bulk-ids-input">
+        <input type="hidden" name="paquete" value="{{ paquete_actual.id }}">
+    </form>
 
 </div>
 
-{% if editar %}
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const selected = new Set()
-            const bulkBar = document.getElementById("bulk-bar")
-            const countEl = document.getElementById("bulk-count")
+<script>
+    (function () {
+        "use strict";
 
-            document.querySelectorAll('[data-estado-id]').forEach(cb => {
-                cb.addEventListener("change", e => {
-                    const id = e.target.dataset.estadoId
-                    e.target.checked ? selected.add(id) : selected.delete(id)
+        class EstadoGrid {
 
-                    bulkBar.classList.toggle("hidden", selected.size === 0)
-                    countEl.textContent = selected.size
-                })
-            })
+            constructor(containerSelector) {
+                this.container = document.querySelector(containerSelector);
+                if (!this.container) return;
 
-            document.getElementById("bulk-apply").addEventListener("click", () => {
-                const estado = document.getElementById("bulk-estado").value
-                if (!estado || selected.size === 0) return
+                this.selected = new Set();
+                this.anchorCell = null;
+                this.isDragging = false;
 
-                console.log('bulk apply')
-            })
-        })
-    </script>
-{% endif %}
+                this.init();
+            }
+
+            init() {
+                this.cache();
+                this.bind();
+            }
+
+            cache() {
+                this.cells = () => Array.from(this.container.querySelectorAll(".estado-cell"));
+                this.bulkBar = document.getElementById("bulk-bar");
+                this.bulkCount = document.getElementById("bulk-count");
+                this.bulkEstadoSelect = document.getElementById("bulk-estado");
+                this.bulkApplyBtn = document.getElementById("bulk-apply");
+                this.bulkEstadoInput = document.getElementById("bulk-estado-input");
+                this.bulkIdsInput = document.getElementById("bulk-ids-input");
+                this.bulkForm = document.getElementById("bulk-form");
+                this.colTrabajo = document.getElementById("col-trabajo");
+            }
+
+            bind() {
+                this.initPaquetes();
+                this.initResize();
+                this.initSelection();
+                this.initKeyboard();
+                this.initBulk();
+            }
+
+            /* ====== PAQUETES ====== */
+
+            initPaquetes() {
+                this.container.querySelectorAll(".paquete-row")
+                    .forEach(row => {
+                        row.addEventListener("click", () => {
+                            const id = row.dataset.paquete;
+                            this.container.querySelectorAll(`.paquete-${id}`)
+                                .forEach(r => r.classList.toggle("hidden"));
+                        });
+                    });
+            }
+
+            /* ====== SELECCIÓN DOM REAL ====== */
+
+            initSelection() {
+
+                this.container.addEventListener("mousedown", (e) => {
+                    const cell = e.target.closest(".estado-cell");
+                    if (!cell) return;
+
+                    this.isDragging = true;
+                    this.anchorCell = cell;
+                    this.selected.clear();
+                    this.selected.add(cell.dataset.id);
+                    this.updateUI();
+                });
+
+                this.container.addEventListener("mousemove", (e) => {
+                    if (!this.isDragging || !this.anchorCell) return;
+
+                    const cell = e.target.closest(".estado-cell");
+                    if (!cell) return;
+
+                    this.selectRange(this.anchorCell, cell);
+                    this.updateUI();
+                });
+
+                document.addEventListener("mouseup", () => {
+                    this.isDragging = false;
+                });
+            }
+
+            selectRange(from, to) {
+
+                const rows = Array.from(this.container.querySelectorAll("tr.trabajo-row"));
+
+                const fromRowIndex = rows.indexOf(from.closest("tr"));
+                const toRowIndex = rows.indexOf(to.closest("tr"));
+
+                const minRow = Math.min(fromRowIndex, toRowIndex);
+                const maxRow = Math.max(fromRowIndex, toRowIndex);
+
+                const minCol = Math.min(+from.dataset.col, +to.dataset.col);
+                const maxCol = Math.max(+from.dataset.col, +to.dataset.col);
+
+                this.selected.clear();
+
+                this.cells().forEach(cell => {
+                    const rowIndex = rows.indexOf(cell.closest("tr"));
+                    const col = +cell.dataset.col;
+
+                    if (
+                        rowIndex >= minRow &&
+                        rowIndex <= maxRow &&
+                        col >= minCol &&
+                        col <= maxCol
+                    ) {
+                        this.selected.add(cell.dataset.id);
+                    }
+                });
+            }
+
+            updateUI() {
+                this.cells().forEach(c =>
+                    c.classList.toggle("selected", this.selected.has(c.dataset.id))
+                );
+
+                this.bulkBar.classList.toggle("hidden", this.selected.size === 0);
+                this.bulkCount.textContent = this.selected.size;
+            }
+
+            /* ====== BULK ====== */
+
+            initBulk() {
+                this.bulkApplyBtn.addEventListener("click", () => {
+
+                    const estado = this.bulkEstadoSelect.value;
+                    if (!estado || this.selected.size === 0) return;
+
+                    this.bulkEstadoInput.value = estado;
+                    this.bulkIdsInput.value = Array.from(this.selected).join(",");
+
+                    htmx.trigger(this.bulkForm, "submit");
+                });
+            }
+
+            /* ====== RESIZE ====== */
+
+            initResize() {
+                if (!this.colTrabajo) return;
+                const resizer = this.colTrabajo.querySelector(".resizer");
+                if (!resizer) return;
+
+                let startX, startWidth;
+
+                const move = (e) => {
+                    const newWidth = startWidth + (e.pageX - startX);
+                    this.colTrabajo.style.width = newWidth + "px";
+                    this.container.querySelectorAll(".trabajo-cell")
+                        .forEach(td => td.style.width = newWidth + "px");
+                };
+
+                const stop = () => {
+                    document.removeEventListener("mousemove", move);
+                    document.removeEventListener("mouseup", stop);
+                };
+
+                resizer.addEventListener("mousedown", (e) => {
+                    e.stopPropagation();
+                    startX = e.pageX;
+                    startWidth = this.colTrabajo.offsetWidth;
+                    document.addEventListener("mousemove", move);
+                    document.addEventListener("mouseup", stop);
+                });
+            }
+
+            /* ====== KEYBOARD ====== */
+
+            initKeyboard() {
+                document.addEventListener("keydown", (e) => {
+
+                    const active = document.activeElement;
+                    if (!active.classList.contains("estado-cell")) return;
+
+                    const col = +active.dataset.col;
+                    const row = active.closest("tr");
+                    const rows = Array.from(this.container.querySelectorAll("tr.trabajo-row"));
+                    const rowIndex = rows.indexOf(row);
+
+                    let next = null;
+
+                    if (e.key === "ArrowRight")
+                        next = rows[rowIndex].querySelector(`[data-col="${col + 1}"]`);
+                    if (e.key === "ArrowLeft")
+                        next = rows[rowIndex].querySelector(`[data-col="${col - 1}"]`);
+                    if (e.key === "ArrowDown" && rows[rowIndex + 1])
+                        next = rows[rowIndex + 1].querySelector(`[data-col="${col}"]`);
+                    if (e.key === "ArrowUp" && rows[rowIndex - 1])
+                        next = rows[rowIndex - 1].querySelector(`[data-col="${col}"]`);
+
+                    if (next) {
+                        next.focus();
+                        e.preventDefault();
+                    }
+                });
+            }
+        }
+
+        function initGrid() {
+            new EstadoGrid("#tabla-container");
+        }
+
+        document.addEventListener("DOMContentLoaded", initGrid);
+
+        document.body.addEventListener("htmx:afterSwap", function (evt) {
+            if (evt.target.id === "tabla-container") {
+                initGrid();
+            }
+        });
+
+    })();
+</script>
+

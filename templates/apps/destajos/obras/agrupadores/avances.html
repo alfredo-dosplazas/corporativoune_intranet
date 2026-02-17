@@ -32,10 +32,14 @@
                 {% if editar %}
                     <a class="btn btn-sm" href="?">Bloquear</a>
                 {% else %}
-                    <a class="btn btn-sm btn-primary" href="?editar=1">Editar</a>
+                    <a class="btn btn-sm btn-primary" href="?editar=1&paquete={{ paquete }}">Editar</a>
                 {% endif %}
 
-                {% crispy filter %}
+                <form method="get">
+                    <input type="hidden" name="editar" value="{{ editar }}">
+
+                    {% crispy filter %}
+                </form>
             </div>
 
         </div>

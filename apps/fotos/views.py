@@ -1,8 +1,5 @@
-import os
-
 from django.core.paginator import Paginator
 from django.http import Http404, FileResponse, HttpResponseForbidden
-from django.shortcuts import render
 from django.urls import reverse
 from django.views.generic import TemplateView
 

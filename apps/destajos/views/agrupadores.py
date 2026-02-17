@@ -1,3 +1,6 @@
+from itertools import groupby
+from operator import attrgetter
+
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Prefetch
@@ -91,18 +94,10 @@ class AvancesViviendaView(
         self.obra = get_object_or_404(Obra, pk=self.kwargs['obra_pk'])
         return super().dispatch(request, *args, **kwargs)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        agrupador: Agrupador = self.object
+    def get_grid_context(self):
+        agrupador = self.object
+        paquete_id = self.request.GET.get('paquete') or self.request.POST.get('paquete')
 
-        puede_editar_avances = self.request.GET.get('editar')
-        modo = 'edicion' or 'lectura'
-
-        paquete_id = self.request.GET.get('paquete')
-
-        # ──────────────────────────────
-        # Paquetes disponibles (para filtro)
-        # ──────────────────────────────
         paquetes = Paquete.objects.all()
 
         paquete_actual = (
@@ -111,9 +106,6 @@ class AvancesViviendaView(
             else None
         )
 
-        # ──────────────────────────────
-        # Estados del agrupador (filtrables por paquete)
-        # ──────────────────────────────
         estados = (
             EstadoTrabajoVivienda.objects
             .filter(vivienda__agrupador=agrupador)
@@ -127,10 +119,6 @@ class AvancesViviendaView(
         if paquete_actual:
             estados = estados.filter(trabajo__paquete=paquete_actual)
 
-        # ──────────────────────────────
-        # Viviendas con estados prefetched
-        # (clave para el grid)
-        # ──────────────────────────────
         viviendas = (
             Vivienda.objects
             .filter(agrupador=agrupador)
@@ -150,9 +138,6 @@ class AvancesViviendaView(
                 for estado in vivienda.estados_prefetch
             }
 
-        # ──────────────────────────────
-        # Trabajos del paquete (filas del grid)
-        # ──────────────────────────────
         trabajos = (
             Trabajo.objects
             .filter(
@@ -166,14 +151,34 @@ class AvancesViviendaView(
         if paquete_actual:
             trabajos = trabajos.filter(paquete=paquete_actual)
 
-        context.update({
-            'obra': self.obra,
-            'paquetes': paquetes,
-            'paquete_actual': paquete_actual,
+        trabajos = trabajos.order_by('paquete__nombre', 'nombre')
+
+        trabajos_por_paquete = []
+        for paquete, items in groupby(trabajos, key=attrgetter('paquete')):
+            trabajos_por_paquete.append({
+                'paquete': paquete,
+                'trabajos': list(items)
+            })
+
+        return {
             'viviendas': viviendas,
             'trabajos': trabajos,
+            'paquete_actual': paquete_actual,
+            'paquetes': paquetes,
+            'trabajos_por_paquete': trabajos_por_paquete
+        }
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        grid_context = self.get_grid_context()
+
+        context.update(grid_context)
+
+        context.update({
+            'obra': self.obra,
             'filter': AvanceFilterForm(self.request.GET),
-            'editar': puede_editar_avances,
+            'editar': self.request.GET.get('editar'),
         })
 
         return context

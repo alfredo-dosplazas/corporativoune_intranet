@@ -8,7 +8,7 @@ from apps.destajos.views.contratistas import ContratistaListView, ContratistaCre
 from apps.destajos.views.contratistas_precios import precios_formset
 from apps.destajos.views.destajos import DestajosView, DestajoListView, DestajoUpdateView, DestajoDetailView, \
     DestajoDeleteView, DestajoCreateView, detalle_destajo_data
-from apps.destajos.views.estado_trabajo_vivienda import estado_trabajo_update
+from apps.destajos.views.estado_trabajo_vivienda import estado_trabajo_update, bulk_update
 from apps.destajos.views.estructuras import EstructuraListView, EstructuraCreateView, EstructuraUpdateView, \
     EstructuraDetailView, EstructuraDeleteView, EstructuraTrabajosExcelView
 from apps.destajos.views.lista_precios import ListaPrecioListView
@@ -104,7 +104,8 @@ agrupadores_urlpatterns = [
 ]
 
 estado_trabajo_vivienda_urlpatterns = [
-    path('estado-trabajo-vivienda/editar/<int:pk>/', estado_trabajo_update, name='estado_trabajo_vivienda__update')
+    path('estado-trabajo-vivienda/editar/<int:pk>/', estado_trabajo_update, name='estado_trabajo_vivienda__update'),
+    path('estado-trabajo-vivienda/bulk-update/<int:obra_pk>/<int:agrupador_pk>/', bulk_update, name='estado_trabajo_vivienda__bulk_update'),
 ]
 
 urlpatterns += agrupadores_urlpatterns

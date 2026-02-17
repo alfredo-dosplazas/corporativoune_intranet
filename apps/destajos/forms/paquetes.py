@@ -15,6 +15,8 @@ class AvanceFilterForm(forms.Form):
 
         self.helper = FormHelper()
         self.helper.form_method = 'GET'
+        self.helper.form_tag = False
+        self.helper.include_media = False
         self.helper.form_show_labels = False
 
         self.helper.layout = Layout(

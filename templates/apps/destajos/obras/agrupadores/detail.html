@@ -1,3 +1,4 @@
+{% load money %}
 <c-layouts.app>
 
     <!-- HEADER -->
@@ -21,7 +22,7 @@
                         Avance general
                     </div>
                     <div class="text-3xl font-bold text-primary">
-                        {{ avance_general }}%
+                        {{ agrupador.avance_porcentaje|percent }}
                     </div>
                 </div>
             </div>

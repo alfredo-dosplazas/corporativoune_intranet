@@ -331,6 +331,20 @@ class Agrupador(models.Model):
                 viviendas_completadas.append(v)
         return viviendas_completadas
 
+    @property
+    def avance_porcentaje(self):
+        estados = EstadoTrabajoVivienda.objects.filter(
+            vivienda__agrupador=self,
+        ).distinct()
+        estados_terminados = estados.filter(
+            vivienda__agrupador=self,
+            estado__in=['realizado', 'pagado', 'no_aplica']
+        ).distinct()
+
+        total_estados = estados.count()
+        total_estados_terminados = estados_terminados.count()
+        return total_estados_terminados / total_estados
+
     def generar_viviendas(self, overwrite=False):
         with transaction.atomic():
             if overwrite:
@@ -400,9 +414,11 @@ class Vivienda(models.Model):
             estado__in=[
                 'realizado',
                 'pagado',
-                'no aplica',
+                'na',
             ]
         ).count()
+
+        print(completados, total)
 
         return round((completados / total) * 100)
 
@@ -433,7 +449,7 @@ class EstadoTrabajoVivienda(models.Model):
         ("por_realizar", "Por realizar"),
         ("realizado", "Realizado"),
         ("pagado", "Pagado"),
-        ("no_aplica", "No aplica"),
+        ("na", "No aplica"),
     )
 
     vivienda = models.ForeignKey(

@@ -83,7 +83,7 @@
             });
 
             const viewportHeight = window.innerHeight;
-            const offset = 100;
+            const offset = 45;
             const alturaTabla = viewportHeight - offset - alturaOcupada;
 
             if (alturaTabla > 0) {
@@ -105,7 +105,7 @@
                 <span class="text-muted text-sm">
                     Mostrando
                     <strong>
-                        {{ table.page.start_index|default:0 }}–{{ table.page.end_index|default:0 }}
+                        {{ table.page.start_index|default:0 }} – {{ table.page.end_index|default:0 }}
                     </strong>
                     de
                     <strong>{{ table.paginator.count|default:0 }}</strong>

@@ -1,0 +1,15 @@
+<td id="estado-{{ estado.id }}"
+    class="text-center relative group">
+
+    <span class="
+      badge badge-sm
+      {% if estado.estado == 'pendiente' %}badge-ghost{% endif %}
+      {% if estado.estado == 'por_realizar' %}badge-warning{% endif %}
+      {% if estado.estado == 'realizado' %}badge-success{% endif %}
+      {% if estado.estado == 'pagado' %}badge-info{% endif %}
+      {% if estado.estado == 'na' %}badge-outline{% endif %}
+    ">
+      {{ estado.estado_abreviatura }}
+    </span>
+
+</td>
