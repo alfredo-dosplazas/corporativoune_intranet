@@ -4,24 +4,43 @@
     {% if perms.directorio.change_contacto %}
         <li><a href="{% url 'directorio:update' record.pk %}">Editar</a></li>
     {% endif %}
-    {% if perms.directorio.delete_contacto %}
+    {% if perms.directorio.change_contacto %}
         <li>
-            <button onclick="contacto_delete_modal_{{ record.pk }}.showModal()">Eliminar</button>
+            <button onclick="contacto_archivar_modal_{{ record.pk }}.showModal()">
+                {% if record.esta_archivado %}
+                    Desarchivar
+                {% else %}
+                    Archivar
+                {% endif %}
+            </button>
         </li>
     {% endif %}
 
 
-    {% if perms.directorio.delete_contacto %}
-        <dialog id="contacto_delete_modal_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
+    {% if perms.directorio.change_contacto %}
+        <dialog id="contacto_archivar_modal_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
             <div class="modal-box">
                 <form method="dialog">
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
-                <h3 class="text-lg font-bold">¿Eliminar {{ record }}?</h3>
-                <p class="py-4">Esta acción no se podrá deshacer.</p>
+                <h3 class="text-lg font-bold">¿
+                    {% if record.esta_archivado %}
+                        Desarchivar
+                    {% else %}
+                        Archivar
+                    {% endif %}
+                    {{ record }}?
+                </h3>
+                <p class="py-4">Esta acción
+                    {% if record.esta_archivado %}
+                        activará
+                    {% else %}
+                        desactivará
+                    {% endif %} el contacto.
+                </p>
 
                 <div class="modal-action">
-                    <form action="{% url 'directorio:delete' record.pk %}" method="post">
+                    <form action="{% url 'directorio:archivar' record.pk %}" method="post">
                         {% csrf_token %}
                         <button class="btn btn-error">Confirmar</button>
                     </form>

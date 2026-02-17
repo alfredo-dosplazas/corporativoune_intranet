@@ -1,0 +1,129 @@
+<c-layouts.app>
+
+    <!-- HEADER -->
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <!-- INFO -->
+            <div>
+                <h1 class="text-xl font-bold">
+                    Vivienda {{ vivienda.numero }}
+                </h1>
+
+                <p class="text-sm text-gray-500">
+                    {{ vivienda.agrupador.obra.nombre }} {{ vivienda.agrupador.obra.etapa }}
+                    · {{ vivienda.agrupador.tipo }} {{ vivienda.agrupador.numero }} · {{ vivienda.estructura }}
+                </p>
+            </div>
+
+            <div class="flex justify-center">
+            </div>
+
+            <!-- ACCIONES -->
+            <div class="flex justify-end gap-2">
+                <c-shared.dropdown-actions>
+                    {% if perms.destajos.change_vivienda %}
+                        <li>
+                            <a href="{% url 'destajos:obras__agrupador__viviendas__update' obra.pk agrupador.pk vivienda.pk %}">Editar</a>
+                        </li>
+                    {% endif %}
+                </c-shared.dropdown-actions>
+            </div>
+
+        </div>
+    </c-slot>
+
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <p class="text-sm text-gray-500">Avance general</p>
+                <p class="text-2xl font-bold">
+                    {{ vivienda.porcentaje_completado }}%
+                </p>
+            </div>
+
+            {% if vivienda.esta_completa %}
+                <span class="badge badge-success">Completa</span>
+            {% else %}
+                <span class="badge badge-warning">En proceso</span>
+            {% endif %}
+        </div>
+
+        <progress
+                class="progress progress-primary w-full mt-3"
+                value="{{ vivienda.porcentaje_completado }}"
+                max="100">
+        </progress>
+    </div>
+
+    <div class="flex flex-wrap gap-2 p-4 border-b">
+
+        <a href="?"
+           class="btn btn-sm {% if not estado_actual %}btn-primary{% else %}btn-outline{% endif %}">
+            Todos
+        </a>
+
+        <a href="?estado=pendiente"
+           class="btn btn-sm {% if estado_actual == 'pendiente' %}btn-primary{% else %}btn-outline{% endif %}">
+            Pendientes
+        </a>
+
+        <a href="?estado=realizado"
+           class="btn btn-sm {% if estado_actual == 'realizado' %}btn-primary{% else %}btn-outline{% endif %}">
+            Realizados
+        </a>
+
+        <a href="?estado=pagado"
+           class="btn btn-sm {% if estado_actual == 'pagado' %}btn-primary{% else %}btn-outline{% endif %}">
+            Pagados
+        </a>
+
+    </div>
+
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-4 border-b">
+            <h2 class="font-semibold">
+                Estados de trabajos
+            </h2>
+        </div>
+
+        {% for paquete, estados in estados_agrupados.items %}
+            <div class="border-t">
+
+                <div class="bg-gray-50 px-4 py-3 font-semibold">
+                    {{ paquete.nombre }}
+                </div>
+
+                <table class="table w-full">
+                    <tbody>
+                    {% for estado in estados %}
+                        <tr>
+                            <td class="w-2/3">
+                                {{ estado.trabajo }}
+                            </td>
+                            <td>
+                            <span class="badge
+                                {% if estado.estado == 'pendiente' %} badge-neutral
+                                {% elif estado.estado == 'por_realizar' %} badge-info
+                                {% elif estado.estado == 'realizado' %} badge-success
+                                {% elif estado.estado == 'pagado' %} badge-primary
+                                {% elif estado.estado == 'no_aplica' %} badge-ghost
+                                {% endif %}
+                            ">
+                                {{ estado.get_estado_display }}
+                            </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+
+            </div>
+        {% empty %}
+            <div class="p-6 text-center text-gray-400">
+                No hay trabajos para este filtro.
+            </div>
+        {% endfor %}
+    </div>
+
+</c-layouts.app>

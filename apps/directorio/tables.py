@@ -79,6 +79,7 @@ class ContactoColumn(Column):
                             <div class="min-w-0">
                                 <div class="font-medium truncate">
                                     {contacto.nombre_completo}
+                                    <span class="text-xs text-base-content/70">{'(Archivado)' if contacto.esta_archivado else ''}</span>
                                 </div>
     
                                 {area_html}
@@ -99,7 +100,7 @@ class ContactoTable(TableWithActions):
     correo = Column(empty_values=(), verbose_name='Correo')
     telefono = Column(empty_values=(), verbose_name='Teléfono')
     puesto_area = Column(empty_values=(), verbose_name="Puesto/Área")
-    slack = Column(empty_values=(), verbose_name="Slack")
+    slack = Column(empty_values=(), verbose_name="Mensajería Interna")
 
     class Meta:
         model = Contacto
@@ -117,7 +118,7 @@ class ContactoTable(TableWithActions):
         return mark_safe(f"""
             <a href="{record.slack_url}" class="btn btn-xs">
                 <span class="icon-[devicon--slack] text-primary"></span>
-                Slack
+                Abrír en Slack
             </a>
         """)
 
@@ -138,7 +139,7 @@ class ContactoTable(TableWithActions):
                     </span>
     
                     <button
-                        class="opacity-0 group-hover:opacity-100 transition text-base-content/50 hover:text-primary tooltip"
+                        class="text-base-content/50 hover:text-primary tooltip cursor-pointer"
                         data-tip="Copiar"
                         onclick="copyToClipboard('{label}')"
                         type="button"
@@ -176,7 +177,7 @@ class ContactoTable(TableWithActions):
             <div class="flex items-center gap-2 group {margin_class}">
                 <span class="{size_class} flex items-center gap-2">
                     <span class="icon-[{icon}]"></span>
-                    <a href="tel:{telefono.telefono}">
+                    <a href="{f"tel:{telefono.telefono}" if telefono.telefono else "#"}">
                         {label}
                     </a>
                 </span>
@@ -199,16 +200,16 @@ class ContactoTable(TableWithActions):
             """
 
         return f"""
-            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-                <a href="tel:{telefono.telefono}" class="tooltip" data-tip="Llamar">
+            <div class="flex items-center gap-1">
+                {f"""<a href="tel:{telefono.telefono}" class="tooltip" data-tip="Llamar">
                     <span class="icon-[mdi--phone] text-base-content/60 hover:text-primary"></span>
-                </a>
+                </a>""" if telefono.telefono else ''}
 
                 {whatsapp_html}
 
                 <button
                     onclick="copyToClipboard('{telefono.telefono}')"
-                    class="tooltip"
+                    class="tooltip cursor-pointer"
                     data-tip="Copiar"
                     type="button"
                 >

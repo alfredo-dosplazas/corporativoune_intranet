@@ -15,9 +15,20 @@ class EmailContactoFormset(BaseInlineFormSet):
             if not form.cleaned_data.get("DELETE", False)
         ]
 
+        slack = [
+            form.cleaned_data.get("es_slack")
+            for form in self.forms
+            if not form.cleaned_data.get("DELETE", False)
+        ]
+
         if principales.count(True) > 1:
             raise ValidationError(
                 "Solo puede existir un correo principal."
+            )
+
+        if slack.count(True) > 1:
+            raise ValidationError(
+                "Solo puede existir un correo registrado en Slack."
             )
 
 

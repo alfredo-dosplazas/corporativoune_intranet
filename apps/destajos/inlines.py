@@ -5,7 +5,8 @@ from apps.destajos.forms.contratistas import PrecioForm
 from apps.destajos.forms.destajos import DestajoForm, DestajoDetalleForm
 from apps.destajos.forms.estructuras import EstructuraTrabajoForm
 from apps.destajos.forms.paquetes import TrabajoForm
-from apps.destajos.models import Contratista, PrecioContratista, Trabajo, EstructuraTrabajo, DestajoDetalle
+from apps.destajos.models import Contratista, PrecioContratista, Trabajo, EstructuraTrabajo, DestajoDetalle, \
+    EstadoTrabajoVivienda
 
 
 class TrabajoInline(InlineFormSetFactory):
@@ -52,4 +53,13 @@ class DestajoDetalleInline(InlineFormSetFactory):
         'extra': 1,
         'min_num': 1,
         'validate_min': True,
+    }
+
+
+class EstadoTrabajoViviendaInline(InlineFormSetFactory):
+    model = EstadoTrabajoVivienda
+    fields = ['estado']
+    factory_kwargs = {
+        'can_delete': False,
+        'extra': 0,
     }

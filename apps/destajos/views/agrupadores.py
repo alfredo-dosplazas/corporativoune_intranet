@@ -63,6 +63,7 @@ class AgrupadorDetailView(PermissionRequiredMixin, BreadcrumbsMixin, DetailView)
         )
 
         context['viviendas'] = viviendas
+        context['obra'] = self.obra
 
         return context
 
@@ -72,7 +73,7 @@ class AgrupadorDetailView(PermissionRequiredMixin, BreadcrumbsMixin, DetailView)
             {'title': 'Destajos', 'url': reverse('destajos:index')},
             {'title': 'Obras', 'url': reverse('destajos:obras__list')},
             {'title': self.obra, 'url': reverse('destajos:obras__detail', args=(self.obra.pk,))},
-            {'title': self.get_object()},
+            {'title': f"{self.get_object().tipo.codigo}-{self.get_object().numero}"},
         ]
 
 
@@ -190,7 +191,7 @@ class AvancesViviendaView(
                 )
             },
             {
-                'title': self.get_object(),
+                'title': f"{self.get_object().tipo.codigo}-{self.get_object().numero}",
                 'url': reverse('destajos:obras__agrupador__detail', args=(self.obra.pk, self.get_object().pk))
             },
             {'title': 'Avances por viviendas'},

@@ -172,7 +172,6 @@ class Contratista(models.Model):
     correo_electronico = models.EmailField(blank=True, null=True, verbose_name='Correo electrónico')
     telefono = models.CharField(max_length=11, blank=True, null=True, verbose_name='Teléfono')
 
-
     def __str__(self):
         return self.nombre
 
@@ -246,6 +245,42 @@ class Obra(models.Model):
     razon_social = models.ForeignKey(RazonSocial, on_delete=models.CASCADE, related_name='obras')
     direccion = models.TextField(blank=True, null=True)
 
+    @property
+    def total_viviendas(self):
+        return Vivienda.objects.filter(agrupador__obra=self).distinct().count()
+
+    @property
+    def viviendas_completadas(self):
+        viviendas = Vivienda.objects.filter(
+            agrupador__obra=self
+        )
+        viviendas_completadas = []
+
+        for v in viviendas:
+            if v.esta_completa:
+                viviendas_completadas.append(v)
+        return viviendas_completadas
+
+    @property
+    def viviendas_por_ejecutar(self):
+        viviendas = Vivienda.objects.filter(
+            agrupador__obra=self
+        )
+        viviendas_por_ejecutar = []
+
+        for v in viviendas:
+            if not v.esta_completa:
+                viviendas_por_ejecutar.append(v)
+        return viviendas_por_ejecutar
+
+    @property
+    def avance_porcentaje(self):
+        return len(self.viviendas_completadas) / self.total_viviendas
+
+    @property
+    def por_ejecutar_porcentaje(self):
+        return 1 - self.avance_porcentaje
+
     def __str__(self):
         return f"{self.nombre} | {self.etapa}"
 
@@ -283,6 +318,18 @@ class Agrupador(models.Model):
     class Meta:
         unique_together = ("obra", "tipo", "numero")
         ordering = ["tipo__nombre", "numero"]
+
+    @property
+    def viviendas_completadas(self):
+        viviendas = Vivienda.objects.filter(
+            agrupador=self
+        )
+        viviendas_completadas = []
+
+        for v in viviendas:
+            if v.esta_completa:
+                viviendas_completadas.append(v)
+        return viviendas_completadas
 
     def generar_viviendas(self, overwrite=False):
         with transaction.atomic():

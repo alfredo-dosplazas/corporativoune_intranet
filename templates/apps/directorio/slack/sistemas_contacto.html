@@ -1,0 +1,32 @@
+{% if es_nuevo %}
+    :large_green_circle: *ALTA DE COLABORADOR*
+{% elif es_baja %}
+    :red_circle: *BAJA DE COLABORADOR*
+{% else %}
+    :large_blue_circle: *ACTUALIZACIÓN DE COLABORADOR*
+{% endif %}
+
+*Nombre:* {{ nombre_completo }}
+{% if numero_empleado %}*No. Empleado:* {{ numero_empleado }}{% endif %}
+
+{% if email_principal %}
+    *Email Principal:* {{ email_principal }}
+{% endif %}
+
+{% if es_baja %}
+    *Fecha de egreso:* {{ fecha_egreso }}
+    :warning: Proceder con baja de accesos.
+{% endif %}
+
+{% if cambios and not es_baja %}
+    *Cambios detectados:*
+    {% for campo, valores in cambios.items %}
+        • *{{ campo|title }}*:
+        _Antes:_ {{ valores.antes|default:"—" }}
+        _Ahora:_ {{ valores.despues|default:"—" }}
+    {% endfor %}
+{% endif %}
+
+{% if detalle_url %}
+    :link: <{{ detalle_url }}|Ver detalle del contacto>
+{% endif %}

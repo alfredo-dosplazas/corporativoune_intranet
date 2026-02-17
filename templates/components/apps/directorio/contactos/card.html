@@ -89,53 +89,61 @@
 
                     <button
                             onclick="copyToClipboard('{{ contacto.email_principal.email }}')"
-                            class="opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                             type="button"
+                            class="tooltip"
+                            data-tip="Copiar"
                     >
-                        <span class="icon-[mdi--content-copy]"></span>
+                        <span class="icon-[mdi--content-copy] text-base-content/50 hover:text-primary"></span>
                     </button>
                 </div>
             {% endif %}
 
 
             {% for telefono in contacto.telefonos.all %}
-                <div class="flex items-center justify-between group">
+                {% if telefono.esta_activo %}
+                    <div class="flex items-center justify-between group">
 
-                    <div class="flex items-center gap-2">
-                        <span class="icon-[material-symbols--call-outline] text-primary"></span>
-                        <a href="tel:{{ telefono.telefono }}">
-                            {{ telefono.telefono|phone_format }}
-                        </a>
-                    </div>
-
-                    <div class="flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition">
-
-                        <a href="tel:{{ telefono.telefono }}"
-                           class="tooltip"
-                           data-tip="Llamar">
-                            <span class="icon-[mdi--phone] text-base-content/60 hover:text-primary"></span>
-                        </a>
-
-                        {% if telefono.es_celular %}
-                            <a target="_blank"
-                               href="{{ telefono.whatsapp }}"
-                               class="tooltip"
-                               data-tip="WhatsApp">
-                                <span class="icon-[logos--whatsapp-icon] text-green-500"></span>
+                        <div class="flex items-center gap-2">
+                            <span class="icon-[material-symbols--call-outline] text-primary"></span>
+                            <a href="{% if telefono.telefono %}tel:{{ telefono.telefono }}{% else %}#{% endif %}">
+                                {{ telefono.telefono|phone_format }}
+                                {% if telefono.extension %}
+                                    ext. {{ telefono.extension }}
+                                {% endif %}
                             </a>
-                        {% endif %}
+                        </div>
 
-                        <button
-                                onclick="copyToClipboard('{{ telefono.telefono }}')"
-                                type="button"
-                                class="tooltip"
-                                data-tip="Copiar"
-                        >
-                            <span class="icon-[mdi--content-copy] text-base-content/50 hover:text-primary"></span>
-                        </button>
+                        <div class="flex items-center gap-2">
 
+                            {% if telefono.telefono %}
+                                <a href="tel:{{ telefono.telefono }}"
+                                   class="tooltip"
+                                   data-tip="Llamar">
+                                    <span class="icon-[mdi--phone] text-base-content/60 hover:text-primary"></span>
+                                </a>
+                            {% endif %}
+
+                            {% if telefono.es_celular %}
+                                <a target="_blank"
+                                   href="{{ telefono.whatsapp }}"
+                                   class="tooltip"
+                                   data-tip="WhatsApp">
+                                    <span class="icon-[logos--whatsapp-icon] text-green-500"></span>
+                                </a>
+                            {% endif %}
+
+                            <button
+                                    onclick="copyToClipboard('{{ telefono.telefono }}')"
+                                    type="button"
+                                    class="tooltip"
+                                    data-tip="Copiar"
+                            >
+                                <span class="icon-[mdi--content-copy] text-base-content/50 hover:text-primary"></span>
+                            </button>
+
+                        </div>
                     </div>
-                </div>
+                {% endif %}
             {% endfor %}
 
 

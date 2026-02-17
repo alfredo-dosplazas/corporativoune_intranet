@@ -5,6 +5,28 @@
             <!-- START -->
             <div class="justify-self-start">
                 <h1 class="text-primary font-bold text-xl flex items-center gap-2">{{ contacto }}</h1>
+
+                <div class="flex items-center justify-between">
+                    <div class="flex gap-2">
+                        {% if contacto.fecha_egreso %}
+                            <span class="badge badge-error">
+                                Baja
+                            </span>
+                        {% endif %}
+
+                        {% if contacto.esta_archivado %}
+                            <span class="badge badge-warning">
+                                Archivado
+                            </span>
+                        {% endif %}
+
+                        {% if contacto.es_jefe %}
+                            <span class="badge badge-info">
+                                Jefe
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
 
             <!-- MIDDLE -->

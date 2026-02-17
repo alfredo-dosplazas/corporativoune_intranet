@@ -20,6 +20,9 @@ def enviar_slack_task(
 
         if template_name:
             mensaje = render_to_string(template_name, context or {})
+            mensaje = "\n".join(
+                line for line in mensaje.splitlines() if line.strip()
+            )
 
         if not mensaje:
             raise ValueError("Debe proporcionarse mensaje o template_name")

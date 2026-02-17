@@ -1,3 +1,4 @@
+{% load money %}
 <c-layouts.app>
     <c-slot name="header">
         <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
@@ -19,6 +20,35 @@
 
         </div>
     </c-slot>
+
+    <div class="stats bg-base-100 shadow mb-4">
+        <div class="stat">
+            <div class="stat-figure text-primary">
+                <span class="icon-[ph--house-line] size-10"></span>
+            </div>
+            <div class="stat-title">Viviendas</div>
+            <div class="stat-value text-primary">{{ obra.total_viviendas|default:0 }}</div>
+            <div class="stat-desc">Número total de viviendas a construir</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-figure text-primary">
+                <span class="icon-[gg--trending] size-10"></span>
+            </div>
+            <div class="stat-title">Avance de Edificación</div>
+            <div class="stat-value text-primary">{{ obra.avance_porcentaje|default:0|percent }}</div>
+            <div class="stat-desc">{{ obra.viviendas_completadas|length }} vivienda(s) completadas</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-figure text-secondary">
+                <span class="icon-[mdi--clock] size-10"></span>
+            </div>
+            <div class="stat-title">Por ejecutar</div>
+            <div class="stat-value text-secondary">{{ obra.por_ejecutar_porcentaje|default:0|percent }}</div>
+            <div class="stat-desc">{{ obra.viviendas_por_ejecutar|length }} vivienda(s) por ejecutar</div>
+        </div>
+    </div>
 
     <!-- INFO OBRA -->
     <div class="card bg-base-100 shadow mb-6">
@@ -56,7 +86,7 @@
                                 <td>{{ a.tipo.codigo }}-{{ a.numero }}</td>
                                 <td>{{ a.estructura }}</td>
                                 <td>
-                                    {{ a.viviendas.count }}
+                                    {{ a.viviendas_completadas|length }}
                                     / {{ a.cantidad_viviendas }}
                                 </td>
                                 <td class="text-right">

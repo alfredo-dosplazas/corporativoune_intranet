@@ -1,10 +1,10 @@
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Row, Column
+from crispy_forms.layout import Layout, Row, Column, HTML
 from dal import autocomplete
 from django import forms
 
 from apps.core.models import Empresa
-from apps.directorio.models import Contacto, Sede, EmailContacto
+from apps.directorio.models import Contacto, Sede
 from apps.directorio.utils import es_frescopack
 from apps.rrhh.models.areas import Area
 from apps.rrhh.models.puestos import Puesto
@@ -17,7 +17,7 @@ class ContactoForm(forms.ModelForm):
         widgets = {
             'area': autocomplete.ModelSelect2(url='rrhh:areas__autocomplete', forward=['empresa']),
             'puesto': autocomplete.ModelSelect2(url='rrhh:puestos__autocomplete', forward=['empresa']),
-            'jefe_directo': autocomplete.ModelSelect2(url='directorio:autocomplete'),
+            'jefe_directo': autocomplete.ModelSelect2(url='directorio:jefe__autocomplete', forward=['empresa']),
             'fecha_nacimiento': forms.TextInput(attrs={'type': 'date'}),
             'fecha_ingreso': forms.TextInput(attrs={'type': 'date'}),
             'fecha_egreso': forms.TextInput(attrs={'type': 'date'}),
@@ -44,23 +44,21 @@ class ContactoForm(forms.ModelForm):
             self.fields["empresa"].disabled = True
             self.fields["sede_administrativa"].disabled = True
 
-    def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop("user", None)
-
-        super().__init__(*args, **kwargs)
-
-        self.helper = FormHelper()
-        self.helper.form_id = 'contacto-form'
-        self.helper.attrs = {'novalidate': 'novalidate'}
-        self.helper.include_media = False
-        self.helper.form_tag = False
-
-        if self.instance.slack_id:
-            self.fields["email_slack"].help_text += f" (ID Slack: {self.instance.slack_id})"
-
-        self._configurar_frescopack()
-
+    def _construir_layout(self):
         self.helper.layout = Layout(
+
+            # ======================
+            # IDENTIDAD
+            # ======================
+            HTML("""
+                <div class="border-b pb-2 mb-4">
+                    <h3 class="text-base font-semibold flex items-center gap-2">
+                        <span class="icon-[mdi--account]"></span>
+                        Identidad
+                    </h3>
+                </div>
+            """),
+
             Row(
                 Column('foto', css_class='md:w-1/4'),
                 Column(
@@ -72,13 +70,24 @@ class ContactoForm(forms.ModelForm):
                         Column('primer_apellido'),
                         Column('segundo_apellido'),
                     ),
+                    Row(
+                        Column('numero_empleado', css_class='md:w-1/3'),
+                    ),
                     css_class='md:w-3/4'
                 ),
             ),
 
-            Row(
-                Column('numero_empleado', css_class='md:w-1/4'),
-            ),
+            # ======================
+            # ORGANIZACIÓN
+            # ======================
+            HTML("""
+                <div class="border-b pb-2 mt-8 mb-4">
+                    <h3 class="text-base font-semibold flex items-center gap-2">
+                        <span class="icon-[mdi--office-building]"></span>
+                        Organización
+                    </h3>
+                </div>
+            """),
 
             Row(
                 Column('empresa'),
@@ -91,22 +100,59 @@ class ContactoForm(forms.ModelForm):
                 Column('jefe_directo'),
             ),
 
+            Column('empresas_relacionadas'),
+
+            # ======================
+            # FECHAS
+            # ======================
+            HTML("""
+                <div class="border-b pb-2 mt-8 mb-4">
+                    <h3 class="text-base font-semibold flex items-center gap-2">
+                        <span class="icon-[mdi--calendar]"></span>
+                        Fechas
+                    </h3>
+                </div>
+            """),
+
             Row(
                 Column('fecha_nacimiento'),
             ),
+
             Row(
                 Column('fecha_ingreso'),
                 Column('fecha_egreso'),
             ),
 
-            Row(
-                Column('email_slack', css_class='col md:col-6')
-            ),
+            # ======================
+            # CONFIGURACIÓN
+            # ======================
+            HTML("""
+                <div class="border-b pb-2 mt-8 mb-4">
+                    <h3 class="text-base font-semibold flex items-center gap-2">
+                        <span class="icon-[mdi--cog]"></span>
+                        Configuración
+                    </h3>
+                </div>
+            """),
 
             Row(
-                Column('mostrar_en_directorio', css_class='col md:col-3'),
-                Column('mostrar_en_cumpleanios', css_class='col md:col-3'),
+                Column('esta_archivado'),
+                Column('es_jefe'),
+                Column('mostrar_en_directorio'),
+                Column('mostrar_en_cumpleanios'),
             ),
-
-            Column('empresas_relacionadas'),
         )
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
+
+        super().__init__(*args, **kwargs)
+
+        self.helper = FormHelper()
+        self.helper.form_id = 'contacto-form'
+        self.helper.attrs = {'novalidate': 'novalidate'}
+        self.helper.include_media = False
+        self.helper.form_tag = False
+
+        self._configurar_frescopack()
+        self._construir_layout()

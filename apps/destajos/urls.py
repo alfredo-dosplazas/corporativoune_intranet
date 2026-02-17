@@ -15,6 +15,7 @@ from apps.destajos.views.lista_precios import ListaPrecioListView
 from apps.destajos.views.obras import ObraListView, ObraCreateView, ObraUpdateView, ObraDetailView, ObraDeleteView
 from apps.destajos.views.paquetes import PaqueteListView, PaqueteCreateView, PaqueteUpdateView, PaqueteDetailView, \
     PaqueteDeleteView
+from apps.destajos.views.viviendas import ViviendaDetailView, ViviendaUpdateView
 
 app_name = 'destajos'
 
@@ -85,6 +86,16 @@ obras_urlpatterns = [
         'obras/detalle/<int:obra_pk>/agrupador/<int:pk>/avances/',
         AvancesViviendaView.as_view(),
         name='obras__agrupador__avances'
+    ),
+    path(
+        'obras/detalle/<int:obra_pk>/agrupador/<int:agrupador_pk>/viviendas/detalle/<int:pk>/',
+        ViviendaDetailView.as_view(),
+        name='obras__agrupador__viviendas__detail'
+    ),
+    path(
+        'obras/detalle/<int:obra_pk>/agrupador/<int:agrupador_pk>/viviendas/editar/<int:pk>/',
+        ViviendaUpdateView.as_view(),
+        name='obras__agrupador__viviendas__update'
     )
 ]
 

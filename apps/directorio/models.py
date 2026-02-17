@@ -2,6 +2,7 @@ import os
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from apps.core.models import Empresa
@@ -25,6 +26,14 @@ class EmailContacto(models.Model):
     email = models.EmailField()
     es_principal = models.BooleanField(default=False)
     esta_activo = models.BooleanField(default=False)
+    es_slack = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        if self.contacto.slack_id is None and self.es_slack:
+            self.contacto.slack_id = SlackClient().get_slack_id_by_email(self.email)
+            self.contacto.save(update_fields=["slack_id"])
+
+        return super().save()
 
     class Meta:
         unique_together = ("contacto", "email")
@@ -34,7 +43,7 @@ class TelefonoContacto(models.Model):
     contacto = models.ForeignKey(
         "Contacto", on_delete=models.CASCADE, related_name="telefonos"
     )
-    telefono = models.CharField(max_length=11)
+    telefono = models.CharField(max_length=11, blank=True, default='')
     extension = models.PositiveIntegerField(blank=True, null=True)
     es_principal = models.BooleanField(default=False)
     esta_activo = models.BooleanField(default=False)
@@ -55,13 +64,13 @@ class Contacto(models.Model):
 
     numero_empleado = models.CharField(
         max_length=255, blank=True, null=True, unique=True,
-        verbose_name='Número De Empleado'
+        verbose_name='Número de Empleado'
     )
 
-    primer_nombre = models.CharField(max_length=50)
-    segundo_nombre = models.CharField(max_length=50, blank=True, null=True)
-    primer_apellido = models.CharField(max_length=50)
-    segundo_apellido = models.CharField(max_length=50, blank=True, null=True)
+    primer_nombre = models.CharField(max_length=50, verbose_name='Primer Nombre')
+    segundo_nombre = models.CharField(max_length=50, blank=True, null=True, verbose_name='Segundo Nombre')
+    primer_apellido = models.CharField(max_length=50, verbose_name='Primer Apellido')
+    segundo_apellido = models.CharField(max_length=50, blank=True, null=True, verbose_name='Segundo Apellido')
 
     empresa = models.ForeignKey(
         Empresa,
@@ -82,6 +91,7 @@ class Contacto(models.Model):
         on_delete=models.PROTECT,
         related_name="contactos_administrados",
         help_text="Sede responsable del alta y gestión del contacto",
+        verbose_name='Sede Administrativa',
     )
 
     # DONDE APARECE
@@ -92,12 +102,15 @@ class Contacto(models.Model):
         help_text="Sedes donde este contacto aparece en el directorio"
     )
 
+    es_jefe = models.BooleanField(default=False, verbose_name="Es jefe")
+
     jefe_directo = models.ForeignKey(
         "Contacto",
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
         related_name="a_cargo_de",
+        verbose_name='Jefe Directo',
     )
 
     area = models.ForeignKey(
@@ -114,18 +127,23 @@ class Contacto(models.Model):
         related_name='contactos',
     )
 
-    fecha_nacimiento = models.DateField(blank=True, null=True)
+    fecha_nacimiento = models.DateField(blank=True, null=True, verbose_name='Fecha de Nacimiento')
 
-    fecha_ingreso = models.DateField(blank=True, null=True)
-    fecha_egreso = models.DateField(blank=True, null=True)
+    fecha_ingreso = models.DateField(blank=True, null=True, verbose_name='Fecha de Ingreso')
+    fecha_egreso = models.DateField(blank=True, null=True, verbose_name='Fecha de Egreso')
 
-    email_slack = models.EmailField(
-        blank=True, null=True, help_text="Correo Electrónico registrado en Slack."
+    slack_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Slack ID",
+        help_text="ID interno del usuario en Slack (no es el correo)."
     )
-    slack_id = models.CharField(max_length=255, blank=True, null=True)
 
     mostrar_en_directorio = models.BooleanField(default=True, verbose_name='Mostrar en Directorio')
     mostrar_en_cumpleanios = models.BooleanField(default=True, verbose_name='Mostrar en Cumpleaños')
+
+    esta_archivado = models.BooleanField(default=False, verbose_name='Contacto archivado')
 
     @property
     def iniciales(self):
@@ -189,9 +207,21 @@ class Contacto(models.Model):
             'sede_administrativa': self.sede_administrativa.nombre if self.sede_administrativa else None,
             'email_principal': self.email_principal.email if self.email_principal else None,
             'telefono_principal': self.telefono_principal.telefono if self.telefono_principal else None,
-            'telefono_principal__extension': self.telefono_principal.extension if self.telefono_principal else None
-
+            'telefono_principal__extension': self.telefono_principal.extension if self.telefono_principal else None,
+            'fecha_ingreso': self.fecha_ingreso,
+            'fecha_egreso': self.fecha_egreso,
         }
+
+    def clean(self):
+        errors = {}
+
+        if self.fecha_ingreso and self.fecha_egreso:
+            if self.fecha_ingreso > self.fecha_egreso:
+                errors['fecha_ingreso'] = "Debe ser menor o igual a la fecha de egreso."
+                errors['fecha_egreso'] = "Debe ser mayor o igual a la fecha de ingreso."
+
+        if errors:
+            raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
         if not self.empresa_id:
@@ -205,9 +235,6 @@ class Contacto(models.Model):
 
         if not self.puesto_id:
             self.puesto = Puesto.get_default()
-
-        if self.slack_id is None and self.email_slack:
-            self.slack_id = SlackClient().get_slack_id_by_email(self.email_slack)
 
         super().save(*args, **kwargs)
 

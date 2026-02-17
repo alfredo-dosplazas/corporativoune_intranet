@@ -18,9 +18,11 @@
                     <td style="border-bottom: 1px solid #e5e7eb;">
                         <h2 style="margin: 0; color: #1f2937;">
                             {% if es_nuevo %}
-                                Nuevo Contacto Creado
+                                Nuevo Colaborador - Alta
+                            {% elif es_baja %}
+                                Baja de Colaborador
                             {% else %}
-                                Contacto actualizado
+                                Actualización de Colaborador
                             {% endif %}
                         </h2>
                         <p style="margin: 5px 0 0; color: #6b7280;">
@@ -43,36 +45,69 @@
                             <p><strong>No. Empleado:</strong> {{ numero_empleado }}</p>
                         {% endif %}
 
-                        {% if empresa %}
-                            <p><strong>Empresa:</strong> {{ empresa }}</p>
-                        {% endif %}
+                        {% if es_nuevo %}
+                            <h3>Datos para alta en sistemas:</h3>
 
-                        {% if area %}
-                            <p><strong>Área:</strong> {{ area }}</p>
-                        {% endif %}
+                            {% if empresa %}
+                                <p><strong>Empresa:</strong> {{ empresa }}</p>
+                            {% endif %}
 
-                        {% if puesto %}
-                            <p><strong>Puesto:</strong> {{ puesto }}</p>
-                        {% endif %}
+                            {% if area %}
+                                <p><strong>Área:</strong> {{ area }}</p>
+                            {% endif %}
 
-                        {% if sede_administrativa %}
-                            <p><strong>Sede Administrativa:</strong> {{ sede_administrativa }}</p>
+                            {% if puesto %}
+                                <p><strong>Puesto:</strong> {{ puesto }}</p>
+                            {% endif %}
+
+                            {% if sede_administrativa %}
+                                <p><strong>Sede Administrativa:</strong> {{ sede_administrativa }}</p>
+                            {% endif %}
                         {% endif %}
 
                         {% if email_principal %}
-                            <p><strong>Email Principal:</strong> {{ email_principal.email }}</p>
+                            <p><strong>Email Principal:</strong> {{ email_principal }}</p>
                         {% endif %}
 
-                        {% if telefono_principal %}
-                            <p>
-                                <strong>Teléfono Principal:</strong>
-                                {{ telefono_principal.telefono }}
-                                {% if telefono_principal__extension %}
-                                    Ext. {{ telefono_principal__extension }}
-                                {% endif %}
-                            </p>
+                        {% if es_baja %}
+                            <div style="color: #b91c1c;">
+                                <strong>Este colaborador ha sido dado de baja.</strong>
+                                <p><strong>Fecha de egreso:</strong> {{ fecha_egreso }}</p>
+                                <p>Favor de proceder con la baja de accesos y sistemas.</p>
+                            </div>
                         {% endif %}
 
+                        {% if cambios and not es_baja %}
+                            <h3>Cambios detectados:</h3>
+
+                            <ul>
+                                {% for campo, valores in cambios.items %}
+                                    <li>
+                                        <strong>{{ campo|title }}</strong><br>
+                                        Antes: {{ valores.antes|default:"—" }}<br>
+                                        Ahora: {{ valores.despues|default:"—" }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding-top: 20px;">
+                        <a href="{{ detalle_url }}"
+                           style="
+                               display: inline-block;
+                               padding: 10px 18px;
+                               background-color: #2563eb;
+                               color: #ffffff;
+                               text-decoration: none;
+                               border-radius: 6px;
+                               font-weight: bold;
+                           ">
+                            Ver detalle del contacto
+                        </a>
                     </td>
                 </tr>
 

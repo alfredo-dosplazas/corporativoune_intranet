@@ -9,6 +9,7 @@
                 <h1 class="text-primary text-xl font-bold leading-tight">
                     {{ contacto.nombre_completo }}
                 </h1>
+
                 <p class="text-sm opacity-70">
                     Perfil del contacto
                 </p>
@@ -80,6 +81,28 @@
                         {{ contacto.nombre_completo }}
                     </h2>
 
+                    <div class="flex items-center justify-between">
+                        <div class="flex gap-2">
+                            {% if contacto.fecha_egreso %}
+                                <span class="badge badge-error">
+                                Baja
+                            </span>
+                            {% endif %}
+
+                            {% if contacto.esta_archivado %}
+                                <span class="badge badge-warning">
+                                Archivado
+                            </span>
+                            {% endif %}
+
+                            {% if contacto.es_jefe %}
+                                <span class="badge badge-info">
+                                Jefe
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
                     {% if contacto.numero_empleado %}
                         <p class="text-sm opacity-60">
                             No. empleado {{ contacto.numero_empleado }}
@@ -140,8 +163,7 @@
                             </div>
 
                             <button
-                                    class="opacity-100 sm:opacity-0 sm:group-hover:opacity-100
-                                       transition text-base-content/50 hover:text-primary tooltip"
+                                    class="text-base-content/50 hover:text-primary tooltip"
                                     data-tip="Copiar"
                                     onclick="copyToClipboard('{{ email.email }}')"
                                     type="button">
@@ -151,43 +173,44 @@
                     {% endfor %}
 
                     {% for tel in contacto.telefonos.all %}
-                        <div class="flex items-center justify-between gap-3 group">
-                            <div class="flex items-center gap-3 min-w-0 opacity-80">
-                                <span class="{% if tel.es_celular %}icon-[mdi--mobile-phone]{% else %}icon-[material-symbols--call-outline]{% endif %} shrink-0"></span>
-                                <a href="tel:{{ tel.telefono }}">
-                                    {{ tel.telefono|phone_format }}
-                                    {% if tel.extension %} ext. {{ tel.extension }}{% endif %}
-                                </a>
-                            </div>
-
-                            <div class="flex gap-3">
-                                <a href="tel:{{ tel.telefono }}"
-                                   class="opacity-100 sm:opacity-0 sm:group-hover:opacity-100
-                                       transition text-base-content/50 hover:text-primary tooltip"
-                                   data-tip="Llamar">
-                                    <span class="icon-[mdi--phone] text-base-content/60 hover:text-primary"></span>
-                                </a>
-
-                                {% if tel.es_celular %}
-                                    <a target="_blank"
-                                       href="{{ tel.whatsapp }}"
-                                       class="opacity-100 sm:opacity-0 sm:group-hover:opacity-100
-                                       transition text-base-content/50 hover:text-primary tooltip"
-                                       data-tip="WhatsApp">
-                                        <span class="icon-[logos--whatsapp-icon] text-green-500"></span>
+                        {% if tel.esta_activo %}
+                            <div class="flex items-center justify-between gap-3 group">
+                                <div class="flex items-center gap-3 min-w-0 opacity-80">
+                                    <span class="{% if tel.es_celular %}icon-[mdi--mobile-phone]{% else %}icon-[material-symbols--call-outline]{% endif %} shrink-0"></span>
+                                    <a href="{% if tel.telefono %}tel:{{ tel.telefono }}{% else %}#{% endif %}">
+                                        {{ tel.telefono|phone_format }}
+                                        {% if tel.extension %} ext. {{ tel.extension }}{% endif %}
                                     </a>
-                                {% endif %}
+                                </div>
 
-                                <button
-                                        class="opacity-100 sm:opacity-0 sm:group-hover:opacity-100
-                                       transition text-base-content/50 hover:text-primary tooltip"
-                                        data-tip="Copiar"
-                                        onclick="copyToClipboard('{{ tel.telefono }}')"
-                                        type="button">
-                                    <span class="icon-[mdi--content-copy]"></span>
-                                </button>
+                                <div class="flex gap-3">
+                                    {% if tel.telefono %}
+                                        <a href="tel:{{ tel.telefono }}"
+                                           class="text-base-content/50 hover:text-primary tooltip"
+                                           data-tip="Llamar">
+                                            <span class="icon-[mdi--phone] text-base-content/60 hover:text-primary"></span>
+                                        </a>
+                                    {% endif %}
+
+                                    {% if tel.es_celular %}
+                                        <a target="_blank"
+                                           href="{{ tel.whatsapp }}"
+                                           class="text-base-content/50 hover:text-primary tooltip"
+                                           data-tip="WhatsApp">
+                                            <span class="icon-[logos--whatsapp-icon] text-green-500"></span>
+                                        </a>
+                                    {% endif %}
+
+                                    <button
+                                            class="text-base-content/50 hover:text-primary tooltip"
+                                            data-tip="Copiar"
+                                            onclick="copyToClipboard('{{ tel.telefono }}')"
+                                            type="button">
+                                        <span class="icon-[mdi--content-copy]"></span>
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        {% endif %}
                     {% endfor %}
 
                     {% if not contacto.emails.exists and not contacto.telefonos.exists %}

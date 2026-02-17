@@ -4,7 +4,7 @@ from django.db.models import Q
 from django.http import HttpResponseForbidden
 from django.shortcuts import redirect
 from django.urls import reverse
-from django.views.generic import DetailView, DeleteView
+from django.views.generic import DetailView, DeleteView, UpdateView
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin
 from extra_views import SearchableListMixin, CreateWithInlinesView, NamedFormsetsMixin, UpdateWithInlinesView
@@ -94,14 +94,14 @@ class DirectorioListView(BreadcrumbsMixin, SearchableListMixin, SingleTableMixin
 
             # Filtrado de vista en directorio
             if not (user.has_perm('directorio.change_contacto') or user.has_perm('directorio.delete_contacto')):
-                qs = qs.filter(mostrar_en_directorio=True)
+                qs = qs.filter(mostrar_en_directorio=True, fecha_egreso__isnull=True, esta_archivado=False)
         else:
             if sede:
                 qs = qs.filter(
                     Q(sede_administrativa=sede) |
                     Q(sedes_visibles=sede)
                 )
-            qs = qs.filter(mostrar_en_directorio=True)
+            qs = qs.filter(mostrar_en_directorio=True, fecha_egreso__isnull=True, esta_archivado=False)
 
         return qs.distinct()
 
@@ -140,12 +140,15 @@ class ContactoCreateView(
             context = {
                 **self.object.json(),
                 'es_nuevo': True,
+                'detalle_url': self.request.build_absolute_uri(
+                    reverse('directorio:detail', args=[self.object.pk])
+                )
             }
             notificar_soporte(
                 empresa,
                 'Nuevo Contacto Directorio',
                 template_name_email='apps/directorio/emails/sistemas_contacto.html',
-                template_name_slack='apps/directorio/slack/sistemas_contacto.txt',
+                template_name_slack='apps/directorio/slack/sistemas_contacto.html',
                 context=context,
             )
 
@@ -182,24 +185,52 @@ class ContactoUpdateView(
     inlines = [EmailContactoInline, TelefonoContactoInline]
     inlines_names = ['Email', 'Telefono']
 
+    def _detectar_cambios(self, anteriores, nuevos):
+        cambios = {}
+
+        for key, valor_nuevo in nuevos.items():
+            valor_anterior = anteriores.get(key)
+
+            if valor_anterior != valor_nuevo:
+                cambios[key] = {
+                    "antes": valor_anterior,
+                    "despues": valor_nuevo
+                }
+
+        return cambios
+
     def forms_valid(self, form, inlines):
         user = self.request.user
         empresa = getattr(user.contacto, 'empresa', None)
 
+        contacto_anterior = Contacto.objects.get(pk=self.get_object().pk)
+        datos_anteriores = contacto_anterior.json()
+
         response = super().forms_valid(form, inlines)
+
+        contacto_actual = self.get_object()
+        datos_nuevos = contacto_actual.json()
 
         accion = self.request.POST.get("accion")
 
         if accion == "notificar":
+            cambios = self._detectar_cambios(datos_anteriores, datos_nuevos)
+
             context = {
-                **self.get_object().json(),
+                **datos_nuevos,
                 'es_nuevo': False,
+                'es_baja': contacto_actual.fecha_egreso is not None,
+                'cambios': cambios,
+                'detalle_url': self.request.build_absolute_uri(
+                    reverse('directorio:detail', args=[contacto_actual.pk])
+                )
             }
+
             notificar_soporte(
                 empresa,
                 'Contacto Actualizado Directorio',
                 template_name_email='apps/directorio/emails/sistemas_contacto.html',
-                template_name_slack='apps/directorio/slack/sistemas_contacto.txt',
+                template_name_slack='apps/directorio/slack/sistemas_contacto.html',
                 context=context,
             )
 
@@ -252,10 +283,20 @@ class ContactoDetailView(BreadcrumbsMixin, DetailView):
         ]
 
 
-class ContactoDeleteView(PermissionRequiredMixin, SuccessMessageMixin, DeleteView):
-    permission_required = ['directorio.delete_contacto']
+class ContactoArchivarView(PermissionRequiredMixin, SuccessMessageMixin, UpdateView):
+    permission_required = ['directorio.change_contacto']
     model = Contacto
-    success_message = 'Contacto eliminado correctamente'
+    fields = []
+
+    def get_success_message(self, cleaned_data):
+        contacto = self.get_object()
+        return f'Contacto {'desarchivado' if contacto.esta_archivado else 'archivado'} correctamente'
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        form.instance.esta_archivado = not form.instance.esta_archivado
+        form.instance.save(update_fields=['esta_archivado'])
+        return response
 
     def dispatch(self, request, *args, **kwargs):
         if not puede_eliminar_contacto(request.user, self.get_object()):

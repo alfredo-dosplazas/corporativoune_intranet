@@ -44,7 +44,7 @@ def puede_ver_contacto(user, contacto, request):
             )
     )
 
-    if not contacto.mostrar_en_directorio:
+    if not contacto.mostrar_en_directorio or not contacto.esta_archivado:
         puede_ver = (
                 puede_ver and user.has_perm("directorio.change_contacto") or user.has_perm("directorio_delete_contacto")
         )

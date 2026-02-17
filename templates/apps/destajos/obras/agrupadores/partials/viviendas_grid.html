@@ -2,7 +2,7 @@
 
     {% for vivienda in viviendas %}
         {% with pct=vivienda.porcentaje_completado %}
-            <a href="#"
+            <a href="{% url 'destajos:obras__agrupador__viviendas__detail' obra.pk agrupador.pk vivienda.pk %}"
                class="group rounded-xl border shadow-sm p-3 text-center transition
                hover:shadow-md hover:-translate-y-0.5
                {% if pct == 100 %}

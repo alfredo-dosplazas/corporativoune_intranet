@@ -61,6 +61,7 @@
                     <tr>
                         <th>Email</th>
                         <th class="text-center">Principal</th>
+                        <th class="text-center">¿Registrado En Slack?</th>
                         <th class="text-center">Activo</th>
                         <th></th>
                     </tr>
@@ -102,6 +103,14 @@
                                         {% render_field email_form.es_principal class+="checkbox checkbox-error" %}
                                     {% else %}
                                         {% render_field email_form.es_principal class+="checkbox checkbox-primary" %}
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-center">
+                                    {% if email_form.es_slack.errors %}
+                                        {% render_field email_form.es_slack class+="checkbox checkbox-error" %}
+                                    {% else %}
+                                        {% render_field email_form.es_slack class+="checkbox checkbox-primary" %}
                                     {% endif %}
                                 </td>
 
@@ -216,7 +225,7 @@
                                     {% endfor %}
                                 </td>
 
-                                <td>
+                                <td class="min-w-[100px]">
                                     {% if telefono_form.extension.errors %}
                                         {% render_field telefono_form.extension class+="w-full input input-error" %}
                                     {% else %}
@@ -294,6 +303,9 @@
             {% render_field Email.empty_form.es_principal class+="checkbox checkbox-primary" %}
         </td>
         <td class="text-center">
+            {% render_field Email.empty_form.es_slack class+="checkbox checkbox-primary" %}
+        </td>
+        <td class="text-center">
             {% render_field Email.empty_form.esta_activo class+="checkbox checkbox-primary" %}
         </td>
         <td class="text-left">
@@ -312,8 +324,14 @@
             {{ Telefono.empty_form.id }}
             {% render_field Telefono.empty_form.telefono class+="w-full input input-bordered" %}
         </td>
+        <td class="min-w-[100px]">
+            {% render_field Telefono.empty_form.extension class+="w-full input input-bordered" %}
+        </td>
         <td class="text-center">
             {% render_field Telefono.empty_form.es_principal class+="checkbox checkbox-primary" %}
+        </td>
+        <td class="text-center">
+            {% render_field Telefono.empty_form.es_celular class+="checkbox checkbox-primary" %}
         </td>
         <td class="text-center">
             {% render_field Telefono.empty_form.esta_activo class+="checkbox checkbox-primary" %}
