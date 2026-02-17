@@ -32,12 +32,16 @@ class HomeView(LoginRequiredMixin, TemplateView):
         for modulo in modulos_visibles_empresa:
             permisos = modulo.permisos.split(',') if modulo.permisos else []
 
+            url = reverse(modulo.url_name) or modulo.url
+            if url is None:
+                url = '#'
+
             if all(user.has_perm(p) for p in permisos):
                 modulos_disponibles.append({
                     "nombre": modulo.nombre,
                     "icono": modulo.icono,
                     "descripcion": modulo.descripcion,
-                    "url": reverse(modulo.url_name),
+                    "url": url,
                 })
 
         context['modulos'] = modulos_disponibles

@@ -138,7 +138,9 @@ class Modulo(models.Model):
     descripcion = models.TextField(blank=True, null=True)
     permisos = models.CharField(max_length=255, blank=True, null=True,
                                 help_text="papeleria.view_requisicion,fotos.view_foto")
-    url_name = models.CharField(max_length=255)
+
+    url_name = models.CharField(max_length=255, blank=True, null=True)
+    url = models.CharField(max_length=255, blank=True, null=True)
 
     es_publico = models.BooleanField(
         default=False,
