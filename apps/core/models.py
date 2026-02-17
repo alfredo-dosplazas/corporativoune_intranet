@@ -3,6 +3,16 @@ import ipaddress
 from django.db import models
 
 
+class Permiso(models.Model):
+    class Meta:
+        managed = False
+        default_permissions = ()
+
+        permissions = (
+            ('acceder_sistema_contratos', 'Acceder al Módulo de Sistema De Contratos'),
+        )
+
+
 class RazonSocial(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     nombre_corto = models.CharField(max_length=100, null=True)
