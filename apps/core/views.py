@@ -32,7 +32,7 @@ class HomeView(LoginRequiredMixin, TemplateView):
         for modulo in modulos_visibles_empresa:
             permisos = modulo.permisos.split(',') if modulo.permisos else []
 
-            url = reverse(modulo.url_name) or modulo.url
+            url = reverse(modulo.url_name) if modulo.url_name else modulo.url
             if url is None:
                 url = '#'
 
