@@ -1,5 +1,7 @@
+from apps.core.models import Empresa
 from apps.core.templatetags.phone_filters import phone_format
 from apps.core.utils.network import get_empresas_from_ip, get_client_ip, get_sede_from_ip
+from apps.rrhh.models.sedes import Sede
 
 
 def puede_editar_contacto(user, contacto):
@@ -40,11 +42,13 @@ def puede_ver_contacto(user, contacto, request):
     puede_ver = (
             user.has_perm("directorio.view_contacto")
             and (
-                    user.contacto.sede_administrativa == contacto.sede_administrativa or user.contacto.sede_administrativa in contacto.sedes_visibles.all()
+                    user.contacto.sede_administrativa == contacto.sede_administrativa
+                    or user.contacto.sede_administrativa in contacto.sedes_visibles.all()
+                    or user.contacto.empresa == contacto.empresa
             )
     )
 
-    if not contacto.mostrar_en_directorio or not contacto.esta_archivado:
+    if not contacto.mostrar_en_directorio or contacto.esta_archivado:
         puede_ver = (
                 puede_ver and user.has_perm("directorio.change_contacto") or user.has_perm("directorio_delete_contacto")
         )
