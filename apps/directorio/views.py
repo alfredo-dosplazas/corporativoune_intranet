@@ -19,6 +19,7 @@ from apps.directorio.helpers import puede_editar_contacto, puede_eliminar_contac
 from apps.directorio.inlines import EmailContactoInline, TelefonoContactoInline
 from apps.directorio.models import Contacto
 from apps.directorio.tables import ContactoTable
+from apps.rrhh.models.sedes import Sede
 
 
 class DirectorioListView(BreadcrumbsMixin, SearchableListMixin, SingleTableMixin, FilterView):
@@ -79,12 +80,20 @@ class DirectorioListView(BreadcrumbsMixin, SearchableListMixin, SingleTableMixin
         if user.is_authenticated and hasattr(user, "contacto"):
             contacto = user.contacto
 
+            empresa = contacto.empresa
+
             sedes = []
 
             if contacto.sede_administrativa:
                 sedes.append(contacto.sede_administrativa)
 
             sedes.extend(contacto.sedes_visibles.all())
+            sedes.extend(
+                Sede.objects.filter(
+                    Q(empresa=empresa) |
+                    Q(empresa__isnull=True)
+                )
+            )
 
             if sedes:
                 qs = qs.filter(
