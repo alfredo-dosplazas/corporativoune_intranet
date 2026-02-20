@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'import_export',
     'django_htmx',
     'widget_tweaks',
+    'django_celery_results',
     'django_celery_beat',
     'apps.asistencias',
     'apps.core',
