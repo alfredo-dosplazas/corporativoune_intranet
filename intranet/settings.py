@@ -102,7 +102,19 @@ WSGI_APPLICATION = 'intranet.wsgi.application'
 DATABASES = {
     'default': env.db(),
     'intranet': env.db('INTRANET_DATABASE_URL'),
-    'cetnet': env.db('CETNET_DATABASE_URL'),
+    'cetnet': {
+        'ENGINE': 'mssql',
+        'NAME': env('CETNET_DB_NAME'),
+        'USER': env('CETNET_DB_USER'),
+        'PASSWORD': env('CETNET_DB_PASSWORD'),
+        'HOST': env('CETNET_DB_HOST'),
+        'PORT': env('CETNET_DB_PORT', default='1433'),
+        'OPTIONS': {
+            'driver': env('CETNET_DB_DRIVER'),
+            'Encrypt': 'yes',
+            'TrustServerCertificate': 'yes',
+        },
+    },
 }
 
 DATABASE_ROUTERS = ['intranet.routers.CoreRouter']
