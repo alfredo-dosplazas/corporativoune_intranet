@@ -46,13 +46,9 @@ class PaqueteForm(forms.ModelForm):
         self.helper.layout = Layout(
             Row(
                 Column('clave'),
-                Column('orden'),
-
-            ),
-            Row(
                 Column('nombre'),
                 Column('padre'),
-            )
+            ),
         )
 
 

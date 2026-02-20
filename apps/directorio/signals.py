@@ -5,7 +5,10 @@ from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from apps.directorio.models import Contacto, EmailContacto
+from apps.core.models import Empresa
+from apps.rrhh.models.areas import Area
+from apps.rrhh.models.puestos import Puesto
+from apps.rrhh.models.sedes import Sede
 
 logger = logging.getLogger("signals")
 
@@ -59,5 +62,9 @@ def crear_o_vincular_contacto_usuario(sender, instance, created, **kwargs):
                 defaults={
                     "primer_nombre": instance.first_name,
                     "primer_apellido": instance.last_name,
+                    'empresa': Empresa.get_default(),
+                    'sede': Sede.get_default(),
+                    'area': Area.get_default(),
+                    'puesto': Puesto.get_default(),
                 }
             )

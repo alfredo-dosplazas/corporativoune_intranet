@@ -1,0 +1,91 @@
+{% load dict_extras %}
+{% load django_tables2 %}
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <!-- START -->
+            <div class="justify-self-start">
+                <h1 class="text-primary font-bold text-xl flex items-center gap-2">
+                    Perfil
+                </h1>
+            </div>
+
+            <!-- MIDDLE -->
+            <div class="justify-self-center w-full flex justify-center">
+            </div>
+
+
+            <!-- END -->
+            <div class="justify-self-end">
+
+            </div>
+
+        </div>
+
+    </c-slot>
+
+    <h2 class="text-xl font-bold">{{ user.contacto.nombre_completo }}
+        {% if user.contacto.numero_empleado %}
+            ({{ user.contacto.numero_empleado }})
+        {% endif %}
+    </h2>
+
+    <form method="get">
+        <select onchange="this.form.submit()" name="month" id="">
+            {% for key, value in months.items %}
+                <option {% if key == month %}selected{% endif %} value="{{ key }}">{{ value }}</option>
+            {% endfor %}
+        </select>
+
+        <select onchange="this.form.submit()" name="year" id="">
+            {% for y in years %}
+                <option {% if y == year %}selected{% endif %} value="{{ y }}">{{ y }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
+    <h2>{{ month }} {{ year }}</h2>
+
+    <div class="grid grid-cols-7 gap-2 mt-6 text-center font-semibold">
+        <div>Lun</div>
+        <div>Mar</div>
+        <div>Mié</div>
+        <div>Jue</div>
+        <div>Vie</div>
+        <div>Sáb</div>
+        <div>Dom</div>
+    </div>
+
+    <div class="grid grid-cols-7 gap-2 mt-2">
+        {% for week in month_days %}
+            {% for day in week %}
+                {% with asistencias_por_dia|get_item:day  as registros %}
+                    <div class="border rounded-lg p-2 h-28
+                {% if day.month != month %}
+                    bg-gray-100 text-gray-400
+                {% elif asistencias_por_dia|get_item:day %}
+                    bg-green-100
+                {% else %}
+                    bg-red-50
+                {% endif %}
+            ">
+
+                        <div class="text-sm font-bold">
+                            {{ day.day }}
+                        </div>
+
+                        {% for asistencia in asistencias_por_dia|get_item:day %}
+                            <div class="text-xs">
+                                {{ asistencia.punch_time|time:"H:i" }}
+                            </div>
+                        {% endfor %}
+
+                    </div>
+                {% endwith %}
+            {% endfor %}
+        {% endfor %}
+    </div>
+
+
+</c-layouts.app>

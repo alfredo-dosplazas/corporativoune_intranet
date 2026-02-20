@@ -39,16 +39,11 @@ class Paquete(models.Model):
         related_name="subpaquetes"
     )
 
-    orden = models.PositiveIntegerField(default=0)
-
     def __str__(self):
         return f"{self.clave} - {self.nombre}"
 
     class Meta:
         ordering = (
-            'padre__clave',
-            'padre_id',
-            'orden',
             'clave',
         )
 
@@ -75,35 +70,11 @@ class Trabajo(models.Model):
         default='vivienda'
     )
 
-    def save(self, *args, **kwargs):
-        self.nombre = self.nombre.upper().strip()
-
-        if self.clave is None:
-            prefijo = self.paquete.clave  # ej. CIM, EST-PB
-
-            # Buscar el último consecutivo del paquete
-            ultimo = (
-                Trabajo.objects
-                .filter(paquete=self.paquete, clave__startswith=f"{prefijo}-")
-                .aggregate(max_clave=Max('clave'))
-                ['max_clave']
-            )
-
-            if ultimo:
-                match = re.search(r'-(\d+)$', ultimo)
-                siguiente = int(match.group(1)) + 1 if match else 1
-            else:
-                siguiente = 1
-
-            self.clave = f"{prefijo}-{siguiente:03d}"
-
-        super().save(*args, **kwargs)
-
     def __str__(self):
         return self.nombre
 
     class Meta:
-        ordering = ('paquete', 'nombre')
+        ordering = ('paquete', 'clave')
 
 
 class EstructuraTrabajo(models.Model):

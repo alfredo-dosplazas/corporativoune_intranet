@@ -1,3 +1,4 @@
+import django.db.models
 import environ
 import os
 
@@ -45,6 +46,8 @@ INSTALLED_APPS = [
     'import_export',
     'django_htmx',
     'widget_tweaks',
+    'django_celery_beat',
+    'apps.asistencias',
     'apps.core',
     'apps.cumpleanios',
     'apps.slack',
@@ -97,7 +100,12 @@ WSGI_APPLICATION = 'intranet.wsgi.application'
 DATABASES = {
     'default': env.db(),
     'intranet': env.db('INTRANET_DATABASE_URL'),
+    'cetnet': env.db('CETNET_DATABASE_URL'),
 }
+
+DATABASE_ROUTERS = ['intranet.routers.CoreRouter']
+
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators

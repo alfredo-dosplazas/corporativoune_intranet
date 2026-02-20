@@ -32,6 +32,12 @@
 
                     {% if user.is_authenticated %}
                         <li>
+                            <a href="{% url 'perfil' %}">Perfil</a>
+                        </li>
+                    {% endif %}
+
+                    {% if user.is_authenticated %}
+                        <li>
                             <button type="submit" form="logout-form">Cerrar Sesión</button>
                         </li>
                     {% endif %}

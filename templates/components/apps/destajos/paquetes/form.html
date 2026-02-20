@@ -68,8 +68,8 @@
                             >
                                 {# CLAVE (solo lectura visual) #}
                                 <td class="font-mono text-xs opacity-70">
-                                    {{ trabajo_form.instance.clave|default:"(auto)" }}
                                     {{ trabajo_form.id }}
+                                    {{ trabajo_form.clave|as_crispy_field }}
                                 </td>
 
                                 {# NOMBRE #}
@@ -131,6 +131,7 @@
     <tr class="bg-info/10">
         <td class="font-mono text-xs opacity-70">
             {{ Trabajo.empty_form.id }}
+            {{ Trabajo.empty_form.clave|as_crispy_field }}
         </td>
 
         <td class="min-w-[320px]">

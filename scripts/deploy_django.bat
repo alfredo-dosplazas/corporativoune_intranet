@@ -15,10 +15,12 @@ set REQUIREMENTS=D:\Web\Sitios\corporativeune-intranet\requirements.txt
 REM === Servicios ===
 set DJANGO_SERVICE=corporativoune_intranet
 set CELERY_SERVICE=corporativoune_intranet_celery_worker
+set BEAT_SERVICE=corporativoune_intranet_celery_beat
 
 echo Deteniendo servicios...
 %NSSM% stop %DJANGO_SERVICE%
 %NSSM% stop %CELERY_SERVICE%
+%NSSM% stop %BEAT_SERVICE%
 
 timeout /t 5 /nobreak >nul
 
@@ -52,6 +54,7 @@ if %errorlevel% neq 0 (
 echo Iniciando servicios...
 %NSSM% start %DJANGO_SERVICE%
 %NSSM% start %CELERY_SERVICE%
+%NSSM% start %BEAT_SERVICE%
 
 echo Deploy terminado correctamente
 pause

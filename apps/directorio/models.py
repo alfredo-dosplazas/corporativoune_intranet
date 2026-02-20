@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from apps.asistencias.models import RegistroAsistencia
 from apps.core.models import Empresa
 from apps.rrhh.models.areas import Area
 from apps.rrhh.models.puestos import Puesto
@@ -144,6 +145,12 @@ class Contacto(models.Model):
     mostrar_en_cumpleanios = models.BooleanField(default=True, verbose_name='Mostrar en Cumpleaños')
 
     esta_archivado = models.BooleanField(default=False, verbose_name='Contacto archivado')
+
+    @property
+    def asistencias(self):
+        return RegistroAsistencia.objects.filter(
+            empleado__number=self.numero_empleado,
+        )
 
     @property
     def iniciales(self):

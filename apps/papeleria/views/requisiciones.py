@@ -778,8 +778,8 @@ class RequisicionAutorizarView(PermissionRequiredMixin, View):
         return redirect('papeleria:requisiciones__detail', pk)
 
 
-class RequisicionExcelView(View):
-    permission_required = []
+class RequisicionExcelView(PermissionRequiredMixin, View):
+    permission_required = ['papeleria.view_requisicion']
 
     def dispatch(self, request, *args, **kwargs):
         self.requisicion = get_object_or_404(Requisicion, pk=kwargs['pk'])

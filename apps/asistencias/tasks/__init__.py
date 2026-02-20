@@ -1,0 +1,1 @@
+from .exportar_asistencias import exportar_asistencias_task

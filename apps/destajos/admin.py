@@ -18,7 +18,7 @@ class PaqueteAdmin(ImportExportActionModelAdmin, admin.ModelAdmin):
     resource_class = PaqueteResource
     search_fields = ['clave', 'nombre']
     inlines = [TrabajoInline]
-    list_display = ("clave", "nombre", "padre", "orden")
+    list_display = ("clave", "nombre", "padre")
     list_per_page = 10
 
 
