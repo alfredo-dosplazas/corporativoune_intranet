@@ -4,6 +4,8 @@ import os
 
 from pathlib import Path
 
+from kombu import Queue
+
 env = environ.Env(
     # set casting, default value
     DEBUG=(bool, False)
@@ -163,6 +165,20 @@ EMAIL_PORT = env('EMAIL_PORT')
 EMAIL_HOST_USER = env('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = env('EMAIL_DEFAULT_FROM_EMAIL')
+
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
+CELERY_ENABLE_UTC = True
+
+CELERY_TASK_QUEUES = (
+    Queue("intranet_default"),
+    Queue("intranet_beat"),
+)
+
+CELERY_TASK_DEFAULT_QUEUE = "intranet_default"
+
+CELERY_RESULT_BACKEND = 'django-db'
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "daisyui5"
 CRISPY_TEMPLATE_PACK = "daisyui5"
