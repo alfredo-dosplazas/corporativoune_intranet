@@ -465,6 +465,6 @@ class RegistroAsistencia(models.Model):
         managed = False
         db_table = 'dbo.detPunches'
         ordering = [
-            'belong_date',
-            'punch_time'
+            '-belong_date',
+            '-punch_time'
         ]

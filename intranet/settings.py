@@ -111,8 +111,6 @@ DATABASES = {
         'PORT': env('CETNET_DB_PORT', default='1433'),
         'OPTIONS': {
             'driver': env('CETNET_DB_DRIVER'),
-            'Encrypt': 'no',
-            'TrustServerCertificate': 'yes',
         },
     },
 }

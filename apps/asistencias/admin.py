@@ -26,9 +26,9 @@ class TransaccionRelojAdmin(admin.ModelAdmin):
 @admin.register(RegistroAsistencia)
 class RegistroAsistenciaAdmin(admin.ModelAdmin):
     autocomplete_fields = ['empleado', 'terminal']
-    search_fields = ['empleado__name1', 'empleado__name2', 'empleado__last_name1', 'empleado__last_name2']
+    search_fields = ['empleado__name1', 'empleado__name2', 'empleado__last_name1', 'empleado__last_name2', 'empleado__number']
     list_display = ['empleado', 'punch_time', 'terminal']
-    list_filter = ['empleado', 'terminal']
+    list_filter = ['terminal']
     list_per_page = 10
 
 
