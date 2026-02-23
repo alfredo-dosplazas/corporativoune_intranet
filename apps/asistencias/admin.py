@@ -3,8 +3,11 @@ from zoneinfo import ZoneInfo
 from django.contrib import admin
 from django.utils import timezone
 from django.utils.timezone import now
+from import_export.admin import ExportActionModelAdmin, ImportExportActionModelAdmin
+from rangefilter.filters import DateRangeFilterBuilder
 
-from apps.asistencias.models import DiaFestivo, DetClasificacion, Empleado, TransaccionReloj, Reloj, RegistroAsistencia
+from apps.asistencias.models import DiaFestivo, DetClasificacion, Empleado, TransaccionReloj, Reloj, RegistroAsistencia, \
+    ControlDiarioAsistencia, ExcepcionAsistencia
 
 
 @admin.register(Reloj)
@@ -26,9 +29,34 @@ class TransaccionRelojAdmin(admin.ModelAdmin):
 @admin.register(RegistroAsistencia)
 class RegistroAsistenciaAdmin(admin.ModelAdmin):
     autocomplete_fields = ['empleado', 'terminal']
-    search_fields = ['empleado__name1', 'empleado__name2', 'empleado__last_name1', 'empleado__last_name2', 'empleado__number']
+    search_fields = ['empleado__name1', 'empleado__name2', 'empleado__last_name1', 'empleado__last_name2',
+                     'empleado__number']
     list_display = ['empleado', 'punch_time', 'terminal']
     list_filter = ['terminal']
+    list_per_page = 10
+
+
+@admin.register(ExcepcionAsistencia)
+class ExcepcionAsistenciaAdmin(admin.ModelAdmin):
+    pass
+
+
+class ExcepcionAsistenciaInline(admin.TabularInline):
+    model = ExcepcionAsistencia
+    extra = 0
+
+
+@admin.register(ControlDiarioAsistencia)
+class ControlDiarioAsistenciaAdmin(admin.ModelAdmin):
+    inlines = [ExcepcionAsistenciaInline]
+    autocomplete_fields = ['empleado']
+    search_fields = ['empleado__name1', 'empleado__name2', 'empleado__last_name1', 'empleado__last_name2',
+                     'empleado__number']
+    list_display = ['empleado', 'record_date', 'politica', 'hora_entrada', 'hora_salida']
+    list_filter = (
+        'empleado__status_val',
+        ("record_date", DateRangeFilterBuilder()),
+    )
     list_per_page = 10
 
 
@@ -46,5 +74,5 @@ class DetClasificacionAdmin(admin.ModelAdmin):
 
 
 @admin.register(DiaFestivo)
-class DiaFestivoAdmin(admin.ModelAdmin):
+class DiaFestivoAdmin(ImportExportActionModelAdmin, admin.ModelAdmin):
     list_display = ('descripcion', 'fecha')

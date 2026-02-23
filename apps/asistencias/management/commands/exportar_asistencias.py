@@ -6,7 +6,7 @@ class Command(BaseCommand):
     help = "Exporta transacciones nuevas a CETNET"
 
     def handle(self, *args, **kwargs):
-        total = exportar_asistencias_task()
+        total = exportar_asistencias_task.delay()
 
         self.stdout.write(
             self.style.SUCCESS(

@@ -1,13 +1,39 @@
 import re
 import socket
-from datetime import datetime
+from datetime import datetime, time
 from time import sleep
 from zoneinfo import ZoneInfo
 
 import pytz
 import requests
 from django.db import models
+from django.db.models import ForeignKey
 from django.utils import timezone
+
+from apps.asistencias.utils import minutos_a_hora
+
+
+class Politica(models.Model):
+    key = models.BigAutoField(
+        primary_key=True,
+        db_column='KeyPolicy',
+    )
+
+    code = models.CharField(
+        max_length=20,
+        db_column='Code',
+    )
+
+    description = models.CharField(
+        max_length=50,
+        db_column='Description',
+    )
+
+    def __str__(self):
+        return self.description
+
+    class Meta:
+        db_table = 'dbo.catPolicy'
 
 
 class Reloj(models.Model):
@@ -246,10 +272,12 @@ class DiaFestivo(models.Model):
     )
     lock_user = models.PositiveIntegerField(
         default=0,
+        blank=True,
         db_column='LockUser',
     )
     lock_for_delete = models.PositiveIntegerField(
         default=0,
+        blank=True,
         db_column='LockForDelete',
     )
 
@@ -468,3 +496,78 @@ class RegistroAsistencia(models.Model):
             '-belong_date',
             '-punch_time'
         ]
+
+
+class ControlDiarioAsistencia(models.Model):
+    key = models.BigAutoField(
+        primary_key=True,
+        db_column='KeyPunchDay',
+    )
+
+    empleado = models.ForeignKey(
+        Empleado,
+        on_delete=models.DO_NOTHING,
+        to_field='key',
+        db_column='KeyEmployee',
+        related_name='control_diario_asistencias',
+        blank=True,
+        null=True,
+    )
+
+    record_date = models.DateField(
+        db_column="RecordDate",
+    )
+
+    politica = ForeignKey(
+        Politica,
+        on_delete=models.DO_NOTHING,
+        to_field='key',
+        db_column='KeyAssgPolicy',
+        blank=True,
+        null=True,
+    )
+
+    first_in = models.DecimalField(
+        max_digits=8,
+        decimal_places=3,
+        db_column='FirstIN'
+    )
+
+    last_ot = models.DecimalField(
+        max_digits=8,
+        decimal_places=3,
+        db_column='LastOT'
+    )
+
+    @property
+    def hora_entrada(self):
+        return minutos_a_hora(self.first_in)
+
+    @property
+    def hora_salida(self):
+        return minutos_a_hora(self.last_ot)
+
+    class Meta:
+        managed = False
+        db_table = 'dbo.detPUNCHMaster'
+        ordering = [
+            '-record_date'
+        ]
+
+
+class ExcepcionAsistencia(models.Model):
+    control_asistencia = models.ForeignKey(
+        ControlDiarioAsistencia,
+        on_delete=models.DO_NOTHING,
+        to_field='key',
+        db_column='KeyPunchDay',
+        primary_key=True,
+    )
+
+    comentario = models.TextField(
+        db_column='Comment'
+    )
+
+    class Meta:
+        managed = False
+        db_table = 'dbo.detPunchDayExcep'
