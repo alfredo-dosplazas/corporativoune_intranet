@@ -433,10 +433,10 @@ class TransaccionReloj(models.Model):
 class RegistroAsistencia(models.Model):
     key = models.BigAutoField(
         db_column='KeyPunch',
+        primary_key=True,
     )
 
     transaction = models.PositiveIntegerField(
-        primary_key=True,
         db_column='KeyTrans',
     )
 
