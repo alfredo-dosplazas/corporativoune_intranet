@@ -432,11 +432,11 @@ class TransaccionReloj(models.Model):
 
 class RegistroAsistencia(models.Model):
     key = models.BigAutoField(
-        primary_key=True,
         db_column='KeyPunch',
     )
 
     transaction = models.PositiveIntegerField(
+        primary_key=True,
         db_column='KeyTrans',
     )
 
@@ -484,10 +484,6 @@ class RegistroAsistencia(models.Model):
             instance.punch_time = local_dt.astimezone(ZoneInfo("UTC"))
 
         return instance
-
-    @property
-    def reloj(self):
-        return Reloj.objects.filter(terminal=self.terminal).first()
 
     class Meta:
         managed = False

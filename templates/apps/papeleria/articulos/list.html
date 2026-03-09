@@ -11,9 +11,12 @@
                 </h1>
                 <h2 class="text-muted text-sm mb-2">Gestione los artículos de las empresas</h2>
                 {% if perms.papeleria.add_articulo %}
-                    <a href="{% url 'papeleria:articulos__create' %}" class="btn btn-sm btn-primary">
-                        CREAR
-                    </a>
+                    <div class="md:hidden fixed bottom-6 right-6 z-40">
+                        <a href="{% url 'papeleria:articulos__create' %}"
+                           class="btn btn-primary btn-circle shadow-lg">
+                            <span class="icon-[mdi--plus]"></span>
+                        </a>
+                    </div>
                 {% endif %}
             </div>
 
@@ -32,5 +35,71 @@
 
     </c-slot>
 
-    {% render_table table %}
+    <div class="grid md:hidden grid-cols-1 sm:grid-cols-2 gap-4">
+        {% for obj in page_obj %}
+            <a href="{{ obj.get_absolute_url }}"
+               class="bg-base-100 rounded-xl shadow-sm border border-base-200 p-3 flex flex-col hover:shadow-md transition">
+
+                <!-- Imagen -->
+                <div class="aspect-square w-full bg-base-200 rounded-lg overflow-hidden mb-3">
+                    {% if obj.imagen %}
+                        <img src="{{ obj.imagen.url }}"
+                             alt="{{ obj.nombre }}"
+                             class="w-full h-full object-cover">
+                    {% else %}
+                        <div class="w-full h-full flex items-center justify-center text-muted text-xs">
+                            Sin imagen
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Nombre -->
+                <h3 class="font-semibold text-sm leading-tight line-clamp-2">
+                    {{ obj.nombre }}
+                </h3>
+
+                <!-- Código -->
+                {% if obj.codigo_vs_dp %}
+                    <p class="text-xs text-muted mt-1">
+                        {{ obj.codigo_vs_dp }}
+                    </p>
+                {% endif %}
+
+                <!-- Precio -->
+                <div class="mt-auto pt-2">
+                    <p class="text-primary font-bold text-sm">
+                        ${{ obj.importe|floatformat:2 }}
+                    </p>
+
+                    <p class="text-xs text-muted">
+                        {{ obj.unidad }}
+                    </p>
+                </div>
+
+                <!-- Cuadro básico -->
+                {% if obj.es_cuadro_basico %}
+                    <span class="badge badge-success badge-xs mt-2 self-start">
+                    Cuadro básico
+                </span>
+                {% endif %}
+            </a>
+        {% empty %}
+            <div class="col-span-2 text-center text-muted py-10">
+                No hay artículos disponibles
+            </div>
+        {% endfor %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if num == page_obj.number %}
+                <button class="join-item btn btn-sm btn-active">
+                    {{ num }}
+                </button>
+            {% elif num >= page_obj.number|add:-1 and num <= page_obj.number|add:1 %}
+                <a href="?page={{ num }}"
+                   class="join-item btn btn-sm">
+                    {{ num }}
+                </a>
+            {% endif %}
+        {% endfor %}
+    </div>
 </c-layouts.app>

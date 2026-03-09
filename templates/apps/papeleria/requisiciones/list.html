@@ -21,7 +21,8 @@
                             onclick="solicitar_aprobacion_contraloria_modal.showModal()">
                         Solicitar Aprobación Contraloría
                     </button>
-                    <c-apps.papeleria.requisiciones.modal.solicitar-aprobacion-contraloria :requisiciones_listas_contraloria="requisiciones_listas_contraloria"/>
+                    <c-apps.papeleria.requisiciones.modal.solicitar-aprobacion-contraloria
+                            :requisiciones_listas_contraloria="requisiciones_listas_contraloria"/>
                 {% endif %}
             </div>
 
@@ -41,4 +42,5 @@
     </c-slot>
 
     {% render_table table %}
+
 </c-layouts.app>

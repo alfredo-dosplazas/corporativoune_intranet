@@ -8,6 +8,14 @@ from pathlib import Path
 # CONFIGURACIÓN
 # ==============================
 
+import subprocess
+
+def conectar_recurso():
+    comando = r'net use \\172.17.2.201\compartidoCetnet D0spl4z4s2025 /user:"Dos plazas" /persistent:no'
+    subprocess.run(comando, shell=True)
+
+conectar_recurso()
+
 RUTA_BASE = Path(r"\\172.17.2.201\compartidoCetnet")
 RUTA_FINAL = RUTA_BASE / "transacciones.txt"
 
