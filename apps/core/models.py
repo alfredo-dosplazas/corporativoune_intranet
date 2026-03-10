@@ -57,7 +57,7 @@ class Empresa(models.Model):
                 'theme': 'dos_plazas',
             },
         )
-        return
+        return obj
 
     def __str__(self):
         return self.nombre
