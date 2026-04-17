@@ -15,6 +15,17 @@
     <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
     <script src="{% static 'js/snapdom/snapdom.js' %}"></script>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="https://code.iconify.design/iconify-icon/3.0.0/iconify-icon.min.js"></script>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript"
+            src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment-with-locales.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+
 </head>
 <body hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
 
@@ -40,6 +51,56 @@
 <script src="{% static 'autocomplete_light/autocomplete_light.js' %}"></script>
 <script src="{% static 'autocomplete_light/select2.js' %}"></script>
 <script src="{% static 'autocomplete_light/i18n/es.js' %}"></script>
+
+<script>
+    $(function () {
+        moment.locale('es')
+
+        var start = moment('{{ fecha_inicio }}')
+        var end = moment('{{ fecha_fin }}')
+
+        function cb(start, end) {
+            $('#reportrange span').html(start.format('D [de] MMMM YYYY') + ' - ' + end.format('D [de] MMMM YYYY'))
+
+            $('#fecha_inicio').val(start.format('YYYY-MM-DD'))
+            $('#fecha_fin').val(end.format('YYYY-MM-DD'))
+        }
+
+        $('#reportrange').daterangepicker(
+            {
+                locale: {
+                    format: 'DD/MM/YYYY',
+                    applyLabel: 'Aplicar',
+                    cancelLabel: 'Cancelar',
+                    fromLabel: 'Desde',
+                    toLabel: 'Hasta',
+                    customRangeLabel: 'Personalizado',
+                    daysOfWeek: ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'],
+                    monthNames: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+                    firstDay: 1
+                },
+                startDate: start,
+                endDate: end,
+                ranges: {
+                    Hoy: [moment(), moment()],
+                    Ayer: [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                    'Últimos 7 días': [moment().subtract(6, 'days'), moment()],
+                    'Últimos 30 días': [moment().subtract(29, 'days'), moment()],
+                    'Este mes': [moment().startOf('month'), moment().endOf('month')],
+                    'Mes pasado': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')],
+                    'Este año': [moment().startOf('year'), moment()],
+                    'Año pasado': [moment().subtract(1, 'year').startOf('year'), moment().subtract(1, 'year').endOf('year')],
+                    'Año 2025': [moment('2025-01-01'), moment('2025-12-31')],
+                    'Año 2024': [moment('2024-01-01'), moment('2024-12-31')],
+                    'Año 2023': [moment('2023-01-01'), moment('2023-12-31')]
+                }
+            },
+            cb
+        )
+
+        cb(start, end)
+    })
+</script>
 
 <div id="toast-container"
      class="toast toast-top toast-end z-50">

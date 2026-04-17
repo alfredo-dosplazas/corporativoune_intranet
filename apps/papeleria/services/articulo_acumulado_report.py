@@ -4,14 +4,23 @@ from apps.papeleria.models.articulos import Articulo
 from apps.papeleria.models.requisiciones import DetalleRequisicion
 
 
-def articulo_acumulado_report(empresa_ids=()):
+def articulo_acumulado_report(empresa_ids=(), fecha_inicial=None, fecha_final=None):
     qs = (
         DetalleRequisicion.objects
         .select_related('articulo', 'articulo__unidad')
         .filter(
             requisicion__estado='autorizada_contraloria',
         )
-        .values(
+    )
+
+    if fecha_inicial:
+        qs = qs.filter(requisicion__created_at__gte=fecha_inicial)
+
+    if fecha_final:
+        qs = qs.filter(requisicion__created_at__lte=fecha_final)
+
+    qs = (
+        qs.values(
             'articulo__id',
             'articulo__codigo_vs_dp',
             'articulo__numero_papeleria',

@@ -16,7 +16,7 @@ class RequisicionForm(forms.ModelForm):
     class Meta:
         model = Requisicion
         fields = "__all__"
-        exclude = ["creada_por"]
+        exclude = ["creada_por", "folio", "folio_consecutivo"]
         widgets = {
             'fecha_autorizacion_contraloria': TextInput(attrs={'type': 'date'}),
             'razon_rechazo': Textarea(attrs={'class': 'h-16'}),

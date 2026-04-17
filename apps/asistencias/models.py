@@ -34,6 +34,7 @@ class Politica(models.Model):
 
     class Meta:
         db_table = 'dbo.catPolicy'
+        managed = False
 
 
 class Reloj(models.Model):

@@ -1,6 +1,7 @@
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit
 from django import forms
+from django.forms.widgets import TextInput
 
 from apps.core.models import Empresa
 
@@ -12,6 +13,9 @@ class AcumuladoArticuloFilterForm(forms.Form):
         required=False,
         label="Empresas"
     )
+
+    fecha_inicial = forms.DateField(required=False, widget=TextInput(attrs={'type': 'date'}))
+    fecha_final = forms.DateField(required=False, widget=TextInput(attrs={'type': 'date'}))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

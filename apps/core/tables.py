@@ -18,7 +18,7 @@ class ImageColumn(Column):
 
 
 class AmountColumn(Column):
-    def __init__(self, currency='MXN'):
+    def __init__(self, *args, currency='MXN', **kwargs):
         super().__init__()
         self.currency = currency
 

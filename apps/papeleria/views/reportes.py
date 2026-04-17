@@ -7,6 +7,7 @@ from django.views.generic import TemplateView
 from django_tables2 import RequestConfig
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.models import Empresa
 
 from apps.papeleria.forms.reportes import AcumuladoArticuloFilterForm
 from apps.papeleria.services.articulo_acumulado_excel import articulo_acumulado_excel
@@ -42,8 +43,10 @@ class AcumuladoArticuloView(PermissionRequiredMixin, BreadcrumbsMixin, TemplateV
         context = super().get_context_data(**kwargs)
 
         empresa_ids = self.request.GET.getlist('empresas', [])
+        fecha_inicial = self.request.GET.get('fecha_inicial', None)
+        fecha_final = self.request.GET.get('fecha_final', None)
 
-        data = articulo_acumulado_report(empresa_ids)
+        data = articulo_acumulado_report(empresa_ids, fecha_inicial, fecha_final)
 
         table = ArticuloAcumuladoTable(data)
         table.auto_height = True
@@ -59,6 +62,11 @@ class AcumuladoArticuloView(PermissionRequiredMixin, BreadcrumbsMixin, TemplateV
 
         context['table'] = table
         context['filter'] = form
+        context.update({
+            'empresas': Empresa.objects.filter(id__in=empresa_ids) if empresa_ids else None,
+            'fecha_inicial': fecha_inicial,
+            'fecha_final': fecha_final,
+        })
         return context
 
 

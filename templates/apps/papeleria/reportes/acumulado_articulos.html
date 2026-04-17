@@ -7,6 +7,22 @@
             <!-- START -->
             <div class="justify-self-start">
                 <h1 class="font-bold text-xl flex items-center gap-2">Acumulado De Artículos</h1>
+
+                <h3 class="font-bold text-sm flex items-center gap-2">
+                    {% if fecha_inicial %}
+                        <span>Fecha Inicial: {{ fecha_inicial }}</span>
+                    {% endif %}
+
+                    {% if fecha_final %}
+                        <span>Fecha Final: {{ fecha_final }}</span>
+                    {% endif %}
+                </h3>
+
+                <h2 class="font-bold text-sm flex items-center gap-2">
+                    {% if empresas %}
+                        <span>Empresas: {{ empresas|join:', ' }}</span>
+                    {% endif %}
+                </h2>
             </div>
 
             <!-- MIDDLE -->

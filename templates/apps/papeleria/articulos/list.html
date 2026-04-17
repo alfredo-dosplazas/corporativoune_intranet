@@ -35,7 +35,7 @@
 
     </c-slot>
 
-    <div class="grid md:hidden grid-cols-1 sm:grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4">
         {% for obj in page_obj %}
             <a href="{{ obj.get_absolute_url }}"
                class="bg-base-100 rounded-xl shadow-sm border border-base-200 p-3 flex flex-col hover:shadow-md transition">
@@ -88,7 +88,9 @@
                 No hay artículos disponibles
             </div>
         {% endfor %}
+    </div>
 
+    <div class="flex items-center justify-center mt-6 gap-4">
         {% for num in page_obj.paginator.page_range %}
             {% if num == page_obj.number %}
                 <button class="join-item btn btn-sm btn-active">
