@@ -117,7 +117,7 @@ class OrdenListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMix
 
         qs = qs.filter(
             Q(solicitante=usuario.contacto) |
-            Q(autorizador=usuario.contacto) |
+            Q(autoriza=usuario.contacto) |
             Q(creada_por=usuario)
         )
 
