@@ -15,7 +15,13 @@
 
 
             <!-- END -->
-            <div class="justify-self-end">
+            <div class="justify-self-end flex gap-2">
+                <a href="#"
+                   class="btn btn-sm"
+                   onclick="abrirPDF('{% url 'compras:ordenes__pdf' orden.pk %}'); return false;">
+                    PDF
+                </a>
+
                 <button form="orden-form" class="btn btn-primary btn-sm">Guardar</button>
             </div>
         </div>
