@@ -1,0 +1,26 @@
+{% load money %}
+{% load humanize %}
+{% load crispy_forms_filters %}
+{% load crispy_forms_tags %}
+
+{% if form.errors %}
+    <div id="form-errors-banner"
+         class="alert alert-error alert-soft shadow mb-4">
+        <div>
+            <span class="font-semibold">
+                Hay errores en el formulario
+            </span>
+            <p class="text-sm">
+                Por favor revisa los campos marcados en rojo antes de continuar.
+            </p>
+        </div>
+    </div>
+{% endif %}
+
+<div class="card bg-base-100 shadow mb-4">
+    <div class="card-body">
+        {% crispy form %}
+    </div>
+</div>
+
+

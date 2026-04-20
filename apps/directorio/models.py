@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from apps.asistencias.models import RegistroAsistencia
-from apps.core.models import Empresa
+from apps.core.models import Empresa, RazonSocial
 from apps.rrhh.models.areas import Area
 from apps.rrhh.models.puestos import Puesto
 from apps.rrhh.models.sedes import Sede
@@ -68,6 +68,8 @@ class Contacto(models.Model):
         verbose_name='Número de Empleado'
     )
 
+    abreviatura_titulo = models.CharField(max_length=5, blank=True, null=True)
+
     primer_nombre = models.CharField(max_length=50, verbose_name='Primer Nombre')
     segundo_nombre = models.CharField(max_length=50, blank=True, null=True, verbose_name='Segundo Nombre')
     primer_apellido = models.CharField(max_length=50, verbose_name='Primer Apellido')
@@ -79,6 +81,15 @@ class Contacto(models.Model):
         related_name="contactos",
         help_text="Empresa en la que está dado de alta administrativamente (nómina).",
     )
+
+    razon_social = models.ForeignKey(
+        RazonSocial,
+        on_delete=models.SET_NULL,
+        related_name="contactos",
+        blank=True,
+        null=True,
+    )
+
     empresas_relacionadas = models.ManyToManyField(
         Empresa,
         blank=True,
@@ -155,6 +166,12 @@ class Contacto(models.Model):
     @property
     def iniciales(self):
         return self.primer_nombre[0] + self.primer_apellido[0]
+
+    @property
+    def titulo_nombre_completo(self):
+        abreviatura = self.abreviatura_titulo
+        abreviatura_texto = f'{self.abreviatura_titulo.upper()}.' if abreviatura else ''
+        return f'{abreviatura_texto} {self.nombre_completo}'
 
     @property
     def nombre_completo(self):

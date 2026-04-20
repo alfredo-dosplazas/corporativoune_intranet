@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'apps.destajos',
     'apps.fotos',
     'apps.monitoreo_servicios',
+    'apps.compras',
 ]
 
 MIDDLEWARE = [

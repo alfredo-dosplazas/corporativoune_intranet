@@ -59,7 +59,6 @@
     --radius-lg: 0.5rem;
     --radius-xl: 0.75rem;
     --radius-2xl: 1rem;
-    --ease-out: cubic-bezier(0, 0, 0.2, 1);
     --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
     --default-transition-duration: 150ms;
     --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
@@ -8503,6 +8502,21 @@
       order: 0;
     }
   }
+  .md\:col-3 {
+    @media (width >= 48rem) {
+      grid-column: 3;
+    }
+  }
+  .md\:col-4 {
+    @media (width >= 48rem) {
+      grid-column: 4;
+    }
+  }
+  .md\:col-6 {
+    @media (width >= 48rem) {
+      grid-column: 6;
+    }
+  }
   .md\:col-12 {
     @media (width >= 48rem) {
       grid-column: 12;
@@ -8614,6 +8628,24 @@
         flex: 0 0 auto;
         width: 16.666666666666664%;
       }
+    }
+  }
+  .md\:col-3 {
+    @media (width >= 48rem) {
+      flex: 0 0 auto;
+      width: 25%;
+    }
+  }
+  .md\:col-4 {
+    @media (width >= 48rem) {
+      flex: 0 0 auto;
+      width: 33.33333333333333%;
+    }
+  }
+  .md\:col-6 {
+    @media (width >= 48rem) {
+      flex: 0 0 auto;
+      width: 50%;
     }
   }
   .md\:col-12 {

@@ -17,6 +17,9 @@ class RazonSocial(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     nombre_corto = models.CharField(max_length=100, null=True)
     abreviatura = models.CharField(max_length=100, null=True)
+    prefijo = models.CharField(max_length=100, null=True)
+
+    logo = models.ImageField(upload_to="logos/", blank=True, null=True)
 
     def __str__(self):
         return self.nombre

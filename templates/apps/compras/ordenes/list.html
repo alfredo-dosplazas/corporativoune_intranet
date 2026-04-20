@@ -1,0 +1,42 @@
+{% load django_tables2 %}
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <!-- START -->
+            <div class="justify-self-start">
+                <h1 class="text-primary font-bold text-xl flex items-center gap-2">
+                    <span class="icon-[et--document]"></span>
+                    Órdenes de Compra
+                </h1>
+                <h2 class="text-muted text-sm mb-2"></h2>
+                {% if perms.compras.add_orden %}
+                    <a href="{% url 'compras:ordenes__create' %}" class="btn btn-sm btn-primary">
+                        CREAR
+                    </a>
+                {% endif %}
+            </div>
+
+            <!-- MIDDLE -->
+            <div class="justify-self-center w-full flex justify-center gap-2">
+
+                <a href="{% url 'compras:proveedores__list' %}"
+                   class="btn btn-sm">
+                    Proveedores
+                </a>
+
+            </div>
+
+
+            <!-- END -->
+            <div class="justify-self-end">
+                <c-shared.searchbar/>
+            </div>
+
+        </div>
+
+    </c-slot>
+
+    {% render_table table %}
+
+</c-layouts.app>

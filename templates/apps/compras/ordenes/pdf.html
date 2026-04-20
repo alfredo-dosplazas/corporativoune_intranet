@@ -1,0 +1,288 @@
+{% load humanize %}
+{% load money %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+
+    <style>
+        /* =========================
+           SOLO OPTIMIZACIÓN (COMPACTO)
+        ========================== */
+
+        @page {
+            size: A4;
+            margin: 12mm 10mm 15mm 10mm;
+
+            @bottom-center {
+                content: "Página " counter(page) " de " counter(pages);
+                font-size: 9px;
+                color: #666;
+            }
+
+            @bottom-right {
+                content: "Orden: {{ orden.folio }}";
+                font-size: 9px;
+                color: #666;
+            }
+        }
+
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10px; /* antes 12px */
+            color: #333;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #000; /* antes 2px */
+            padding-bottom: 5px; /* antes 10px */
+            margin-bottom: 10px; /* antes 20px */
+        }
+
+        .logo {
+            width: 100px; /* antes 120px */
+        }
+
+        .company-info {
+            text-align: right;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 16px; /* antes 18px */
+            font-weight: bold;
+            margin: 10px 0; /* antes 20px */
+        }
+
+        .section {
+            margin-bottom: 8px; /* antes 15px */
+        }
+
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 3px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th, table td {
+            border: 1px solid #ccc;
+            padding: 3px 5px; /* antes 6px */
+        }
+
+        table th {
+            background: #f2f2f2;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        /* =========================
+           TOTALES
+        ========================== */
+
+        .totals {
+            margin-top: 10px; /* antes 15px */
+            width: 40%;
+            float: right;
+        }
+
+        .totals td {
+            border: none;
+            padding: 2px; /* antes 4px */
+        }
+
+        .totals .label {
+            text-align: right;
+        }
+
+        .totals .value {
+            text-align: right;
+            font-weight: bold;
+        }
+
+        /* =========================
+           FIRMAS
+        ========================== */
+
+        .footer {
+            margin-top: 30px; /* antes 50px */
+            display: flex;
+            justify-content: space-between;
+            text-align: center;
+        }
+
+        .signature {
+            width: 30%;
+        }
+
+        .line {
+            border-top: 1px solid #000;
+            margin-top: 25px; /* antes 40px */
+        }
+
+    </style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    {% if orden.razon_social.logo %}
+        <div>
+            <img src="{{ orden.razon_social.logo.url }}" class="logo" alt="">
+        </div>
+    {% endif %}
+
+    <div class="company-info">
+        <strong>{{ orden.razon_social.nombre }}</strong><br>
+    </div>
+</div>
+
+<div class="title">
+    ORDEN DE COMPRA
+</div>
+
+<!-- INFO GENERAL -->
+<div class="section">
+    <table>
+        <tr style="font-size: 10px;">
+            <td><strong>Folio:</strong> {{ orden.folio }}</td>
+            <td><strong>Fecha:</strong> {{ orden.fecha_orden|date:'d m Y' }}</td>
+            <td>
+                <p><strong>Entrega:</strong> {{ orden.fecha_entrega }}</p>
+                <p>({{ orden.entrega_texto|upper }})</p>
+            </td>
+        </tr>
+
+        <tr>
+            <td><strong>Proveedor:</strong> {{ orden.proveedor.nombre_completo }}</td>
+            <td><strong>RFC:</strong> {{ orden.proveedor.rfc }}</td>
+            <td><strong>Contacto:</strong> {{ orden.proveedor.contacto }}</td>
+        </tr>
+
+        <tr>
+            <td colspan="3"><strong>Domicilio:</strong> {{ orden.proveedor.domicilio }}</td>
+        </tr>
+    </table>
+</div>
+
+<!-- DETALLE -->
+<div class="section">
+    <div class="section-title">Detalle de la Orden</div>
+
+    <table>
+        <thead>
+        <tr>
+            <th style="width: 10%">Cant.</th>
+            <th style="width: 50%">Descripción</th>
+            <th style="width: 20%" class="text-right">Precio Unit.</th>
+            <th style="width: 20%" class="text-right">Subtotal</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        {% for d in orden.detalle_orden.all %}
+            <tr>
+                <td>{{ d.cantidad }}</td>
+                <td>{{ d.descripcion }}</td>
+                <td class="text-right">{{ d.precio_unitario|money }}</td>
+                <td class="text-right">{{ d.subtotal|money }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- TOTALES -->
+<table class="totals">
+    <tr>
+        <td class="label">Subtotal:</td>
+        <td class="value">{{ orden.subtotal|money }}</td>
+    </tr>
+
+    <tr>
+        <td class="label">IVA (16%):</td>
+        <td class="value">{{ orden.iva|money }}</td>
+    </tr>
+
+    {% if orden.total_retenciones > 0 %}
+        {% if orden.retencion_isr > 0 %}
+            <tr>
+                <td class="label">ISR</td>
+                <td class="value">{{ orden.retencion_isr }}%</td>
+            </tr>
+        {% endif %}
+
+        {% if orden.retencion_cedular > 0 %}
+            <tr>
+                <td class="label">Retención Cedular</td>
+                <td class="value">{{ orden.retencion_cedular }}%</td>
+            </tr>
+        {% endif %}
+
+        <tr>
+            <td class="label">Retenciones:</td>
+            <td class="value">{{ orden.total_retenciones|money }}</td>
+        </tr>
+    {% endif %}
+
+    <tr>
+        <td class="label"><strong>Total:</strong></td>
+        <td class="value"><strong>{{ orden.total|money }}</strong></td>
+    </tr>
+</table>
+
+<div style="clear: both;"></div>
+
+<!-- TOTAL EN LETRA -->
+<div class="section">
+    <strong>Total con letra:</strong><br>
+    {{ orden.total_letra }}
+</div>
+
+<!-- DATOS ADICIONALES -->
+<div class="section">
+    <table>
+        <tr>
+            <td><strong>Uso CFDI:</strong> {{ orden.uso_cfdi }}</td>
+            <td><strong>Método Pago:</strong> {{ orden.metodo_pago }}</td>
+            <td><strong>Forma Pago:</strong> {{ orden.forma_pago }}</td>
+        </tr>
+
+        <tr>
+            <td colspan="3"><strong>Uso:</strong> {{ orden.utilizado_en }}</td>
+        </tr>
+
+        <tr>
+            <td colspan="3"><strong>Lugar de entrega:</strong> {{ orden.lugar_entrega }}</td>
+        </tr>
+    </table>
+</div>
+
+<!-- FIRMAS -->
+<div class="footer">
+    <div class="signature">
+        <div class="line"></div>
+        Solicitante<br>
+        {{ orden.solicitante.titulo_nombre_completo|upper }}
+    </div>
+
+    <div class="signature">
+        <div class="line"></div>
+        Autoriza<br>
+        {{ orden.autoriza.titulo_nombre_completo|upper }}
+    </div>
+</div>
+
+</body>
+</html>
