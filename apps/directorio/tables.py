@@ -24,7 +24,7 @@ class ContactoColumn(Column):
             for part in parts:
                 contacto = getattr(contacto, part, None)
 
-        empresa = getattr(record, 'empresa', None)
+        empresa = getattr(contacto, 'empresa', None)
 
         if empresa is None:
             return None
