@@ -267,3 +267,5 @@ LOGGING = {
         },
     },
 }
+
+SESSION_COOKIE_DOMAIN = env("SESSION_COOKIE_DOMAIN", default="localhost")
