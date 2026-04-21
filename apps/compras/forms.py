@@ -74,7 +74,8 @@ class OrdenForm(forms.ModelForm):
 
     def save(self, commit=True):
         instance = super().save(commit=False)
-        instance.creada_por = self.user
+        if instance.creada_por is None:
+            instance.creada_por = self.user
 
         if commit:
             instance.save()
