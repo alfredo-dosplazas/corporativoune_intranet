@@ -18,10 +18,10 @@ class OrdenTable(TableWithActions):
         model = Orden
         fields = [
             'folio',
+            'estado',
             'razon_social',
             'proveedor',
             'solicitante',
-            'estado',
             'creada_por',
             'updated_at',
         ]
