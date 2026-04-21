@@ -2,9 +2,26 @@ from dal import autocomplete
 from django.contrib.auth.models import User
 from django.db.models import Q
 
-from apps.core.models import Empresa
+from apps.core.models import Empresa, RazonSocial
 from apps.core.utils.network import get_empresas_from_ip, get_client_ip
 from apps.directorio.utils import es_frescopack
+
+
+class RazonSocialAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = RazonSocial.objects.all()
+
+        user = self.request.user
+
+        if not user.is_authenticated:
+            return RazonSocial.objects.none()
+
+        if self.q:
+            qs = qs.filter(
+                Q(nombre__icontains=self.q)
+            )
+
+        return qs
 
 
 class EmpresaAutocomplete(autocomplete.Select2QuerySetView):

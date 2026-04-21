@@ -9,12 +9,12 @@ from apps.core.models import RazonSocial
 
 class Proveedor(models.Model):
     nombre_completo = models.CharField(max_length=255)
-    telefono = models.CharField(max_length=20)
+    telefono = models.CharField(max_length=20, verbose_name="Teléfono")
     contacto = models.CharField(max_length=100)
     email = models.EmailField()
     domicilio = models.TextField()
-    rfc = models.CharField(max_length=13)
-    condicion_pago = models.CharField(max_length=100)
+    rfc = models.CharField(max_length=13, verbose_name="RFC")
+    condicion_pago = models.CharField(max_length=100, verbose_name="Condición de pago")
 
     def __str__(self):
         return self.nombre_completo
@@ -131,20 +131,22 @@ class Orden(models.Model):
 
     folio = models.CharField(max_length=20, unique=True, blank=True, null=True)
 
-    razon_social = models.ForeignKey(RazonSocial, on_delete=models.CASCADE, related_name='ordenes')
+    razon_social = models.ForeignKey(RazonSocial, on_delete=models.CASCADE, related_name='ordenes',
+                                     verbose_name='Razón Social')
 
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default="BORRADOR")
 
-    uso_cfdi = models.CharField(max_length=10, choices=CFDI_CHOICES)
-    metodo_pago = models.CharField(max_length=3, choices=METODO_PAGO_CHOICES)
-    forma_pago = models.CharField(max_length=100, choices=FORMA_PAGO_CHOICES)
-    utilizado_en = models.TextField()
-    fecha_orden = models.DateField(default=timezone.now, blank=True)
-    fecha_entrega = models.DateField()
-    lugar_entrega = models.TextField()
+    uso_cfdi = models.CharField(max_length=10, choices=CFDI_CHOICES, verbose_name='Uso de CFDI')
+    metodo_pago = models.CharField(max_length=3, choices=METODO_PAGO_CHOICES, verbose_name='Método de pago')
+    forma_pago = models.CharField(max_length=100, choices=FORMA_PAGO_CHOICES, verbose_name='Forma de pago')
+    utilizado_en = models.TextField(verbose_name='Para ser utilizado en')
+    fecha_orden = models.DateField(default=timezone.now, blank=True, verbose_name='Fecha de la orden')
+    fecha_entrega = models.DateField(verbose_name='Fecha de entrega')
+    lugar_entrega = models.TextField(verbose_name='Lugar de entrega')
 
-    retencion_isr = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    retencion_cedular = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    retencion_isr = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Retención ISR')
+    retencion_cedular = models.DecimalField(max_digits=10, decimal_places=2, default=0,
+                                            verbose_name='Retención Cedular')
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

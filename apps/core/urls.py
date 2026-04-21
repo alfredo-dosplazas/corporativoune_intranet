@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.core.autocompletes import UsuarioAutocomplete, EmpresaAutocomplete
+from apps.core.autocompletes import UsuarioAutocomplete, EmpresaAutocomplete, RazonSocialAutocomplete
 from apps.core.views import LoginView, LogoutView, HomeView, PerfilView
 
 urlpatterns = [
@@ -11,4 +11,5 @@ urlpatterns = [
 
     path('usuario/autocomplete/', UsuarioAutocomplete.as_view(), name='usuario__autocomplete'),
     path('empresa/autocomplete/', EmpresaAutocomplete.as_view(), name='empresa__autocomplete'),
+    path('razon-social/autocomplete/', RazonSocialAutocomplete.as_view(), name='razon_social__autocomplete'),
 ]

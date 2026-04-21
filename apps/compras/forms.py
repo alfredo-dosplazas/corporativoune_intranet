@@ -15,9 +15,27 @@ class OrdenForm(forms.ModelForm):
             'utilizado_en': forms.Textarea(attrs={'rows': 2}),
             'fecha_orden': forms.TextInput(attrs={'type': 'date'}),
             'fecha_entrega': forms.TextInput(attrs={'type': 'date'}),
+            'razon_social': autocomplete.ModelSelect2(
+                url='razon_social__autocomplete'
+            ),
             'solicitante': autocomplete.ModelSelect2(
                 url='compras:solicitantes__autocomplete',
                 forward=['razon_social']
+            ),
+            'proveedor': autocomplete.ModelSelect2(
+                url='compras:proveedores__autocomplete',
+            ),
+            'autoriza': autocomplete.ModelSelect2(
+                url='compras:autorizadores__autocomplete',
+            ),
+            'uso_cfdi': autocomplete.ListSelect2(
+                url='compras:uso_cfdi__autocomplete',
+            ),
+            'metodo_pago': autocomplete.ListSelect2(
+                url='compras:metodo_pago__autocomplete',
+            ),
+            'forma_pago': autocomplete.ListSelect2(
+                url='compras:forma_pago__autocomplete',
             ),
         }
 

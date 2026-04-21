@@ -21,6 +21,7 @@ class OrdenTable(TableWithActions):
             'razon_social',
             'proveedor',
             'solicitante',
+            'estado',
             'creada_por',
             'updated_at',
         ]
