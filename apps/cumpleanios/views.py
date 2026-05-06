@@ -10,6 +10,7 @@ from django_tables2 import SingleTableMixin
 from extra_views import SearchableListMixin
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.models import Empresa
 from apps.cumpleanios.models import Cumpleanero
 from apps.cumpleanios.tables import CumpleaneroTable
 from apps.directorio.models import Contacto
@@ -69,4 +70,46 @@ class CumpleaniosView(BreadcrumbsMixin, SearchableListMixin, SingleTableMixin, L
         return [
             {'title': 'Inicio', 'url': reverse('home')},
             {'title': 'Cumpleaños'},
+        ]
+
+def agrupar_en_chunks(lista, n):
+    for i in range(0, len(lista), n):
+        yield lista[i:i + n]
+
+class CumpleaniosDiapositivasView(BreadcrumbsMixin, SingleTableMixin, ListView):
+    permission_required = ['cumpleanios.acceder_cumpleanios']
+    template_name = "apps/cumpleanios/diapositivas.html"
+    model = Cumpleanero
+    context_object_name = 'cumpleaneros'
+
+
+    def get_queryset(self):
+        mes = int(self.request.GET.get('mes', now().month))
+
+        return (
+            Cumpleanero.objects
+            .annotate(mes_nacimiento=ExtractMonth('fecha_nacimiento'))
+            .filter(mes_nacimiento=mes)
+            .order_by('fecha_nacimiento__day')
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        cumpleaneros = list(context['cumpleaneros'])
+        context['slides'] = list(agrupar_en_chunks(cumpleaneros, 3))
+
+        mes = int(self.request.GET.get('mes', now().month))
+        context['meses'] = MESES
+        context['numero_mes_actual'] = mes
+        context['mes_actual'] = MESES.get(mes)
+        context['empresas'] = Empresa.objects.all()
+
+        return context
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Cumpleaños', 'url': reverse('cumpleanios:list')},
+            {'title': 'Diapositivas'},
         ]

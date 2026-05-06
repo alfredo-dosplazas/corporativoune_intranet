@@ -1,0 +1,114 @@
+{% load static %}
+{% load django_tables2 %}
+<c-layouts.app>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&display=swap" rel="stylesheet">
+
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <!-- START -->
+            <div class="justify-self-start">
+                <h1 class="text-primary font-bold text-xl flex items-center gap-2">
+                    Cumpleañeros de {{ mes_actual }}
+                </h1>
+            </div>
+
+            <!-- MIDDLE -->
+            <div class="justify-self-center w-full flex justify-center">
+                <c-shared.searchbar/>
+            </div>
+
+
+            <!-- END -->
+            <div class="justify-self-end flex items-center gap-2">
+                <button id="download-btn" class="btn btn-sm btn-primary">Descargar diapositivas</button>
+
+                <form method="GET">
+                    <label>
+                        <select onchange="this.form.submit()" name="mes" id="id_mes" class="select">
+                            {% for numero, mes in meses.items %}
+                                <option value="{{ numero }}"  {% if numero_mes_actual == numero %}
+                                        selected {% endif %}>{{ mes }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                </form>
+            </div>
+
+        </div>
+
+    </c-slot>
+
+    <div class="flex flex-col items-center justify-center gap-4">
+        {% for slide in slides %}
+            <div class="slide relative bg-gray-100 w-[1280px] h-[720px] overflow-hidden">
+
+                <!-- LOGOS -->
+                <div class="flex justify-center gap-10 pt-6">
+                    {% for empresa in empresas %}
+                        {% if empresa.logo %}
+                            <img src="{{ empresa.logo.url }}" class="h-20">
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                <!-- TÍTULO -->
+                <div class="text-center mt-6">
+                    <h1 class="text-5xl font-serif text-blue-700">
+                        ¡Empezamos el mes
+                    </h1>
+                    <h2 class="text-5xl italic text-blue-700">
+                        de cumpleaños de {{ mes_actual }}!
+                    </h2>
+                </div>
+
+                <!-- PERSONAS -->
+                <div class="grid grid-cols-3 gap-10 mt-12 px-20">
+
+                    {% for c in slide %}
+                        <div class="text-center bg-transparent" data-theme="{{ c.empresa.theme }}">
+
+                            <!-- FOTO -->
+                            <div class="w-40 h-40 mx-auto rounded-full overflow-hidden border-4 border-primary">
+                                {% if c.foto %}
+                                    <img src="{{ c.foto.url }}" class="w-full h-full object-cover">
+                                {% else %}
+                                    <img src="{% static 'img/avatar.png' %}" class="w-full h-full p-10 object-cover">
+                                {% endif %}
+                            </div>
+
+                            <!-- FECHA -->
+                            <div class="flex justify-center items-center gap-2 mt-3 text-gray-600">
+                                🎁 <span>{{ c.fecha_nacimiento|date:"d / m" }}</span>
+                            </div>
+
+                            <!-- NOMBRE -->
+                            <div class="mt-2 text-sm font-semibold uppercase tracking-wide">
+                                {{ c.nombre_completo }}
+                            </div>
+
+                        </div>
+                    {% endfor %}
+
+                </div>
+
+            </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        document.getElementById('download-btn').addEventListener('click', async () => {
+            const slides = document.querySelectorAll('.slide');
+
+            let index = 1;
+
+            for (const slide of slides) {
+                const result = await snapdom(slide);
+                await result.toPng();
+                await result.download({format: 'png', filename: `cumple_{{ mes_actual }}_${index}.png`});
+
+                index++;
+            }
+        });
+    </script>
+</c-layouts.app>

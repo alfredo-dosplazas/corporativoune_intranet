@@ -17,7 +17,9 @@
 
 
             <!-- END -->
-            <div class="justify-self-end">
+            <div class="justify-self-end flex items-center gap-2">
+                <a class="btn btn-sm btn-primary" href="{% url 'cumpleanios:diapositivas' %}{% querystring %}">Diapositivas</a>
+
                 <form method="GET">
                     <label>
                         <select onchange="this.form.submit()" name="mes" id="id_mes" class="select">
