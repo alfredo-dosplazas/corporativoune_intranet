@@ -20,14 +20,17 @@ class ContactoFilter(django_filters.FilterSet):
         ),
     )
 
-    area = django_filters.ModelChoiceFilter(
-        queryset=Area.objects,
-        field_name='area',
-        widget=autocomplete.ModelSelect2(
-            url='rrhh:areas__autocomplete',
+    area = django_filters.ChoiceFilter(
+        field_name='area__nombre',
+        label='Área',
+        lookup_expr='iexact',
+        choices=lambda: Area.objects.values_list('nombre', 'nombre').distinct(),
+        widget=autocomplete.ListSelect2(
+            url='rrhh:areas_nombre__autocomplete',
             attrs={'style': 'width: 100%;'}
         )
     )
+
     puesto = django_filters.ModelChoiceFilter(
         queryset=Puesto.objects,
         field_name='puesto',

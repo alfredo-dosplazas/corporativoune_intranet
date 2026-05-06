@@ -31,6 +31,26 @@ class AreaAutocomplete(autocomplete.Select2QuerySetView):
         return qs
 
 
+class AreaNombreAutocomplete(autocomplete.Select2ListView):
+    def get_list(self):
+        qs = Area.objects.all()
+
+        if not self.request.user.is_authenticated:
+            ip = get_client_ip(self.request)
+            empresas = get_empresas_from_ip(ip)
+            qs = qs.filter(empresa__in=empresas)
+
+        empresa_id = self.forwarded.get('empresa')
+        if es_frescopack(self.request.user):
+            empresa_id = Empresa.objects.get(nombre_corto='Frescopack')
+
+        if empresa_id:
+            qs = qs.filter(empresa_id=empresa_id)
+
+        areas = set(qs.values_list('nombre', flat=True))
+        return areas
+
+
 class PuestoAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         qs = Puesto.objects.all()
@@ -53,3 +73,22 @@ class PuestoAutocomplete(autocomplete.Select2QuerySetView):
             )
 
         return qs
+
+class PuestoNombreAutocomplete(autocomplete.Select2ListView):
+    def get_list(self):
+        qs = Puesto.objects.all()
+
+        if not self.request.user.is_authenticated:
+            ip = get_client_ip(self.request)
+            empresas = get_empresas_from_ip(ip)
+            qs = qs.filter(empresa__in=empresas)
+
+        empresa_id = self.forwarded.get('empresa')
+        if es_frescopack(self.request.user):
+            empresa_id = Empresa.objects.get(nombre_corto='Frescopack')
+
+        if empresa_id:
+            qs = qs.filter(empresa_id=empresa_id)
+
+        puestos = set(qs.values_list('nombre', flat=True))
+        return puestos

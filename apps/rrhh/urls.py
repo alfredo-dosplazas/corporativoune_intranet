@@ -1,6 +1,7 @@
 from django.urls import path
 
-from apps.rrhh.autocompletes import AreaAutocomplete, PuestoAutocomplete
+from apps.rrhh.autocompletes import AreaAutocomplete, PuestoAutocomplete, AreaNombreAutocomplete, \
+    PuestoNombreAutocomplete
 from apps.rrhh.views.areas import AreaListView, AreaUpdateView, AreaCreateView, AreaDetailView, AreaDeleteView
 from apps.rrhh.views.puestos import PuestoListView, PuestoCreateView, PuestoUpdateView, PuestoDeleteView, \
     PuestoDetailView
@@ -19,6 +20,7 @@ areas_urlpatterns = [
     path('areas/detalle/<int:pk>/', AreaDetailView.as_view(), name='areas__detail'),
     path('areas/eliminar/<int:pk>/', AreaDeleteView.as_view(), name='areas__delete'),
     path('areas/autocomplete/', AreaAutocomplete.as_view(), name='areas__autocomplete'),
+    path('areas-nombre/autocomplete/', AreaNombreAutocomplete.as_view(), name='areas_nombre__autocomplete'),
 ]
 
 puestos_urlpatterns = [
@@ -28,6 +30,7 @@ puestos_urlpatterns = [
     path('puestos/detalle/<int:pk>/', PuestoDetailView.as_view(), name='puestos__detail'),
     path('puestos/delete/<int:pk>/', PuestoDeleteView.as_view(), name='puestos__delete'),
     path('puestos/autocomplete/', PuestoAutocomplete.as_view(), name='puestos__autocomplete'),
+    path('puestos-nombre/autocomplete/', PuestoNombreAutocomplete.as_view(), name='puestos_nombre__autocomplete'),
 ]
 
 urlpatterns += areas_urlpatterns
