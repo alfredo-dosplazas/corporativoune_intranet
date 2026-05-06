@@ -3,7 +3,7 @@
         {% for breadcrumb in breadcrumbs %}
             <li>
                 {% if breadcrumb.url %}
-                    <a class="link" href="{{ breadcrumb.url }}">{{ breadcrumb.title }}</a>
+                    <a class="link" href="{{ breadcrumb.url }}{% querystring %}">{{ breadcrumb.title }}</a>
                 {% else %}
                     {{ breadcrumb.title }}
                 {% endif %}
