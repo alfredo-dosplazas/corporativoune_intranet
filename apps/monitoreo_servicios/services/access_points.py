@@ -1,11 +1,11 @@
 from apps.core.utils.network import ping
 
 ACCESS_POINTS = [
-    {"nombre": "AP Dirección (AP325)", "ip": "172.17.0.245"},
-    {"nombre": "AP Ventas (AP225W)", "ip": "172.17.0.246"},
-    {"nombre": "AP BBH (AP225W)", "ip": "172.17.0.247"},
-    {"nombre": "AP Sala BBH (AP225W)", "ip": "172.17.0.248"},
-    {"nombre": "AP Sistemas (AP225W)", "ip": "172.17.0.249"},
+    {"nombre": "AP Ventas (AP330)", "ip": "172.17.0.1"},
+    {"nombre": "AP Sistemas (AP330)", "ip": "172.17.0.4"},
+    {"nombre": "AP BBH (AP330)", "ip": "172.17.0.5"},
+    {"nombre": "AP Proyectos (AP330)", "ip": "172.17.0.6"},
+    {"nombre": "AP Dirección (AP330)", "ip": "172.17.0.7"},
 ]
 
 

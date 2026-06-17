@@ -3894,26 +3894,17 @@
   .right-6 {
     right: calc(var(--spacing) * 6);
   }
-  .right-10 {
-    right: calc(var(--spacing) * 10);
-  }
   .bottom-0 {
     bottom: calc(var(--spacing) * 0);
   }
   .bottom-6 {
     bottom: calc(var(--spacing) * 6);
   }
-  .bottom-10 {
-    bottom: calc(var(--spacing) * 10);
-  }
   .left-0 {
     left: calc(var(--spacing) * 0);
   }
   .left-1\/2 {
     left: calc(1/2 * 100%);
-  }
-  .left-10 {
-    left: calc(var(--spacing) * 10);
   }
   .join {
     display: inline-flex;
@@ -7026,9 +7017,6 @@
   }
   .border-error {
     border-color: var(--color-error);
-  }
-  .border-gray-300 {
-    border-color: var(--color-gray-300);
   }
   .border-primary {
     border-color: var(--color-primary);
