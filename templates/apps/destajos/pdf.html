@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Destajo {{ destajo.folio }}</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 1.5cm;
+            @bottom-right {
+                content: "Página " counter(page) " de " counter(pages);
+                font-family: Arial, sans-serif;
+                font-size: 9px;
+                color: #555;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        /* Encabezado */
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .header-table td {
+            vertical-align: top;
+        }
+
+        .title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1a365d;
+            margin: 0 0 5px 0;
+        }
+
+        .folio {
+            font-size: 14px;
+            font-weight: bold;
+            color: #c53030;
+        }
+
+        .estado-badge {
+            display: inline-block;
+            padding: 3px 6px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-radius: 3px;
+            background-color: #e2e8f0;
+        }
+
+        .estado-publicado {
+            background-color: #c6f6d5;
+            color: #22543d;
+        }
+
+        .estado-borrador {
+            background-color: #feebc8;
+            color: #744210;
+        }
+
+        .estado-cancelado {
+            background-color: #fed7d7;
+            color: #742a2a;
+        }
+
+        /* Bloques de Información */
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: #f7fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .info-table th, .info-table td {
+            padding: 6px 8px;
+            text-align: left;
+        }
+
+        .info-table th {
+            font-weight: bold;
+            color: #4a5568;
+            width: 15%;
+            background-color: #edf2f7;
+        }
+
+        .info-table td {
+            width: 35%;
+        }
+
+        /* Tabla de Detalles */
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .details-table th {
+            background-color: #1a365d;
+            color: white;
+            font-weight: bold;
+            padding: 8px;
+            text-align: left;
+            font-size: 10px;
+        }
+
+        .details-table td {
+            padding: 8px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        /* Totales y Observaciones */
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .summary-table td {
+            vertical-align: top;
+        }
+
+        .observaciones-box {
+            border: 1px solid #e2e8f0;
+            padding: 8px;
+            min-height: 60px;
+            background-color: #fff;
+            font-style: italic;
+        }
+
+        .total-box {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .total-box td {
+            padding: 6px;
+        }
+
+        .total-row {
+            font-size: 13px;
+            font-weight: bold;
+            background-color: #edf2f7;
+        }
+
+        /* Firmas */
+        .firmas-container {
+            margin-top: 50px;
+            width: 100%;
+            border-collapse: collapse;
+            page-break-inside: avoid;
+        }
+
+        .firmas-container td {
+            width: 50%;
+            text-align: center;
+            vertical-align: bottom;
+        }
+
+        .linea-firma {
+            border-top: 1px solid #4a5568;
+            width: 70%;
+            margin: 0 auto 5px auto;
+        }
+    </style>
+</head>
+<body>
+
+<table class="header-table">
+    <tr>
+        <td>
+            <div class="title">ORDEN DE DESTAJO</div>
+            <div><strong>Fraccionamiento:</strong> {{ destajo.agrupador.nombre }}</div>
+        </td>
+        <td class="text-right">
+            <div class="folio">{{ destajo.folio|default:"SIN FOLIO" }}</div>
+            <div style="margin-top: 5px;">
+                    <span class="estado-badge estado-{{ destajo.estado }}">
+                        {{ destajo.get_estado_display }}
+                    </span>
+            </div>
+        </td>
+    </tr>
+</table>
+
+<table class="info-table">
+    <tr>
+        <th>Contratista:</th>
+        <td>{{ destajo.contratista.nombre }}</td>
+        <th>Fecha:</th>
+        <td>{{ destajo.fecha|date:"d/m/Y" }}</td>
+    </tr>
+    <tr>
+        <th>Solicitante:</th>
+        <td>{{ destajo.solicitante.contacto|default:destajo.solicitante }}</td>
+        <th>Autorizó:</th>
+        <td>{{ destajo.autoriza.contacto|default:destajo.autoriza }}</td>
+    </tr>
+</table>
+
+<table class="details-table">
+    <thead>
+    <tr>
+        <th>Código/Trabajo</th>
+        <th class="text-center" style="width: 10%;">U.M.</th>
+        <th class="text-right" style="width: 12%;">Cantidad</th>
+        <th class="text-right" style="width: 12%;">P. Unitario</th>
+        <th class="text-right" style="width: 15%;">Subtotal</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for detalle in destajo.detalles.all %}
+        <tr>
+            <td>
+                <strong>{{ detalle.trabajo.clave }}</strong> - {{ detalle.trabajo.nombre }}
+                {% if detalle.fecha_entrega %}
+                    <br><small style="color: #718096;">Entrega: {{ detalle.fecha_entrega|date:"d/m/Y" }}</small>
+                {% endif %}
+            </td>
+            <td class="text-center">{{ detalle.get_unidad_display }}</td>
+            <td class="text-right">{{ detalle.cantidad }}</td>
+            <td class="text-right">${{ detalle.precio|floatformat:2 }}</td>
+            <td class="text-right">${{ detalle.subtotal|floatformat:2 }}</td>
+        </tr>
+    {% empty %}
+        <tr>
+            <td colspan="5" class="text-center" style="color: #a0aec0; padding: 20px;">
+                No hay conceptos registrados en este destajo.
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<table class="summary-table">
+    <tr>
+        <td style="width: 60%; padding-right: 20px;">
+            <strong>Observaciones:</strong>
+            <div class="observaciones-box">
+                {{ destajo.observaciones|default:"Sin observaciones adicionales."|linebreaksbr }}
+            </div>
+        </td>
+        <td style="width: 40%;">
+            <table class="total-box">
+                <tr class="total-row">
+                    <td>TOTAL:</td>
+                    <td class="text-right">${{ destajo.total|floatformat:2 }}</td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<table class="firmas-container">
+    <tr>
+        <td>
+            <div class="linea-firma"></div>
+            <div><strong>Solicita</strong></div>
+            <div>{{ destajo.solicitante.contacto|default:destajo.solicitante }}</div>
+        </td>
+        <td>
+            <div class="linea-firma"></div>
+            <div><strong>Autoriza</strong></div>
+            <div>{{ destajo.autoriza.contacto|default:destajo.autoriza }}</div>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>

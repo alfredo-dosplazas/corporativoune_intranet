@@ -1,0 +1,60 @@
+<div id="metricas-sidebar" hx-swap-oob="true" class="space-y-6 lg:sticky lg:top-4">
+    <div class="card bg-base-100 border border-base-200 shadow-sm overflow-hidden">
+        <div class="h-2 w-full {% if metricas.pct == 100 %}bg-success{% elif metricas.pct > 0 %}bg-warning{% else %}bg-base-300{% endif %}"></div>
+
+        <div class="card-body p-5">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Avance Físico</span>
+                {% if metricas.pct == 100 %}
+                    <span class="badge badge-success badge-sm font-bold uppercase">Terminada</span>
+                {% elif metricas.pct == 0 %}
+                    <span class="badge badge-ghost badge-sm font-bold uppercase text-gray-400">Sin Iniciar</span>
+                {% else %}
+                    <span class="badge badge-warning badge-sm font-bold uppercase text-warning-content">En Edificación</span>
+                {% endif %}
+            </div>
+
+            <div class="flex items-baseline gap-1">
+                <span class="text-4xl font-black text-base-content tracking-tight">{{ metricas.pct }}%</span>
+                <span class="text-xs text-gray-400 font-medium">completado</span>
+            </div>
+
+            <div class="w-full bg-base-200 rounded-full h-2.5 overflow-hidden mt-3 p-[1px]">
+                <div class="h-full rounded-full transition-all duration-500 {% if metricas.pct == 100 %}bg-success{% else %}bg-primary{% endif %}"
+                     style="width: {{ metricas.pct }}%"></div>
+            </div>
+
+            <div class="divider my-4"></div>
+
+            <div class="space-y-3 text-xs">
+                <div class="flex justify-between border-b border-base-200 pb-1.5">
+                    <span class="text-gray-400 font-medium">Modelo / Estructura:</span>
+                    <span class="font-bold text-base-content">{{ vivienda.estructura.nombre }}</span>
+                </div>
+                <div class="flex justify-between border-b border-base-200 pb-1.5">
+                    <span class="text-gray-400 font-medium">Frente de Trabajo:</span>
+                    <span class="font-bold text-base-content">{{ agrupador.tipo.nombre }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400 font-medium">Total de Conceptos:</span>
+                    <span class="font-mono font-bold text-base-content">{{ metricas.total }} actividades</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-2 text-center">
+        <div class="bg-base-100 border border-base-200 p-3 rounded-xl shadow-sm">
+            <div class="text-lg font-black text-success">{{ metricas.realizados }}</div>
+            <div class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Listos</div>
+        </div>
+        <div class="bg-base-100 border border-base-200 p-3 rounded-xl shadow-sm">
+            <div class="text-lg font-black text-warning">{{ metricas.pendientes }}</div>
+            <div class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Por hacer</div>
+        </div>
+        <div class="bg-base-100 border border-base-200 p-3 rounded-xl shadow-sm">
+            <div class="text-lg font-black text-gray-400">{{ metricas.na }}</div>
+            <div class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">N/A</div>
+        </div>
+    </div>
+</div>

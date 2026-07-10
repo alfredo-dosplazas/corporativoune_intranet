@@ -1,0 +1,52 @@
+<c-layouts.app>
+    <form action="" method="post">
+        {% csrf_token %}
+
+        <label class="form-label">
+            Empresa
+        </label>
+
+        <select
+                class="form-select"
+
+                name="empresa"
+
+                hx-get="{% url 'vs_erp:recuperar_obras_por_empresa' %}"
+
+                hx-trigger="change"
+
+                hx-target="#contenedor-obras"
+
+                hx-swap="innerHTML">
+
+            <option value="">Seleccione...</option>
+
+            <option value="TODAS">
+                Todas
+            </option>
+
+            <option value="DP">
+                Dos Plazas
+            </option>
+
+            <option value="TERBA">
+                Terba
+            </option>
+
+            <option value="EDIFICATIUM">
+                Edificatium
+            </option>
+
+        </select>
+
+        <div id="contenedor-obras">
+            {% include "apps/vs_erp/reportes/partials/select_obras.html" %}
+        </div>
+
+        <button>
+            Generar Reporte
+        </button>
+    </form>
+
+
+</c-layouts.app>

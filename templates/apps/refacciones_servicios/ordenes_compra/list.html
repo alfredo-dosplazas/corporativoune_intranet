@@ -1,0 +1,68 @@
+{% load django_tables2 %}
+
+<c-layouts.app>
+    <!-- ========================================================== -->
+    <!-- HEADER SLOT (Barra de control unificada) -->
+    <!-- ========================================================== -->
+    <c-slot name="header">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between w-full py-1">
+
+            <!-- Título y Contexto (Izquierda) -->
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-primary/10 text-primary rounded-xl hidden sm:block">
+                    <span class="icon-[tabler--clipboard-list] size-6 block"></span>
+                </div>
+                <div>
+                    <h1 class="text-base-content font-bold text-lg md:text-xl flex items-center gap-2 tracking-tight">
+                        Órdenes de Compra
+                    </h1>
+                    <p class="text-xs text-base-content/60 font-normal">
+                        Módulo de Refacciones y Servicios
+                    </p>
+                </div>
+            </div>
+
+            <!-- Acciones, Búsqueda y Filtros (Derecha) -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+
+                <!-- Buscador Reutilizable o Input del Sistema -->
+                <div class="relative flex-1 sm:w-64 md:w-72">
+                    <c-shared.searchbar/>
+                </div>
+
+                <!-- Botón de Acción Primaria (Crear) -->
+                <a href="{% url 'refacciones_servicios:orden_compra__create' %}"
+                   class="btn btn-primary btn-sm normal-case gap-1.5 font-semibold shadow-sm w-full sm:w-auto order-first sm:order-last">
+                    <span class="icon-[tabler--plus] size-4"></span>
+                    Nueva Orden
+                </a>
+
+            </div>
+        </div>
+    </c-slot>
+
+
+
+    {% if request.GET.q or request.GET.status %}
+        <div id="table-active-filters"
+             class="bg-base-200/50 border-b border-base-200 px-4 py-2.5 flex items-center gap-2 text-xs text-base-content/70 select-none shrink-0">
+            <span class="font-medium">Filtros activos:</span>
+            {% if request.GET.q %}
+                <span class="badge badge-sm bg-base-100 border-base-300 gap-1 py-2 text-xs">
+                        Búsqueda: "{{ request.GET.q }}"
+                    </span>
+            {% endif %}
+            {% if request.GET.status %}
+                <span class="badge badge-sm bg-base-100 border-base-300 gap-1 py-2 text-xs capitalize">
+                        Estado: {{ request.GET.status }}
+                    </span>
+            {% endif %}
+            <a href="?" class="link link-error ml-auto text-xs font-medium no-underline hover:underline">
+                Limpiar todo
+            </a>
+        </div>
+    {% endif %}
+
+    {% render_table table %}
+
+</c-layouts.app>

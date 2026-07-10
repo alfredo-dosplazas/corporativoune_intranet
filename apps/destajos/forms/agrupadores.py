@@ -19,6 +19,8 @@ class AgrupadorForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_id = 'agrupador-form'
         self.helper.attrs = {'novalidate': 'novalidate'}
+        self.helper.form_tag = False
+        self.helper.include_tag = False
 
         self.helper.layout = Layout(
             'obra',

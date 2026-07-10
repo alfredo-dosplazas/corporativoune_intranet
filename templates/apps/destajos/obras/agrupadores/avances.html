@@ -1,52 +1,84 @@
 {% load crispy_forms_tags %}
 <c-layouts.app>
 
-    <!-- HEADER -->
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 w-full">
 
-            <!-- INFO -->
             <div>
-                <h1 class="font-bold text-xl">
-                    {{ agrupador.nombre }}
+                <div class="text-xs text-primary font-bold uppercase tracking-widest mb-1">
+                    {{ obra.nombre }} · Control Matriz
+                </div>
+                <h1 class="font-black text-2xl text-base-content tracking-tight flex items-center gap-2">
+                    <span class="badge badge-primary font-mono font-bold py-3">
+                        {{ agrupador.tipo.codigo }}-{{ agrupador.numero }}
+                    </span>
+                    <span class="text-gray-400 font-light">|</span> Matriz de Avance Físico
                 </h1>
-                <h2 class="text-muted text-sm">
-                    Agrupador · {{ agrupador.tipo.nombre }}
-                </h2>
+                <p class="text-xs text-gray-500 mt-0.5">
+                    Frente de Trabajo: <span class="font-semibold text-base-content">{{ agrupador.tipo.nombre }}</span>
+                </p>
             </div>
 
-            <!-- KPI -->
-            <div class="flex justify-center">
-                <div class="text-center">
-                    <div class="text-xs text-muted uppercase tracking-wide">
-                        Avance general
+            <div class="flex items-center gap-4 bg-base-100 px-5 py-2.5 border border-base-200 rounded-xl shadow-sm w-full lg:w-auto">
+                <div>
+                    <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                        Avance General Frente
                     </div>
-                    <div class="text-3xl font-bold text-primary">
+                    <div class="text-2xl font-black text-primary tracking-tight">
                         {{ avance_general }}%
                     </div>
                 </div>
+                <div class="w-24 bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                    <div class="bg-primary h-1.5 rounded-full transition-all duration-500"
+                         style="width: {{ avance_general }}%"></div>
+                </div>
             </div>
 
-            <!-- FILTRO PAQUETE -->
-            <div class="flex items-center justify-end gap-2">
+            <div class="flex flex-wrap items-center justify-end gap-2 w-full lg:w-auto">
+
                 {% if editar %}
-                    <a class="btn btn-sm" href="?">Bloquear</a>
+                    <a class="btn btn-sm btn-error btn-outline gap-1.5 shadow-sm font-bold uppercase text-[11px]"
+                       href="?editar=0&paquete={{ paquete }}">
+                        <span class="icon-[material-symbols--lock] size-4"></span> Bloquear Matriz
+                    </a>
                 {% else %}
-                    <a class="btn btn-sm btn-primary" href="?editar=1&paquete={{ paquete }}">Editar</a>
+                    <a class="btn btn-sm btn-primary gap-1.5 shadow-sm font-bold uppercase text-[11px]"
+                       href="?editar=1&paquete={{ paquete }}">
+                        <span class="icon-[ph--pencil-line-bold] size-4"></span> Modo Edición (Lote)
+                    </a>
                 {% endif %}
 
-                <form method="get">
-                    <input type="hidden" name="editar" value="{{ editar }}">
+                <a href="{% url 'destajos:obras__agrupador__detail' obra.pk agrupador.pk %}"
+                   class="btn btn-sm btn-ghost border border-base-300 gap-1 text-[11px] font-bold uppercase">
+                    <span class="icon-[ph--layout-bold]"></span> Vista Tarjetas
+                </a>
 
-                    {% crispy filter %}
-                </form>
             </div>
 
         </div>
     </c-slot>
 
-    <!-- GRID EXCEL -->
-    <div class="overflow-x-auto mt-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-base-200/40 border border-base-200/80 rounded-xl px-4 py-3 mt-6 gap-3">
+        <div class="flex items-center gap-1.5 text-xs text-gray-500">
+            <span class="icon-[ph--info-bold] text-primary"></span>
+            {% if editar %}
+                <span class="text-error font-medium">Modo Edición Activo: Haz click o arrastra el cursor sobre las celdas para seleccionar varias viviendas y cambiar estados en lote.</span>
+            {% else %}
+                <span>Modo de solo lectura. Para realizar capturas físicas de destajo, haz click en el botón <b>"Modo Edición"</b> superior.</span>
+            {% endif %}
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 text-[10px] font-bold uppercase tracking-wider">
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-success"></span> Realizado/Pagado</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-warning"></span> Por realizar</span>
+            <span class="flex items-center gap-1"><span
+                    class="w-2.5 h-2.5 rounded-full bg-base-300"></span> Pendiente</span>
+            <span class="flex items-center gap-1"><span
+                    class="w-2.5 h-2.5 rounded-full bg-gray-100 border border-dashed border-gray-300"></span> N/A</span>
+        </div>
+    </div>
+
+    <div class="mt-4">
         {% include "apps/destajos/obras/agrupadores/partials/avances_grid.html" %}
     </div>
 

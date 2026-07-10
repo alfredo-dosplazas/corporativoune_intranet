@@ -63,6 +63,9 @@ INSTALLED_APPS = [
     'apps.fotos',
     'apps.monitoreo_servicios',
     'apps.compras',
+    'apps.refacciones_servicios',
+
+    'apps.vs_erp',
 ]
 
 MIDDLEWARE = [
@@ -115,6 +118,30 @@ DATABASES = {
         'OPTIONS': {
             'driver': env('CETNET_DB_DRIVER'),
         },
+    },
+    'vs_dp': {
+        'ENGINE': 'mssql',
+        'NAME': 'DOSPLAZAS',
+        'USER': 'DosPlazasUser',
+        'PASSWORD': '2Plazas2022@',
+        'HOST': '25.20.104.40',
+        'PORT': '1433',
+    },
+    'vs_edificatium': {
+        'ENGINE': 'mssql',
+        'NAME': 'EDIFCATIUM',
+        'USER': 'DosPlazasUser',
+        'PASSWORD': '2Plazas2022@',
+        'HOST': '25.20.104.40',
+        'PORT': '1433',
+    },
+    'vs_terba': {
+        'ENGINE': 'mssql',
+        'NAME': 'GITERBA',
+        'USER': 'DosPlazasUser',
+        'PASSWORD': '2Plazas2022@',
+        'HOST': '25.20.104.40',
+        'PORT': '1433',
     },
 }
 

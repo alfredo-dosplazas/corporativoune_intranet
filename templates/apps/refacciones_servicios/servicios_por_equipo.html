@@ -1,0 +1,107 @@
+{% load django_tables2 %}
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
+            <div>
+                <h1 class="text-primary font-bold text-xl flex items-center gap-2">
+                    <span class="icon-[et--document] size-6"></span>
+                    Servicios por equipo
+                </h1>
+                <h2 class="text-base-content/60 text-sm">Historial de refacciones y mantenimientos aplicados.</h2>
+            </div>
+        </div>
+    </c-slot>
+
+    <div class="card bg-base-100 border border-base-200 shadow-sm p-4 mb-6">
+        <form method="GET" action="" class="flex flex-col sm:flex-row items-end gap-3 w-full max-w-3xl">
+            <div class="form-control w-full">
+                <label class="label py-1">
+                    <span class="label-text font-semibold text-base-content/70">Selecciona un Equipo</span>
+                </label>
+                <select name="equipo_id" id="equipo_id" class="select select-bordered w-full focus:select-primary">
+                    <option value="" disabled {% if not equipo %}selected{% endif %}>--- Elige un equipo de la lista
+                        ---
+                    </option>
+                    {% for e in equipos %}
+                        <option {% if e.id == equipo.id %}selected{% endif %} value="{{ e.id }}">
+                            {{ e.nombre }} | {{ e.identificador }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-full sm:w-auto gap-2">
+                <span class="icon-[material-symbols--search] size-5"></span>
+                Buscar
+            </button>
+        </form>
+    </div>
+
+    {% if equipo %}
+        <div class="flex flex-col gap-4">
+            <div class="flex items-center gap-3 bg-base-200/50 p-4 rounded-xl border border-base-200">
+                <div class="avatar placeholder">
+                    <div class="bg-neutral text-neutral-content rounded-lg w-12">
+                        <span class="icon-[material-symbols--precision-manufacturing-rounded] size-6"></span>
+                    </div>
+                </div>
+                <div>
+                    <span class="text-xs font-bold text-primary uppercase tracking-wider">Equipo Activo</span>
+                    <h2 class="text-xl font-bold text-base-content">{{ equipo.nombre }}</h2>
+                    <p class="text-xs text-base-content/60">ID: {{ equipo.identificador }}</p>
+                </div>
+            </div>
+
+            {% if partidas %}
+                <div class="card bg-base-100 border border-base-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto w-full">
+                        <table class="table table-zebra w-full">
+                            <thead>
+                            <tr class="bg-base-200/60 text-base-content/80 text-sm">
+                                <th class="rounded-l-lg">Descripción</th>
+                                <th>Unidad</th>
+                                <th class="text-right">Cantidad</th>
+                                <th class="rounded-r-lg text-center">Fecha</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for partida in partidas %}
+                                <tr class="hover">
+                                    <td class="font-medium max-w-xs sm:max-w-md break-words whitespace-normal">
+                                        {{ partida.descripcion }}
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-ghost font-mono">{{ partida.unidad }}</span>
+                                    </td>
+                                    <td class="text-right font-semibold">
+                                        {{ partida.cantidad }}
+                                    </td>
+                                    <td class="text-center text-base-content/70 text-sm whitespace-nowrap">
+                                        {{ partida.orden.fecha|date:"d/m/Y" }}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% else %}
+                <div class="text-center py-12 bg-base-100 border border-base-200 rounded-xl shadow-sm">
+                    <span class="icon-[tabler--database-off] size-12 text-base-content/30 mb-3"></span>
+                    <h3 class="text-lg font-bold text-base-content/70">Sin historial</h3>
+                    <p class="text-sm text-base-content/50 max-w-sm mx-auto mt-1">
+                        No se encontraron órdenes de compra ni servicios asociados a este equipo actualmente.
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="text-center py-16 bg-base-100 border-2 border-dashed border-base-300 rounded-xl">
+            <span class="icon-[material-symbols--info-outline-rounded] size-12 text-primary/40 mb-3"></span>
+            <h3 class="text-lg font-bold text-base-content/80">Consulta de Historial</h3>
+            <p class="text-sm text-base-content/50 max-w-xs mx-auto mt-1">
+                Selecciona un equipo de la lista superior para cargar sus refacciones y servicios realizados.
+            </p>
+        </div>
+    {% endif %}
+</c-layouts.app>

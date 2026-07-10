@@ -1,0 +1,18 @@
+<label class="form-label">
+    Obras
+</label>
+
+<select
+        id="select-obras"
+        name="obras"
+        multiple
+        placeholder="Buscar obras...">
+
+    {% for obra in obras %}
+        <option value="{{ obra.id }}">
+            [{{ obra.empresa }}] {{ obra.descripcion }}
+        </option>
+    {% empty %}
+        <option disabled>Seleccione una empresa</option>
+    {% endfor %}
+</select>

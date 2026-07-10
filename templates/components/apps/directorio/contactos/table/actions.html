@@ -1,58 +1,244 @@
+{% load phone_filters %}
+
 <c-table.actions>
-    <li><a href="{% url 'directorio:detail' record.pk %}">Detalle</a></li>
+    <li>
+        <a href="{% url 'directorio:detail' record.pk %}" class="flex items-center gap-2">
+            <span class="icon-[tabler--user-search] size-4 opacity-70 text-primary"></span>
+            Ver Perfil
+        </a>
+    </li>
+
+    <li>
+        <button type="button" class="flex items-center gap-2" onclick="exportarTarjetaSnapdom('{{ record.pk }}')">
+            <span class="icon-[tabler--id] size-4 opacity-70 text-indigo-500"></span>
+            Tarjeta Digital
+        </button>
+    </li>
 
     {% if perms.directorio.change_contacto %}
-        <li><a href="{% url 'directorio:update' record.pk %}">Editar</a></li>
+        <li>
+            <a href="{% url 'directorio:update' record.pk %}" class="flex items-center gap-2">
+                <span class="icon-[tabler--edit] size-4 opacity-70"></span>
+                Editar
+            </a>
+        </li>
     {% endif %}
+
     {% if perms.directorio.change_contacto %}
         <li>
-            <button onclick="contacto_archivar_modal_{{ record.pk }}.showModal()">
+            <hr class="opacity-20 my-1">
+        </li>
+        <li class="{% if record.esta_archivado %}text-success hover:bg-success/10{% else %}text-warning hover:bg-warning/10{% endif %} rounded-lg">
+            <button class="flex items-center gap-2 w-full text-left {% if record.esta_archivado %}text-success{% else %}text-warning{% endif %}"
+                    onclick="contacto_archivar_modal_{{ record.pk }}.showModal()">
                 {% if record.esta_archivado %}
+                    <span class="icon-[tabler--user-check] size-4"></span>
                     Desarchivar
                 {% else %}
+                    <span class="icon-[tabler--user-minus] size-4"></span>
                     Archivar
                 {% endif %}
             </button>
         </li>
     {% endif %}
 
-
     {% if perms.directorio.change_contacto %}
         <dialog id="contacto_archivar_modal_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
-            <div class="modal-box">
+            <div class="modal-box max-w-md p-6 border border-base-200 shadow-xl">
                 <form method="dialog">
-                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                    <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3">✕</button>
                 </form>
-                <h3 class="text-lg font-bold">¿
-                    {% if record.esta_archivado %}
-                        Desarchivar
-                    {% else %}
-                        Archivar
-                    {% endif %}
-                    {{ record }}?
-                </h3>
-                <p class="py-4">Esta acción
-                    {% if record.esta_archivado %}
-                        activará
-                    {% else %}
-                        desactivará
-                    {% endif %} el contacto.
-                </p>
 
-                <div class="modal-action">
-                    <form action="{% url 'directorio:archivar' record.pk %}" method="post">
-                        {% csrf_token %}
-                        <button class="btn btn-error">Confirmar</button>
-                    </form>
-                    <form method="dialog">
-                        <button class="btn">Cancelar</button>
-                    </form>
+                <div class="flex items-start gap-4 mb-4">
+                    {% if record.esta_archivado %}
+                        <div class="p-3 bg-success/10 text-success rounded-full shrink-0">
+                            <span class="icon-[tabler--user-check] size-6 block"></span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-base-content">¿Desarchivar Colaborador?</h3>
+                            <p class="text-sm text-base-content/70 mt-1">
+                                Vas a reincorporar al directorio a <span
+                                    class="font-semibold text-base-content">{{ record.nombre_completo }}</span>.
+                            </p>
+                        </div>
+                    {% else %}
+                        <div class="p-3 bg-warning/10 text-warning rounded-full shrink-0">
+                            <span class="icon-[tabler--user-minus] size-6 block"></span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-base-content">¿Archivar Colaborador?</h3>
+                            <p class="text-sm text-base-content/70 mt-1">
+                                Estás por retirar del directorio activo a <span
+                                    class="font-semibold text-base-content">{{ record.nombre_completo }}</span>.
+                            </p>
+                        </div>
+                    {% endif %}
                 </div>
 
+                <div class="bg-base-50 border border-base-200 rounded-lg p-3 text-xs text-base-content/70 mb-6 flex gap-2">
+                    <span class="icon-[tabler--info-circle] size-4 shrink-0 mt-0.5 text-info"></span>
+                    <span>
+                        {% if record.esta_archivado %}
+                            El contacto volverá a ser visible en las búsquedas organizacionales, cumpleaños y
+                            organigramas.
+                        {% else %}
+                            Esta acción ocultará temporalmente al usuario de las listas públicas del directorio sin
+                            borrar sus datos históricos.
+                        {% endif %}
+                    </span>
+                </div>
+
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                    <form method="dialog" class="w-full sm:w-auto">
+                        <button class="btn btn-ghost w-full sm:w-auto normal-case">Cancelar</button>
+                    </form>
+                    <form action="{% url 'directorio:archivar' record.pk %}" method="post" class="w-full sm:w-auto">
+                        {% csrf_token %}
+                        <button class="btn w-full sm:w-auto normal-case gap-2 {% if record.esta_archivado %}btn-success text-white{% else %}btn-warning text-warning-content{% endif %}">
+                            {% if record.esta_archivado %}
+                                <span class="icon-[tabler--user-check] size-4"></span>
+                                Confirmar Activación
+                            {% else %}
+                                <span class="icon-[tabler--user-minus] size-4"></span>
+                                Confirmar Archivado
+                            {% endif %}
+                        </button>
+                    </form>
+                </div>
             </div>
-            <form method="dialog" class="modal-backdrop">
+            <form method="dialog" class="modal-backdrop bg-neutral-focus/40 backdrop-blur-xs">
                 <button>close</button>
             </form>
         </dialog>
     {% endif %}
+
+    <template id="tarjeta-template-{{ record.pk }}">
+        <div data-theme="{{ record.empresa.theme }}"
+             class="relative w-[500px] h-[200px] flex flex-col justify-between p-5 overflow-hidden select-none"
+             style="font-family: 'Inter', sans-serif; background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 50%, var(--color-primary-dark) 100%);">
+
+            <div class="absolute inset-0 opacity-[0.07] bg-[linear-gradient(to_right,rgba(255,255,255,0.2)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.2)_1px,transparent_1px)] bg-[size:14px_14px]"></div>
+
+            <div class="relative z-10 flex items-start justify-between">
+                <div class="flex items-center gap-2.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 shadow-xs">
+                    {% if record.empresa %}
+                        <c-component is="apps.empresas.logos.{{ record.empresa.abreviatura }}"
+                                     class="h-4 w-auto text-white"/>
+                    {% else %}
+                        <span class="icon-[tabler--building-skyscraper] size-4 text-white"></span>
+                    {% endif %}
+                    <span class="text-[10px] font-bold tracking-wider uppercase text-white/90">{{ record.empresa.nombre_corto }}</span>
+                </div>
+
+                <span class="text-[9px] font-mono font-bold bg-white/20 text-white px-2 py-0.5 rounded-md uppercase tracking-wider border border-white/5">
+                No. {{ record.numero_empleado|default:"Staff" }}
+            </span>
+            </div>
+
+            <div class="relative z-10 flex items-end justify-between my-auto">
+                <div class="text-primary-content space-y-0.5">
+                    <h2 class="text-xl font-extrabold tracking-tight leading-tight">
+                        {{ record.nombre_completo }}
+                    </h2>
+                    <div class="flex items-center gap-1.5 text-xs font-medium text-white/80">
+                        <span>{{ record.puesto.nombre|default:"Colaborador" }}</span>
+                        <span class="opacity-40">•</span>
+                        <span class="text-white/60 text-[11px]">{{ record.area.nombre }}</span>
+                    </div>
+                </div>
+
+                {% if record.foto %}
+                    <div class="avatar shadow-md">
+                        <div class="w-14 h-14 rounded-full ring-2 ring-white/30">
+                            <img src="{{ record.foto.url }}" alt="" class="object-cover"/>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="relative z-10 border-t border-white/10 pt-3 flex items-center justify-between text-primary-content text-[10px] font-mono">
+
+                <div class="flex flex-col gap-1 text-white/90">
+                    {% if record.email_principal %}
+                        <span class="flex items-center gap-1.5">
+                        <span class="icon-[tabler--mail] size-3.5 text-white/60"></span>
+                        {{ record.email_principal.email }}
+                    </span>
+                    {% endif %}
+
+                    {% if record.telefono_principal %}
+                        <span class="flex items-center gap-1.5">
+                        <span class="icon-[tabler--phone] size-3.5 text-white/60"></span>
+                        {{ record.telefono_principal.telefono|phone_format }}
+                            {% if record.telefono_principal.extension %}
+                                <span class="opacity-50">ext. {{ record.telefono_principal.extension }}</span>{% endif %}
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col items-end gap-1">
+                    {% if record.empresas_relacionadas.exists %}
+                        <span class="text-[8px] font-sans uppercase tracking-wider text-white/40 font-bold mb-0.5">Empresas Asociadas</span>
+                        <div class="flex items-center gap-2 bg-black/10 px-2 py-1 rounded-lg border border-white/5">
+                            {% for rel in record.empresas_relacionadas.all|slice:":3" %}
+                                <c-component is="apps.empresas.logos.{{ rel.abreviatura }}"
+                                             class="h-3 w-auto text-white/70 hover:text-white transition-colors"
+                                             title="{{ rel.nombre_corto }}"/>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+    </template>
 </c-table.actions>
+
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/snapdom@1.1.0/dist/snapdom.min.js"></script>
+
+    <div id="snapdom-workspace" class="absolute -top-[9999px] -left-[9999px] opacity-0 pointer-events-none"
+         aria-hidden="true"></div>
+
+    <script>
+        async function exportarTarjetaSnapdom(recordId) {
+            const template = document.getElementById(`tarjeta-template-${recordId}`);
+            const workspace = document.getElementById('snapdom-workspace');
+
+            if (!template) return;
+
+            // 1. Clonamos el fragmento del template dentro del workspace temporal
+            const clon = template.content.cloneNode(true);
+            workspace.appendChild(clon);
+            const elementoTarjeta = workspace.lastElementChild;
+
+            try {
+                // 2. Ejecutar Snapdom (Regresa un objeto <img> HTMLElement real)
+                const imgElement = await snapdom.toSvg(elementoTarjeta, {quality: 1.0, pixelRatio: 2});
+
+                // Limpiamos el workspace inmediatamente
+                workspace.innerHTML = '';
+
+                // 3. Abrir la nueva ventana en blanco
+                const nuevaVentana = window.open();
+                if (nuevaVentana) {
+                    // Estilos opcionales para centrar la imagen estéticamente en la nueva pestaña
+                    nuevaVentana.document.body.style.margin = '0';
+                    nuevaVentana.document.body.style.background = '#0b0f19';
+                    nuevaVentana.document.body.style.display = 'flex';
+                    nuevaVentana.document.body.style.justifyContent = 'center';
+                    nuevaVentana.document.body.style.alignItems = 'center';
+                    nuevaVentana.document.body.style.height = '100vh';
+
+                    // 4. Inyectar directamente el elemento imagen devuelto por Snapdom
+                    nuevaVentana.document.body.appendChild(imgElement);
+                } else {
+                    alert('Por favor, permite los pop-ups para poder visualizar la tarjeta.');
+                }
+            } catch (error) {
+                console.error('Error generando la tarjeta con Snapdom:', error);
+                workspace.innerHTML = '';
+            }
+        }
+    </script>
+{% endblock extra_js %}

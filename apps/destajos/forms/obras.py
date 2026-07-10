@@ -27,5 +27,8 @@ class ObraForm(forms.ModelForm):
                 Column('fecha_inicio'),
                 Column('fecha_fin'),
             ),
-            Field('direccion', css_class='h-16')
+            Row(
+                Column('ciudad'),
+                Column('estado'),
+            ),
         )

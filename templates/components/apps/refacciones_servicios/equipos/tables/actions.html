@@ -1,0 +1,84 @@
+{% load requisiciones_extras %}
+
+<c-table.actions>
+
+    <!-- EDITAR / ACTUALIZAR -->
+    {% if perms.refacciones_servicios.change_equipo %}
+        <li>
+            <a href="{% url 'refacciones_servicios:equipos__update' record.pk %}"
+               class="flex items-center gap-2">
+                <span class="icon-[tabler--edit] size-4 opacity-70"></span>
+                Editar
+            </a>
+        </li>
+    {% endif %}
+
+    <!-- SEPARADOR SI HAY OPCIÓN DE ELIMINAR -->
+    {% if perms.refacciones_servicios.delete_equipo %}
+        <li>
+            <hr class="opacity-20 my-1">
+        </li>
+
+        <!-- BOTÓN ELIMINAR -->
+        <li class="text-error hover:bg-error/10 rounded-lg">
+            <button class="flex items-center gap-2 text-error w-full text-left"
+                    onclick="equipo_delete_modal_{{ record.pk }}.showModal()">
+                <span class="icon-[tabler--trash] size-4"></span>
+                Eliminar
+            </button>
+        </li>
+    {% endif %}
+
+    <!-- MODAL DE ELIMINACIÓN MEJORADO (UI/UX) -->
+    {% if perms.refacciones_servicios.delete_equipo %}
+        <dialog id="equipo_delete_modal_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
+            <div class="modal-box max-w-md p-6 border border-base-200 shadow-xl">
+                <!-- Botón cerrar esquina superior -->
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3">✕</button>
+                </form>
+
+                <!-- Encabezado con Icono de Advertencia Destructiva -->
+                <div class="flex items-start gap-4 mb-4">
+                    <div class="p-3 bg-error/10 text-error rounded-full shrink-0">
+                        <span class="icon-[tabler--alert-triangle] size-6 block"></span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-base-content">¿Eliminar Equipo?</h3>
+                        <p class="text-sm text-base-content/70 mt-1">
+                            Estás a punto de eliminar permanentemente al equipo <span
+                                class="font-semibold text-base-content">{{ record }}</span>.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Banner de advertencia -->
+                <div class="bg-warning/10 border border-warning/20 rounded-lg p-3 text-xs text-warning-content mb-6 flex gap-2">
+                    <span class="icon-[tabler--info-circle] size-4 shrink-0 mt-0.5"></span>
+                    <span>Esta acción es irreversible y podría afectar los registros de inventario o requisiciones ligadas.</span>
+                </div>
+
+                <!-- Acciones del Modal alineadas a la derecha y estilizadas -->
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                    <form method="dialog" class="w-full sm:w-auto">
+                        <button class="btn btn-ghost w-full sm:w-auto normal-case">Cancelar</button>
+                    </form>
+                    <form action="{% url 'refacciones_servicios:equipos__delete' record.pk %}" method="post"
+                          class="w-full sm:w-auto">
+                        {% csrf_token %}
+                        <button class="btn btn-error w-full sm:w-auto normal-case gap-2">
+                            <span class="icon-[tabler--trash] size-4"></span>
+                            Sí, eliminar equipo
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Backdrop para cerrar al hacer clic afuera -->
+            <form method="dialog" class="modal-backdrop bg-neutral-focus/40 backdrop-blur-xs">
+                <button>close</button>
+            </form>
+        </dialog>
+    {% endif %}
+
+</c-table.actions>

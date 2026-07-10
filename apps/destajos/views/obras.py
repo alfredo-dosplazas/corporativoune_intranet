@@ -12,7 +12,7 @@ from apps.destajos.tables.obras import ObraTable
 
 
 class ObraListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMixin, SingleTableMixin, ListView):
-    permission_required = ['destajos.view_paquete']
+    permission_required = ['destajos.view_obra']
     template_name = "apps/destajos/obras/list.html"
     model = Obra
     table_class = ObraTable

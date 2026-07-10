@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.db.models import Sum, Q, Max, OuterRef, Subquery, F
+from django.db.models import Sum, Q, Max, OuterRef, Subquery, F, Count
 from django.utils.timezone import now
 
 from apps.core.models import RazonSocial
@@ -12,6 +12,14 @@ from apps.core.models import RazonSocial
 UNIDADES = (
     ['vivienda', 'VIVIENDA'],
 )
+
+
+class Permissions(models.Model):
+    class Meta:
+        managed = False
+        permissions = [
+            ['acceder_destajos', 'Acceder al módulo de destajos']
+        ]
 
 
 class Estructura(models.Model):
@@ -135,6 +143,33 @@ class EstructuraTrabajo(models.Model):
         unique_together = ("estructura", "trabajo")
 
 
+class ObraAdicional(models.Model):
+    agrupador = models.ForeignKey(
+        'Agrupador',
+        on_delete=models.CASCADE,
+        related_name="obras_adicionales"
+    )
+    trabajo = models.ForeignKey(
+        Trabajo,
+        on_delete=models.PROTECT,
+        related_name="obras_adicionales"
+    )
+    cantidad_base = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=1,
+        help_text="Cantidad de este trabajo adicional asignado por cada vivienda"
+    )
+
+    class Meta:
+        unique_together = ("agrupador", "trabajo")
+        verbose_name = "Obra Adicional"
+        verbose_name_plural = "Obras Adicionales"
+
+    def __str__(self):
+        return f"{self.trabajo.nombre} en {self.agrupador}"
+
+
 class Contratista(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
 
@@ -214,7 +249,25 @@ class Obra(models.Model):
     fecha_inicio = models.DateField(blank=True, null=True)
     fecha_fin = models.DateField(blank=True, null=True)
     razon_social = models.ForeignKey(RazonSocial, on_delete=models.CASCADE, related_name='obras')
-    direccion = models.TextField(blank=True, null=True)
+    ciudad = models.CharField(max_length=100, blank=True, null=True)
+    estado = models.CharField(max_length=100, blank=True, null=True)
+
+    def obtener_metricas_avance(self):
+        viviendas_qs = Vivienda.objects.filter(agrupador__obra=self)
+        total = viviendas_qs.count()
+        if total == 0:
+            return {'total': 0, 'completadas': 0, 'porcentaje': 0}
+
+        completadas = viviendas_qs.annotate(
+            pendientes=Count('estados_trabajo', filter=Q(estados_trabajo__estado__in=['pendiente', 'por_realizar']))
+        ).filter(pendientes=0).count()
+
+        return {
+            'total': total,
+            'completadas': completadas,
+            'por_ejecutar': total - completadas,
+            'porcentaje': round((completadas / total) * 100, 2) if total > 0 else 0
+        }
 
     @property
     def total_viviendas(self):
@@ -287,8 +340,24 @@ class Agrupador(models.Model):
     cantidad_viviendas = models.PositiveIntegerField()
 
     class Meta:
-        unique_together = ("obra", "tipo", "numero")
         ordering = ["tipo__nombre", "numero"]
+
+    def obtener_progreso(self):
+        estados = EstadoTrabajoVivienda.objects.filter(es_obra_adicional=False).filter(vivienda__agrupador=self)
+        total = estados.count()
+        if total == 0:
+            return {'porcentaje': 100, 'viviendas_completadas': self.viviendas.count()}
+
+        terminados = estados.filter(es_obra_adicional=False).filter(estado__in=['realizado', 'pagado', 'na']).count()
+
+        viviendas_listas = self.viviendas.annotate(
+            pendientes=Count('estados_trabajo', filter=Q(estados_trabajo__estado__in=['pendiente', 'por_realizar']))
+        ).filter(pendientes=0).count()
+
+        return {
+            'porcentaje': round((terminados / total) * 100, 2),
+            'viviendas_completadas': viviendas_listas if 'weddings_listas' in locals() else viviendas_listas
+        }
 
     @property
     def viviendas_completadas(self):
@@ -375,40 +444,49 @@ class Vivienda(models.Model):
 
     @property
     def porcentaje_completado(self) -> int:
-        qs = self.estados_trabajo.all()
-
-        total = qs.count()
+        total = self.estados_trabajo.count()
         if total == 0:
-            return 0
-
-        completados = qs.filter(
-            estado__in=[
-                'realizado',
-                'pagado',
-                'na',
-            ]
-        ).count()
-
-        print(completados, total)
-
+            return 100
+        completados = self.estados_trabajo.filter(es_obra_adicional=False).filter(estado__in=['realizado', 'pagado', 'na']).count()
         return round((completados / total) * 100)
 
     def generar_estados_trabajo(self):
-        trabajos = (
-            Trabajo.objects
-            .filter(estructuratrabajo__estructura=self.estructura)
+        trabajos_base = Trabajo.objects.filter(
+            estructuratrabajo__estructura=self.estructura
         )
 
-        estados = [
-            EstadoTrabajoVivienda(
-                vivienda=self,
-                trabajo=trabajo,
-                estado="pendiente" if trabajo.es_unitario else "no_aplica"
-            )
-            for trabajo in trabajos
-        ]
+        trabajos_adicionales = Trabajo.objects.filter(
+            obras_adicionales__agrupador=self.agrupador
+        )
 
-        EstadoTrabajoVivienda.objects.bulk_create(estados)
+        trabajos_existentes_ids = set(self.estados_trabajo.values_list('trabajo_id', flat=True))
+
+        estados_nuevos = []
+
+        for trabajo in trabajos_base:
+            if trabajo.id not in trabajos_existentes_ids:
+                estados_nuevos.append(
+                    EstadoTrabajoVivienda(
+                        vivienda=self,
+                        trabajo=trabajo,
+                        estado="pendiente" if trabajo.es_unitario else "no_aplica",
+                        es_obra_adicional=False
+                    )
+                )
+
+        for trabajo in trabajos_adicionales:
+            if trabajo.id not in trabajos_existentes_ids:
+                estados_nuevos.append(
+                    EstadoTrabajoVivienda(
+                        vivienda=self,
+                        trabajo=trabajo,
+                        estado="pendiente" if trabajo.es_unitario else "no_aplica",
+                        es_obra_adicional=True
+                    )
+                )
+
+        if estados_nuevos:
+            EstadoTrabajoVivienda.objects.bulk_create(estados_nuevos)
 
     def __str__(self):
         return f"Viv {self.numero} | {self.agrupador} | {self.estructura}"
@@ -439,6 +517,8 @@ class EstadoTrabajoVivienda(models.Model):
         choices=ESTADOS,
         default="pendiente"
     )
+
+    es_obra_adicional = models.BooleanField(default=False)
 
     @property
     def estado_abreviatura(self):
@@ -602,12 +682,21 @@ class DestajoDetalle(models.Model):
             trabajo_id=self.trabajo_id
         ).first()
 
-        if not estructura_trabajo:
+        obra_adicional = ObraAdicional.objects.filter(
+            agrupador=agrupador,
+            trabajo_id=self.trabajo_id
+        ).first()
+
+        if not estructura_trabajo and not obra_adicional:
             raise ValidationError({
-                "trabajo": "Trabajo fuera del presupuesto",
+                "trabajo": "Trabajo fuera del presupuesto base y de las obras adicionales configuradas.",
             })
 
-        cantidad_presupuestada = estructura_trabajo.cantidad_base
+        if estructura_trabajo:
+            cantidad_presupuestada = estructura_trabajo.cantidad_base
+        else:
+            cantidad_presupuestada = obra_adicional.cantidad_base
+
         cantidad_maxima = cantidad_presupuestada * Decimal(agrupador.cantidad_viviendas)
 
         cantidad_usada = (

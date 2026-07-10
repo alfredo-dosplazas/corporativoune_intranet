@@ -12,7 +12,7 @@
         {% endif %}
 
         {% if header %}
-            <div class="header px-4 py-2 shrink-0 shadow">
+            <div class="header px-4 bg-base-100/60 py-2 shrink-0 shadow">
                 {{ header }}
             </div>
         {% endif %}
@@ -24,7 +24,7 @@
         {% endif %}
 
         <div class="flex-1 min-h-0 overflow-y-auto">
-            <main class="container mx-auto p-4 min-h-full">
+            <main class="container max-w-[95vw] p-4 min-h-full">
                 {{ slot }}
             </main>
         </div>

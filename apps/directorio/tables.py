@@ -73,7 +73,7 @@ class ContactoColumn(Column):
                     """
 
         return mark_safe(f"""
-                    <a href="{reverse('directorio:detail', args=(contacto.id,))}" class="flex items-center gap-3 min-w-[220px]">
+                    <a {theme_attr} href="{reverse('directorio:detail', args=(contacto.id,))}" class="hover:text-primary bg-transparent flex items-center gap-3 min-w-[220px]">
                             {foto_html}
     
                             <div class="min-w-0">

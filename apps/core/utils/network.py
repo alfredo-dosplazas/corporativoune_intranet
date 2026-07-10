@@ -12,8 +12,12 @@ logger = logging.getLogger("core.network")
 
 
 def ping(ip):
-    param = "-n" if platform.system().lower() == "windows" else "-c"
-    command = ["ping", param, "1", ip]
+    es_windows = platform.system().lower() == "windows"
+
+    if es_windows:
+        command = ["ping", "-n", "1", "-w", "1500", ip]
+    else:
+        command = ["ping", "-c", "1", "-W", "1.5", ip]
 
     start = time.time()
     result = subprocess.run(
@@ -23,9 +27,11 @@ def ping(ip):
     )
     latency = int((time.time() - start) * 1000)
 
+    is_online = result.returncode == 0
+
     return {
-        "online": result.returncode == 0,
-        "latencia": latency if result.returncode == 0 else None
+        "online": is_online,
+        "latencia": latency if is_online else None
     }
 
 

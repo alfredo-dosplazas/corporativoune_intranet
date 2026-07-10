@@ -1,129 +1,216 @@
+{% load money %}
 <c-layouts.app>
 
-    <!-- HEADER -->
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
-
-            <!-- INFO -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 w-full">
             <div>
-                <h1 class="text-xl font-bold">
-                    VIV-{{ vivienda.numero }}
+                <div class="text-xs text-primary font-bold uppercase tracking-widest mb-1">
+                    {{ obra.nombre }} · {{ obra.etapa }}
+                </div>
+                <h1 class="font-black text-2xl text-base-content tracking-tight flex items-center gap-2">
+                    <span class="icon-[ph--house-line-bold] text-primary"></span>
+                    Vivienda #{{ vivienda.numero }}
+                    <span class="text-gray-300 font-light text-xl">|</span>
+                    <span class="text-sm font-medium text-gray-500">Frente: {{ agrupador.tipo.codigo }}-{{ agrupador.numero }}</span>
                 </h1>
-
-                <p class="text-sm text-gray-500">
-                    {{ vivienda.agrupador.obra.nombre }} {{ vivienda.agrupador.obra.etapa }}
-                    · {{ vivienda.agrupador.tipo }} {{ vivienda.agrupador.numero }} · {{ vivienda.estructura }}
-                </p>
             </div>
 
-            <div class="flex justify-center">
+            <div>
+                <a href="{% url 'destajos:obras__agrupador__detail' obra.pk agrupador.pk %}"
+                   class="btn btn-sm btn-ghost border border-base-300 gap-1">
+                    <span class="icon-[ph--arrow-left-bold]"></span> Volver al Frente
+                </a>
             </div>
-
-            <!-- ACCIONES -->
-            <div class="flex justify-end gap-2">
-                <c-shared.dropdown-actions>
-                    {% if perms.destajos.change_vivienda %}
-                        <li>
-                            <a href="{% url 'destajos:obras__agrupador__viviendas__update' obra.pk agrupador.pk vivienda.pk %}">Editar</a>
-                        </li>
-                    {% endif %}
-                </c-shared.dropdown-actions>
-            </div>
-
         </div>
     </c-slot>
 
-    <div class="bg-white rounded-lg shadow p-4 mb-6">
-        <div class="flex justify-between items-center">
-            <div>
-                <p class="text-sm text-gray-500">Avance general</p>
-                <p class="text-2xl font-bold">
-                    {{ vivienda.porcentaje_completado }}%
-                </p>
-            </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
-            {% if vivienda.esta_completa %}
-                <span class="badge badge-success">Completa</span>
-            {% else %}
-                <span class="badge badge-warning">En proceso</span>
-            {% endif %}
-        </div>
+        <div id="metricas-sidebar" class="space-y-6 lg:sticky lg:top-4">
+            <div class="card bg-base-100 border border-base-200 shadow-sm overflow-hidden">
+                <div class="h-2 w-full {% if metricas.pct == 100 %}bg-success{% elif metricas.pct > 0 %}bg-warning{% else %}bg-base-300{% endif %}"></div>
 
-        <progress
-                class="progress progress-primary w-full mt-3"
-                value="{{ vivienda.porcentaje_completado }}"
-                max="100">
-        </progress>
-    </div>
+                <div class="card-body p-5">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Avance Físico</span>
+                        {% if metricas.pct == 100 %}
+                            <span class="badge badge-success badge-sm font-bold uppercase">Terminada</span>
+                        {% elif metricas.pct == 0 %}
+                            <span class="badge badge-ghost badge-sm font-bold uppercase text-gray-400">Sin Iniciar</span>
+                        {% else %}
+                            <span class="badge badge-warning badge-sm font-bold uppercase text-warning-content">En Edificación</span>
+                        {% endif %}
+                    </div>
 
-    <div class="flex flex-wrap gap-2 p-4 border-b">
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-4xl font-black text-base-content tracking-tight">{{ metricas.pct }}%</span>
+                        <span class="text-xs text-gray-400 font-medium">completado</span>
+                    </div>
 
-        <a href="?"
-           class="btn btn-sm {% if not estado_actual %}btn-primary{% else %}btn-outline{% endif %}">
-            Todos
-        </a>
+                    <div class="w-full bg-base-200 rounded-full h-2.5 overflow-hidden mt-3 p-[1px]">
+                        <div class="h-full rounded-full transition-all duration-500 {% if metricas.pct == 100 %}bg-success{% else %}bg-primary{% endif %}"
+                             style="width: {{ metricas.pct }}%"></div>
+                    </div>
 
-        <a href="?estado=pendiente"
-           class="btn btn-sm {% if estado_actual == 'pendiente' %}btn-primary{% else %}btn-outline{% endif %}">
-            Pendientes
-        </a>
+                    <div class="divider my-4"></div>
 
-        <a href="?estado=realizado"
-           class="btn btn-sm {% if estado_actual == 'realizado' %}btn-primary{% else %}btn-outline{% endif %}">
-            Realizados
-        </a>
-
-        <a href="?estado=pagado"
-           class="btn btn-sm {% if estado_actual == 'pagado' %}btn-primary{% else %}btn-outline{% endif %}">
-            Pagados
-        </a>
-
-    </div>
-
-    <div class="bg-white rounded-lg shadow">
-        <div class="p-4 border-b">
-            <h2 class="font-semibold">
-                Estados de trabajos
-            </h2>
-        </div>
-
-        {% for paquete, estados in estados_agrupados.items %}
-            <div class="border-t">
-
-                <div class="bg-gray-50 px-4 py-3 font-semibold">
-                    {{ paquete.nombre }}
+                    <div class="space-y-3 text-xs">
+                        <div class="flex justify-between border-b border-base-200 pb-1.5">
+                            <span class="text-gray-400 font-medium">Modelo / Estructura:</span>
+                            <span class="font-bold text-base-content">{{ vivienda.estructura.nombre }}</span>
+                        </div>
+                        <div class="flex justify-between border-b border-base-200 pb-1.5">
+                            <span class="text-gray-400 font-medium">Frente de Trabajo:</span>
+                            <span class="font-bold text-base-content">{{ agrupador.tipo.nombre }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400 font-medium">Total de Conceptos:</span>
+                            <span class="font-mono font-bold text-base-content">{{ metricas.total }} actividades</span>
+                        </div>
+                    </div>
                 </div>
-
-                <table class="table w-full">
-                    <tbody>
-                    {% for estado in estados %}
-                        <tr>
-                            <td class="w-2/3">
-                                {{ estado.trabajo }}
-                            </td>
-                            <td>
-                            <span class="badge
-                                {% if estado.estado == 'pendiente' %} badge-neutral
-                                {% elif estado.estado == 'por_realizar' %} badge-info
-                                {% elif estado.estado == 'realizado' %} badge-success
-                                {% elif estado.estado == 'pagado' %} badge-primary
-                                {% elif estado.estado == 'no_aplica' %} badge-ghost
-                                {% endif %}
-                            ">
-                                {{ estado.get_estado_display }}
-                            </span>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-
             </div>
-        {% empty %}
-            <div class="p-6 text-center text-gray-400">
-                No hay trabajos para este filtro.
+
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-base-100 border border-base-200 p-3 rounded-xl shadow-sm">
+                    <div class="text-lg font-black text-success">{{ metricas.realizados }}</div>
+                    <div class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Listos</div>
+                </div>
+                <div class="bg-base-100 border border-base-200 p-3 rounded-xl shadow-sm">
+                    <div class="text-lg font-black text-warning">{{ metricas.pendientes }}</div>
+                    <div class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Por hacer</div>
+                </div>
+                <div class="bg-base-100 border border-base-200 p-3 rounded-xl shadow-sm">
+                    <div class="text-lg font-black text-gray-400">{{ metricas.na }}</div>
+                    <div class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">N/A</div>
+                </div>
             </div>
-        {% endfor %}
+        </div>
+
+        <div class="lg:col-span-2 space-y-4">
+
+            <div class="bg-base-100 p-1.5 border border-base-200 rounded-xl shadow-sm flex flex-wrap gap-1">
+                <a href="?"
+                   class="btn btn-xs sm:btn-sm flex-1 {% if not estado_actual %}btn-primary text-primary-content font-bold{% else %}btn-ghost text-gray-500{% endif %}">
+                    Todos
+                </a>
+                <a href="?estado=pendiente"
+                   class="btn btn-xs sm:btn-sm flex-1 {% if estado_actual == 'pendiente' %}btn-primary text-primary-content font-bold{% else %}btn-ghost text-gray-500{% endif %}">
+                    ⏳ Pendientes
+                </a>
+                <a href="?estado=realizado"
+                   class="btn btn-xs sm:btn-sm flex-1 {% if estado_actual == 'realizado' %}btn-primary text-primary-content font-bold{% else %}btn-ghost text-gray-500{% endif %}">
+                    ✅ Realizados
+                </a>
+                <a href="?estado=pagado"
+                   class="btn btn-xs sm:btn-sm flex-1 {% if estado_actual == 'pagado' %}btn-primary text-primary-content font-bold{% else %}btn-ghost text-gray-500{% endif %}">
+                    💰 Pagados
+                </a>
+            </div>
+
+            <div class="space-y-3">
+                {% for paquete, estados in estados_agrupados.items %}
+                    <div class="collapse collapse-arrow bg-base-100 border border-base-200 rounded-xl shadow-sm">
+                        <input type="checkbox" checked/>
+
+                        <div class="collapse-title bg-base-200/40 text-xs font-bold text-base-content/80 uppercase tracking-wider flex justify-between items-center pr-12">
+                            <span>{{ paquete.nombre }}</span>
+                            <span class="badge badge-sm badge-ghost font-mono font-bold">{{ estados|length }}</span>
+                        </div>
+
+                        <div class="collapse-content p-0">
+                            <div class="overflow-x-auto">
+                                <table class="table table-sm w-full divide-y divide-base-100">
+                                    <tbody>
+                                    {% for estado in estados %}
+                                        <tr class="hover:bg-base-200/20 transition-colors {% if estado.es_obra_adicional %}bg-warning/5 font-semibold text-warning-content{% endif %}">
+
+                                            <td class="w-1/12 text-center font-mono text-[11px] text-gray-400 font-semibold border-r">
+                                                {{ forloop.counter }}
+                                            </td>
+
+                                            <td class="w-8/12 font-medium text-sm text-base-content px-4 py-3">
+                                                <div class="flex items-center gap-2 flex-wrap">
+                                                    <span>{{ estado.trabajo.nombre }}</span>
+
+                                                    {% if estado.es_obra_adicional %}
+                                                        <span class="badge badge-warning badge-outline badge-xs font-bold uppercase tracking-wider text-[9px] px-1.5 py-2">
+                                                            ⭐ Obra Adicional
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+
+                                            <td class="w-3/12 text-right px-4">
+                                                <select name="estado"
+                                                        id="select-estado-{{ estado.id }}"
+                                                        hx-post="{% url 'destajos:obras__agrupador__viviendas__detail' obra.pk agrupador.pk vivienda.pk %}"
+                                                        hx-vals='{"estado_id": "{{ estado.id }}"}'
+                                                        hx-swap="outerHTML"
+                                                        hx-trigger="change"
+                                                        class="select select-xs select-bordered font-bold text-[11px] uppercase rounded-lg {% if estado.es_obra_adicional %}select-warning{% endif %}"
+                                                        {% if not perms.destajos.change_estadotrabajovivienda or not es_admin and estado.estado != 'pendiente' and estado.estado != 'por_realizar' and estado.estado != 'realizado' %}disabled{% endif %}
+                                                >
+                                                    {% if es_admin %}
+                                                        <option value="pendiente"
+                                                                {% if estado.estado == 'pendiente' %}selected{% endif %}>
+                                                            ⏳ Pendiente
+                                                        </option>
+                                                        <option value="por_realizar"
+                                                                {% if estado.estado == 'por_realizar' %}selected{% endif %}>
+                                                            📋 Por realizar
+                                                        </option>
+                                                        <option value="realizado"
+                                                                {% if estado.estado == 'realizado' %}selected{% endif %}>
+                                                            ✅ Realizado
+                                                        </option>
+                                                        <option value="pagado"
+                                                                {% if estado.estado == 'pagado' %}selected{% endif %}>💰
+                                                            Pagado
+                                                        </option>
+                                                        <option value="na"
+                                                                {% if estado.estado == 'na' %}selected{% endif %}>🚫 No
+                                                            aplica
+                                                        </option>
+                                                    {% else %}
+                                                        {% if estado.estado == 'pendiente' %}
+                                                            <option value="pendiente" selected disabled>⏳ Pendiente
+                                                            </option>
+                                                        {% elif estado.estado == 'pagado' %}
+                                                            <option value="pagado" selected disabled>💰 Pagado
+                                                                (Bloqueado)
+                                                            </option>
+                                                        {% elif estado.estado == 'na' %}
+                                                            <option value="na" selected disabled>🚫 No aplica</option>
+                                                        {% endif %}
+                                                        <option value="por_realizar"
+                                                                {% if estado.estado == 'por_realizar' %}selected{% endif %}>
+                                                            📋 Por realizar
+                                                        </option>
+                                                        <option value="realizado"
+                                                                {% if estado.estado == 'realizado' %}selected{% endif %}>
+                                                            ✅ Realizado
+                                                        </option>
+                                                    {% endif %}
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="card bg-base-100 border border-base-200 shadow-sm p-8 text-center text-gray-400">
+                        <div class="text-gray-300 mb-2">
+                            <span class="icon-[ph--clipboard-text-light] size-12"></span>
+                        </div>
+                        <p class="text-sm font-medium">No se encontraron trabajos que coincidan con el filtro
+                            seleccionado.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
-
 </c-layouts.app>

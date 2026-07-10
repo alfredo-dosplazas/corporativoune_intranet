@@ -1,155 +1,211 @@
 {% load django_tables2 %}
 {% load i18n l10n %}
+
 {% block table-wrapper %}
-    <div class="table-container {% if table.auto_height %}auto-height overflow-y-auto{% endif %} overflow-x-auto rounded-box border border-base-content/5 bg-base-100">
-        {% block table %}
-            <table {% render_attrs table.attrs class="table table-pin-rows table-zebra w-full" %}>
-                {% block table.thead %}
-                    {% if table.show_header %}
-                        <thead {{ table.attrs.thead.as_html }}>
-                        <tr class="">
-                            {% for column in table.columns %}
-                                <th {{ column.attrs.th.as_html }}>
-                                    {% if column.orderable %}
-                                        <a href="{% querystring table.prefixed_order_by_field=column.order_by_alias.next %}">{{ column.header }}</a>
-                                    {% else %}
-                                        {{ column.header }}
-                                    {% endif %}
-                                </th>
-                            {% endfor %}
-                        </tr>
-                        </thead>
-                    {% endif %}
-                {% endblock table.thead %}
-                {% block table.tbody %}
-                    <tbody {{ table.attrs.tbody.as_html }}>
-                    {% for row in table.paginated_rows %}
-                        {% block table.tbody.row %}
-                            <tr class="hover:bg-base-300" {{ row.attrs.as_html }}>
-                                {% for column, cell in row.items %}
-                                    <td {{ column.attrs.td.as_html }}>
-                                        {% if column.localize == None %}{{ cell }}{% else %}{% if column.localize %}
-                                            {{ cell|localize }}{% else %}{{ cell|unlocalize }}
-                                        {% endif %}{% endif %}</td>
+    <div class="flex flex-col w-full gap-3">
+
+        <div class="table-container auto-height overflow-auto border border-base-200 bg-base-100 rounded-xl shadow-sm">
+            {% block table %}
+                <table {% render_attrs table.attrs class="table table-sm table-pin-rows table-pin-cols w-full border-separate border-spacing-0" %}>
+
+                    {% block table.thead %}
+                        {% if table.show_header %}
+                            <thead {{ table.attrs.thead.as_html }} class="z-20">
+                            <tr>
+                                {% for column in table.columns %}
+                                    <th {{ column.attrs.th.as_html }}
+                                            class="bg-base-200 font-semibold text-xs text-base-content/80 uppercase tracking-wider py-2.5 px-3 border-b border-r border-base-300 last:border-r-0 select-none">
+                                        {% if column.orderable %}
+                                            <a href="{% querystring table.prefixed_order_by_field=column.order_by_alias.next %}" class="flex items-center gap-1.5 hover:text-primary transition-colors group">
+                                                {{ column.header }}
+                                                <span class="icon-[tabler--arrows-sort] size-3.5 opacity-40 group-hover:opacity-100 transition-opacity"></span>
+                                            </a>
+                                        {% else %}
+                                            {{ column.header }}
+                                        {% endif %}
+                                    </th>
                                 {% endfor %}
                             </tr>
-                        {% endblock table.tbody.row %}
-                    {% empty %}
-                        {% if table.empty_text %}
-                            {% block table.tbody.empty_text %}
-                                <tr>
-                                    <td colspan="{{ table.columns|length }}">{{ table.empty_text }}</td>
-                                </tr>
-                            {% endblock table.tbody.empty_text %}
+                            </thead>
                         {% endif %}
-                    {% endfor %}
-                    </tbody>
-                {% endblock table.tbody %}
-                {% block table.tfoot %}
-                    {% if table.has_footer %}
-                        <tfoot {{ table.attrs.tfoot.as_html }}>
-                        <tr>
-                            {% for column in table.columns %}
-                                <td {{ column.attrs.tf.as_html }}>{{ column.footer }}</td>
-                            {% endfor %}
-                        </tr>
-                        </tfoot>
+                    {% endblock table.thead %}
+
+                    {% block table.tbody %}
+                        <tbody {{ table.attrs.tbody.as_html }} class="divide-y divide-base-200">
+                        {% for row in table.paginated_rows %}
+                            {% block table.tbody.row %}
+                                <tr class="hover:bg-base-200/50 transition-colors group" {{ row.attrs.as_html }}>
+                                    {% for column, cell in row.items %}
+                                        <td {{ column.attrs.td.as_html }}
+                                                class="py-2 px-3 border-r border-base-200 last:border-r-0 text-sm align-middle">
+                                            {% if column.localize == None %}
+                                                {{ cell }}
+                                            {% else %}
+                                                {% if column.localize %}{{ cell|localize }}{% else %}
+                                                    {{ cell|unlocalize }}{% endif %}
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            {% endblock table.tbody.row %}
+                        {% empty %}
+                            {% if table.empty_text %}
+                                {% block table.tbody.empty_text %}
+                                    <tr>
+                                        <td colspan="{{ table.columns|length }}"
+                                            class="text-center p-12 text-base-content/50">
+                                            <div class="flex flex-col items-center gap-2">
+                                                <span class="icon-[tabler--database-off] size-8 opacity-40"></span>
+                                                <span class="text-sm font-medium">{{ table.empty_text }}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endblock table.tbody.empty_text %}
+                            {% endif %}
+                        {% endfor %}
+                        </tbody>
+                    {% endblock table.tbody %}
+
+                    {% block table.tfoot %}
+                        {% if table.has_footer %}
+                            <tfoot {{ table.attrs.tfoot.as_html }} class="z-10 sticky bottom-0">
+                            <tr class="bg-base-200 font-semibold border-t border-base-300">
+                                {% for column in table.columns %}
+                                    <td {{ column.attrs.tf.as_html }}
+                                            class="py-2.5 px-3 border-r border-base-300 last:border-r-0 text-sm">
+                                        {{ column.footer }}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                            </tfoot>
+                        {% endif %}
+                    {% endblock table.tfoot %}
+                </table>
+            {% endblock table %}
+        </div>
+
+        <div class="pagination-container bg-base-100 border border-base-200 rounded-xl p-3 shadow-sm">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
+
+                <div class="flex items-center gap-2 text-xs md:text-sm text-base-content/70 order-last sm:order-first">
+                    <span class="icon-[tabler--list-numbers] size-4 opacity-60"></span>
+                    <span>
+                Mostrando del <span
+                            class="font-semibold text-base-content">{{ table.page.start_index|default:0 }}</span> al <span
+                            class="font-semibold text-base-content">{{ table.page.end_index|default:0 }}</span> de <span
+                            class="badge badge-sm font-bold bg-base-200 border-base-300 px-2 py-2">{{ table.paginator.count|default:0 }}</span> registros
+            </span>
+                </div>
+
+                {% block pagination %}
+                    {% if table.page and table.paginator.num_pages > 1 %}
+                        <div class="join shadow-xs">
+
+                            {% if table.page.has_previous %}
+                                {% block pagination.previous %}
+                                    <a class="join-item btn btn-sm btn-outline border-base-300 text-base-content hover:bg-base-200 gap-1 normal-case px-3 text-xs"
+                                       href="{% querystring table.prefixed_page_field=table.page.previous_page_number %}">
+                                        <span class="icon-[tabler--chevron-left] size-3.5"></span>
+                                        {% trans 'Anterior' %}
+                                    </a>
+                                {% endblock pagination.previous %}
+                            {% else %}
+                                <button class="join-item btn btn-sm btn-outline border-base-300 btn-disabled px-3 text-xs">
+                                    <span class="icon-[tabler--chevron-left] size-3.5"></span>
+                                    {% trans 'Anterior' %}
+                                </button>
+                            {% endif %}
+
+                            {% if table.page.has_previous or table.page.has_next %}
+                                {% block pagination.range %}
+                                    {% for p in table.page|table_page_range:table.paginator %}
+                                        <a {% if p == '...' %}
+                                            href="#"
+                                            class="join-item btn btn-sm btn-outline border-base-300 btn-disabled text-xs pointer-events-none"
+                                        {% else %}
+                                            href="{% querystring table.prefixed_page_field=p %}"
+                                            /* FIX AQUÍ: Si es la página actual, quitamos 'btn-outline' por completo
+                                            para que sea sólido */
+                                            class="join-item btn btn-sm text-xs font-semibold
+                                            {% if p == table.page.number %}
+                                                btn-primary text-primary-content no-animation
+                                            {% else %}
+                                                btn-outline border-base-300 text-base-content hover:bg-base-200
+                                            {% endif %}"
+                                        {% endif %}>
+                                        {{ p }}
+                                        </a>
+                                    {% endfor %}
+                                {% endblock pagination.range %}
+                            {% endif %}
+
+                            {% if table.page.has_next %}
+                                {% block pagination.next %}
+                                    <a href="{% querystring table.prefixed_page_field=table.page.next_page_number %}"
+                                       class="join-item btn btn-sm btn-outline border-base-300 text-base-content hover:bg-base-200 gap-1 normal-case px-3 text-xs">
+                                        {% trans 'Siguiente' %}
+                                        <span class="icon-[tabler--chevron-right] size-3.5"></span>
+                                    </a>
+                                {% endblock pagination.next %}
+                            {% else %}
+                                <button class="join-item btn btn-sm btn-outline border-base-300 btn-disabled px-3 text-xs">
+                                    {% trans 'Siguiente' %}
+                                    <span class="icon-[tabler--chevron-right] size-3.5"></span>
+                                </button>
+                            {% endif %}
+
+                        </div>
                     {% endif %}
-                {% endblock table.tfoot %}
-            </table>
-        {% endblock table %}
+                {% endblock pagination %}
+
+            </div>
+        </div>
     </div>
 
     <script>
         const calcularAltoTabla = () => {
             const tableContainers = document.querySelectorAll('.table-container.auto-height');
-
             if (!tableContainers.length) return;
 
+            // Elementos a restar de la altura de la pantalla
             const elementos = [
                 document.querySelector('.navbar'),
+                document.querySelector('.breadcrumb'),
                 document.querySelector('.header'),
                 document.querySelector('.messages'),
-                document.querySelector('.breadcrumb'),
-                document.querySelector('.footer'),
+                document.querySelector('#table-active-filters'),
                 document.querySelector('.pagination-container'),
+                document.querySelector('.footer')
             ];
 
             let alturaOcupada = 0;
             elementos.forEach(el => {
-                if (el) {
+                if (el && window.getComputedStyle(el).display !== 'none') {
                     alturaOcupada += el.getBoundingClientRect().height;
                 }
             });
 
             const viewportHeight = window.innerHeight;
-            const offset = 45;
-            const alturaTabla = viewportHeight - offset - alturaOcupada;
 
-            if (alturaTabla > 0) {
+            // Ajustamos el offset considerando los paddings del contenedor main (p-4 = 32px arriba/abajo + margen extra de seguridad)
+            const offset = 64;
+            const alturaTabla = viewportHeight - alturaOcupada - offset;
+
+            if (alturaTabla > 150) { // Altura mínima para que no colapse en pantallas mini
                 tableContainers.forEach(tc => {
                     tc.style.height = `${alturaTabla}px`;
-                    tc.style.overflowY = 'auto';
-                    tc.style.display = 'block';
                 });
             }
         };
 
+        // Ejecución inmediata y en eventos de ventana
         document.addEventListener('DOMContentLoaded', calcularAltoTabla);
         window.addEventListener('resize', calcularAltoTabla);
+
+        // Observador por si aparecen mensajes de alerta dinámicos posteriores a la carga
+        const observer = new MutationObserver(calcularAltoTabla);
+        if (document.body) {
+            observer.observe(document.body, {childList: true, subtree: true});
+        }
     </script>
-
-    <div class="pagination-container">
-        <div class="flex-col md:flex-row flex justify-between items-center gap-4">
-            <div>
-                <span class="text-muted text-sm">
-                    Mostrando
-                    <strong>
-                        {{ table.page.start_index|default:0 }} – {{ table.page.end_index|default:0 }}
-                    </strong>
-                    de
-                    <strong>{{ table.paginator.count|default:0 }}</strong>
-                    registros
-                </span>
-            </div>
-
-            <div>
-                {% block pagination %}
-                    {% if table.page and table.paginator.num_pages > 1 %}
-                        <div class="join pagination">
-                            {% if table.page.has_previous %}
-                                {% block pagination.previous %}
-                                    <a class="join-item btn previous"
-                                       href="{% querystring table.prefixed_page_field=table.page.previous_page_number %}">
-                                        {% trans 'previous' %}
-                                    </a>
-                                {% endblock pagination.previous %}
-                            {% endif %}
-                            {% if table.page.has_previous or table.page.has_next %}
-                                {% block pagination.range %}
-                                    {% for p in table.page|table_page_range:table.paginator %}
-                                        <a {% if p == '...' %}href="#"
-                                           {% else %}href="{% querystring table.prefixed_page_field=p %}"{% endif %}
-                                           {% if p == table.page.number %}class="join-item btn btn-active"
-                                           {% else %}class="join-item btn"{% endif %}>
-                                            {{ p }}
-                                        </a>
-                                    {% endfor %}
-                                {% endblock pagination.range %}
-                            {% endif %}
-                            {% if table.page.has_next %}
-                                {% block pagination.next %}
-                                    <a href="{% querystring table.prefixed_page_field=table.page.next_page_number %}"
-                                       class="join-item btn next">
-                                        {% trans 'next' %}
-                                    </a>
-                                {% endblock pagination.next %}
-                            {% endif %}
-                        </div>
-                    {% endif %}
-                {% endblock pagination %}
-            </div>
-        </div>
-
-    </div>
 {% endblock table-wrapper %}

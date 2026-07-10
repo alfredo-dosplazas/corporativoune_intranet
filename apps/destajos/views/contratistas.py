@@ -1,6 +1,7 @@
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.urls import reverse
+from django.utils import timezone
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, DeleteView
 from django_tables2 import SingleTableMixin
 from extra_views import SearchableListMixin, UpdateWithInlinesView, NamedFormsetsMixin
@@ -57,30 +58,35 @@ class ContratistaDetailView(PermissionRequiredMixin, BreadcrumbsMixin, DetailVie
     template_name = "apps/destajos/contratistas/detail.html"
     model = Contratista
 
+    def get_queryset(self):
+        # Evitamos queries duplicadas optimizando el queryset base
+        return super().get_queryset().prefetch_related(
+            'precios__trabajo__paquete',
+            'precios__estructura'
+        )
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        contratista = self.object
+        today = timezone.now().date()
 
-        contratista = (
-            Contratista.objects
-            .prefetch_related(
-                'precios__trabajo__paquete',
-                'precios__estructura'
-            )
-            .get(pk=self.kwargs['pk'])
-        )
+        mostrar_todo = self.request.GET.get('filtro') == 'todos'
 
         precios = (
             contratista.precios
             .select_related('trabajo', 'estructura', 'trabajo__paquete')
-            .order_by(
-                'trabajo__paquete__clave',
-                'trabajo__clave',
-                '-vigente_desde'
-            )
+            .order_by('trabajo__paquete__clave', 'trabajo__clave', '-vigente_desde')
         )
 
-        context['contratista'] = contratista
+        if not mostrar_todo:
+            from django.db.models import Q
+            precios = precios.filter(
+                Q(vigente_hasta__isnull=True) | Q(vigente_hasta__gte=today)
+            )
+
         context['precios'] = precios
+        context['today'] = today
+        context['mostrar_todo'] = mostrar_todo
         return context
 
     def get_breadcrumbs(self):
@@ -88,7 +94,7 @@ class ContratistaDetailView(PermissionRequiredMixin, BreadcrumbsMixin, DetailVie
             {'title': 'Inicio', 'url': reverse('home')},
             {'title': 'Destajos', 'url': reverse('destajos:index')},
             {'title': 'Contratistas', 'url': reverse('destajos:contratistas__list')},
-            {'title': self.get_object()},
+            {'title': self.get_object().nombre}, # Usar .nombre evita llamadas str accidentales
         ]
 
 

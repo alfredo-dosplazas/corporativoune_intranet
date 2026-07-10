@@ -1,0 +1,360 @@
+{% load money %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Orden de Compra - {{ orden.clave }}</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 1.5cm 1.5cm 1.5cm 1.5cm;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #333;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        /* Encabezado */
+        .header-container {
+            width: 100%;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #224A97; /* Cambio a Azul */
+            padding-bottom: 10px;
+        }
+
+        .logo-emisor {
+            width: 65%;
+            float: left;
+        }
+
+        /* Distribución interna para integrar el logo */
+        .logo-img {
+            width: 25%;
+            float: left;
+        }
+
+        .logo-img img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .logo-texto {
+            width: 72%;
+            float: right;
+        }
+
+        .logo-texto h1 {
+            margin: 0;
+            font-size: 18px;
+            color: #224A97; /* Cambio a Azul */
+        }
+
+        .emisor-datos {
+            font-size: 10px;
+            color: #555;
+            margin-top: 5px;
+        }
+
+        .meta-oc {
+            width: 32%;
+            float: right;
+            text-align: right;
+        }
+
+        .title-oc {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 0 0 5px 0;
+            color: #CE5C09; /* Cambio a Naranja corporativo */
+        }
+
+        .meta-box {
+            background-color: #f8fafd; /* Fondo sutil azulado */
+            border: 1px solid #224A97; /* Borde Azul */
+            padding: 8px;
+            border-radius: 4px;
+            text-align: left;
+        }
+
+        .meta-box p {
+            margin: 3px 0;
+            font-size: 10px;
+        }
+
+        .clear {
+            clear: both;
+        }
+
+        /* Información del Proveedor */
+        .section-title {
+            background-color: #224A97; /* Cambio a Azul */
+            color: #fff;
+            padding: 4px 8px;
+            font-weight: bold;
+            font-size: 11px;
+            margin-top: 15px;
+            text-transform: uppercase;
+        }
+
+        .info-block {
+            border: 1px solid #224A97; /* Borde Azul */
+            border-top: none;
+            padding: 10px;
+            margin-bottom: 15px;
+            background-color: #fafafa;
+        }
+
+        .info-block table {
+            width: 100%;
+        }
+
+        .info-block td {
+            padding: 2px 4px;
+            vertical-align: top;
+        }
+
+        /* Tabla de Partidas */
+        .table-partidas {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+
+        .table-partidas th {
+            background-color: #224A97; /* Encabezado de tabla Azul */
+            color: #ffffff; /* Texto blanco para contraste */
+            border: 1px solid #224A97;
+            padding: 6px;
+            font-weight: bold;
+            text-align: left;
+        }
+
+        .table-partidas td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            vertical-align: top;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .equipo-tag {
+            display: block;
+            font-size: 9px;
+            color: #CE5C09; /* Cambio a Naranja para resaltar el equipo asignado */
+            font-weight: bold;
+            font-style: italic;
+            margin-top: 4px;
+        }
+
+        /* Totales y Facturación */
+        .bottom-container {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .facturar-box {
+            width: 60%;
+            float: left;
+            border: 1px dashed #CE5C09; /* Borde punteado en Naranja */
+            padding: 8px;
+            background-color: #fffaf7; /* Fondo sutil naranja claro */
+            font-size: 9.5px;
+        }
+
+        .facturar-box strong {
+            color: #CE5C09; /* Texto destacado en Naranja */
+        }
+
+        .totales-box {
+            width: 35%;
+            float: right;
+        }
+
+        .totales-box table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .totales-box td {
+            padding: 4px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        /* Firmas */
+        .firmas-container {
+            width: 100%;
+            margin-top: 60px;
+            text-align: center;
+        }
+
+        .firma-space {
+            width: 40%;
+            display: inline-block;
+            margin: 0 4%;
+            border-top: 1px solid #224A97; /* Línea de firma Azul */
+            padding-top: 5px;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header-container">
+    <div class="logo-emisor">
+        <div class="logo-img">
+            {% if empresa.logo %}
+                <img src="{{ empresa.logo.url }}" alt="Logo">
+            {% endif %}
+        </div>
+        <div class="logo-texto">
+            <h1>ABOCOSA, S.A. DE C.V.</h1>
+            <div class="emisor-datos">
+                PROLONGACION IRRIGACION 410 INT 2° LT39 COL. LAS ARENAS<br>
+                CELAYA, GTO. C.P. 38035 TEL (461) 6 12 92 48<br>
+                <strong>RFC:</strong> ABO 030911 E34
+            </div>
+        </div>
+        <div class="clear"></div>
+    </div>
+
+    <div class="meta-oc">
+        <div class="title-oc">ORDEN DE COMPRA</div>
+        <div class="meta-box">
+            <p><strong>FOLIO:</strong> {{ orden.clave }}</p>
+            <p><strong>FECHA:</strong> {{ orden.fecha|date:"d/m/Y" }}</p>
+            <p><strong>OBRA:</strong> {{ obra|default:"N/A" }}</p>
+            <p><strong>FRACC.:</strong> {{ fraccionamiento|default:"N/A" }}</p>
+        </div>
+    </div>
+    <div class="clear"></div>
+</div>
+
+<div class="section-title">Datos del Proveedor</div>
+<div class="info-block">
+    <table>
+        <tr>
+            <td style="width: 15%;"><strong>Proveedor:</strong></td>
+            <td style="width: 50%;">{{ orden.proveedor.nombre }}</td>
+            <td style="width: 15%;"><strong>RFC:</strong></td>
+            <td style="width: 20%;">{{ orden.proveedor.rfc|default:"-" }}</td>
+        </tr>
+        <tr>
+            <td><strong>Domicilio:</strong></td>
+            <td>{{ orden.proveedor.domicilio }}, C.P. {{ orden.proveedor.codigo_postal }}</td>
+            <td><strong>Teléfono:</strong></td>
+            <td>{{ orden.proveedor.telefono|default:"-" }}</td>
+        </tr>
+        <tr>
+            <td><strong>Ciudad/Edo:</strong></td>
+            <td>{{ orden.proveedor.ciudad }}, {{ orden.proveedor.estado }}</td>
+            <td><strong>Cond. Pago:</strong></td>
+            <td>{{ orden.proveedor.get_condiciones_pago_display }}</td>
+        </tr>
+        <tr>
+            <td><strong>Régimen:</strong></td>
+            <td colspan="3" style="font-size: 9.5px; color:#555;">{{ orden.proveedor.regimen }}</td>
+        </tr>
+    </table>
+</div>
+
+<table class="table-partidas">
+    <thead>
+    <tr>
+        <th style="width: 50%;">DESCRIPCIÓN</th>
+        <th style="width: 10%;" class="text-center">CANTIDAD</th>
+        <th style="width: 10%;" class="text-center">UNI</th>
+        <th style="width: 15%;" class="text-right">PRECIO UNIT.</th>
+        <th style="width: 15%;" class="text-right">TOTAL</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for detalle in partidas %}
+        <tr>
+            <td>
+                {{ detalle.descripcion|linebreaksbr }}
+                {% if detalle.equipo %}
+                    <span class="equipo-tag">Asignado a: {{ detalle.equipo }}</span>
+                {% endif %}
+            </td>
+            <td class="text-center">{{ detalle.cantidad }}</td>
+            <td class="text-center">{{ detalle.unidad }}</td>
+            <td class="text-right">{{ detalle.precio|money }}</td>
+            <td class="text-right">{{ detalle.total_partida|money }}</td>
+        </tr>
+    {% empty %}
+        <tr>
+            <td colspan="5" class="text-center">No hay conceptos registrados en esta orden.</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<div class="bottom-container">
+    <div class="facturar-box">
+        <strong>FACTURAR A:</strong><br>
+        ABOCOSA, S.A. DE C.V.<br>
+        AV. PROLONGACION IRRIGACION No EXT 410 2DO PISO LTE 39<br>
+        COL. LAS ARENAS C.P. 38035, CELAYA, GTO. MEXICO<br>
+        CORREO: facturacion.abocosa@gmail.com / concretabocosa@gmail.com<br>
+        RFC: ABO 030911 E34
+    </div>
+
+    <div class="totales-box">
+        <table>
+            <tr>
+                <td><strong>Subtotal:</strong></td>
+                <td class="text-right">{{ orden.subtotal|money }}</td>
+            </tr>
+            <tr>
+                <td><strong>I.V.A. (16%):</strong></td>
+                <td class="text-right">{{ orden.iva|money }}</td>
+            </tr>
+            {% if orden.impuesto_isr %}
+                <tr>
+                    <td><strong>RET ISR. ({{ orden.impuesto_isr }}%):</strong></td>
+                    <td class="text-right">-{{ orden.subtotal_isr|money }}</td>
+                </tr>
+            {% endif %}
+
+            {% if orden.impuesto_cedular %}
+                <tr>
+                    <td><strong>RET CEDULAR. ({{ orden.impuesto_cedular }}%):</strong></td>
+                    <td class="text-right">-{{ orden.subtotal_cedular|money }}</td>
+                </tr>
+            {% endif %}
+            <tr style="font-size: 12px; background-color: #224A97; color: #ffffff;">
+                <td><strong>Total:</strong></td>
+                <td class="text-right"><strong>{{ orden.total|money }}</strong></td>
+            </tr>
+        </table>
+    </div>
+    <div class="clear"></div>
+</div>
+
+<div class="firmas-container">
+    <div class="firma-space">
+        <br><br>
+        <strong>Departamento de Compras</strong><br>
+        Elaboró
+    </div>
+    <div class="firma-space">
+        <br><br>
+        <strong>Dirección / Gerencia</strong><br>
+        Autorizó
+    </div>
+</div>
+
+</body>
+</html>

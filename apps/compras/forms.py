@@ -68,7 +68,6 @@ class OrdenForm(forms.ModelForm):
             Row(
                 Column('solicitante', css_class="md:col-4"),
                 Column('autoriza', css_class="md:col-4"),
-                Column('creada_por', css_class="md:col-4"),
             ),
 
             # 🔹 Datos fiscales
@@ -91,8 +90,8 @@ class OrdenForm(forms.ModelForm):
         )
 
     def save(self, commit=True):
-        instance = super().save(commit=False)
-        if instance.creada_por is None:
+        instance: Orden = super().save(commit=False)
+        if instance.creada_por_id is None:
             instance.creada_por = self.user
 
         if commit:

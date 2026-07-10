@@ -26,6 +26,12 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
 
+    <link rel="stylesheet" href="{% static 'css/select2-daisyui5.css' %}">
+
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/js/tom-select.complete.min.js"></script>
+
 </head>
 <body hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
 
@@ -67,6 +73,46 @@
             `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
         );
     }
+</script>
+
+<script>
+    function inicializarTomSelect() {
+
+        const select = document.getElementById('select-obras');
+
+        if (!select) {
+            return;
+        }
+
+        // Evitar crear otra instancia
+        if (select.tomselect) {
+            select.tomselect.destroy();
+        }
+
+        new TomSelect(select, {
+            plugins: [
+                'remove_button',
+                'clear_button'
+            ],
+            create: false,
+            maxItems: null,
+            hideSelected: true,
+            closeAfterSelect: false,
+            placeholder: 'Buscar obras...'
+        });
+    }
+
+    // Primera carga
+    document.addEventListener('DOMContentLoaded', inicializarTomSelect);
+
+    // Cada vez que HTMX reemplaza contenido
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+
+        if (e.target.id === "contenedor-obras") {
+            inicializarTomSelect();
+        }
+
+    });
 </script>
 
 <div id="toast-container"

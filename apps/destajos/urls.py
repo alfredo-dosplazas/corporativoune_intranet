@@ -2,12 +2,13 @@ from django.urls import path
 
 from apps.destajos.autocompletes import TrabajoAutocomplete, PaqueteAutocomplete, ContratistaAutocomplete, \
     AgrupadorAutocomplete
-from apps.destajos.views.agrupadores import AgrupadorDetailView, AvancesViviendaView, AgrupadorCreateView
+from apps.destajos.views.agrupadores import AgrupadorDetailView, AvancesViviendaView, AgrupadorCreateView, \
+    AgrupadorDeleteView
 from apps.destajos.views.contratistas import ContratistaListView, ContratistaCreateView, ContratistaUpdateView, \
     ContratistaDetailView, ContratistaDeleteView
 from apps.destajos.views.contratistas_precios import precios_formset
 from apps.destajos.views.destajos import DestajosView, DestajoListView, DestajoUpdateView, DestajoDetailView, \
-    DestajoDeleteView, DestajoCreateView, detalle_destajo_data
+    DestajoDeleteView, DestajoCreateView, detalle_destajo_data, DestajoPDFView
 from apps.destajos.views.estado_trabajo_vivienda import estado_trabajo_update, bulk_update
 from apps.destajos.views.estructuras import EstructuraListView, EstructuraCreateView, EstructuraUpdateView, \
     EstructuraDetailView, EstructuraDeleteView, EstructuraTrabajosExcelView
@@ -27,6 +28,7 @@ urlpatterns = [
     path('editar/<int:pk>/', DestajoUpdateView.as_view(), name='update'),
     path('detalle/<int:pk>/', DestajoDetailView.as_view(), name='detail'),
     path('eliminar/<int:pk>/', DestajoDeleteView.as_view(), name='delete'),
+    path('pdf/<int:pk>/', DestajoPDFView.as_view(), name='pdf'),
 ]
 
 estructuras_urlpatterns = [
@@ -101,6 +103,7 @@ obras_urlpatterns = [
 
 agrupadores_urlpatterns = [
     path('agrupadores/autocomplete/', AgrupadorAutocomplete.as_view(), name='agrupadores__autocomplete'),
+    path('agrupadores/eliminar/<int:pk>/', AgrupadorDeleteView.as_view(), name='agrupadores__delete'),
 ]
 
 estado_trabajo_vivienda_urlpatterns = [

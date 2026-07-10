@@ -1,5 +1,8 @@
 <c-table.actions>
     {% if perms.destajos.view_destajo %}
+        <li><a onclick="abrirPDF('{% url 'destajos:pdf' record.pk %}'); return false;" href="{% url 'destajos:pdf' record.pk %}">PDF</a></li>
+    {% endif %}
+    {% if perms.destajos.view_destajo %}
         <li><a href="{% url 'destajos:detail' record.pk %}">Detalle</a></li>
     {% endif %}
     {% if perms.destajos.change_destajo %}

@@ -1,116 +1,212 @@
 {% load money %}
 <c-layouts.app>
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
-
-            <div class="justify-self-start">
-                <h1 class="font-bold text-xl">
-                    {{ obra.nombre }} <span class="opacity-60">| {{ obra.etapa }}</span>
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 w-full">
+            <div>
+                <div class="text-xs text-primary font-bold uppercase tracking-widest mb-1">Proyecto Activo</div>
+                <h1 class="font-black text-2xl text-base-content tracking-tight">
+                    {{ obra.nombre }} <span class="text-gray-400 font-light">| {{ obra.etapa }}</span>
                 </h1>
             </div>
-
-            <div class="justify-self-center">
+            <div class="flex items-center gap-2">
+                {% if perms.destajos.add_agrupador %}
+                    <a href="{% url 'destajos:obras__agrupador__create' obra.pk %}"
+                       class="btn btn-primary btn-sm gap-2 shadow-sm">
+                        <span class="icon-[ph--plus-bold]"></span> Nuevo Agrupador
+                    </a>
+                {% endif %}
             </div>
-
-            <div class="justify-self-end">
-                <a href="{% url 'destajos:obras__agrupador__create' obra.pk %}" class="btn btn-primary btn-sm">
-                    + Nuevo agrupador
-                </a>
-            </div>
-
         </div>
     </c-slot>
 
-    <div class="stats bg-base-100 shadow mb-4">
-        <div class="stat">
-            <div class="stat-figure text-primary">
-                <span class="icon-[ph--house-line] size-10"></span>
+    {% with metricas=obra.obtener_metricas_avance %}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+            <div class="card bg-base-100 shadow-sm border border-base-200 p-5 flex flex-row items-center gap-4">
+                <div class="p-3 bg-primary/10 text-primary rounded-xl">
+                    <span class="icon-[ph--house-line-bold] size-8"></span>
+                </div>
+                <div>
+                    <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Viviendas Totales</div>
+                    <div class="text-2xl font-black text-base-content">{{ metricas.total }}</div>
+                    <div class="text-[11px] text-gray-400 mt-0.5">Viviendas registradas en la obra</div>
+                </div>
             </div>
-            <div class="stat-title">Viviendas</div>
-            <div class="stat-value text-primary">{{ obra.total_viviendas|default:0 }}</div>
-            <div class="stat-desc">Número total de viviendas a construir</div>
-        </div>
 
-        <div class="stat">
-            <div class="stat-figure text-primary">
-                <span class="icon-[gg--trending] size-10"></span>
+            <div class="card bg-base-100 shadow-sm border border-base-200 p-5 flex flex-row items-center gap-4">
+                <div class="p-3 bg-success/10 text-success rounded-xl">
+                    <span class="icon-[ph--check-circle-bold] size-8"></span>
+                </div>
+                <div class="w-full">
+                    <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Avance de Obra</div>
+                    <div class="flex items-baseline gap-2">
+                        <div class="text-2xl font-black text-success">{{ metricas.porcentaje }}%</div>
+                        <div class="text-xs text-gray-400">({{ metricas.completadas }} listas)</div>
+                    </div>
+                    <progress class="progress progress-success w-full mt-2 h-1.5" value="{{ metricas.porcentaje }}"
+                              max="100"></progress>
+                </div>
             </div>
-            <div class="stat-title">Avance de Edificación</div>
-            <div class="stat-value text-primary">{{ obra.avance_porcentaje|default:0|percent }}</div>
-            <div class="stat-desc">{{ obra.viviendas_completadas|length }} vivienda(s) completadas</div>
-        </div>
 
-        <div class="stat">
-            <div class="stat-figure text-secondary">
-                <span class="icon-[mdi--clock] size-10"></span>
+            <div class="card bg-base-100 shadow-sm border border-base-200 p-5 flex flex-row items-center gap-4">
+                <div class="p-3 bg-warning/10 text-warning rounded-xl">
+                    <span class="icon-[ph--clock-bold] size-8"></span>
+                </div>
+                <div>
+                    <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Por Ejecutar</div>
+                    <div class="text-2xl font-black text-warning">{{ metricas.por_ejecutar }}</div>
+                    <div class="text-[11px] text-gray-400 mt-0.5">Viviendas en proceso de edificación</div>
+                </div>
             </div>
-            <div class="stat-title">Por ejecutar</div>
-            <div class="stat-value text-secondary">{{ obra.por_ejecutar_porcentaje|default:0|percent }}</div>
-            <div class="stat-desc">{{ obra.viviendas_por_ejecutar|length }} vivienda(s) por ejecutar</div>
         </div>
-    </div>
 
-    <!-- INFO OBRA -->
-    <div class="card bg-base-100 shadow mb-6">
-        <div class="card-body grid md:grid-cols-2 gap-4 text-sm">
-            <div><strong>Razón social:</strong> {{ obra.razon_social }}</div>
-            <div><strong>Dirección:</strong> {{ obra.direccion|default:"—" }}</div>
-            <div><strong>Inicio:</strong> {{ obra.fecha_inicio|default:"—" }}</div>
-            <div><strong>Fin:</strong> {{ obra.fecha_fin|default:"—" }}</div>
+        <div class="card bg-base-100 border border-base-200 shadow-sm mb-6">
+            <div class="card-body p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs text-gray-600">
+                <div><span class="font-bold text-gray-400 block uppercase tracking-wide mb-0.5">Razón Social</span>
+                    <span class="text-base-content font-medium text-sm">{{ obra.razon_social }}</span></div>
+                <div><span class="font-bold text-gray-400 block uppercase tracking-wide mb-0.5">Dirección</span> <span
+                        class="text-base-content font-medium text-sm">{{ obra.ciudad }}, {{ obra.estado }}</span></div>
+                <div><span class="font-bold text-gray-400 block uppercase tracking-wide mb-0.5">Fecha Inicio</span>
+                    <span class="text-base-content font-medium text-sm">{{ obra.fecha_inicio|default:"—" }}</span></div>
+                <div><span
+                        class="font-bold text-gray-400 block uppercase tracking-wide mb-0.5">Fecha Fin Estimada</span>
+                    <span class="text-base-content font-medium text-sm">{{ obra.fecha_fin|default:"—" }}</span></div>
+            </div>
         </div>
-    </div>
+    {% endwith %}
 
-    <!-- AGRUPADORES -->
-    <div class="card bg-base-100 shadow">
-        <div class="card-body">
-            <h2 class="text-lg font-semibold mb-4">
-                Agrupaciones de la obra
+    <div class="card bg-base-100 border border-base-200 shadow-sm">
+        <div class="p-5 border-b border-base-200 flex justify-between items-center">
+            <h2 class="text-md font-bold text-base-content flex items-center gap-2">
+                <span class="icon-[ph--folders-bold] text-primary"></span> Frentes de Trabajo y Agrupaciones
             </h2>
+        </div>
 
+        <div class="p-0">
             {% if agrupadores %}
                 <div class="overflow-x-auto">
-                    <table class="table table-sm">
-                        <thead>
+                    <table class="table table-md w-full">
+                        <thead class="bg-base-200/50 text-gray-500">
                         <tr>
-                            <th>Tipo</th>
-                            <th>Número</th>
-                            <th>Estructura</th>
-                            <th>Viviendas</th>
+                            <th>Tipo Frente</th>
+                            <th>Código Identificador</th>
+                            <th>Estructura Base</th>
+                            <th class="text-center">Viviendas Totales</th>
+                            <th class="text-center">Progreso Global</th>
                             <th></th>
                         </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="divide-y divide-base-200">
                         {% for a in agrupadores %}
-                            <tr>
-                                <td>{{ a.tipo.nombre }}</td>
-                                <td>{{ a.tipo.codigo }}-{{ a.numero }}</td>
-                                <td>{{ a.estructura }}</td>
-                                <td>
-                                    {{ a.viviendas_completadas|length }}
-                                    / {{ a.cantidad_viviendas }}
-                                </td>
-                                <td class="text-right">
-                                    <a href="{% url 'destajos:obras__agrupador__detail' obra.pk a.pk %}"
-                                       class="btn btn-xs"
-                                    >
-                                        Ver
-                                    </a>
-                                    <a href="{% url 'destajos:obras__agrupador__avances' obra.pk a.pk %}"
-                                       class="btn btn-xs"
-                                    >
-                                        Avances
-                                    </a>
-                                </td>
-                            </tr>
+                            {% with progreso=a.obtener_progreso %}
+                                <tr class="hover:bg-base-200/30 transition-colors">
+                                    <td class="font-semibold text-base-content">{{ a.tipo.nombre }}</td>
+                                    <td>
+                                        <span class="badge badge-ghost font-mono font-bold px-2 py-1">{{ a.tipo.codigo }}-{{ a.numero }}</span>
+                                    </td>
+                                    <td class="text-gray-500 text-sm">{{ a.estructura }}</td>
+                                    <td class="text-center font-medium">{{ a.cantidad_viviendas }} VIV</td>
+                                    <td class="text-center">
+                                        <div class="flex flex-col items-center gap-1">
+                                            <span class="text-xs font-bold text-primary">{{ progreso.porcentaje }}%</span>
+                                            <div class="w-24 bg-gray-200 rounded-full h-1">
+                                                <div class="bg-primary h-1 rounded-full"
+                                                     style="width: {{ progreso.porcentaje }}%"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-right">
+                                        <div class="join">
+                                            <a href="{% url 'destajos:obras__agrupador__detail' obra.pk a.pk %}"
+                                               class="btn btn-xs join-item btn-ghost border border-base-300">
+                                                Detalles
+                                            </a>
+                                            <a href="{% url 'destajos:obras__agrupador__avances' obra.pk a.pk %}"
+                                               class="btn btn-xs join-item btn-primary gap-1">
+                                                Control de Avances
+                                            </a>
+                                            {% if perms.destajos.delete_agrupador %}
+                                                <button onclick="agrupador_delete_modal_{{ a.pk }}.showModal()"
+                                                        class="btn btn-xs join-item btn-error gap-1">
+                                                    Eliminar
+                                                </button>
+
+                                                <dialog id="agrupador_delete_modal_{{ a.pk }}"
+                                                        class="modal modal-bottom sm:modal-middle transition-all duration-200">
+                                                    <div class="modal-box max-w-md p-6 border border-base-200 shadow-2xl rounded-2xl bg-base-100">
+
+                                                        <div class="flex items-start justify-between gap-4 mb-4">
+                                                            <div class="flex items-center gap-3">
+                                                                <div class="p-2.5 bg-error/10 text-error rounded-xl shrink-0">
+                                                                    <span class="icon-[tabler--trash-x] size-5 block"></span>
+                                                                </div>
+                                                                <h3 class="text-lg font-black text-base-content tracking-tight">
+                                                                    ¿Eliminar Agrupador?
+                                                                </h3>
+                                                            </div>
+
+                                                            <form method="dialog">
+                                                                <button class="btn btn-sm btn-circle btn-ghost text-base-content/40 hover:text-base-content hover:bg-base-200 transition-colors">
+                                                                    <span class="icon-[tabler--x] size-4"></span>
+                                                                </button>
+                                                            </form>
+                                                        </div>
+
+                                                        <div class="space-y-3 mb-6">
+                                                            <p class="text-sm text-base-content/70 leading-relaxed">
+                                                                Estás a punto de eliminar permanentemente el agrupador
+                                                                <span class="font-bold text-error bg-error/5 px-1.5 py-0.5 rounded border border-error/10 font-mono text-xs">{{ a }}</span>.
+                                                            </p>
+
+                                                            <p class="text-xs text-error font-medium flex items-start gap-2 bg-error/5 p-3 rounded-xl border border-error/15">
+                                                                <span class="icon-[tabler--alert-circle] size-4 shrink-0 mt-0.5"></span>
+                                                                <span>Esta acción es irreversible. Se eliminarán por completo las viviendas asignadas y sus respectivos avances de obra históricos.</span>
+                                                            </p>
+                                                        </div>
+
+                                                        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2 border-t border-base-200/60">
+                                                            <form method="dialog" class="w-full sm:w-auto">
+                                                                <button class="btn btn-sm btn-ghost w-full sm:w-auto font-bold uppercase text-[11px] tracking-wider px-4">
+                                                                    Cancelar
+                                                                </button>
+                                                            </form>
+
+                                                            <form action="{% url 'destajos:agrupadores__delete' a.pk %}"
+                                                                  method="post"
+                                                                  class="w-full sm:w-auto">
+                                                                {% csrf_token %}
+                                                                <button class="btn btn-sm btn-error w-full sm:w-auto font-bold uppercase text-[11px] tracking-wider gap-2 px-4 shadow-sm shadow-error/20">
+                                                                    <span class="icon-[tabler--trash] size-3.5"></span>
+                                                                    Confirmar Eliminación
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+
+                                                    <form method="dialog"
+                                                          class="modal-backdrop bg-neutral/40 backdrop-blur-xs transition-opacity">
+                                                        <button class="cursor-default">close</button>
+                                                    </form>
+                                                </dialog>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endwith %}
                         {% endfor %}
                         </tbody>
                     </table>
                 </div>
             {% else %}
-                <p class="text-sm text-gray-500">
-                    Esta obra aún no tiene agrupadores registrados.
-                </p>
+                <div class="text-center py-12 px-4">
+                    <div class="text-gray-300 mb-2">
+                        <span class="icon-[ph--folder-open-light] size-12"></span>
+                    </div>
+                    <p class="text-sm font-medium text-gray-500">Esta obra aún no cuenta con frentes de trabajo o
+                        agrupadores asignados.</p>
+                </div>
             {% endif %}
         </div>
     </div>
+
+
 </c-layouts.app>

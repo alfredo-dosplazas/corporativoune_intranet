@@ -1,0 +1,124 @@
+:root {
+    --selected-row: var(--color-primary);
+    --selected-bg: var(--color-accent);
+    --body-bg: var(--color-base-100);
+    --body-fg: var(--color-base-content);
+    --border-color: var(--input-color);
+    --darkened-bg: var(--color-base-200);
+    --select2-highlighted-bg: var(--color-primary);
+    --select2-highlighted-fg: var(--color-primary-content);
+}
+
+.select2-container {
+    width: 100% !important;
+    box-sizing: border-box; /* Fuerza a que el 100% incluya paddings y borders */
+    min-width: 1em !important;
+}
+
+.select2-container *,
+.select2-container ::after,
+.select2-container ::before {
+    box-sizing: border-box;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__clear {
+    margin-right: 1.5rem !important;
+}
+
+body > .select2-container--open {
+    width: auto !important;
+    max-width: 100% !important;
+}
+
+.select2-container,
+.select2-selection {
+    height: calc(var(--size-field, 0.25rem) * 10) !important;
+}
+
+/* Texto */
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: calc(var(--size-field, 0.25rem) * 10) !important;
+    color: var(--body-fg);
+    padding-left: 0.75rem;
+}
+
+/* Contenedor */
+.select2-container--default .select2-selection--single {
+    background-color: var(--body-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-field, 0.5rem);
+}
+
+/* Focus estilo DaisyUI */
+.select2-container--default.select2-container--focus .select2-selection--single,
+.select2-container--default.select2-container--open .select2-selection--single {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+/* Flecha */
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 100%;
+    width: 2.5rem;
+    right: 0.25rem;
+}
+
+/* Oculta el triangulito default */
+.select2-container--default .select2-selection--single .select2-selection__arrow b {
+    border: none !important;
+}
+
+/* Flecha custom */
+.select2-container--default .select2-selection--single .select2-selection__arrow::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+
+    width: 0.5rem;
+    height: 0.5rem;
+
+    border-right: 2px solid var(--body-fg);
+    border-bottom: 2px solid var(--body-fg);
+
+    transform: translate(-50%, -70%) rotate(45deg);
+    opacity: 0.7;
+}
+
+/* Equis */
+.select2-container--default .select2-selection--single .select2-selection__clear {
+    color: var(--body-fg);
+    font-size: 1rem;
+    margin-right: 0.5rem;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__clear:hover {
+    opacity: 1;
+    color: var(--color-error);
+}
+
+/* Dropdown */
+.select2-dropdown {
+    background-color: var(--body-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-box, 0.75rem);
+    overflow: hidden;
+}
+
+/* Opciones */
+.select2-results__option {
+    padding: 0.6rem 0.75rem;
+}
+
+/* Hover/selected */
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: var(--select2-highlighted-bg);
+    color: var(--select2-highlighted-fg);
+}
+
+.select2-selection__arrow {
+    height: 100% !important;
+    right: 16px !important;
+}

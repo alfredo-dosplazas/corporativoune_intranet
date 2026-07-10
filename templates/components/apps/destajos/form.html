@@ -4,104 +4,216 @@
 
 <div class="max-w-7xl mx-auto space-y-6">
     {% if form.errors or Detalle.errors %}
-        <div class="alert alert-soft alert-error shadow-md">
+        <div class="alert alert-soft alert-error shadow-md border-l-4 border-error">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6 text-error" fill="none"
+                 viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
             <div>
                 <h3 class="font-bold">No se pudo guardar el destajo</h3>
-                <div class="text-sm">
-                    Revisa los campos marcados en rojo.
+                <div class="text-sm opacity-80">
+                    Revisa las celdas marcadas en rojo para corregir los problemas de validación.
                 </div>
             </div>
         </div>
     {% endif %}
-
 
     <form id="destajo-form" method="POST" class="space-y-6" novalidate>
         {% csrf_token %}
 
         <div class="card bg-base-100 shadow-md border border-base-300">
             <div class="card-body">
-                <h3 class="font-semibold text-lg mb-4">
+                <h3 class="font-semibold text-lg mb-4 flex items-center gap-2 text-base-content/80">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
                     Información General
                 </h3>
-
                 {% crispy form %}
             </div>
         </div>
 
-
         <div class="card bg-base-100 shadow-md border border-base-300">
             <div class="card-body p-0">
-
-                <div class="px-6 pt-6 pb-4 border-b flex justify-between items-center">
+                <div class="px-6 pt-6 pb-4 border-b flex justify-between items-center bg-base-50/50">
                     <div>
-                        <h3 class="font-semibold text-lg">
+                        <h3 class="font-semibold text-lg flex items-center gap-2 text-base-content/80">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
                             Detalles del Destajo
                         </h3>
-                        <p class="text-xs opacity-60">
-                            Agrega los trabajos realizados en este destajo.
+                        <p class="text-xs opacity-60 mt-0.5">
+                            Captura rápida tipo hoja de cálculo. Pasa el cursor sobre las celdas en rojo para ver el
+                            error.
                         </p>
                     </div>
 
-                    <button type="button"
-                            id="add-detalle"
-                            class="btn btn-sm btn-primary">
-                        + Agregar trabajo
+                    <button type="button" id="add-detalle" class="btn btn-sm btn-primary gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Agregar trabajo
                     </button>
                 </div>
+
+                <style>
+                    .excel-table th {
+                        font-size: 0.75rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.05em;
+                        padding: 0.5rem !important;
+                    }
+
+                    .excel-table td {
+                        padding: 0 !important;
+                        border: 1px solid rgb(226, 232, 240);
+                    }
+
+                    .excel-cell-wrapper {
+                        position: relative;
+                        width: 100%;
+                        height: 38px;
+                        display: flex;
+                        align-items: center;
+                    }
+
+                    .excel-input {
+                        width: 100%;
+                        height: 100%;
+                        padding: 0 0.5rem;
+                        border: none !important;
+                        background-color: transparent;
+                        border-radius: 0 !important;
+                        font-size: 0.875rem;
+                        transition: all 0.15s ease;
+                    }
+
+                    .excel-input:focus {
+                        outline: 2px solid var(--p, #2563eb) !important;
+                        outline-offset: -2px;
+                        background-color: #fff;
+                        z-index: 10;
+                    }
+
+                    .excel-row:hover td {
+                        background-color: rgba(241, 245, 249, 0.4);
+                    }
+
+                    /* Corrección del contenedor del error */
+                    .cell-error {
+                        background-color: #fee2e2 !important;
+                    }
+
+                    .cell-error-border {
+                        box-shadow: inset 0 0 0 1px #ef4444;
+                    }
+
+                    .cell-error .excel-input {
+                        color: #b91c1c;
+                    }
+
+                    /* Forzar Tooltip controlado dentro de la celda */
+                    .excel-cell-wrapper.tooltip:before {
+                        font-size: 11px !important;
+                        white-space: normal;
+                        width: 200px;
+                        text-align: left;
+                    }
+
+                    .excel-table .select2-container--default .select2-selection--single {
+                        border: none !important;
+                        border-radius: 0 !important;
+                        height: 36px !important;
+                        padding-top: 4px;
+                        background-color: transparent;
+                    }
+                </style>
 
                 <div class="overflow-x-auto">
                     {{ Detalle.management_form }}
 
-                    <table class="table table-sm">
+                    <table class="table table-xs excel-table w-full border-collapse">
                         <thead>
-                        <tr class="bg-base-200">
-                            <th class="w-72">Trabajo</th>
-                            <th class="w-28">Cantidad</th>
-                            <th class="w-28">Unidad</th>
-                            <th class="w-32">Precio</th>
-                            <th class="w-28">Desc %</th>
-                            <th class="w-28">Surtido</th>
-                            <th class="w-32 text-right">Subtotal</th>
-                            <th class="w-16"></th>
+                        <tr class="bg-base-200 text-base-content/80">
+                            <th class="w-80 border border-slate-300">Trabajo</th>
+                            <th class="w-24 text-right border border-slate-300">Cantidad</th>
+                            <th class="w-28 border border-slate-300">Unidad</th>
+                            <th class="w-28 text-right border border-slate-300">Precio</th>
+                            <th class="w-20 text-right border border-slate-300">Desc %</th>
+                            <th class="w-24 text-right border border-slate-300">Surtido</th>
+                            <th class="w-28 text-right border border-slate-300 bg-base-100">Subtotal</th>
+                            <th class="w-12 text-center border border-slate-300"></th>
                         </tr>
                         </thead>
 
                         <tbody id="detalle-body">
                         {% for form_detalle in Detalle %}
-                            <tr class="hover detalle-row">
-                                <td>
-                                    {{ form_detalle.id }}
-                                    {% render_field form_detalle.trabajo class+="w-full" %}
-                                    <div class="detalle-info text-xs mt-1 opacity-70"></div>
+                            <tr class="excel-row">
+                                <td class="{% if form_detalle.trabajo.errors %}cell-error{% endif %}">
+                                    <div class="excel-cell-wrapper {% if form_detalle.trabajo.errors %}tooltip tooltip-error tooltip-top cell-error-border{% endif %}"
+                                         data-tip="
+
+                                                 {% if form_detalle.trabajo.errors %}{{ form_detalle.trabajo.errors.as_text }}{% endif %}">
+                                        {{ form_detalle.id }}
+                                        {% render_field form_detalle.trabajo class+="excel-input" %}
+                                        <div class="detalle-info hidden"></div>
+                                    </div>
+                                </td>
+
+                                <td class="{% if form_detalle.cantidad.errors %}cell-error{% endif %}">
+                                    <div class="excel-cell-wrapper {% if form_detalle.cantidad.errors %}tooltip tooltip-error tooltip-top cell-error-border{% endif %}"
+                                         data-tip="
+
+                                                 {% if form_detalle.cantidad.errors %}{{ form_detalle.cantidad.errors.as_text }}{% endif %}">
+                                        {% render_field form_detalle.cantidad class+="excel-input text-right" placeholder="0.00" %}
+                                    </div>
                                 </td>
 
                                 <td>
-                                    {% render_field form_detalle.cantidad class+="input input-sm w-full" %}
+                                    <div class="excel-cell-wrapper">
+                                        {% render_field form_detalle.unidad class+="excel-input" %}
+                                    </div>
+                                </td>
+
+                                <td class="{% if form_detalle.precio.errors %}cell-error{% endif %}">
+                                    <div class="excel-cell-wrapper {% if form_detalle.precio.errors %}tooltip tooltip-error tooltip-top cell-error-border{% endif %}"
+                                         data-tip="
+
+                                                 {% if form_detalle.precio.errors %}{{ form_detalle.precio.errors.as_text }}{% endif %}">
+                                        {% render_field form_detalle.precio class+="excel-input text-right" placeholder="$0.00" %}
+                                    </div>
+                                </td>
+
+                                <td class="{% if form_detalle.porcentaje_descuento.errors %}cell-error{% endif %}">
+                                    <div class="excel-cell-wrapper {% if form_detalle.porcentaje_descuento.errors %}tooltip tooltip-error tooltip-top cell-error-border{% endif %}"
+                                         data-tip="
+
+                                                 {% if form_detalle.porcentaje_descuento.errors %}{{ form_detalle.porcentaje_descuento.errors.as_text }}{% endif %}">
+                                        {% render_field form_detalle.porcentaje_descuento class+="excel-input text-right" placeholder="0" %}
+                                    </div>
                                 </td>
 
                                 <td>
-                                    {% render_field form_detalle.unidad class+="input input-sm w-full" %}
+                                    <div class="excel-cell-wrapper">
+                                        {% render_field form_detalle.surtido class+="excel-input text-right text-base-content/50" placeholder="0.00" readonly="readonly" %}
+                                    </div>
                                 </td>
 
-                                <td>
-                                    {% render_field form_detalle.precio class+="input input-sm w-full" %}
-                                </td>
-
-                                <td>
-                                    {% render_field form_detalle.porcentaje_descuento class+="input input-sm w-full" %}
-                                </td>
-
-                                <td>
-                                    {% render_field form_detalle.surtido class+="input input-sm w-full" %}
-                                </td>
-
-                                <td class="text-right font-semibold subtotal-cell">
+                                <td class="text-right font-semibold subtotal-cell pr-3 align-middle bg-base-50/50 text-base-content/90">
                                     $0.00
                                 </td>
 
-                                <td>
+                                <td class="text-center align-middle">
                                     <button type="button"
-                                            class="btn btn-xs btn-error remove-row">
+                                            class="btn btn-ghost btn-xs text-error hover:bg-error/20 remove-row">
                                         ✕
                                     </button>
                                 </td>
@@ -110,42 +222,38 @@
                         </tbody>
                     </table>
                 </div>
-
             </div>
         </div>
-
 
         <div class="card bg-base-100 shadow-md border border-base-300">
             <div class="card-body">
-                <h3 class="font-semibold text-lg mb-4">
+                <h3 class="font-semibold text-lg mb-4 flex items-center gap-2 text-base-content/80">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                    </svg>
                     Observaciones
                 </h3>
-
-                {{ form.observaciones }}
+                {% render_field form.observaciones class+="textarea textarea-bordered w-full h-24 focus:textarea-primary" placeholder="Añade notas u observaciones sobre este destajo..." %}
             </div>
         </div>
 
-
-        <div class="sticky bottom-0 bg-base-100 border-t border-base-300 py-4 px-6 shadow-inner flex justify-between items-center">
-
-            <div class="text-sm opacity-60">
+        <div class="sticky bottom-0 bg-base-100 border-t border-base-300 py-4 px-6 shadow-xl flex justify-between items-center z-30 rounded-b-xl">
+            <div class="text-sm font-medium opacity-70">
                 Total estimado del destajo
             </div>
-
-            <div class="text-2xl font-bold total-estimado">
+            <div class="text-2xl font-bold total-estimado text-primary">
                 $0.00
             </div>
-
         </div>
-
     </form>
-
 </div>
 
 <script>
     $(function () {
         const DestajoForm = {
-            endpoint: '{% url 'destajos:detalle_destajo_data' %}',
+            endpoint: '{% url "destajos:detalle_destajo_data" %}',
 
             init() {
                 this.bindEvents();
@@ -156,38 +264,111 @@
             bindEvents() {
                 const self = this;
 
-                // Trabajo seleccionado
+                // Agregar Trabajo Dinámicamente (Soporte Formset Django)
+                $("#add-detalle").on("click", function () {
+                    const $totalForms = $("#id_detalles-TOTAL_FORMS"); // Asegúrate que coincida con tu prefix de formset
+                    const currentCount = parseInt($totalForms.val()) || 0;
+
+                    // Clonar la primera fila válida
+                    const $templateRow = $(".excel-row").first();
+                    if ($templateRow.length === 0) return;
+
+                    // Destruir select2 en el clon antes de duplicar para evitar duplicados rotos
+                    if ($templateRow.find("select").data('select2')) {
+                        $templateRow.find("select").select2('destroy');
+                    }
+
+                    const $newRow = $templateRow.clone();
+
+                    // Limpiar valores del clon e incrementar índices regex
+                    $newRow.find("input, select").each(function () {
+                        const name = $(this).attr("name");
+                        if (name) {
+                            $(this).attr("name", name.replace(/-\d+-/, `-${currentCount}-`));
+                        }
+                        const id = $(this).attr("id");
+                        if (id) {
+                            $(this).attr("id", id.replace(/-\d+-/, `-${currentCount}-`));
+                        }
+
+                        // Omitir limpiar el campo hidden de borrado si existe o el ID en sí
+                        if (!$(this).is("[type='hidden']")) {
+                            $(this).val("");
+                        }
+                    });
+
+                    // Limpiar estados de error e iniciales en la nueva fila
+                    $newRow.find("td").removeClass("cell-error");
+                    $newRow.find(".excel-cell-wrapper").removeClass("cell-error-border tooltip tooltip-error tooltip-top").removeAttr("data-tip");
+                    $newRow.find(".subtotal-cell").text("$0.00");
+                    $newRow.find("input[name$='surtido']").val("0.00");
+
+                    // Insertar fila
+                    $("#detalle-body").append($newRow);
+
+                    // Actualizar contador del Management Form
+                    $totalForms.val(currentCount + 1);
+
+                    // Inicializar select2 de nuevo en ambas filas
+                    $(".excel-row select[name$='trabajo']").select2({width: '100%'});
+                });
+
+                // Captura cambio de Trabajo (Select2)
                 $(document).on("select2:select", "select[name$='trabajo']", function () {
-                    const $row = $(this).closest(".detalle-row");
+                    const $row = $(this).closest(".excel-row");
                     self.fetchTrabajoData($row, $(this).val());
                 });
 
-                // Recalcular fila
+                // Escuchar cambios para cálculos matemáticos inmediatos
                 $(document).on("input", "input[name$='cantidad'], input[name$='precio'], input[name$='porcentaje_descuento']", function () {
-                    const $row = $(this).closest(".detalle-row");
+                    const $row = $(this).closest(".excel-row");
                     self.calculateRow($row);
                     self.calculateTotal();
+                    self.renderDisponibilidad($row);
+                });
+
+                // Quitar estados de error interactivamente al escribir
+                $(document).on("focus input", ".excel-input", function () {
+                    const $wrapper = $(this).closest(".excel-cell-wrapper");
+                    $wrapper.removeClass("cell-error-border tooltip tooltip-error tooltip-top").removeAttr("data-tip");
+                    $(this).closest("td").removeClass("cell-error");
                 });
 
                 // Eliminar fila
                 $(document).on("click", ".remove-row", function () {
-                    $(this).closest(".detalle-row").remove();
-                    self.calculateTotal();
+                    const $row = $(this).closest(".excel-row");
+                    // Validar que no borremos la última fila para no perder el molde base
+                    if ($(".excel-row").length > 1) {
+                        $row.remove();
+                        self.calculateTotal();
+
+                        // Actualizar total forms
+                        const $totalForms = $("#id_detalles-TOTAL_FORMS");
+                        $totalForms.val($(".excel-row").length);
+                    } else {
+                        // Si es la única, solo resetearla
+                        $row.find("input, select").val("");
+                        $row.find(".subtotal-cell").text("$0.00");
+                        self.calculateTotal();
+                    }
                 });
             },
 
             initExistingRows() {
                 const self = this;
-                $(".detalle-row").each(function () {
+                $(".excel-row").each(function () {
                     self.calculateRow($(this));
                 });
             },
 
             fetchTrabajoData($row, trabajoId) {
-
                 const self = this;
-
                 if (!trabajoId) return;
+
+                // Limpiar errores previos del selector de Trabajo
+                const $wrapper = $row.find("select[name$='trabajo']").closest(".excel-cell-wrapper");
+                $wrapper.removeClass("cell-error-border tooltip tooltip-error tooltip-top").removeAttr("data-tip");
+                $wrapper.closest("td").removeClass("cell-error");
 
                 $.get(this.endpoint, {
                     trabajo_id: trabajoId,
@@ -196,21 +377,18 @@
                     fecha: $("[name='fecha']").val()
                 })
                     .done(function (data) {
-
                         if (data.error) {
                             self.showRowError($row, data.error);
                             return;
                         }
-
                         self.populateRow($row, data);
                     })
                     .fail(function () {
-                        showToast("Error obteniendo datos del trabajo", "error");
+                        console.error("Error obteniendo datos del catálogo.");
                     });
             },
 
             populateRow($row, data) {
-
                 const $precio = $row.find("input[name$='precio']");
                 const $info = $row.find(".detalle-info");
 
@@ -226,36 +404,28 @@
             },
 
             renderDisponibilidad($row) {
-
                 const $info = $row.find(".detalle-info");
                 const data = $info.data();
+                if (!data || data.disponible === undefined) return;
 
-                const cantidad = parseFloat($row.find("input[name$='cantidad']").val()) || 0;
+                const $input = $row.find("input[name$='cantidad']");
+                const $wrapper = $input.closest(".excel-cell-wrapper");
+                const $td = $input.closest("td");
+
+                const cantidad = parseFloat($input.val()) || 0;
                 const disponible = parseFloat(data.disponible || 0);
 
-                let color = "text-success";
-
                 if (cantidad > disponible) {
-                    color = "text-error";
-                    $row.find("input[name$='cantidad']").addClass("input-error");
+                    $td.addClass("cell-error");
+                    $wrapper.addClass("cell-error-border tooltip tooltip-error tooltip-top");
+                    $wrapper.attr("data-tip", `Excede presupuesto. Presupuestado: ${data.presupuestado} | Usado: ${data.usado} | Disp: ${disponible}`);
                 } else {
-                    $row.find("input[name$='cantidad']").removeClass("input-error");
+                    $td.removeClass("cell-error");
+                    $wrapper.removeClass("cell-error-border tooltip tooltip-error tooltip-top").removeAttr("data-tip");
                 }
-
-                $info.html(`
-                <div>
-                    Disponible:
-                    <span class="${color} font-semibold">${disponible}</span>
-                </div>
-                <div class="opacity-60">
-                    Presupuestado: ${data.presupuestado} |
-                    Usado: ${data.usado}
-                </div>
-            `);
             },
 
             calculateRow($row) {
-
                 const cantidad = parseFloat($row.find("input[name$='cantidad']").val()) || 0;
                 const precio = parseFloat($row.find("input[name$='precio']").val()) || 0;
                 const descuento = parseFloat($row.find("input[name$='porcentaje_descuento']").val()) || 0;
@@ -272,11 +442,8 @@
             },
 
             calculateTotal() {
-
                 let total = 0;
-
-                $(".detalle-row").each(function () {
-
+                $(".excel-row").each(function () {
                     const text = $(this).find(".subtotal-cell").text();
                     const value = parseFloat(text.replace(/[^0-9.-]+/g, "")) || 0;
                     total += value;
@@ -291,9 +458,16 @@
             },
 
             showRowError($row, message) {
-                $row.find(".detalle-info").html(
-                    `<span class="text-error">${message}</span>`
-                );
+                const $select = $row.find("select[name$='trabajo']");
+                const $wrapper = $select.closest(".excel-cell-wrapper");
+
+                $wrapper.closest("td").addClass("cell-error");
+                $wrapper.addClass("cell-error-border tooltip tooltip-error tooltip-top");
+                $wrapper.attr("data-tip", message);
+
+                $row.find("input[name$='precio']").val("");
+                $row.find(".subtotal-cell").text("$0.00");
+                this.calculateTotal();
             }
         };
 

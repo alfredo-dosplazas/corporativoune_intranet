@@ -1,0 +1,36 @@
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <!-- START -->
+            <div class="justify-self-start">
+                <h1 class="text-primary font-bold text-xl flex items-center gap-2">Compras</h1>
+                <h2 class="text-muted text-sm"></h2>
+            </div>
+
+            <!-- MIDDLE -->
+            <div class="justify-self-center w-full flex justify-center">
+
+            </div>
+
+
+            <!-- END -->
+            <div class="justify-self-end">
+
+            </div>
+
+        </div>
+
+    </c-slot>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {% for modulo in modulos %}
+            <c-shared.modulos.card
+                    :url="modulo.url"
+                    :icono="modulo.icono"
+                    :nombre="modulo.nombre"
+                    :descripcion="modulo.descripcion"
+            />
+        {% endfor %}
+    </div>
+</c-layouts.app>

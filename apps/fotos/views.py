@@ -78,8 +78,12 @@ class ExploradorFotosView(BreadcrumbsMixin, TemplateView):
         fotos.sort()
 
         paginator = Paginator(fotos, self.paginate_by)
-        page_number = self.request.GET.get("page")
-        page_obj = paginator.get_page(page_number)
+        page_number = self.request.GET.get("page", 1)
+
+        try:
+            page_obj = paginator.get_page(page_number)
+        except Exception:
+            page_obj = paginator.get_page(1)
 
         context.update({
             "carpetas": carpetas,

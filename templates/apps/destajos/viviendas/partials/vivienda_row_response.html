@@ -1,0 +1,55 @@
+<!-- 1. El objetivo principal: El select limpio con sus nuevos estilos CSS y valor -->
+
+<select name="estado"
+        id="select-estado-{{ estado.id }}"
+        hx-post="{% url 'destajos:obras__agrupador__viviendas__detail' obra.pk agrupador.pk vivienda.pk %}"
+        hx-vals='{"estado_id": "{{ estado.id }}"}'
+        hx-swap="outerHTML"
+        hx-trigger="change"
+        class="select select-xs select-bordered font-bold text-[11px] uppercase rounded-lg {% if estado.es_obra_adicional %}select-warning{% endif %}"
+>
+    {% if es_admin %}
+        <option value="pendiente"
+                {% if estado.estado == 'pendiente' %}selected{% endif %}>
+            ⏳ Pendiente
+        </option>
+        <option value="por_realizar"
+                {% if estado.estado == 'por_realizar' %}selected{% endif %}>
+            📋 Por realizar
+        </option>
+        <option value="realizado"
+                {% if estado.estado == 'realizado' %}selected{% endif %}>
+            ✅ Realizado
+        </option>
+        <option value="pagado"
+                {% if estado.estado == 'pagado' %}selected{% endif %}>💰
+            Pagado
+        </option>
+        <option value="na"
+                {% if estado.estado == 'na' %}selected{% endif %}>🚫 No
+            aplica
+        </option>
+    {% else %}
+        {% if estado.estado == 'pendiente' %}
+            <option value="pendiente" selected disabled>⏳ Pendiente
+            </option>
+        {% elif estado.estado == 'pagado' %}
+            <option value="pagado" selected disabled>💰 Pagado
+                (Bloqueado)
+            </option>
+        {% elif estado.estado == 'na' %}
+            <option value="na" selected disabled>🚫 No aplica</option>
+        {% endif %}
+        <option value="por_realizar"
+                {% if estado.estado == 'por_realizar' %}selected{% endif %}>
+            📋 Por realizar
+        </option>
+        <option value="realizado"
+                {% if estado.estado == 'realizado' %}selected{% endif %}>
+            ✅ Realizado
+        </option>
+    {% endif %}
+</select>
+
+<!-- 2. La magia OOB: HTMX interceptará este bloque y lo mandará al sidebar automáticamente -->
+{% include "apps/destajos/viviendas/partials/metricas_card.html" %}

@@ -7,6 +7,7 @@ from django.http import JsonResponse
 from django.urls import reverse
 from django.views.generic import TemplateView, ListView, CreateView, DetailView, UpdateView, DeleteView
 from django_tables2 import SingleTableMixin
+from django_weasyprint import WeasyTemplateResponseMixin
 from extra_views import SearchableListMixin, CreateWithInlinesView, NamedFormsetsMixin, UpdateWithInlinesView
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
@@ -244,3 +245,21 @@ def detalle_destajo_data(request):
         "usado": str(cantidad_usada),
         "disponible": str(disponible),
     })
+
+class DestajoPDFView(
+    PermissionRequiredMixin, WeasyTemplateResponseMixin, DetailView
+):
+    permission_required = ['destajos.view_destajo']
+    pdf_attachment = False
+    model = Destajo
+    template_name = 'apps/destajos/pdf.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context['partidas'] = self.get_object().detalles.all()
+
+        return context
+
+    def get_pdf_filename(self):
+        return self.get_object().folio
