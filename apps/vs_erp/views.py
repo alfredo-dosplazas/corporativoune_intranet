@@ -63,42 +63,59 @@ def recuperar_obras_por_empresa(request):
 class ReportePresupuestosView(TemplateView):
     template_name = 'apps/vs_erp/reportes/presupuestos.html'
 
-    def post(self, *args, **kwargs):
-        obras = self.request.POST.getlist("obras")
+    def post(self, request, *args, **kwargs):
+
+        obras = request.POST.getlist("obras")
+
+        reporte = []
 
         for item in obras:
+
             empresa, idobra = item.split("|")
 
             alias = EMPRESAS[empresa]
 
-            orden_cambio = (
-                               Presupuestoxpartidas.objects
-                               .using(alias)
-                               .filter(idobra=idobra)
-                               .aggregate(m=Max("idordencambio"))
-                           )["m"] or 0
+            orden = (
+                Presupuestoxpartidas.objects
+                .using(alias)
+                .filter(idobra=idobra)
+                .aggregate(Max("idordencambio"))
+            )["idordencambio__max"] or 0
 
             partidas = (
                 Presupuestoxpartidas.objects
                 .using(alias)
                 .filter(
                     idobra=idobra,
-                    idordencambio=orden_cambio
+                    idordencambio=orden
+                )
+                .values(
+                    "claveconceptoobra",
+                    "descripcion",
+                    "unidad",
+                    "cantidad",
+                    "costodirecto",
+                    "preciopresupuestado",
+                    "nivelidentacion",
                 )
             )
 
-            partidas = partidas.values(
-                "idconceptoobra",
-                "claveconceptoobra",
-                "descripcion",
-                "unidad",
-                "cantidad",
-                "costodirecto",
-                "preciopresupuestado",
-                "nivelidentacion",
-            )
+            obra = Obras.objects.using(alias).get(idobra=idobra)
 
-            print(idobra, orden_cambio, partidas)
+            reporte.append({
+                "empresa": empresa,
+                "obra": obra,
+                "orden": orden,
+                "partidas": partidas,
+            })
+
+        return render(
+            request,
+            "apps/vs_erp/reportes/partials/reporte.html",
+            {
+                "reporte": reporte
+            }
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

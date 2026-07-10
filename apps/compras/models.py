@@ -210,7 +210,7 @@ class DetalleOrden(models.Model):
     orden = models.ForeignKey(Orden, on_delete=models.CASCADE, related_name="detalle_orden")
     cantidad = models.PositiveIntegerField()
     descripcion = models.TextField()
-    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+    precio_unitario = models.DecimalField(max_digits=10, decimal_places=6)
 
     @property
     def subtotal(self):

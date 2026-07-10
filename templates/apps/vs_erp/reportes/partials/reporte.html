@@ -1,0 +1,129 @@
+{% for obra in reporte %}
+
+<div class="card mb-4 shadow-sm">
+
+    <div class="card-header">
+
+        <h5>
+
+            {{ obra.obra.descripcion }}
+
+        </h5>
+
+        <small>
+
+            {{ obra.empresa }}
+
+            |
+
+            Orden de cambio
+
+            {{ obra.orden }}
+
+        </small>
+
+    </div>
+
+    <div class="card-body">
+
+        <table class="table table-sm table-hover">
+
+            <thead>
+
+            <tr>
+
+                <th>Clave</th>
+
+                <th>Concepto</th>
+
+                <th>Unidad</th>
+
+                <th class="text-end">
+
+                    Cantidad
+
+                </th>
+
+                <th class="text-end">
+
+                    Costo Directo
+
+                </th>
+
+                <th class="text-end">
+
+                    Precio Pres.
+
+                </th>
+
+                <th class="text-end">
+
+                    Total
+
+                </th>
+
+            </tr>
+
+            </thead>
+
+            <tbody>
+
+            {% for p in obra.partidas %}
+
+                <tr>
+
+                    <td>
+
+                        {{ p.claveconceptoobra }}
+
+                    </td>
+
+                    <td style="padding-left:{{ p.nivelidentacion|add:"0" }}em">
+
+                        {{ p.descripcion }}
+
+                    </td>
+
+                    <td>
+
+                        {{ p.unidad }}
+
+                    </td>
+
+                    <td class="text-end">
+
+                        {{ p.cantidad }}
+
+                    </td>
+
+                    <td class="text-end">
+
+                        {{ p.costodirecto|floatformat:2 }}
+
+                    </td>
+
+                    <td class="text-end">
+
+                        {{ p.preciopresupuestado|floatformat:2 }}
+
+                    </td>
+
+                    <td class="text-end">
+
+                        {% widthratio p.cantidad 1 p.preciopresupuestado %}
+
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endfor %}
