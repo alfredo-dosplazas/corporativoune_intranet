@@ -10,6 +10,7 @@ class Permiso(models.Model):
 
         permissions = (
             ('acceder_sistema_contratos', 'Acceder al Módulo de Sistema De Contratos'),
+            ('generar_reporte_presupuestos_vs', 'Ver y Generar Excel del reporte de presupuestos del VS Control'),
         )
 
 

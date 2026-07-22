@@ -1,129 +1,521 @@
-{% for obra in reporte %}
+{% load money %}
 
-<div class="card mb-4 shadow-sm">
+<style>
+    .reporte-container {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: #1e293b;
+        max-width: 1300px;
+        margin: 20px auto;
+        padding: 0 15px;
+    }
 
-    <div class="card-header">
+    .obra-card {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        margin-bottom: 40px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
 
-        <h5>
+    .obra-header {
+        background-color: #0f172a;
+        color: #ffffff;
+        padding: 16px 20px;
+        margin: 0;
+        font-size: 1.2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
-            {{ obra.obra.descripcion }}
+    /* Navegación por Pestañas */
+    .tabs-nav {
+        display: flex;
+        background-color: #f1f5f9;
+        border-bottom: 2px solid #cbd5e1;
+        list-style: none;
+        margin: 0;
+        padding: 0 10px;
+    }
 
-        </h5>
+    .tab-btn {
+        padding: 12px 20px;
+        cursor: pointer;
+        font-weight: 600;
+        color: #64748b;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s ease;
+    }
 
-        <small>
+    .tab-btn:hover {
+        color: #0f172a;
+    }
 
-            {{ obra.empresa }}
+    .tab-btn.active {
+        color: #2563eb;
+        border-bottom-color: #2563eb;
+        background-color: #ffffff;
+    }
 
-            |
+    /* Contenido Pestañas */
+    .tab-content {
+        display: none;
+        padding: 20px;
+    }
 
-            Orden de cambio
+    .tab-content.active {
+        display: block;
+    }
 
-            {{ obra.orden }}
+    /* Tablas */
+    .reporte-tabla {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
 
-        </small>
+    .reporte-tabla th {
+        background-color: #f8fafc;
+        color: #475569;
+        text-align: left;
+        padding: 10px 12px;
+        border-bottom: 2px solid #e2e8f0;
+        font-weight: 600;
+    }
 
-    </div>
+    .reporte-tabla td {
+        padding: 8px 12px;
+        border-bottom: 1px solid #f1f5f9;
+    }
 
-    <div class="card-body">
+    .reporte-tabla tfoot tr {
+        background-color: #0f172a;
+        color: #ffffff;
+        font-weight: bold;
+    }
 
-        <table class="table table-sm table-hover">
+    .reporte-tabla tfoot td {
+        padding: 12px;
+        border-top: 2px solid #0284c7;
+        font-size: 0.95rem;
+    }
 
-            <thead>
+    .monto {
+        text-align: right;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.9rem;
+    }
 
-            <tr>
+    /* Filas Especiales */
+    .row-agrupador {
+        background-color: #f8fafc;
+        font-weight: bold;
+    }
 
-                <th>Clave</th>
+    .toggle-tree {
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 4px;
+        background-color: #2563eb;
+        color: #ffffff;
+        font-size: 0.75rem;
+        margin-right: 6px;
+        user-select: none;
+        font-weight: bold;
+        transition: background-color 0.2s;
+    }
 
-                <th>Concepto</th>
+    .toggle-tree:hover {
+        background-color: #1d4ed8;
+    }
 
-                <th>Unidad</th>
+    .diferencia-negativa {
+        color: #dc2626;
+        font-weight: 600;
+    }
 
-                <th class="text-end">
+    .tfoot-negativo {
+        color: #f87171 !important;
+    }
 
-                    Cantidad
+    /* Acordeón de Familias */
+    .familia-group {
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        overflow: hidden;
+    }
 
-                </th>
+    .familia-header {
+        background-color: #f1f5f9;
+        padding: 12px 16px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
-                <th class="text-end">
+    .familia-header:hover {
+        background-color: #e2e8f0;
+    }
 
-                    Costo Directo
+    .badge-retenciones {
+        background-color: #ef4444;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        margin-left: 6px;
+    }
+</style>
 
-                </th>
+<div class="reporte-container">
+    {% for reporte_item in reporte %}
+        {% with obra_id=forloop.counter %}
+            <div class="obra-card" id="obra-card-{{ obra_id }}">
+                <h2 class="obra-header">
+                    <span>{{ reporte_item.empresa }} | {{ reporte_item.obra }}</span>
+                </h2>
 
-                <th class="text-end">
+                <!-- Navegación por Pestañas Aisladas por Obra -->
+                <ul class="tabs-nav">
+                    <li class="tab-btn active" onclick="switchTab(this, 'conceptos-{{ obra_id }}')">
+                        Árbol de Conceptos
+                    </li>
+                    <li class="tab-btn" onclick="switchTab(this, 'familias-{{ obra_id }}')">
+                        Por Familia
+                    </li>
+                    <li class="tab-btn" onclick="switchTab(this, 'materiales-{{ obra_id }}')">
+                        Detalle Materiales
+                    </li>
+                    <li class="tab-btn" onclick="switchTab(this, 'retenciones-{{ obra_id }}')">
+                        Retenciones
+                        {% if reporte_item.retenciones %}
+                            <span class="badge-retenciones">{{ reporte_item.retenciones|length }}</span>
+                        {% endif %}
+                    </li>
+                </ul>
 
-                    Precio Pres.
+                <!-- PESTAÑA 1: ÁRBOLES DE CONCEPTOS -->
+                <div id="conceptos-{{ obra_id }}" class="tab-content active">
+                    <table class="reporte-tabla">
+                        <thead>
+                        <tr>
+                            <th>Concepto</th>
+                            <th class="monto">Presupuesto</th>
+                            <th class="monto">Comprado / Egreso</th>
+                            <th class="monto">Diferencia</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for concepto in reporte_item.conceptos %}
+                            <tr class="{% if concepto.EsAgrupador or concepto.NivelIdentacion < 3 %}row-agrupador{% endif %}"
+                                data-node-id="{{ concepto.IdConceptoObra }}"
+                                data-parent-id="{{ concepto.IdConceptoPadre|default:0 }}"
+                                style="{% if concepto.NivelIdentacion > 1 %}display:none;{% endif %}">
 
-                </th>
+                                <td style="padding-left: calc(12px + {{ concepto.NivelIdentacion|default:1|add:'-1' }} * 1.5rem);">
+                                    {% if concepto.EsAgrupador or concepto.es_agrupador or concepto.NivelIdentacion < 3 %}
+                                        <span class="toggle-tree" onclick="toggleTreeNode(this)">▶</span>
+                                    {% else %}
+                                        <span style="display:inline-block; width:28px;"></span>
+                                    {% endif %}
+                                    <strong>{{ concepto.ClaveConceptoObra }}</strong> {{ concepto.Concepto }}
+                                </td>
+                                <td class="monto">{{ concepto.PresupuestoMateriales|money }}</td>
+                                <td class="monto">{{ concepto.EgresosMateriales|money }}</td>
+                                <td class="monto {% if concepto.DiferenciaMateriales < 0 %}diferencia-negativa{% endif %}">
+                                    {{ concepto.DiferenciaMateriales|money }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                        <!-- TOTALES GENERALES DE CONCEPTOS (Solo Nivel 1) -->
+                        <tfoot>
+                        {% with total_presupuesto=0 total_egresos=0 %}
+                            <tr>
+                                <td>TOTAL GENERAL OBRA</td>
+                                <td class="monto" id="tot-pres-conceptos-{{ obra_id }}">$0.00</td>
+                                <td class="monto" id="tot-egr-conceptos-{{ obra_id }}">$0.00</td>
+                                <td class="monto" id="tot-dif-conceptos-{{ obra_id }}">$0.00</td>
+                            </tr>
+                        {% endwith %}
+                        </tfoot>
+                    </table>
+                </div>
 
-                <th class="text-end">
+                <!-- PESTAÑA 2: RESUMEN POR FAMILIA -->
+                <div id="familias-{{ obra_id }}" class="tab-content">
+                    <table class="reporte-tabla">
+                        <thead>
+                        <tr>
+                            <th>Familia</th>
+                            <th class="monto">Presupuesto</th>
+                            <th class="monto">Egresos</th>
+                            <th class="monto">Diferencia</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for familia in reporte_item.familias %}
+                            <tr>
+                                <td><strong>{{ familia.Familia }}</strong></td>
+                                <td class="monto">{{ familia.PresupuestoMateriales|money }}</td>
+                                <td class="monto">{{ familia.EgresosMateriales|money }}</td>
+                                <td class="monto {% if familia.DiferenciaMateriales < 0 %}diferencia-negativa{% endif %}">
+                                    {{ familia.DiferenciaMateriales|money }}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4" style="text-align:center;">No hay registros de familias.</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                        <tfoot>
+                        <tr>
+                            <td>TOTAL FAMILIAS</td>
+                            <td class="monto" id="tot-pres-familias-{{ obra_id }}">$0.00</td>
+                            <td class="monto" id="tot-egr-familias-{{ obra_id }}">$0.00</td>
+                            <td class="monto" id="tot-dif-familias-{{ obra_id }}">$0.00</td>
+                        </tr>
+                        </tfoot>
+                    </table>
+                </div>
 
-                    Total
+                <!-- PESTAÑA 3: DETALLE MATERIALES AGRUPADOS POR FAMILIA -->
+                <div id="materiales-{{ obra_id }}" class="tab-content">
+                    {% regroup reporte_item.materiales by Familia as materiales_por_familia %}
 
-                </th>
+                    {% for fam_group in materiales_por_familia %}
+                        <div class="familia-group">
+                            <div class="familia-header" onclick="toggleFamiliaGroup(this)">
+                                <span>📂 <strong>{{ fam_group.grouper }}</strong> ({{ fam_group.list|length }} insumos)</span>
+                                <span>Desplegar / Ocultar ▼</span>
+                            </div>
+                            <div class="familia-body" style="display: none; padding: 10px;">
+                                <table class="reporte-tabla">
+                                    <thead>
+                                    <tr>
+                                        <th>Insumo / Material</th>
+                                        <th>Unidad</th>
+                                        <th class="monto">Cant. Presup.</th>
+                                        <th class="monto">Cant. Comprada</th>
+                                        <th class="monto">Presupuesto</th>
+                                        <th class="monto">Egresos</th>
+                                        <th class="monto">Diferencia</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for mat in fam_group.list %}
+                                        <tr>
+                                            <td><strong>{{ mat.IdInsumo }}</strong> - {{ mat.Material }}</td>
+                                            <td>{{ mat.UnidadInsumo }}</td>
+                                            <td class="monto">{{ mat.CantidadPresupuestada|floatformat:2 }}</td>
+                                            <td class="monto">{{ mat.CantidadComprada|floatformat:2 }}</td>
+                                            <td class="monto mat-presupuesto">{{ mat.PresupuestoMateriales|money }}</td>
+                                            <td class="monto mat-egreso">{{ mat.EgresosMateriales|money }}</td>
+                                            <td class="monto mat-diferencia {% if mat.DiferenciaMateriales < 0 %}diferencia-negativa{% endif %}">
+                                                {{ mat.DiferenciaMateriales|money }}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p style="text-align: center;">No hay detalle de materiales disponible.</p>
+                    {% endfor %}
 
-            </tr>
+                    <!-- TOTAL GENERAL DE MATERIALES -->
+                    <table class="reporte-tabla" style="margin-top: 15px;">
+                        <tfoot>
+                        <tr>
+                            <td>TOTAL GENERAL MATERIALES</td>
+                            <td class="monto" id="tot-pres-mat-{{ obra_id }}">$0.00</td>
+                            <td class="monto" id="tot-egr-mat-{{ obra_id }}">$0.00</td>
+                            <td class="monto" id="tot-dif-mat-{{ obra_id }}">$0.00</td>
+                        </tr>
+                        </tfoot>
+                    </table>
+                </div>
 
-            </thead>
+                <!-- PESTAÑA 4: RETENCIONES -->
+                <div id="retenciones-{{ obra_id }}" class="tab-content">
+                    <table class="reporte-tabla">
+                        <thead>
+                        <tr>
+                            <th>Insumo</th>
+                            <th>Orden de Compra</th>
+                            <th class="monto">Importe Retención</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for ret in reporte_item.retenciones %}
+                            <tr>
+                                <td><strong>{{ ret.IdInsumo }}</strong></td>
+                                <td>{{ ret.IdOrdenCompra }}</td>
+                                <td class="monto ret-importe">{{ ret.importeR|money }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3" style="text-align: center;">No se encontraron retenciones para esta
+                                    obra.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                        <tfoot>
+                        <tr>
+                            <td colspan="2">TOTAL RETENCIONES</td>
+                            <td class="monto" id="tot-ret-{{ obra_id }}">$0.00</td>
+                        </tr>
+                        </tfoot>
+                    </table>
+                </div>
 
-            <tbody>
-
-            {% for p in obra.partidas %}
-
-                <tr>
-
-                    <td>
-
-                        {{ p.claveconceptoobra }}
-
-                    </td>
-
-                    <td style="padding-left:{{ p.nivelidentacion|add:"0" }}em">
-
-                        {{ p.descripcion }}
-
-                    </td>
-
-                    <td>
-
-                        {{ p.unidad }}
-
-                    </td>
-
-                    <td class="text-end">
-
-                        {{ p.cantidad }}
-
-                    </td>
-
-                    <td class="text-end">
-
-                        {{ p.costodirecto|floatformat:2 }}
-
-                    </td>
-
-                    <td class="text-end">
-
-                        {{ p.preciopresupuestado|floatformat:2 }}
-
-                    </td>
-
-                    <td class="text-end">
-
-                        {% widthratio p.cantidad 1 p.preciopresupuestado %}
-
-                    </td>
-
-                </tr>
-
-            {% endfor %}
-
-            </tbody>
-
-        </table>
-
-    </div>
-
+            </div>
+        {% endwith %}
+    {% endfor %}
 </div>
 
-{% endfor %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        calcularTotalesAutomaticos();
+    });
+
+    // 1. Manejo independiente de Pestañas
+    function switchTab(button, tabId) {
+        const card = button.closest('.obra-card');
+
+        card.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        card.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+        button.classList.add('active');
+        const targetTab = card.querySelector('#' + tabId);
+        if (targetTab) {
+            targetTab.classList.add('active');
+        }
+    }
+
+    // 2. Despliegue del Árbol de Conceptos (Treeview Fix)
+    function toggleTreeNode(toggleBtn) {
+        const currentRow = toggleBtn.closest('tr');
+        const nodeId = String(currentRow.getAttribute('data-node-id')).trim();
+        const tbody = currentRow.closest('tbody');
+
+        const isOpen = toggleBtn.innerText === '▼';
+        toggleBtn.innerText = isOpen ? '▶' : '▼';
+
+        if (isOpen) {
+            hideChildren(tbody, nodeId);
+        } else {
+            showDirectChildren(tbody, nodeId);
+        }
+    }
+
+    function showDirectChildren(tbody, parentId) {
+        const rows = tbody.querySelectorAll('tr[data-parent-id]');
+        rows.forEach(row => {
+            const rowParentId = String(row.getAttribute('data-parent-id')).trim();
+            if (rowParentId === parentId) {
+                row.style.display = '';
+            }
+        });
+    }
+
+    function hideChildren(tbody, parentId) {
+        const rows = tbody.querySelectorAll('tr[data-parent-id]');
+        rows.forEach(row => {
+            const rowParentId = String(row.getAttribute('data-parent-id')).trim();
+            if (rowParentId === parentId) {
+                row.style.display = 'none';
+
+                const toggle = row.querySelector('.toggle-tree');
+                if (toggle) toggle.innerText = '▶';
+
+                const childNodeId = String(row.getAttribute('data-node-id')).trim();
+                hideChildren(tbody, childNodeId);
+            }
+        });
+    }
+
+    // 3. Acordeón para Grupos de Materiales
+    function toggleFamiliaGroup(header) {
+        const body = header.nextElementSibling;
+        const isHidden = body.style.display === 'none';
+        body.style.display = isHidden ? 'block' : 'none';
+    }
+
+    // 4. Cálculo de Totales por JS para no sobrecargar las funciones Python
+    function parseMonto(texto) {
+        if (!texto) return 0.0;
+        return parseFloat(texto.replace(/[^0-9.-]+/g, "")) || 0.0;
+    }
+
+    function formatMoney(num) {
+        const absNum = Math.abs(num);
+        const formatted = "$" + absNum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        return num < 0 ? "-" + formatted : formatted;
+    }
+
+    function calcularTotalesAutomaticos() {
+        document.querySelectorAll('.obra-card').forEach(card => {
+            const obraId = card.id.replace('obra-card-', '');
+
+            // --- Totales Conceptos (Sumamos solo el nivel raíz/1 para no duplicar agrupadores) ---
+            let presConceptos = 0, egrConceptos = 0;
+            card.querySelectorAll('#conceptos-' + obraId + ' tbody tr[data-parent-id="0"]').forEach(row => {
+                const tds = row.querySelectorAll('td');
+                if (tds.length >= 4) {
+                    presConceptos += parseMonto(tds[1].innerText);
+                    egrConceptos += parseMonto(tds[2].innerText);
+                }
+            });
+            let difConceptos = presConceptos - egrConceptos;
+            card.querySelector('#tot-pres-conceptos-' + obraId).innerText = formatMoney(presConceptos);
+            card.querySelector('#tot-egr-conceptos-' + obraId).innerText = formatMoney(egrConceptos);
+            const elemDifC = card.querySelector('#tot-dif-conceptos-' + obraId);
+            elemDifC.innerText = formatMoney(difConceptos);
+            if (difConceptos < 0) elemDifC.classList.add('tfoot-negativo');
+
+            // --- Totales Familias ---
+            let presFam = 0, egrFam = 0;
+            card.querySelectorAll('#familias-' + obraId + ' tbody tr').forEach(row => {
+                const tds = row.querySelectorAll('td');
+                if (tds.length >= 4) {
+                    presFam += parseMonto(tds[1].innerText);
+                    egrFam += parseMonto(tds[2].innerText);
+                }
+            });
+            let difFam = presFam - egrFam;
+            card.querySelector('#tot-pres-familias-' + obraId).innerText = formatMoney(presFam);
+            card.querySelector('#tot-egr-familias-' + obraId).innerText = formatMoney(egrFam);
+            const elemDifF = card.querySelector('#tot-dif-familias-' + obraId);
+            elemDifF.innerText = formatMoney(difFam);
+            if (difFam < 0) elemDifF.classList.add('tfoot-negativo');
+
+            // --- Totales Materiales ---
+            let presMat = 0, egrMat = 0;
+            card.querySelectorAll('#materiales-' + obraId + ' .mat-presupuesto').forEach(td => presMat += parseMonto(td.innerText));
+            card.querySelectorAll('#materiales-' + obraId + ' .mat-egreso').forEach(td => egrMat += parseMonto(td.innerText));
+            let difMat = presMat - egrMat;
+            card.querySelector('#tot-pres-mat-' + obraId).innerText = formatMoney(presMat);
+            card.querySelector('#tot-egr-mat-' + obraId).innerText = formatMoney(egrMat);
+            const elemDifM = card.querySelector('#tot-dif-mat-' + obraId);
+            elemDifM.innerText = formatMoney(difMat);
+            if (difMat < 0) elemDifM.classList.add('tfoot-negativo');
+
+            // --- Totales Retenciones ---
+            let totRet = 0;
+            card.querySelectorAll('#retenciones-' + obraId + ' .ret-importe').forEach(td => totRet += parseMonto(td.innerText));
+            card.querySelector('#tot-ret-' + obraId).innerText = formatMoney(totRet);
+        });
+    }
+</script>

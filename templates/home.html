@@ -1,21 +1,22 @@
 <c-layouts.app>
+    <!-- Card de Bienvenida -->
     <div class="card bg-base-100 shadow-sm mb-6">
         <div class="card-body">
             <div class="flex gap-6 items-center">
                 {% if user.contacto.empresa %}
                     <c-component is="apps.empresas.logos.{{ user.contacto.empresa.abreviatura }}"
-                                 class="size-24 text-primary"/>
+                                 class="size-20 md:size-24 text-primary"/>
                 {% endif %}
 
                 <div>
                     <h2 class="card-title">
-                        <div class="flex-col gap-2 md:flex-row">
-                            <p class="text-sm md:text-base">Bienvenido de vuelta</p>
-                            <p class="font-bold text-primary">{{ user.contacto|default:user }}</p>
+                        <div class="flex flex-col md:flex-row gap-1 md:gap-2 items-start md:items-center">
+                            <span class="text-sm md:text-base font-normal">Bienvenido de vuelta,</span>
+                            <span class="font-bold text-primary">{{ user.contacto|default:user }}</span>
                         </div>
                     </h2>
-                    <p class="text-xs md:text-base text-base-content/80 text-muted">
-                        Accede a los módulos de la intranet
+                    <p class="text-xs md:text-sm text-base-content/80">
+                        Accede a los módulos y reportes de la intranet
                     </p>
                 </div>
             </div>
@@ -24,31 +25,81 @@
 
     {% if modulos|length %}
         <div class="card bg-base-100 shadow-sm">
-            <div class="card-body">
-                <h2 class="card-title">Aplicaciones</h2>
+            <div class="card-body gap-4">
 
-                <c-shared.modulos.cards :modulos="modulos"/>
+                <!-- Header con Búsqueda y Filtro -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 class="card-title text-xl">Aplicaciones y Accesos Rápidos</h2>
+
+                    <!-- Búsqueda en Vivo en el Cliente -->
+                    <div class="form-control w-full sm:w-auto">
+                        <div class="relative w-full sm:w-72">
+                            <input type="text"
+                                   id="buscar-modulo"
+                                   placeholder="Buscar módulo o reporte..."
+                                   class="input input-sm input-bordered w-full pl-9"
+                                   onkeyup="filtrarModulos()"/>
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-4 w-4 absolute left-3 top-2.5 text-base-content/50" fill="none"
+                                 viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cards de Módulos (Filtrables) -->
+                <div id="contenedor-modulos">
+                    <c-shared.modulos.cards :modulos="modulos"/>
+                </div>
+
+                <!-- Mensaje sin resultados al buscar -->
+                <div id="no-resultados" class="hidden text-center py-8 text-base-content/60">
+                    No se encontraron módulos o reportes que coincidan con la búsqueda.
+                </div>
+
             </div>
         </div>
+
+        <!-- Script simple de Filtrado en JS -->
+        <script>
+            function filtrarModulos() {
+                const query = document.getElementById('buscar-modulo').value.toLowerCase();
+                const cards = document.querySelectorAll('#contenedor-modulos .card, #contenedor-modulos a');
+                let visibles = 0;
+
+                cards.forEach(card => {
+                    const texto = card.innerText.toLowerCase();
+                    if (texto.includes(query)) {
+                        card.style.display = "";
+                        visibles++;
+                    } else {
+                        card.style.display = "none";
+                    }
+                });
+
+                const noRes = document.getElementById('no-resultados');
+                if (visibles === 0 && query !== '') {
+                    noRes.classList.remove('hidden');
+                } else {
+                    noRes.classList.add('hidden');
+                }
+            }
+        </script>
+
     {% else %}
         <div class="card bg-base-100 shadow-md rounded-xl p-8">
             <div class="flex flex-col justify-center items-center text-center space-y-4">
-                <!-- Icono ilustrativo -->
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-300" fill="none" viewBox="0 0 24 24"
                      stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M9 17v-6h6v6m2 0h-10a2 2 0 01-2-2V7a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2z"/>
                 </svg>
-
-                <!-- Texto principal -->
                 <h2 class="font-extrabold text-2xl text-gray-700">Aplicaciones</h2>
-
-                <!-- Texto secundario -->
                 <p class="text-gray-500 max-w-xs">
                     Cuando el área de sistemas habilite módulos, aparecerán aquí.
                 </p>
-
-                <!-- Acción opcional -->
                 <button class="btn btn-primary btn-sm mt-2">
                     Contactar a Sistemas
                 </button>

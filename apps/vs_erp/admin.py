@@ -1,7 +1,6 @@
 from django.contrib import admin
 
-from apps.vs_erp.models import Obras
-
+from apps.vs_erp.models import Obras, Presupuestoxpartidas
 
 @admin.register(Obras)
 class ObrasAdmin(admin.ModelAdmin):
@@ -17,3 +16,8 @@ class ObrasAdmin(admin.ModelAdmin):
             queryset = queryset | self.model.objects.filter(descripcion__contains=search_term)
 
         return queryset, use_distinct
+
+@admin.register(Presupuestoxpartidas)
+class PresupuestoxpartidasAdmin(admin.ModelAdmin):
+    list_display = ['idordencambio', 'nivelidentacion', 'descripcion', 'esagrupador', 'cantidad', 'costodirecto', 'preciopresupuestado', 'idconceptoobra']
+    list_filter = ['idobra']

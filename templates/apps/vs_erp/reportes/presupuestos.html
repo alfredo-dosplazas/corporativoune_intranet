@@ -1,52 +1,107 @@
 <c-layouts.app>
-    <form action="" method="post">
-        {% csrf_token %}
-
-        <label class="form-label">
-            Empresa
-        </label>
-
-        <select
-                class="form-select"
-
-                name="empresa"
-
-                hx-get="{% url 'vs_erp:recuperar_obras_por_empresa' %}"
-
-                hx-trigger="change"
-
-                hx-target="#contenedor-obras"
-
-                hx-swap="innerHTML">
-
-            <option value="">Seleccione...</option>
-
-            <option value="TODAS">
-                Todas
-            </option>
-
-            <option value="DP">
-                Dos Plazas
-            </option>
-
-            <option value="TERBA">
-                Terba
-            </option>
-
-            <option value="EDIFICATIUM">
-                Edificatium
-            </option>
-
-        </select>
-
-        <div id="contenedor-obras">
-            {% include "apps/vs_erp/reportes/partials/select_obras.html" %}
+    <!-- Slot de Encabezado (Dentro del Layout) -->
+    <c-slot name="header">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 w-full">
+            <div>
+                <h1 class="font-black text-2xl text-base-content tracking-tight flex items-center gap-2">
+                    <span class="icon-[ph--calculator-bold] text-primary"></span>
+                    Estatus financiero de obras VS
+                </h1>
+                <h2 class="text-base-content/60 text-sm">
+                    Consulta el desglose de presupuestos y compras o exporta a Excel.
+                </h2>
+            </div>
         </div>
+    </c-slot>
 
-        <button>
-            Generar Reporte
-        </button>
-    </form>
+    <!-- Contenido Principal -->
+    <div class="card bg-base-100 shadow-sm mb-6">
+        <div class="card-body">
+            <form id="form-reporte" method="post" class="space-y-4">
+                {% csrf_token %}
 
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Selector de Empresa -->
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-semibold">Empresa</span></label>
+                        <select
+                            class="select select-bordered w-full"
+                            name="empresa"
+                            hx-get="{% url 'vs_erp:recuperar_obras_por_empresa' %}"
+                            hx-trigger="change"
+                            hx-target="#contenedor-obras"
+                            hx-swap="innerHTML">
+                            <option value="">Seleccione...</option>
+                            <option value="TODAS">Todas</option>
+                            <option value="DP">Dos Plazas</option>
+                            <option value="TERBA">Terba</option>
+                            <option value="EDIFICATIUM">Edificatium</option>
+                        </select>
+                    </div>
 
+                    <!-- Selector Dinámico de Obras -->
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-semibold">Obras</span></label>
+                        <div id="contenedor-obras">
+                            {% include "apps/vs_erp/reportes/partials/select_obras.html" %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button type="submit" class="btn btn-primary" hx-post="" hx-target="#resultado-reporte">
+                        Generar Reporte
+                    </button>
+                    <button type="submit" name="export_excel" value="1" class="btn btn-success text-white" hx-boost="false">
+                        Exportar Excel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="resultado-reporte"></div>
+
+    <!-- SCRIPT CENTRALIZADO DE MANEJO HTMX + TOMSELECT -->
+    <script>
+        function inicializarTomSelectObras() {
+            const selectEl = document.getElementById('select-obras');
+            if (!selectEl) return;
+
+            // Destruir instancia si existía previamente
+            if (selectEl.tomselect) {
+                selectEl.tomselect.destroy();
+            }
+
+            // Si está vacío o deshabilitado, aplicar estilo select normal
+            if (selectEl.options.length === 1 && selectEl.options[0].disabled) {
+                selectEl.classList.add('select', 'select-bordered');
+                return;
+            }
+
+            // Crear la instancia de TomSelect limpia
+            new TomSelect('#select-obras', {
+                plugins: ['remove_button', 'clear_button'],
+                persist: false,
+                create: false,
+                maxItems: null,
+                placeholder: 'Buscar y seleccionar obras...',
+                render: {
+                    no_results: function() {
+                        return '<div class="no-results p-2 text-sm text-base-content/60">No se encontraron obras</div>';
+                    }
+                }
+            });
+        }
+
+        // 1. Inicializar en la carga inicial de la página
+        document.addEventListener('DOMContentLoaded', inicializarTomSelectObras);
+
+        // 2. Re-inicializar automáticamente cada vez que HTMX actualice el #contenedor-obras
+        document.body.addEventListener('htmx:afterSettle', function(evt) {
+            if (evt.detail.target.id === 'contenedor-obras') {
+                inicializarTomSelectObras();
+            }
+        });
+    </script>
 </c-layouts.app>

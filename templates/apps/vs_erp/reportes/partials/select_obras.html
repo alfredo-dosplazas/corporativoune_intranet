@@ -1,18 +1,16 @@
-<label class="form-label">
-    Obras
-</label>
-
 <select
         id="select-obras"
         name="obras"
         multiple
-        placeholder="Buscar obras...">
+        placeholder="Buscar y seleccionar obras..."
+        class="w-full"
+        required>
 
     {% for obra in obras %}
         <option value="{{ obra.id }}">
-            [{{ obra.empresa }}] {{ obra.descripcion }}
+            [{{ obra.empresa }}] | {{ obra.idobra }} | {{ obra.descripcion }}
         </option>
     {% empty %}
-        <option disabled>Seleccione una empresa</option>
+        <option value="" disabled selected>-- Seleccione una empresa válida --</option>
     {% endfor %}
 </select>

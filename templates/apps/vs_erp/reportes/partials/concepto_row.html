@@ -1,0 +1,78 @@
+{% load money %}
+<tr>
+
+
+    <td>
+
+        <div style="padding-left: {{ concepto.nivel }}rem">
+
+
+            {% if concepto.es_agrupador %}
+
+                <span class="fw-bold">
+                📁 {{ concepto.descripcion }}
+                </span>
+
+            {% else %}
+
+                {{ concepto.descripcion }}
+
+            {% endif %}
+
+
+        </div>
+
+    </td>
+
+
+    <td class="text-end fw-semibold">
+
+        {{ concepto.presupuesto|money }}
+
+    </td>
+
+
+    <td class="text-end text-success">
+
+        {{ concepto.comprado|money }}
+
+    </td>
+
+
+    <td class="text-end text-danger">
+
+        {{ concepto.pendiente|money }}
+
+    </td>
+
+
+    <td>
+
+
+        <div class="progress" style="height:22px">
+
+
+            <div class="progress-bar"
+
+                 style="width:{{ concepto.porcentaje }}%">
+
+
+                {{ concepto.porcentaje|floatformat:1 }}%
+
+            </div>
+
+
+        </div>
+
+
+    </td>
+
+
+</tr>
+
+
+{% for hijo in concepto.hijos %}
+
+    {% include "apps/vs_erp/reportes/partials/concepto_row.html" with concepto=hijo %}
+
+{% endfor %}

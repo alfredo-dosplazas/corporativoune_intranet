@@ -81,6 +81,12 @@ MIDDLEWARE = [
     'django_htmx.middleware.HtmxMiddleware',
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'apps.core.backends.EmailOrUsernameModelBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+
 ROOT_URLCONF = 'intranet.urls'
 
 TEMPLATES = [
