@@ -112,7 +112,9 @@ class OrdenListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMix
 
         usuario = self.request.user
 
-        if usuario.is_superuser:
+        es_administrador_compras = usuario.groups.filter(name='ADMINISTRADOR COMPRAS').exists()
+
+        if usuario.is_superuser or es_administrador_compras:
             return qs
 
         qs = qs.filter(
