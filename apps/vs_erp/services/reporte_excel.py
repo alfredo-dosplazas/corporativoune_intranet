@@ -229,9 +229,9 @@ def construir_hoja_resumen(wb, reporte):
 def construir_hoja_volumen_precio(wb, obra_item):
     id_obra = obra_item.get('obra', '')
     nombre_desc = obtener_nombre_obra_descriptivo(id_obra)
+    nombre_upper = nombre_desc.upper()
 
-    # Solo aplica para la obra de EDIFICACIÓN
-    if "EDIFICACI" not in nombre_desc.upper():
+    if "EDIFICACI" not in nombre_upper and "URBA" not in nombre_upper:
         return
 
     sheet_title = f"VOL & PRECIO {nombre_desc}"[:29]
