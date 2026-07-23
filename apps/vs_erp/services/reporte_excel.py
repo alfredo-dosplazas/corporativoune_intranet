@@ -225,6 +225,9 @@ def construir_hoja_resumen(wb, reporte):
     ws.column_dimensions['J'].width = 38
     ws.column_dimensions['K'].width = 25
 
+    # Filros
+    ws.auto_filter.ref = f"B7:H{current_row}"
+
 
 def construir_hoja_volumen_precio(wb, obra_item):
     id_obra = obra_item.get('obra', '')
@@ -334,12 +337,16 @@ def construir_hoja_volumen_precio(wb, obra_item):
             r = current_row
 
             # Datos básicos
-            ws.cell(row=r, column=1, value=m.get('IdInsumo', '')).font = font_normal        # A: ID
+            ws.cell(row=r, column=1, value=m.get('IdInsumo', '')).font = font_normal  # A: ID
             ws.cell(row=r, column=2, value=m.get('Material', m.get('Concepto', ''))).font = font_normal  # B: Material
-            ws.cell(row=r, column=3, value=float(m.get('CantidadPresupuestada', 0))).number_format = fmt_number  # C: Vol Pres
-            ws.cell(row=r, column=4, value=float(m.get('PresupuestoMateriales', 0))).number_format = fmt_currency  # D: Pcio Pres
-            ws.cell(row=r, column=5, value=float(m.get('CantidadComprada', 0))).number_format = fmt_number  # E: Vol Comp
-            ws.cell(row=r, column=6, value=float(m.get('EgresosMateriales', 0))).number_format = fmt_currency  # F: Pcio Comp
+            ws.cell(row=r, column=3,
+                    value=float(m.get('CantidadPresupuestada', 0))).number_format = fmt_number  # C: Vol Pres
+            ws.cell(row=r, column=4,
+                    value=float(m.get('PresupuestoMateriales', 0))).number_format = fmt_currency  # D: Pcio Pres
+            ws.cell(row=r, column=5,
+                    value=float(m.get('CantidadComprada', 0))).number_format = fmt_number  # E: Vol Comp
+            ws.cell(row=r, column=6,
+                    value=float(m.get('EgresosMateriales', 0))).number_format = fmt_currency  # F: Pcio Comp
 
             # ---------------------------------------------------------------
             # Fórmulas de Fila (Columnas G a K)
@@ -395,15 +402,24 @@ def construir_hoja_volumen_precio(wb, obra_item):
     ws.cell(row=fila_totales_tabla, column=2, value="-").alignment = Alignment(horizontal="center")
 
     # Sumas por columna (de C a K)
-    ws.cell(row=fila_totales_tabla, column=3, value=f"=SUM(C{fila_inicio_data}:C{fila_fin_data})").number_format = fmt_number    # Vol Pres
-    ws.cell(row=fila_totales_tabla, column=4, value=f"=SUM(D{fila_inicio_data}:D{fila_fin_data})").number_format = fmt_currency  # Pcio Pres
-    ws.cell(row=fila_totales_tabla, column=5, value=f"=SUM(E{fila_inicio_data}:E{fila_fin_data})").number_format = fmt_number    # Vol Comp
-    ws.cell(row=fila_totales_tabla, column=6, value=f"=SUM(F{fila_inicio_data}:F{fila_fin_data})").number_format = fmt_currency  # Pcio Comp
-    ws.cell(row=fila_totales_tabla, column=7, value=f"=SUM(G{fila_inicio_data}:G{fila_fin_data})").number_format = fmt_currency  # Dif Ptto - Comp
-    ws.cell(row=fila_totales_tabla, column=8, value=f"=SUM(H{fila_inicio_data}:H{fila_fin_data})").number_format = fmt_currency  # Dif Vol & Pcio
-    ws.cell(row=fila_totales_tabla, column=9, value=f"=SUM(I{fila_inicio_data}:I{fila_fin_data})").number_format = fmt_currency  # Dif Pcio & Comp
-    ws.cell(row=fila_totales_tabla, column=10, value=f"=SUM(J{fila_inicio_data}:J{fila_fin_data})").number_format = fmt_currency # Dif Pte Compro
-    ws.cell(row=fila_totales_tabla, column=11, value=f"=SUM(K{fila_inicio_data}:K{fila_fin_data})").number_format = fmt_number   # Dif Vol Ptto vs Comp
+    ws.cell(row=fila_totales_tabla, column=3,
+            value=f"=SUM(C{fila_inicio_data}:C{fila_fin_data})").number_format = fmt_number  # Vol Pres
+    ws.cell(row=fila_totales_tabla, column=4,
+            value=f"=SUM(D{fila_inicio_data}:D{fila_fin_data})").number_format = fmt_currency  # Pcio Pres
+    ws.cell(row=fila_totales_tabla, column=5,
+            value=f"=SUM(E{fila_inicio_data}:E{fila_fin_data})").number_format = fmt_number  # Vol Comp
+    ws.cell(row=fila_totales_tabla, column=6,
+            value=f"=SUM(F{fila_inicio_data}:F{fila_fin_data})").number_format = fmt_currency  # Pcio Comp
+    ws.cell(row=fila_totales_tabla, column=7,
+            value=f"=SUM(G{fila_inicio_data}:G{fila_fin_data})").number_format = fmt_currency  # Dif Ptto - Comp
+    ws.cell(row=fila_totales_tabla, column=8,
+            value=f"=SUM(H{fila_inicio_data}:H{fila_fin_data})").number_format = fmt_currency  # Dif Vol & Pcio
+    ws.cell(row=fila_totales_tabla, column=9,
+            value=f"=SUM(I{fila_inicio_data}:I{fila_fin_data})").number_format = fmt_currency  # Dif Pcio & Comp
+    ws.cell(row=fila_totales_tabla, column=10,
+            value=f"=SUM(J{fila_inicio_data}:J{fila_fin_data})").number_format = fmt_currency  # Dif Pte Compro
+    ws.cell(row=fila_totales_tabla, column=11,
+            value=f"=SUM(K{fila_inicio_data}:K{fila_fin_data})").number_format = fmt_number  # Dif Vol Ptto vs Comp
 
     for col in range(1, 12):
         cell = ws.cell(row=fila_totales_tabla, column=col)
@@ -462,6 +478,9 @@ def construir_hoja_volumen_precio(wb, obra_item):
     ws.column_dimensions['I'].width = 28  # Dif Pcio y Compra
     ws.column_dimensions['J'].width = 28  # Dif Pte Compro
     ws.column_dimensions['K'].width = 28  # Dif Vol Ptto vs Comp
+
+    # Filtros
+    ws.auto_filter.ref = f"A10:K{fila_fin_data}"
 
 
 def construir_hoja_retenciones(wb, obra_item):
@@ -587,6 +606,9 @@ def construir_hoja_retenciones(wb, obra_item):
     ws.column_dimensions['B'].width = 25
     ws.column_dimensions['C'].width = 22
     ws.column_dimensions['D'].width = 25
+
+    # Filtros
+    ws.auto_filter.ref = f"A4:D{fila_fin_datos}"
 
 
 def construir_hoja_compras_vs(wb, obra_item):
@@ -722,6 +744,9 @@ def construir_hoja_compras_vs(wb, obra_item):
     ws.column_dimensions['G'].width = 25
     ws.column_dimensions['H'].width = 25
     ws.column_dimensions['I'].width = 30
+
+    # Filtros
+    ws.auto_filter.ref = f"A4:H{fila_fin_datos}"
 
 
 def construir_hoja_compras_familia(wb, obra_item):
@@ -862,6 +887,11 @@ def construir_hoja_compras_familia(wb, obra_item):
     ws.column_dimensions['D'].width = 25
     ws.column_dimensions['E'].width = 25
 
+    if num_items > 0:
+        ws.auto_filter.ref = f"A5:E{row_datos_fin}"
+    else:
+        ws.auto_filter.ref = "A5:E5"
+
 
 def construir_hoja_compras_material(wb, obra_item):
     lista_materiales = obra_item.get('materiales', [])
@@ -875,8 +905,6 @@ def construir_hoja_compras_material(wb, obra_item):
     # CONFIGURACIÓN DE VISTA Y FREEZE PANES
     # ----------------------------------------------------
     ws.views.sheetView[0].showGridLines = True
-
-    # Congelar de la fila 5 hacia arriba (Filas 1 a 5 quedan fijas al hacer scroll)
     ws.freeze_panes = "A6"
 
     # ----------------------------------------------------
@@ -913,7 +941,7 @@ def construir_hoja_compras_material(wb, obra_item):
     ws["A2"].font = font_subtitulo
 
     # ----------------------------------------------------
-    # FILA 4: TOTAL GENERAL (RESERVAMOS LA POSICIÓN ARRIBA)
+    # FILA 4: TOTAL GENERAL
     # ----------------------------------------------------
     row_totales = 4
     ws.cell(row=row_totales, column=1, value="")
@@ -946,18 +974,23 @@ def construir_hoja_compras_material(wb, obra_item):
     # LLENADO DE DATOS (DESDE LA FILA 6)
     # ----------------------------------------------------
     current_row = 6
-    filas_familias_padre = []  # Guardaremos las filas de los renglones PADRE (Familias)
+    filas_familias_padre = []  # Guardaremos las filas de los renglones PADRE
 
-    for nombre_familia, grupo_materiales in groupby(lista_materiales, key=lambda x: x.get('Familia', 'SIN FAMILIA')):
+    # CAMBIO AQUÍ: Agrupamos estrictamente por el IdFamilia único
+    for id_familia, grupo_materiales in groupby(lista_materiales, key=lambda x: str(x.get('IdFamilia', '0')).strip()):
         items_materiales = list(grupo_materiales)
 
         # 1. RENGLÓN PADRE (FAMILIA)
         row_familia_inicio = current_row
         filas_familias_padre.append(row_familia_inicio)
 
-        id_fam_repr = items_materiales[0].get('IdFamilia', '') if items_materiales else ''
+        # Tomamos el nombre de la primera coincidencia que contenga texto válido
+        nombre_familia = next(
+            (m.get('Familia') for m in items_materiales if m.get('Familia') and m.get('Familia') != 'SIN FAMILIA'),
+            'SIN FAMILIA'
+        )
 
-        ws.cell(row=current_row, column=1, value=id_fam_repr).alignment = Alignment(horizontal="center")
+        ws.cell(row=current_row, column=1, value=id_familia).alignment = Alignment(horizontal="center")
         ws.cell(row=current_row, column=2, value=f"FAMILIA: {nombre_familia}").alignment = Alignment(horizontal="left")
 
         current_row += 1
@@ -996,7 +1029,7 @@ def construir_hoja_compras_material(wb, obra_item):
             ws.cell(row=current_row, column=8, value=precio_comp).number_format = fmt_currency
             ws.cell(row=current_row, column=9, value=f"=G{current_row}*H{current_row}").number_format = fmt_currency
 
-            # DIFERENCIA (Importe Ptto - Importe Compra)
+            # DIFERENCIA
             ws.cell(row=current_row, column=10, value=f"=F{current_row}-I{current_row}").number_format = fmt_currency
 
             # Estilos de fila hijo
@@ -1033,7 +1066,6 @@ def construir_hoja_compras_material(wb, obra_item):
     # APLICAR FÓRMULAS Y ESTILOS A LA FILA 4 (TOTAL GENERAL)
     # ----------------------------------------------------
     if filas_familias_padre:
-        # Sumamos los Totales de cada Familia (Padre)
         str_sum_ptto = "+".join([f"F{r}" for r in filas_familias_padre])
         str_sum_egre = "+".join([f"I{r}" for r in filas_familias_padre])
 
@@ -1045,7 +1077,6 @@ def construir_hoja_compras_material(wb, obra_item):
         ws.cell(row=row_totales, column=9, value=0.0).number_format = fmt_currency
         ws.cell(row=row_totales, column=10, value=0.0).number_format = fmt_currency
 
-    # Estilos de la fila total (arriba)
     for col in range(1, 11):
         cell = ws.cell(row=row_totales, column=col)
         cell.fill = fill_total
@@ -1053,7 +1084,7 @@ def construir_hoja_compras_material(wb, obra_item):
         cell.border = total_border
 
     # ----------------------------------------------------
-    # ANCHOS DE COLUMNA
+    # ANCHOS DE COLUMNA Y FILTROS
     # ----------------------------------------------------
     ws.column_dimensions['A'].width = 16
     ws.column_dimensions['B'].width = 48
@@ -1065,6 +1096,12 @@ def construir_hoja_compras_material(wb, obra_item):
     ws.column_dimensions['H'].width = 16
     ws.column_dimensions['I'].width = 20
     ws.column_dimensions['J'].width = 22
+
+    fila_fin_datos = current_row - 1
+    if fila_fin_datos >= 6:
+        ws.auto_filter.ref = f"A5:J{fila_fin_datos}"
+    else:
+        ws.auto_filter.ref = "A5:J5"
 
 
 def generar_excel_reporte_completo(reporte):
