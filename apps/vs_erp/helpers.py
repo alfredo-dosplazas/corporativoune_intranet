@@ -32,7 +32,7 @@ def obtener_desglose_obra(alias_db, id_obra):
     DECLARE @IdObra VARCHAR(50) = %s;
 
     DECLARE @OrdenCambio INT = (
-        SELECT ISNULL(MAX(IdOrdenCambio), 0)
+        SELECT ISNULL(MIN(IdOrdenCambio), 0)
         FROM PresupuestoxPartidas
         WHERE IdObra = @IdObra
     );
@@ -186,12 +186,16 @@ def obtener_compras_por_concepto(alias_db, id_obra):
     SELECT 
         cod.IdConceptoObra,
         SUM(
+            -- Evaluamos el comportamiento 'hacia abajo'
             CASE 
-                WHEN ISNULL(i.PorcentajeIVA, 0) = 16 
-                    THEN cod.Cantidad * cod.Precio * 1.16
-                ELSE 
-                    cod.Cantidad * cod.Precio
-            END
+                -- Si la cantidad facturada es menor o igual a la del cargo, 
+                -- o si es 0, priorizamos la CantidadFacturada
+                WHEN ISNULL(cod.Cantidad, 0) <= cod.Cantidad 
+                    THEN ISNULL(cod.Cantidad, 0)
+                ELSE cod.Cantidad 
+            END 
+            * cod.Precio 
+            * CASE WHEN ISNULL(i.PorcentajeIVA, 0) = 16 THEN 1.16 ELSE 1.0 END
         ) AS TotalComprado
     FROM CargosOrdenesDeCompra cod
     INNER JOIN InsumosGeneral ig 
@@ -205,7 +209,6 @@ def obtener_compras_por_concepto(alias_db, id_obra):
        AND i.IdInsumo = cod.IdInsumo
     WHERE cod.IdObra = %s
       AND ISNULL(cod.CantidadCancelada, 0) = 0
-      AND ISNULL(cod.CantidadFacturada, 0) >= 0
       AND ig.IdGrupoInsumos = 1
     GROUP BY cod.IdConceptoObra;
     """
@@ -222,31 +225,41 @@ def obtener_compras_por_familia(alias_db, id_obra):
     calculando correctamente el IVA (16% o 0%).
     """
     query = """
-    SELECT 
+        SELECT 
         ISNULL(ig.IdFamiliaInsumos, 0) AS IdFamilia,
         SUM(
+            -- Evaluamos si ya hay facturación registrada
             CASE 
-                WHEN ISNULL(i.PorcentajeIVA, 0) = 16 
-                    THEN cod.Cantidad * cod.Precio * 1.16
-                ELSE 
-                    cod.Cantidad * cod.Precio
-            END
+                WHEN ISNULL(cod.Cantidad, 0) > 0 
+                    THEN cod.Cantidad
+                ELSE cod.Cantidad 
+            END 
+            * cod.Precio 
+            * CASE 
+                WHEN ISNULL(i.PorcentajeIVA, 0) = 16 THEN 1.16 
+                ELSE 1.0 
+              END
         ) AS TotalComprado
-    FROM CargosOrdenesDeCompra cod
-    INNER JOIN InsumosGeneral ig 
+    FROM CargosOrdenesDeCompra AS cod
+    INNER JOIN InsumosGeneral AS ig 
         ON ig.IdInsumo = cod.IdInsumo
     LEFT JOIN (
-        SELECT IdObra, IdOrdenCompra, IdInsumo, MAX(PorcentajeIVA) AS PorcentajeIVA
+        SELECT 
+            IdObra, 
+            IdOrdenCompra, 
+            IdInsumo, 
+            MAX(PorcentajeIVA) AS PorcentajeIVA
         FROM OrdenesDeCompraD
         GROUP BY IdObra, IdOrdenCompra, IdInsumo
-    ) i ON i.IdObra = cod.IdObra 
+    ) AS i 
+        ON i.IdObra = cod.IdObra 
        AND i.IdOrdenCompra = cod.IdOrdenCompra 
        AND i.IdInsumo = cod.IdInsumo
     WHERE cod.IdObra = %s
       AND ISNULL(cod.CantidadCancelada, 0) = 0
-      AND ISNULL(cod.CantidadFacturada, 0) >= 0
       AND ig.IdGrupoInsumos = 1
-    GROUP BY ISNULL(ig.IdFamiliaInsumos, 0);
+    GROUP BY 
+        ISNULL(ig.IdFamiliaInsumos, 0);
     """
 
     with connections[alias_db].cursor() as cursor:
@@ -261,34 +274,63 @@ def obtener_compras_por_material(alias_db, id_obra):
     calculando correctamente el IVA (16% o 0%) e incluyendo la cantidad comprada.
     """
     query = """
-    SELECT   cod.IdInsumo,
-         CAST (ig.Descripcion AS VARCHAR (8000)) AS Insumo,
-         ig.IdFamiliaInsumos,
-         COALESCE(fi.Nombre, 'SIN FAMILIA') AS Familia,
-         SUM(cod.Cantidad) AS CantidadComprada,
-         SUM(CASE WHEN ISNULL(i.PorcentajeIVA, 0) = 16 THEN cod.Cantidad * cod.Precio * 1.16 ELSE cod.Cantidad * cod.Precio END) AS ImporteComprado
-    FROM     CargosOrdenesDeCompra AS cod
-             INNER JOIN
-             InsumosGeneral AS ig
-             ON ig.IdInsumo = cod.IdInsumo
-             LEFT OUTER JOIN
-             (SELECT   IdObra,
-                       IdOrdenCompra,
-                       IdInsumo,
-                       MAX(PorcentajeIVA) AS PorcentajeIVA
-              FROM     OrdenesDeCompraD
-              GROUP BY IdObra, IdOrdenCompra, IdInsumo) AS i
-             ON i.IdObra = cod.IdObra
-                AND i.IdOrdenCompra = cod.IdOrdenCompra
-                AND i.IdInsumo = cod.IdInsumo
-             LEFT OUTER JOIN
-             FamiliaInsumos AS fi
-             ON fi.IdFamilia = ig.IdFamiliaInsumos
-    WHERE    cod.IdObra = %s
-             AND ISNULL(cod.CantidadCancelada, 0) = 0
-             AND ISNULL(cod.CantidadFacturada, 0) >= 0
-             AND ig.IdGrupoInsumos = 1
-    GROUP BY cod.IdInsumo, CAST (ig.Descripcion AS VARCHAR (8000)), ig.IdFamiliaInsumos, fi.Nombre;
+    SELECT   
+        cod.IdInsumo,
+        CAST(ig.Descripcion AS VARCHAR(8000)) AS Insumo,
+        ig.IdFamiliaInsumos,
+        COALESCE(fi.Nombre, 'SIN FAMILIA') AS Familia,
+        
+        -- 1. Lógica para obtener la Cantidad (hacia abajo)
+        SUM(
+            CASE 
+                WHEN ISNULL(cod.Cantidad, 0) <= cod.Cantidad 
+                    THEN ISNULL(cod.Cantidad, 0)
+                ELSE cod.Cantidad 
+            END
+        ) AS CantidadComprada,
+        
+        -- 2. Lógica para obtener el Importe (Cantidad * Precio * IVA)
+        SUM(
+            CASE 
+                WHEN ISNULL(cod.CantidadFacturada, 0) <= cod.Cantidad 
+                    THEN ISNULL(cod.CantidadFacturada, 0)
+                ELSE cod.Cantidad 
+            END
+            * cod.Precio 
+            * CASE 
+                WHEN ISNULL(i.PorcentajeIVA, 0) = 16 THEN 1.16 
+                ELSE 1.0 
+              END
+        ) AS ImporteComprado
+    
+    FROM CargosOrdenesDeCompra AS cod
+    INNER JOIN InsumosGeneral AS ig
+        ON ig.IdInsumo = cod.IdInsumo
+    LEFT OUTER JOIN (
+        SELECT 
+            IdObra, 
+            IdOrdenCompra, 
+            IdInsumo, 
+            MAX(PorcentajeIVA) AS PorcentajeIVA
+        FROM OrdenesDeCompraD
+        GROUP BY 
+            IdObra, 
+            IdOrdenCompra, 
+            IdInsumo
+    ) AS i
+        ON i.IdObra = cod.IdObra
+       AND i.IdOrdenCompra = cod.IdOrdenCompra
+       AND i.IdInsumo = cod.IdInsumo
+    LEFT OUTER JOIN FamiliaInsumos AS fi
+        ON fi.IdFamilia = ig.IdFamiliaInsumos
+    WHERE cod.IdObra = %s
+      AND ISNULL(cod.CantidadCancelada, 0) = 0
+      AND ig.IdGrupoInsumos = 1
+    GROUP BY 
+        cod.IdInsumo, 
+        CAST(ig.Descripcion AS VARCHAR(8000)), 
+        ig.IdFamiliaInsumos, 
+        fi.Nombre;
     """
 
     with connections[alias_db].cursor() as cursor:

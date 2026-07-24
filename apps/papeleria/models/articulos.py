@@ -2,6 +2,7 @@ from django.db import models
 from django.urls import reverse
 
 from apps.core.models import Empresa
+from apps.vs_erp.models import Insumosgeneral
 
 
 class Unidad(models.Model):
@@ -50,6 +51,12 @@ class Articulo(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    @property
+    def info_vs(self):
+        if not self.codigo_vs_dp:
+            return None
+        return Insumosgeneral.objects.using('vs_dp').filter(idinsumo=self.codigo_vs_dp).first()
 
     @property
     def importe(self):

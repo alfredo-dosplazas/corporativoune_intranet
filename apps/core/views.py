@@ -5,10 +5,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView as BaseLoginView, LogoutView as BaseLogoutView
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.timezone import now
 from django.views.generic import TemplateView
 
 from apps.core.forms import LoginForm
+from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.querysets import modulos_visibles
 
 
@@ -54,7 +54,7 @@ class HomeView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class PerfilView(LoginRequiredMixin, TemplateView):
+class PerfilView(LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
     template_name = 'perfil.html'
 
     MONTHS = {
@@ -73,6 +73,8 @@ class PerfilView(LoginRequiredMixin, TemplateView):
     }
 
     def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
         contacto = self.request.user.contacto
 
         hoy = timezone.localdate()
@@ -95,13 +97,19 @@ class PerfilView(LoginRequiredMixin, TemplateView):
             dia = timezone.localtime(a.punch_time).date()
             asistencias_por_dia[dia].append(a)
 
-        context = {
+        context.update({
             "month_days": month_days,
             "asistencias_por_dia": asistencias_por_dia,
             "year": year,
             "month": month,
             'months': self.MONTHS,
             'years': [i for i in range(2014, hoy.year + 1)],
-        }
+        })
 
         return context
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Perfil'},
+        ]

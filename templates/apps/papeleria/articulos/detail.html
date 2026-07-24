@@ -55,6 +55,8 @@
                         <strong>¿Pertenece al cuadro básico?: </strong>{{ articulo.es_cuadro_basico|yesno:'Sí,No' }}
                     </p>
                 {% endif %}
+
+                {{ articulo.info_vs.ultimopreciocompra }}
             </div>
         </div>
     </div>

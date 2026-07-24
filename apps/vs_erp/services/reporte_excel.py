@@ -1104,6 +1104,174 @@ def construir_hoja_compras_material(wb, obra_item):
         ws.auto_filter.ref = "A5:J5"
 
 
+def construir_hoja_compras_material_sin_agrupar(wb, obra_item):
+    lista_materiales = obra_item.get('materiales', [])
+    id_obra = obra_item.get('obra', '')
+    nombre_desc = obtener_nombre_obra_descriptivo(id_obra)
+
+    sheet_title = f"COMPRAS {nombre_desc} MATERIAL"[:29]
+    ws = wb.create_sheet(title=sheet_title)
+
+    # ----------------------------------------------------
+    # CONFIGURACIÓN DE VISTA Y FREEZE PANES
+    # ----------------------------------------------------
+    ws.views.sheetView[0].showGridLines = True
+    ws.freeze_panes = "A6"
+
+    # ----------------------------------------------------
+    # ESTILOS CORPORATIVOS
+    # ----------------------------------------------------
+    font_titulo = Font(name="Calibri", size=14, bold=True, color="0F172A")
+    font_subtitulo = Font(name="Calibri", size=10, bold=True, color="475569")
+    font_header = Font(name="Calibri", size=10, bold=True, color="FFFFFF")
+
+    font_normal = Font(name="Calibri", size=10, color="1E293B")
+    font_bold = Font(name="Calibri", size=10, bold=True)
+
+    fill_header = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
+    fill_total = PatternFill(start_color="CBD5E1", end_color="CBD5E1", fill_type="solid")
+
+    border_thin = Side(border_style="thin", color="CBD5E1")
+    border_double = Side(border_style="double", color="0F172A")
+
+    box_border = Border(left=border_thin, right=border_thin, top=border_thin, bottom=border_thin)
+    total_border = Border(top=border_thin, bottom=border_double, left=border_thin, right=border_thin)
+
+    fmt_currency = '"$"#,##0.00;[Red]("$"#,##0.00);"-"'
+    fmt_number = '#,##0.00;[Red]-#,##0.00;"-"'
+
+    # ----------------------------------------------------
+    # ENCABEZADO DE LA HOJA
+    # ----------------------------------------------------
+    ws["A1"] = "DETALLE DE COMPRAS POR MATERIAL E INSUMO"
+    ws["A1"].font = font_titulo
+
+    ws["A2"] = f"OBRA: {nombre_desc} | {id_obra}"
+    ws["A2"].font = font_subtitulo
+
+    # ----------------------------------------------------
+    # FILA 4: TOTAL GENERAL
+    # ----------------------------------------------------
+    row_totales = 4
+    ws.cell(row=row_totales, column=1, value="")
+    ws.cell(row=row_totales, column=2, value="TOTAL GENERAL DE MATERIALES").font = font_bold
+
+    # ----------------------------------------------------
+    # FILA 5: ENCABEZADOS DE LA TABLA
+    # ----------------------------------------------------
+    headers = [
+        "CLAVE / INSUMO",
+        "DESCRIPCIÓN DEL MATERIAL",
+        "UNIDAD",
+        "CANT. PTTO",
+        "PRECIO PTTO",
+        "IMPORTE PTTO",
+        "CANT. COMPRADA",
+        "PRECIO COMPRA",
+        "IMPORTE COMPRA",
+        "DIFERENCIA (PTTO - EGRESOS)"
+    ]
+
+    row_headers = 5
+    for col_idx, text in enumerate(headers, start=1):
+        cell = ws.cell(row=row_headers, column=col_idx, value=text)
+        cell.fill = fill_header
+        cell.font = font_header
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    # ----------------------------------------------------
+    # ORDENAR Y LLENAR DATOS (DIRECTO POR INSUMO DESDE FILA 6)
+    # ----------------------------------------------------
+    # Ordenamos la lista por IdInsumo (numérico/texto de forma segura)
+    materiales_ordenados = sorted(
+        lista_materiales,
+        key=lambda x: str(x.get('IdInsumo', '')).strip()
+    )
+
+    current_row = 6
+    row_inicio_datos = current_row
+
+    for mat in materiales_ordenados:
+        # Clave Insumo
+        ws.cell(row=current_row, column=1, value=mat.get('IdInsumo', '')).alignment = Alignment(horizontal="center")
+
+        # Descripción
+        ws.cell(row=current_row, column=2, value=mat.get('Material', '')).alignment = Alignment(horizontal="left")
+
+        # Unidad
+        ws.cell(row=current_row, column=3, value=mat.get('UnidadInsumo', '')).alignment = Alignment(horizontal="center")
+
+        # PRESUPUESTO
+        cant_ptto = float(mat.get('CantidadPresupuestada', 0.0))
+        imp_ptto = float(mat.get('PresupuestoMateriales', 0.0))
+        precio_ptto = (imp_ptto / cant_ptto) if cant_ptto > 0 else 0.0
+
+        ws.cell(row=current_row, column=4, value=cant_ptto).number_format = fmt_number
+        ws.cell(row=current_row, column=5, value=precio_ptto).number_format = fmt_currency
+        ws.cell(row=current_row, column=6, value=f"=D{current_row}*E{current_row}").number_format = fmt_currency
+
+        # COMPRAS / EGRESOS
+        cant_comp = float(mat.get('CantidadComprada', 0.0))
+        imp_comp = float(mat.get('EgresosMateriales', 0.0))
+        precio_comp = (imp_comp / cant_comp) if cant_comp > 0 else 0.0
+
+        ws.cell(row=current_row, column=7, value=cant_comp).number_format = fmt_number
+        ws.cell(row=current_row, column=8, value=precio_comp).number_format = fmt_currency
+        ws.cell(row=current_row, column=9, value=f"=G{current_row}*H{current_row}").number_format = fmt_currency
+
+        # DIFERENCIA
+        ws.cell(row=current_row, column=10, value=f"=F{current_row}-I{current_row}").number_format = fmt_currency
+
+        # Estilos de celda
+        for col in range(1, 11):
+            cell = ws.cell(row=current_row, column=col)
+            cell.font = font_normal
+            cell.border = box_border
+
+        current_row += 1
+
+    row_fin_datos = current_row - 1
+
+    # ----------------------------------------------------
+    # APLICAR FÓRMULAS Y ESTILOS A LA FILA 4 (TOTAL GENERAL)
+    # ----------------------------------------------------
+    if row_fin_datos >= row_inicio_datos:
+        ws.cell(row=row_totales, column=6,
+                value=f"=SUM(F{row_inicio_datos}:F{row_fin_datos})").number_format = fmt_currency
+        ws.cell(row=row_totales, column=9,
+                value=f"=SUM(I{row_inicio_datos}:I{row_fin_datos})").number_format = fmt_currency
+        ws.cell(row=row_totales, column=10, value=f"=F{row_totales}-I{row_totales}").number_format = fmt_currency
+    else:
+        ws.cell(row=row_totales, column=6, value=0.0).number_format = fmt_currency
+        ws.cell(row=row_totales, column=9, value=0.0).number_format = fmt_currency
+        ws.cell(row=row_totales, column=10, value=0.0).number_format = fmt_currency
+
+    for col in range(1, 11):
+        cell = ws.cell(row=row_totales, column=col)
+        cell.fill = fill_total
+        cell.font = font_bold
+        cell.border = total_border
+
+    # ----------------------------------------------------
+    # ANCHOS DE COLUMNA Y FILTROS
+    # ----------------------------------------------------
+    ws.column_dimensions['A'].width = 16
+    ws.column_dimensions['B'].width = 48
+    ws.column_dimensions['C'].width = 10
+    ws.column_dimensions['D'].width = 15
+    ws.column_dimensions['E'].width = 16
+    ws.column_dimensions['F'].width = 20
+    ws.column_dimensions['G'].width = 15
+    ws.column_dimensions['H'].width = 16
+    ws.column_dimensions['I'].width = 20
+    ws.column_dimensions['J'].width = 22
+
+    if row_fin_datos >= row_inicio_datos:
+        ws.auto_filter.ref = f"A5:J{row_fin_datos}"
+    else:
+        ws.auto_filter.ref = "A5:J5"
+
+
 def generar_excel_reporte_completo(reporte):
     wb = openpyxl.Workbook()
 
@@ -1115,6 +1283,8 @@ def generar_excel_reporte_completo(reporte):
         construir_hoja_compras_vs(wb, obra_item)
         construir_hoja_compras_familia(wb, obra_item)
         construir_hoja_compras_material(wb, obra_item)
+        if settings.DEBUG:
+            construir_hoja_compras_material_sin_agrupar(wb, obra_item)
 
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
