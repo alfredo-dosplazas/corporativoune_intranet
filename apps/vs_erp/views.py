@@ -6,8 +6,7 @@ from django.views.generic import TemplateView
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.vs_erp.helpers import obtener_desglose_obra, obtener_conceptos_materiales, obtener_totales_por_familia, \
-    obtener_totales_por_material, obtener_retenciones_por_obra, obtener_compras_por_concepto, \
-    obtener_compras_por_familia, obtener_compras_por_material
+    obtener_totales_por_material, obtener_retenciones_por_obra, obtener_resumen_compras_reales
 from apps.vs_erp.models import Obras
 from apps.vs_erp.services.reporte_excel import generar_excel_reporte_completo
 
@@ -75,9 +74,11 @@ class ReportePresupuestosView(PermissionRequiredMixin, BreadcrumbsMixin, Templat
             alias = EMPRESAS[empresa]
 
             presupuesto_completo = obtener_desglose_obra(alias, idobra)
-            compras_por_concepto = obtener_compras_por_concepto(alias, idobra)
-            compras_por_familia = obtener_compras_por_familia(alias, idobra)
-            compras_por_material = obtener_compras_por_material(alias, idobra)
+            (
+                compras_por_concepto,
+                compras_por_familia,
+                compras_por_material
+            ) = obtener_resumen_compras_reales(alias, idobra)
 
             conceptos_materiales = obtener_conceptos_materiales(presupuesto_completo, compras_por_concepto)
             familias_materiales = obtener_totales_por_familia(presupuesto_completo, compras_por_familia)

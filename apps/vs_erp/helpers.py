@@ -32,9 +32,12 @@ def obtener_desglose_obra(alias_db, id_obra):
     DECLARE @IdObra VARCHAR(50) = %s;
 
     DECLARE @OrdenCambio INT = (
-        SELECT ISNULL(MIN(IdOrdenCambio), 0)
-        FROM PresupuestoxPartidas
-        WHERE IdObra = @IdObra
+        SELECT ISNULL(MAX(oc.IdOrdenCambio), 0)
+        FROM OrdenesCambio AS oc
+        INNER JOIN Estatus AS e 
+            ON e.IdEstatus = oc.IdEstatus
+        WHERE oc.IdObra = @IdObra 
+          AND e.Nombre = 'AUTORIZADA'
     );
     
     -----------------------------------------------------------------------
@@ -176,177 +179,63 @@ def obtener_desglose_obra(alias_db, id_obra):
         cols = [col[0] for col in cursor.description]
         return [dict(zip(cols, row)) for row in cursor.fetchall()]
 
-
-def obtener_compras_por_concepto(alias_db, id_obra):
+def obtener_resumen_compras_reales(alias_db, id_obra):
     """
-    Ejecuta la consulta directa que SÍ cuadra para obtener
-    el total comprado (con IVA) de cada IdConceptoObra (Nivel 3).
+    Realiza 1 sola consulta a la BD y agrupa en Python para:
+    - Compras por Concepto
+    - Compras por Familia
+    - Compras por Material
     """
     query = """
     SELECT 
-        cod.IdConceptoObra,
-        SUM(
-            -- Evaluamos el comportamiento 'hacia abajo'
-            CASE 
-                -- Si la cantidad facturada es menor o igual a la del cargo, 
-                -- o si es 0, priorizamos la CantidadFacturada
-                WHEN ISNULL(cod.Cantidad, 0) <= cod.Cantidad 
-                    THEN ISNULL(cod.Cantidad, 0)
-                ELSE cod.Cantidad 
-            END 
-            * cod.Precio 
-            * CASE WHEN ISNULL(i.PorcentajeIVA, 0) = 16 THEN 1.16 ELSE 1.0 END
-        ) AS TotalComprado
-    FROM CargosOrdenesDeCompra cod
-    INNER JOIN InsumosGeneral ig 
-        ON ig.IdInsumo = cod.IdInsumo
-    LEFT JOIN (
-        SELECT IdObra, IdOrdenCompra, IdInsumo, MAX(PorcentajeIVA) AS PorcentajeIVA
-        FROM OrdenesDeCompraD
-        GROUP BY IdObra, IdOrdenCompra, IdInsumo
-    ) i ON i.IdObra = cod.IdObra 
-       AND i.IdOrdenCompra = cod.IdOrdenCompra 
-       AND i.IdInsumo = cod.IdInsumo
-    WHERE cod.IdObra = %s
-      AND ISNULL(cod.CantidadCancelada, 0) = 0
-      AND ig.IdGrupoInsumos = 1
-    GROUP BY cod.IdConceptoObra;
-    """
-
-    with connections[alias_db].cursor() as cursor:
-        cursor.execute(query, [id_obra])
-        # Retornamos un diccionario: {IdConceptoObra: TotalComprado}
-        return {row[0]: float(row[1] or 0.0) for row in cursor.fetchall()}
-
-
-def obtener_compras_por_familia(alias_db, id_obra):
-    """
-    Obtiene las compras reales acumuladas por Familia (IdFamilia)
-    calculando correctamente el IVA (16% o 0%).
-    """
-    query = """
-        SELECT 
-        ISNULL(ig.IdFamiliaInsumos, 0) AS IdFamilia,
-        SUM(
-            -- Evaluamos si ya hay facturación registrada
-            CASE 
-                WHEN ISNULL(cod.Cantidad, 0) > 0 
-                    THEN cod.Cantidad
-                ELSE cod.Cantidad 
-            END 
-            * cod.Precio 
-            * CASE 
-                WHEN ISNULL(i.PorcentajeIVA, 0) = 16 THEN 1.16 
-                ELSE 1.0 
-              END
-        ) AS TotalComprado
-    FROM CargosOrdenesDeCompra AS cod
-    INNER JOIN InsumosGeneral AS ig 
-        ON ig.IdInsumo = cod.IdInsumo
-    LEFT JOIN (
-        SELECT 
-            IdObra, 
-            IdOrdenCompra, 
-            IdInsumo, 
-            MAX(PorcentajeIVA) AS PorcentajeIVA
-        FROM OrdenesDeCompraD
-        GROUP BY IdObra, IdOrdenCompra, IdInsumo
-    ) AS i 
-        ON i.IdObra = cod.IdObra 
-       AND i.IdOrdenCompra = cod.IdOrdenCompra 
-       AND i.IdInsumo = cod.IdInsumo
-    WHERE cod.IdObra = %s
-      AND ISNULL(cod.CantidadCancelada, 0) = 0
-      AND ig.IdGrupoInsumos = 1
-    GROUP BY 
-        ISNULL(ig.IdFamiliaInsumos, 0);
-    """
-
-    with connections[alias_db].cursor() as cursor:
-        cursor.execute(query, [id_obra])
-        # Retorna un diccionario: {IdFamilia: TotalComprado}
-        return {row[0]: float(row[1] or 0.0) for row in cursor.fetchall()}
-
-
-def obtener_compras_por_material(alias_db, id_obra):
-    """
-    Obtiene las compras reales acumuladas por Material (IdInsumo)
-    calculando correctamente el IVA (16% o 0%) e incluyendo la cantidad comprada.
-    """
-    query = """
-    SELECT   
-        cod.IdInsumo,
+        cpoc.IdConceptoObra,
+        cpoc.IdInsumo,
         CAST(ig.Descripcion AS VARCHAR(8000)) AS Insumo,
-        ig.IdFamiliaInsumos,
-        COALESCE(fi.Nombre, 'SIN FAMILIA') AS Familia,
-        
-        -- 1. Lógica para obtener la Cantidad (hacia abajo)
-        SUM(
-            CASE 
-                WHEN ISNULL(cod.Cantidad, 0) <= cod.Cantidad 
-                    THEN ISNULL(cod.Cantidad, 0)
-                ELSE cod.Cantidad 
-            END
-        ) AS CantidadComprada,
-        
-        -- 2. Lógica para obtener el Importe (Cantidad * Precio * IVA)
-        SUM(
-            CASE 
-                WHEN ISNULL(cod.CantidadFacturada, 0) <= cod.Cantidad 
-                    THEN ISNULL(cod.CantidadFacturada, 0)
-                ELSE cod.Cantidad 
-            END
-            * cod.Precio 
-            * CASE 
-                WHEN ISNULL(i.PorcentajeIVA, 0) = 16 THEN 1.16 
-                ELSE 1.0 
-              END
-        ) AS ImporteComprado
-    
-    FROM CargosOrdenesDeCompra AS cod
-    INNER JOIN InsumosGeneral AS ig
-        ON ig.IdInsumo = cod.IdInsumo
-    LEFT OUTER JOIN (
-        SELECT 
-            IdObra, 
-            IdOrdenCompra, 
-            IdInsumo, 
-            MAX(PorcentajeIVA) AS PorcentajeIVA
-        FROM OrdenesDeCompraD
-        GROUP BY 
-            IdObra, 
-            IdOrdenCompra, 
-            IdInsumo
-    ) AS i
-        ON i.IdObra = cod.IdObra
-       AND i.IdOrdenCompra = cod.IdOrdenCompra
-       AND i.IdInsumo = cod.IdInsumo
-    LEFT OUTER JOIN FamiliaInsumos AS fi
-        ON fi.IdFamilia = ig.IdFamiliaInsumos
-    WHERE cod.IdObra = %s
-      AND ISNULL(cod.CantidadCancelada, 0) = 0
-      AND ig.IdGrupoInsumos = 1
-    GROUP BY 
-        cod.IdInsumo, 
-        CAST(ig.Descripcion AS VARCHAR(8000)), 
-        ig.IdFamiliaInsumos, 
-        fi.Nombre;
+        ISNULL(f.IdFamilia, 0) AS IdFamilia,
+        COALESCE(f.Nombre, 'SIN FAMILIA') AS Familia,
+        cpoc.Cantidad,
+        cpoc.ImporteConIVA
+    FROM CargosPorObraConsolidado cpoc
+    INNER JOIN InsumosGeneral ig 
+        ON cpoc.IdInsumo = ig.IdInsumo
+    LEFT JOIN FamiliaInsumos f 
+        ON f.IdFamilia = ig.IdFamiliaInsumos
+    WHERE cpoc.IdObra = %s
+      AND cpoc.DocumentoOrigen = 'FACTURA'
+      AND ig.IdGrupoInsumos = 1;
     """
+
+    compras_por_concepto = {}
+    compras_por_familia = {}
+    compras_por_material = {}
 
     with connections[alias_db].cursor() as cursor:
         cursor.execute(query, [id_obra])
-        # Retorna dict: { IdInsumo: {'CantidadComprada': X, 'ImporteComprado': Y} }
-        return {
-            row[0]: {
-                'Insumo': row[1],
-                'IdFamiliaInsumo': row[2],
-                'Familia': row[3],
-                'CantidadComprada': float(row[4] or 0.0),
-                'ImporteComprado': float(row[5] or 0.0)
-            }
-            for row in cursor.fetchall()
-        }
+        rows = cursor.fetchall()
 
+        for id_concepto, id_insumo, insumo_nombre, id_familia, familia_nombre, cantidad, importe in rows:
+            cant = float(cantidad or 0.0)
+            imp = float(importe or 0.0)
+
+            # 1. Agrupar por Concepto
+            compras_por_concepto[id_concepto] = compras_por_concepto.get(id_concepto, 0.0) + imp
+
+            # 2. Agrupar por Familia
+            compras_por_familia[id_familia] = compras_por_familia.get(id_familia, 0.0) + imp
+
+            # 3. Agrupar por Material
+            if id_insumo not in compras_por_material:
+                compras_por_material[id_insumo] = {
+                    'Insumo': insumo_nombre,
+                    'IdFamiliaInsumo': id_familia,
+                    'Familia': familia_nombre,
+                    'CantidadComprada': 0.0,
+                    'ImporteComprado': 0.0
+                }
+            compras_por_material[id_insumo]['CantidadComprada'] += cant
+            compras_por_material[id_insumo]['ImporteComprado'] += imp
+
+    return compras_por_concepto, compras_por_familia, compras_por_material
 
 def obtener_conceptos_materiales(results, mapa_compras_reales):
     if not results:
