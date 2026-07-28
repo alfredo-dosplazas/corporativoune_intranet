@@ -179,6 +179,7 @@ def obtener_desglose_obra(alias_db, id_obra):
         cols = [col[0] for col in cursor.description]
         return [dict(zip(cols, row)) for row in cursor.fetchall()]
 
+
 def obtener_resumen_compras_reales(alias_db, id_obra):
     """
     Realiza 1 sola consulta a la BD y agrupa en Python para:
@@ -187,29 +188,39 @@ def obtener_resumen_compras_reales(alias_db, id_obra):
     - Compras por Material
     """
     query = """
-    SELECT 
-        cpoc.IdDocumento,
-        cpoc.FolioDocumento,
-        cpoc.DocumentoOrigen,
-        cpoc.IdConceptoObra,
-        cpoc.IdInsumo,
-        CAST(ig.Descripcion AS VARCHAR(8000)) AS Insumo,
-        ISNULL(f.IdFamilia, 0) AS IdFamilia,
-        COALESCE(f.Nombre, 'SIN FAMILIA') AS Familia,
-        cpoc.Cantidad,
-        cpoc.ImporteConIVA
-    FROM CargosPorObraConsolidado cpoc
-    INNER JOIN InsumosGeneral ig 
-        ON cpoc.IdInsumo = ig.IdInsumo
-    LEFT JOIN FamiliaInsumos f 
-        ON f.IdFamilia = ig.IdFamiliaInsumos
-    WHERE cpoc.IdObra = %s
-      AND ig.IdGrupoInsumos = 1
-      AND (
-          cpoc.DocumentoOrigen = 'FACTURA'
-          OR 
-          (cpoc.DocumentoOrigen = 'ORDENCOMPRA' AND ISNULL(cpoc.CantidadFacturadaAutorizada, 0) = 0)
-      )
+    DECLARE @IdObra AS VARCHAR (100) = %s;
+    
+    SELECT   cpoc.IdDocumento,
+             cpoc.FolioDocumento,
+             cpoc.DocumentoOrigen,
+             e.IdEstatus,
+             e.Nombre,
+             cpoc.IdConceptoObra,
+             cpoc.IdInsumo,
+             CAST (ig.Descripcion AS VARCHAR (8000)) AS Insumo,
+             ISNULL(f.IdFamilia, 0) AS IdFamilia,
+             COALESCE (f.Nombre, 'SIN FAMILIA') AS Familia,
+             cpoc.Cantidad,
+             cpoc.ImporteConIVA
+    FROM     CargosPorObraConsolidado AS cpoc
+             INNER JOIN
+             InsumosGeneral AS ig
+             ON cpoc.IdInsumo = ig.IdInsumo
+             INNER JOIN
+             Estatus AS e
+             ON e.IdEstatus = cpoc.IdEstatusDocumento
+             LEFT OUTER JOIN
+             FamiliaInsumos AS f
+             ON f.IdFamilia = ig.IdFamiliaInsumos
+    WHERE    cpoc.IdObra = @IdObra
+             AND ig.IdGrupoInsumos = 1
+             AND cpoc.IdEstatusDocumento <> 4
+             AND (-- 1. Trae TODAS las Facturas
+             cpoc.DocumentoOrigen = 'FACTURA'
+             OR -- 2. Trae las OC Solo si no estan facturadas
+             (cpoc.DocumentoOrigen = 'ORDENCOMPRA'
+              AND (ISNULL(cpoc.CantidadFacturadaValidaciones, 0)) = 0)
+             AND e.Nombre <> 'FACTURADA')
     ORDER BY cpoc.IdDocumento ASC;
     """
 
@@ -221,7 +232,7 @@ def obtener_resumen_compras_reales(alias_db, id_obra):
         cursor.execute(query, [id_obra])
         rows = cursor.fetchall()
 
-        for id_documento, folio_documento, documento_origen, id_concepto, id_insumo, insumo_nombre, id_familia, familia_nombre, cantidad, importe in rows:
+        for id_documento, folio_documento, documento_origen, id_estatus, estatus, id_concepto, id_insumo, insumo_nombre, id_familia, familia_nombre, cantidad, importe in rows:
             cant = float(cantidad or 0.0)
             imp = float(importe or 0.0)
 
@@ -244,6 +255,7 @@ def obtener_resumen_compras_reales(alias_db, id_obra):
             compras_por_material[id_insumo]['ImporteComprado'] += imp
 
     return compras_por_concepto, compras_por_familia, compras_por_material
+
 
 def obtener_conceptos_materiales(results, mapa_compras_reales):
     if not results:
