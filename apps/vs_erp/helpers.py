@@ -188,6 +188,9 @@ def obtener_resumen_compras_reales(alias_db, id_obra):
     """
     query = """
     SELECT 
+        cpoc.IdDocumento,
+        cpoc.FolioDocumento,
+        cpoc.DocumentoOrigen,
         cpoc.IdConceptoObra,
         cpoc.IdInsumo,
         CAST(ig.Descripcion AS VARCHAR(8000)) AS Insumo,
@@ -201,8 +204,13 @@ def obtener_resumen_compras_reales(alias_db, id_obra):
     LEFT JOIN FamiliaInsumos f 
         ON f.IdFamilia = ig.IdFamiliaInsumos
     WHERE cpoc.IdObra = %s
-      AND cpoc.DocumentoOrigen = 'FACTURA'
-      AND ig.IdGrupoInsumos = 1;
+      AND ig.IdGrupoInsumos = 1
+      AND (
+          cpoc.DocumentoOrigen = 'FACTURA'
+          OR 
+          (cpoc.DocumentoOrigen = 'ORDENCOMPRA' AND ISNULL(cpoc.CantidadFacturadaAutorizada, 0) = 0)
+      )
+    ORDER BY cpoc.IdDocumento ASC;
     """
 
     compras_por_concepto = {}
@@ -213,7 +221,7 @@ def obtener_resumen_compras_reales(alias_db, id_obra):
         cursor.execute(query, [id_obra])
         rows = cursor.fetchall()
 
-        for id_concepto, id_insumo, insumo_nombre, id_familia, familia_nombre, cantidad, importe in rows:
+        for id_documento, folio_documento, documento_origen, id_concepto, id_insumo, insumo_nombre, id_familia, familia_nombre, cantidad, importe in rows:
             cant = float(cantidad or 0.0)
             imp = float(importe or 0.0)
 
