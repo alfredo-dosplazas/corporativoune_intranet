@@ -92,7 +92,7 @@ class OrdenListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMix
     table_class = OrdenTable
     search_fields = [
         'folio',
-        'empresa__nombre',
+        'razon_social__nombre',
 
         'autorizador__primer_nombre',
         'autorizador__segundo_nombre',
@@ -236,4 +236,4 @@ class OrdenPdfView(
     template_name = 'apps/compras/ordenes/pdf.html'
 
     def get_pdf_filename(self):
-        return self.get_object().folio
+        return f'{self.get_object().folio}.pdf'
