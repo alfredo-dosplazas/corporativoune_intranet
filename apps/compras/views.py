@@ -104,7 +104,6 @@ class OrdenListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMix
         'solicitante__segundo_nombre',
         'solicitante__primer_apellido',
         'solicitante__segundo_apellido',
-        'aprobador__primer_nombre',
     ]
 
     def get_queryset(self):
