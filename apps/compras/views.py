@@ -94,11 +94,11 @@ class OrdenListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMix
         'folio',
         'razon_social__nombre',
 
-        'autorizador__primer_nombre',
-        'autorizador__segundo_nombre',
-        'autorizador__primer_apellido',
-        'autorizador__segundo_apellido',
-        'autorizador__primer_nombre',
+        'autoriza__primer_nombre',
+        'autoriza__segundo_nombre',
+        'autoriza__primer_apellido',
+        'autoriza__segundo_apellido',
+        'autoriza__primer_nombre',
 
         'solicitante__primer_nombre',
         'solicitante__segundo_nombre',
