@@ -86,7 +86,6 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
-
 ROOT_URLCONF = 'intranet.urls'
 
 TEMPLATES = [
@@ -149,6 +148,30 @@ DATABASES = {
         'HOST': env('VS_HOST'),
         'PORT': env('VS_PORT', default='1433'),
     },
+    'vs_dp_2012': {
+        'ENGINE': 'mssql',
+        'NAME': 'DosPlazas',
+        'USER': env('VS_2012_USER'),
+        'PASSWORD': env('VS_2012_PASSWORD'),
+        'HOST': env('VS_2012_HOST'),
+        'PORT': env('VS_2012_PORT', default=''),
+    },
+    'vs_edificatium_2012': {
+        'ENGINE': 'mssql',
+        'NAME': 'PlazaG',
+        'USER': env('VS_2012_USER'),
+        'PASSWORD': env('VS_2012_PASSWORD'),
+        'HOST': env('VS_2012_HOST'),
+        'PORT': env('VS_2012_PORT', default=''),
+    },
+    'vs_terba_2012': {
+        'ENGINE': 'mssql',
+        'NAME': 'TERBA',
+        'USER': env('VS_2012_USER'),
+        'PASSWORD': env('VS_2012_PASSWORD'),
+        'HOST': env('VS_2012_HOST'),
+        'PORT': env('VS_2012_PORT', default=''),
+    }
 }
 
 DATABASE_ROUTERS = ['intranet.routers.CoreRouter']

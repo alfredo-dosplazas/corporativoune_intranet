@@ -12,8 +12,11 @@ from apps.vs_erp.services.reporte_excel import generar_excel_reporte_completo
 
 EMPRESAS = {
     "DP": "vs_dp",
+    "DP 2012": "vs_dp_2012",
     "TERBA": "vs_terba",
+    "TERBA 2012": "vs_terba",
     "EDIFICATIUM": "vs_edificatium",
+    "EDIFICATIUM 2012": "vs_edificatium_2012",
 }
 
 
