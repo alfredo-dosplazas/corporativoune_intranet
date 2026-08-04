@@ -50,7 +50,7 @@ class ExploradorEvidenciasMoldesView(BreadcrumbsMixin, TemplateView):
     }
 
     # Define a partir de qué nivel exacto se permite subir evidencias
-    NIVEL_OBRA_SUBIDA = 3
+    NIVEL_OBRA_SUBIDA = 4
 
     def _obtener_partes_ruta(self, ruta_relativa):
         """Retorna las partes limpias de la ruta actual."""
