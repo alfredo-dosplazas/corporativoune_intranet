@@ -1,7 +1,5 @@
 from django.db import connections
 
-from django.db import connections
-
 
 def obtener_nombre_obra_descriptivo(idobra):
     """
@@ -9,40 +7,37 @@ def obtener_nombre_obra_descriptivo(idobra):
     """
     id_upper = str(idobra).upper().strip()
 
-    if id_upper.startswith("ED"):
-        prefijo = "EDIFICACIÓN"
-    elif id_upper.startswith("URB"):
-        prefijo = "URBANIZACIÓN"
-    elif id_upper.startswith("IP"):
-        prefijo = "INSTALACIONES PROVISIONALES"
-    elif id_upper.startswith("INF"):
-        prefijo = "INFRAESTRUCTURA"
-    elif id_upper.startswith("OA"):
-        prefijo = "OBRA ADICIONAL"
-    elif id_upper.startswith("EQ"):
-        prefijo = "EQUIPAMIENTO"
-    else:
-        prefijo = id_upper  # Mantiene el ID si no coincide con ninguno
+    prefijos = {
+        "ED": "EDIFICACIÓN",
+        "URB": "URBANIZACIÓN",
+        "IP": "INSTALACIONES PROVISIONALES",
+        "INF": "INFRAESTRUCTURA",
+        "OA": "OBRA ADICIONAL",
+        "EQ": "EQUIPAMIENTO"
+    }
 
-    return f"{prefijo}"
+    for pref, desc in prefijos.items():
+        if id_upper.startswith(pref):
+            return desc
+
+    return id_upper
 
 
 def obtener_desglose_obra(alias_db, id_obra):
-    query = """
+    """
+    Obtiene el catálogo/presupuesto de la obra a nivel concepto e insumo.
+    """
+    query = f"""
     DECLARE @IdObra VARCHAR(50) = %s;
 
     DECLARE @OrdenCambio INT = (
         SELECT ISNULL(MAX(oc.IdOrdenCambio), 0)
         FROM OrdenesCambio AS oc
-        INNER JOIN Estatus AS e 
-            ON e.IdEstatus = oc.IdEstatus
+        INNER JOIN Estatus AS e ON e.IdEstatus = oc.IdEstatus
         WHERE oc.IdObra = @IdObra 
           AND e.Nombre = 'AUTORIZADA'
     );
-    
-    -----------------------------------------------------------------------
-    -- INSUMOS PRESUPUESTADOS
-    -----------------------------------------------------------------------
+
     WITH InsumosPresupuestados AS (
         SELECT
             ex.IdConceptoObra,
@@ -61,115 +56,48 @@ def obtener_desglose_obra(alias_db, id_obra):
         GROUP BY
             ex.IdConceptoObra,
             ex.IdInsumo
-    ),
-    
-    -----------------------------------------------------------------------
-    -- UNA SOLA FILA DE IVA POR ORDEN + INSUMO
-    -----------------------------------------------------------------------
-    IVA AS (
-        SELECT
-            IdObra,
-            IdOrdenCompra,
-            IdInsumo,
-            MAX(PorcentajeIVA) AS PorcentajeIVA
-        FROM OrdenesDeCompraD
-        GROUP BY
-            IdObra,
-            IdOrdenCompra,
-            IdInsumo
-    ),
-    
-    -----------------------------------------------------------------------
-    -- COMPRAS
-    -----------------------------------------------------------------------
-    ComprasDirectas AS (
-        SELECT
-            cod.IdConceptoObra,
-            cod.IdInsumo,
-    
-            SUM(
-                CASE
-                    WHEN ISNULL(i.PorcentajeIVA,0)=16
-                        THEN cod.Cantidad * cod.Precio * 1.16
-                    ELSE
-                        cod.Cantidad * cod.Precio
-                END
-            ) AS ImporteComprado
-    
-        FROM CargosOrdenesDeCompra cod
-    
-        LEFT JOIN IVA i
-            ON i.IdObra = cod.IdObra
-            AND i.IdOrdenCompra = cod.IdOrdenCompra
-            AND i.IdInsumo = cod.IdInsumo
-    
-        WHERE
-            cod.IdObra = @IdObra
-            AND ISNULL(cod.CantidadCancelada,0)=0
-            AND ISNULL(cod.CantidadFacturada,0)>=0
-    
-        GROUP BY
-            cod.IdConceptoObra,
-            cod.IdInsumo
     )
-    
-    -----------------------------------------------------------------------
-    -- RESULTADO
-    -----------------------------------------------------------------------
+
     SELECT
         pp.IdConceptoObra,
         pp.IdConceptoPadre,
         pp.NivelIdentacion,
-        pp.EsAgrupador,
         pp.ClaveConceptoObra,
-        CONVERT(VARCHAR(8000),pp.Descripcion) AS Concepto,
+        CONVERT(VARCHAR(8000), pp.Descripcion) AS Concepto,
         pp.Unidad AS UnidadConcepto,
         pp.Cantidad AS CantidadConcepto,
         pp.CostoDirecto,
-    
-        ISNULL(ip.IdGrupoInsumosObra,ig.IdGrupoInsumos) AS IdGrupoInsumos,
-        gi.Nombre AS Grupo,
-    
-        ISNULL(fi.IdFamilia,0) AS IdFamilia,
-        ISNULL(CONVERT(VARCHAR(500),fi.Descripcion),'SIN FAMILIA') AS Familia,
-    
+
+        ISNULL(ip.IdGrupoInsumosObra, ig.IdGrupoInsumos) AS IdGrupoInsumos,
+        ISNULL(fi.IdFamilia, 0) AS IdFamilia,
+        ISNULL(CONVERT(VARCHAR(500), fi.Descripcion), 'SIN FAMILIA') AS Familia,
+
         ig.IdInsumo,
-        CONVERT(VARCHAR(8000),ig.Descripcion) AS Material,
-    
-        ig.IdUnidad AS UnidadInsumo,
+        CONVERT(VARCHAR(8000), ig.Descripcion) AS Material,
         ISNULL(u.Nombre, 'S/U') AS UnidadInsumo,
-    
-        ISNULL(ip.CantidadTotalMaterial,0) AS CantidadTotalMaterial,
-        ISNULL(ip.PrecioPresupuestadoReal,0) AS PrecioPresupuestadoReal,
-        ISNULL(ip.PresupuestoMaterial,0) AS PresupuestoMaterial,
-    
-        ISNULL(cd.ImporteComprado,0) AS CompradoMaterial
-    
+
+        ISNULL(ip.CantidadTotalMaterial, 0) AS CantidadTotalMaterial,
+        ISNULL(ip.PrecioPresupuestadoReal, 0) AS PrecioPresupuestadoReal,
+        {"ISNULL(ip.PresupuestoMaterial, 0) * pp.Cantidad AS PresupuestoMaterial" if "2012" in alias_db else "ISNULL(ip.PresupuestoMaterial, 0) AS PresupuestoMaterial"}
+
     FROM PresupuestoxPartidas pp
-    
+
     LEFT JOIN InsumosPresupuestados ip
         ON ip.IdConceptoObra = pp.IdConceptoObra
-    
+
     LEFT JOIN InsumosGeneral ig
         ON ig.IdInsumo = ip.IdInsumo
-    
+
     LEFT JOIN Unidades u
         ON u.IdUnidad = ig.IdUnidad
-    
-    LEFT JOIN GruposInsumos gi
-        ON gi.IdGrupoInsumos = ISNULL(ip.IdGrupoInsumosObra,ig.IdGrupoInsumos)
-    
+
     LEFT JOIN FamiliaInsumos fi
         ON fi.IdFamilia = ig.IdFamiliaInsumos
-    
-    LEFT JOIN ComprasDirectas cd
-        ON cd.IdConceptoObra = pp.IdConceptoObra
-        AND cd.IdInsumo = ip.IdInsumo
-    
+
     WHERE
         pp.IdObra = @IdObra
         AND pp.IdOrdenCambio = @OrdenCambio
-    
+
     ORDER BY
         pp.IdConceptoObra;
     """
@@ -182,47 +110,58 @@ def obtener_desglose_obra(alias_db, id_obra):
 
 def obtener_resumen_compras_reales(alias_db, id_obra):
     """
-    Realiza 1 sola consulta a la BD y agrupa en Python para:
-    - Compras por Concepto
-    - Compras por Familia
-    - Compras por Material
+    Obtiene las compras reales de la BD y las agrupa por Concepto, Familia y Material.
     """
     query = """
-    DECLARE @IdObra AS VARCHAR (100) = %s;
-    
-    SELECT   cpoc.IdDocumento,
-             cpoc.FolioDocumento,
-             cpoc.DocumentoOrigen,
-             e.IdEstatus,
-             e.Nombre,
-             cpoc.IdConceptoObra,
+    DECLARE @IdObra AS VARCHAR(100) = %s;
+
+    SELECT   cpoc.IdConceptoObra,
              cpoc.IdInsumo,
-             CAST (ig.Descripcion AS VARCHAR (8000)) AS Insumo,
+             CAST(ig.Descripcion AS VARCHAR(8000)) AS Insumo,
              ISNULL(f.IdFamilia, 0) AS IdFamilia,
-             COALESCE (f.Nombre, 'SIN FAMILIA') AS Familia,
+             COALESCE(f.Nombre, 'SIN FAMILIA') AS Familia,
              cpoc.Cantidad,
              cpoc.ImporteConIVA
     FROM     CargosPorObraConsolidado AS cpoc
-             INNER JOIN
-             InsumosGeneral AS ig
-             ON cpoc.IdInsumo = ig.IdInsumo
-             INNER JOIN
-             Estatus AS e
-             ON e.IdEstatus = cpoc.IdEstatusDocumento
-             LEFT OUTER JOIN
-             FamiliaInsumos AS f
-             ON f.IdFamilia = ig.IdFamiliaInsumos
+             INNER JOIN InsumosGeneral AS ig ON cpoc.IdInsumo = ig.IdInsumo
+             INNER JOIN Estatus AS e ON e.IdEstatus = cpoc.IdEstatusDocumento
+             LEFT OUTER JOIN FamiliaInsumos AS f ON f.IdFamilia = ig.IdFamiliaInsumos
     WHERE    cpoc.IdObra = @IdObra
              AND ig.IdGrupoInsumos = 1
              AND cpoc.IdEstatusDocumento <> 4
-             AND (-- 1. Trae TODAS las Facturas
-             cpoc.DocumentoOrigen = 'FACTURA'
-             OR -- 2. Trae las OC Solo si no estan facturadas
-             (cpoc.DocumentoOrigen = 'ORDENCOMPRA'
-              AND (ISNULL(cpoc.CantidadFacturadaValidaciones, 0)) = 0)
-             AND e.Nombre <> 'FACTURADA')
+             AND (
+                 cpoc.DocumentoOrigen = 'FACTURA'
+                 OR (
+                     cpoc.DocumentoOrigen = 'ORDENCOMPRA'
+                     AND ISNULL(cpoc.CantidadFacturadaValidaciones, 0) = 0
+                     AND e.Nombre <> 'FACTURADA'
+                 )
+             )
     ORDER BY cpoc.IdDocumento ASC;
     """
+
+    query_2012 = """
+    DECLARE @IdObra AS VARCHAR(100) = %s;
+
+    SELECT
+        cod.IdConceptoObra,
+        cod.IdInsumo,
+        CAST(ig.Descripcion AS VARCHAR(8000)) AS Insumo,
+        ISNULL(f.IdFamilia, 0) AS IdFamilia,
+        COALESCE(f.Nombre, 'SIN FAMILIA') AS Familia,
+        cod.Cantidad,
+        (cod.Cantidad * cod.Precio) * 1.16 AS ImporteConIVA
+    FROM CargosOrdenesDeCompra AS cod
+    INNER JOIN InsumosGeneral AS ig ON cod.IdInsumo = ig.IdInsumo
+    LEFT OUTER JOIN FamiliaInsumos AS f ON f.IdFamilia = ig.IdFamiliaInsumos
+    WHERE cod.IdObra = @IdObra
+      AND ig.IdGrupoInsumos = 1
+      AND ISNULL(cod.CantidadCancelada, 0) = 0
+    ORDER BY Familia ASC;
+    """
+
+    if "2012" in alias_db:
+        query = query_2012
 
     compras_por_concepto = {}
     compras_por_familia = {}
@@ -232,7 +171,7 @@ def obtener_resumen_compras_reales(alias_db, id_obra):
         cursor.execute(query, [id_obra])
         rows = cursor.fetchall()
 
-        for id_documento, folio_documento, documento_origen, id_estatus, estatus, id_concepto, id_insumo, insumo_nombre, id_familia, familia_nombre, cantidad, importe in rows:
+        for id_concepto, id_insumo, insumo_nombre, id_familia, familia_nombre, cantidad, importe in rows:
             cant = float(cantidad or 0.0)
             imp = float(importe or 0.0)
 
@@ -263,7 +202,7 @@ def obtener_conceptos_materiales(results, mapa_compras_reales):
 
     conceptos_dict = {}
 
-    # 1. Crear el mapa base de todos los conceptos (Niveles 1, 2 y 3)
+    # 1. Crear el mapa base de conceptos
     for row in results:
         id_concepto = row['IdConceptoObra']
 
@@ -274,7 +213,7 @@ def obtener_conceptos_materiales(results, mapa_compras_reales):
                 'NivelIdentacion': int(row.get('NivelIdentacion') or 0),
                 'ClaveConceptoObra': row['ClaveConceptoObra'],
                 'Concepto': row['Concepto'],
-                'Unidad': row.get('Unidad'),
+                'Unidad': row.get('UnidadConcepto'),
                 'CantidadConcepto': float(row.get('CantidadConcepto') or 0.0),
                 'CostoDirecto': float(row.get('CostoDirecto') or 0.0),
                 'PresupuestoMateriales': 0.0,
@@ -282,15 +221,13 @@ def obtener_conceptos_materiales(results, mapa_compras_reales):
                 'DiferenciaMateriales': 0.0,
             }
 
-        # Sumar Presupuesto si el insumo es material (Grupo 1)
+        # Sumar Presupuesto solo si pertenece a Materiales (Grupo 1)
         if row.get('IdGrupoInsumos') == 1:
-            presupuesto = float(row.get('PresupuestoMaterial') or 0.0)
-            conceptos_dict[id_concepto]['PresupuestoMateriales'] += presupuesto
+            conceptos_dict[id_concepto]['PresupuestoMateriales'] += float(row.get('PresupuestoMaterial') or 0.0)
 
-    # 2. Asignar las Compras Reales a los conceptos Hojas (Nivel 3)
+    # 2. Asignar las Compras Reales a los conceptos hoja (Nivel 3)
     for id_concepto, c in conceptos_dict.items():
         if c['NivelIdentacion'] == 3:
-            # Asignamos la compra que viene directamente de la consulta real
             c['EgresosMateriales'] = mapa_compras_reales.get(id_concepto, 0.0)
 
     # 3. Mapear jerarquía (Hijos por Padre)
@@ -304,12 +241,12 @@ def obtener_conceptos_materiales(results, mapa_compras_reales):
         else:
             raices.append(c)
 
-    # Ordenar nodos por Clave
+    # Ordenar por Clave
     raices.sort(key=lambda x: str(x['ClaveConceptoObra']))
     for p_id in hijos_por_padre:
         hijos_por_padre[p_id].sort(key=lambda x: str(x['ClaveConceptoObra']))
 
-    # 4. Recorrido Bottom-Up para consolidar totales hacia los Padres (Nivel 3 -> Nivel 2 -> Nivel 1)
+    # 4. Recorrido Bottom-Up acumulativo
     def procesar_nodo(nodo):
         hijos = hijos_por_padre.get(nodo['IdConceptoObra'], [])
 
@@ -324,18 +261,15 @@ def obtener_conceptos_materiales(results, mapa_compras_reales):
         for hijo in hijos:
             sub_lista = procesar_nodo(hijo)
             lista_ordenada.extend(sub_lista)
-
             presupuesto_hijos += hijo['PresupuestoMateriales']
             egresos_hijos += hijo['EgresosMateriales']
 
-        # El Padre (Nivel 2 o Nivel 1) suma los totales acumulados de sus Hijos
-        nodo['PresupuestoMateriales'] += presupuesto_hijos
-        nodo['EgresosMateriales'] += egresos_hijos
+        nodo['PresupuestoMateriales'] = presupuesto_hijos
+        nodo['EgresosMateriales'] = egresos_hijos
         nodo['DiferenciaMateriales'] = nodo['PresupuestoMateriales'] - nodo['EgresosMateriales']
 
         return lista_ordenada
 
-    # 5. Ensamblar lista final
     lista_final = []
     for raiz in raices:
         lista_final.extend(procesar_nodo(raiz))
@@ -344,10 +278,6 @@ def obtener_conceptos_materiales(results, mapa_compras_reales):
 
 
 def obtener_totales_por_familia(results_desglose, compras_por_familia):
-    """
-    Combina el Presupuesto real (de desglose_obra) con
-    las Compras reales (de compras_por_familia) agregadas por Familia.
-    """
     if not results_desglose:
         return []
 
@@ -368,15 +298,14 @@ def obtener_totales_por_familia(results_desglose, compras_por_familia):
                     'DiferenciaMateriales': 0.0,
                 }
 
-            presupuesto = float(row.get('PresupuestoMaterial') or 0.0)
-            familias_dict[id_familia]['PresupuestoMateriales'] += presupuesto
+            familias_dict[id_familia]['PresupuestoMateriales'] += float(row.get('PresupuestoMaterial') or 0.0)
 
-    # 2. Asignar las Compras Reales a cada Familia presente en el presupuesto
+    # 2. Asignar Compras Reales
     for id_familia, fam in familias_dict.items():
         fam['EgresosMateriales'] = compras_por_familia.get(id_familia, 0.0)
         fam['DiferenciaMateriales'] = fam['PresupuestoMateriales'] - fam['EgresosMateriales']
 
-    # 3. Considerar familias que tuvieron Compras pero NO tenían Presupuesto asignado
+    # 3. Considerar familias no presupuestadas pero con compras
     for id_familia, compras_monto in compras_por_familia.items():
         if id_familia not in familias_dict:
             familias_dict[id_familia] = {
@@ -384,26 +313,16 @@ def obtener_totales_por_familia(results_desglose, compras_por_familia):
                 'Familia': 'OTRAS FAMILIAS (NO PRESUPUESTADAS)',
                 'PresupuestoMateriales': 0.0,
                 'EgresosMateriales': compras_monto,
-                'DiferenciaMateriales': 0.0 - compras_monto,
+                'DiferenciaMateriales': -compras_monto,
             }
 
-    # 4. Ordenar alfabéticamente por nombre de Familia
     lista_familias = list(familias_dict.values())
-    lista_familias.sort(
-        key=lambda x: (
-            x['IdFamilia'],
-            x['Familia'],
-        )
-    )
+    lista_familias.sort(key=lambda x: (x['IdFamilia'], x['Familia']))
 
     return lista_familias
 
 
 def obtener_totales_por_material(results_desglose, compras_materiales_dict):
-    """
-    Consolida a nivel Material (IdInsumo) el Presupuesto Correcto (de desglose_obra)
-    con las Compras Reales (de compras_materiales_dict).
-    """
     if not results_desglose:
         return []
 
@@ -417,10 +336,6 @@ def obtener_totales_por_material(results_desglose, compras_materiales_dict):
                 continue
 
             if id_insumo not in materiales_dict:
-                raw_familia = row.get('Familia') or 'SIN FAMILIA'
-                familia_limpia = str(raw_familia).strip().upper()
-
-                # Aseguramos que IdFamilia sea un tipo seguro (ej: entero)
                 try:
                     id_fam = int(row.get('IdFamilia') or 0)
                 except (ValueError, TypeError):
@@ -431,7 +346,7 @@ def obtener_totales_por_material(results_desglose, compras_materiales_dict):
                     'Material': (row.get('Material') or 'SIN DESCRIPCION').strip(),
                     'UnidadInsumo': row.get('UnidadInsumo') or '',
                     'IdFamilia': id_fam,
-                    'Familia': familia_limpia,
+                    'Familia': str(row.get('Familia') or 'SIN FAMILIA').strip().upper(),
                     'CantidadPresupuestada': 0.0,
                     'PresupuestoMateriales': 0.0,
                     'CantidadComprada': 0.0,
@@ -453,9 +368,6 @@ def obtener_totales_por_material(results_desglose, compras_materiales_dict):
     # 3. Incluir compras de Materiales NO presupuestados
     for id_insumo, compra in compras_materiales_dict.items():
         if id_insumo not in materiales_dict:
-            raw_familia = compra.get('Familia') or 'SIN FAMILIA'
-            familia_limpia = str(raw_familia).strip().upper()
-
             try:
                 id_fam = int(compra.get('IdFamiliaInsumo') or 0)
             except (ValueError, TypeError):
@@ -466,22 +378,16 @@ def obtener_totales_por_material(results_desglose, compras_materiales_dict):
                 'Material': (compra.get('Insumo') or 'SIN DESCRIPCION').strip(),
                 'UnidadInsumo': '',
                 'IdFamilia': id_fam,
-                'Familia': familia_limpia,
+                'Familia': str(compra.get('Familia') or 'SIN FAMILIA').strip().upper(),
                 'CantidadPresupuestada': 0.0,
                 'PresupuestoMateriales': 0.0,
                 'CantidadComprada': compra['CantidadComprada'],
                 'EgresosMateriales': compra['ImporteComprado'],
-                'DiferenciaMateriales': 0.0 - compra['ImporteComprado'],
+                'DiferenciaMateriales': -compra['ImporteComprado'],
             }
 
-    # 4. ORDENAR POR ID DE FAMILIA ÚNICO
     lista_materiales = list(materiales_dict.values())
-    lista_materiales.sort(
-        key=lambda x: (
-            x['IdFamilia'],
-            x['Material']
-        )
-    )
+    lista_materiales.sort(key=lambda x: (x['IdFamilia'], x['Material']))
 
     return lista_materiales
 
@@ -489,7 +395,7 @@ def obtener_totales_por_material(results_desglose, compras_materiales_dict):
 def obtener_retenciones_por_obra(alias_db, id_obra):
     query = """
         DECLARE @IdObra VARCHAR(50) = %s;
-    
+
         SELECT IdInsumo, IdOrdenCompra, SUM(ImporteRetencion1 + ImporteRetencion2 + ImporteRetencion3) AS importeR 
         FROM OrdenesDeCompraD 
         WHERE IdObra = @IdObra 
@@ -500,9 +406,5 @@ def obtener_retenciones_por_obra(alias_db, id_obra):
 
     with connections[alias_db].cursor() as cursor:
         cursor.execute(query, [id_obra])
-
-        # Mapea automáticamente los nombres de columnas con sus valores
         columns = [col[0] for col in cursor.description]
-        results = [dict(zip(columns, row)) for row in cursor.fetchall()]
-
-    return results
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]

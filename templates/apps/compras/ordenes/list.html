@@ -1,42 +1,39 @@
 {% load django_tables2 %}
 <c-layouts.app>
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2 border-b border-base-200 mb-4">
 
-            <!-- START -->
-            <div class="justify-self-start">
-                <h1 class="text-primary font-bold text-xl flex items-center gap-2">
-                    <span class="icon-[et--document]"></span>
+            <!-- TÍTULO Y BADGE -->
+            <div>
+                <h1 class="text-xl font-bold text-base-content flex items-center gap-2">
+                    <span class="icon-[tabler--file-description] text-primary text-2xl"></span>
                     Órdenes de Compra
                 </h1>
-                <h2 class="text-muted text-sm mb-2"></h2>
+                <p class="text-xs text-base-content/60">Gestiona y autoriza los pedidos de compra de la empresa</p>
+            </div>
+
+            <!-- CONTROLES Y BÚSQUEDA -->
+            <div class="flex items-center gap-3">
+                <a href="{% url 'compras:proveedores__list' %}" class="btn btn-sm btn-ghost">
+                    <span class="icon-[tabler--users]"></span> Proveedores
+                </a>
+
+                <c-shared.searchbar placeholder="Buscar folio, solicitante..."/>
+
                 {% if perms.compras.add_orden %}
-                    <a href="{% url 'compras:ordenes__create' %}" class="btn btn-sm btn-primary">
-                        CREAR
+                    <a href="{% url 'compras:ordenes__create' %}" class="btn btn-sm btn-primary gap-1 shadow-sm">
+                        <span>+</span> Nueva Orden
                     </a>
                 {% endif %}
             </div>
 
-            <!-- MIDDLE -->
-            <div class="justify-self-center w-full flex justify-center gap-2">
-
-                <a href="{% url 'compras:proveedores__list' %}"
-                   class="btn btn-sm">
-                    Proveedores
-                </a>
-
-            </div>
-
-
-            <!-- END -->
-            <div class="justify-self-end">
-                <c-shared.searchbar/>
-            </div>
-
         </div>
-
     </c-slot>
 
-    {% render_table table %}
-
+    <!-- TABLA DE ORDENES -->
+    <div class="card bg-base-100 shadow-sm border border-base-200">
+        <div class="card-body p-0">
+            {% render_table table %}
+        </div>
+    </div>
 </c-layouts.app>

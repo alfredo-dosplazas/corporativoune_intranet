@@ -1,5 +1,5 @@
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Row, Column
+from crispy_forms.layout import Layout, Row, Column, Fieldset
 from dal import autocomplete
 from django import forms
 
@@ -44,49 +44,54 @@ class OrdenForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         self.helper = FormHelper()
-        self.helper.form_id = 'orden-form'
         self.helper.form_tag = False
         self.helper.attrs = {'novalidate': 'novalidate'}
         self.helper.include_media = False
 
         self.helper.layout = Layout(
-            # 🔹 Información principal
-            Row(
-                Column('estado', css_class="md:col-3"),
-                Column('fecha_orden', css_class="md:col-3"),
-                Column('fecha_entrega', css_class="md:col-3"),
+            # SECCIÓN 1: CABECERA Y ACTORES (2 Columnas principales)
+            Fieldset(
+                "Información General",
+                Row(
+                    Column('razon_social', css_class="col-span-12 md:col-span-4"),
+                    Column('proveedor', css_class="col-span-12 md:col-span-4"),
+                    Column('estado', css_class="col-span-12 md:col-span-4"),
+                    css_class="grid grid-cols-12 gap-4"
+                ),
+                Row(
+                    Column('solicitante', css_class="col-span-12 md:col-span-6"),
+                    Column('autoriza', css_class="col-span-12 md:col-span-6"),
+                    css_class="grid grid-cols-12 gap-4 mt-2"
+                ),
+                Row(
+                    Column('fecha_orden', css_class="col-span-12 md:col-span-6"),
+                    Column('fecha_entrega', css_class="col-span-12 md:col-span-6"),
+                    css_class="grid grid-cols-12 gap-4 mt-2"
+                ),
+                css_class="mb-6"
             ),
 
-            # 🔹 Empresa / Proveedor
-            Row(
-                Column('razon_social', css_class="md:col-4"),
-                Column('proveedor', css_class="md:col-4"),
-                Column('lugar_entrega', css_class="md:col-4"),
-            ),
-
-            # 🔹 Personas involucradas
-            Row(
-                Column('solicitante', css_class="md:col-4"),
-                Column('autoriza', css_class="md:col-4"),
-            ),
-
-            # 🔹 Datos fiscales
-            Row(
-                Column('uso_cfdi', css_class="md:col-4"),
-                Column('metodo_pago', css_class="md:col-4"),
-                Column('forma_pago', css_class="md:col-4"),
-            ),
-
-            # 🔹 Información adicional
-            Row(
-                Column('utilizado_en', css_class="md:col-12"),
-            ),
-
-            # 🔹 Retenciones
-            Row(
-                Column('retencion_isr', css_class="md:col-6"),
-                Column('retencion_cedular', css_class="md:col-6"),
-            ),
+            # SECCIÓN 2: DATOS FISCALES Y CONDICIONES (Compacto)
+            Fieldset(
+                "Facturación y Entrega",
+                Row(
+                    Column('uso_cfdi', css_class="col-span-12 md:col-span-4"),
+                    Column('metodo_pago', css_class="col-span-12 md:col-span-4"),
+                    Column('forma_pago', css_class="col-span-12 md:col-span-4"),
+                    css_class="grid grid-cols-12 gap-4"
+                ),
+                Row(
+                    Column('lugar_entrega', css_class="col-span-12 md:col-span-6"),
+                    Column('utilizado_en', css_class="col-span-12 md:col-span-6"),
+                    css_class="grid grid-cols-12 gap-4 mt-2"
+                ),
+                Row(
+                    Column('retencion_isr', css_class="col-span-12 md:col-span-6"),
+                    Column('retencion_cedular', css_class="col-span-12 md:col-span-6"),
+                    css_class="grid grid-cols-12 gap-4 mt-2"
+                ),
+                css_class="mb-4"
+            )
         )
 
     def save(self, commit=True):

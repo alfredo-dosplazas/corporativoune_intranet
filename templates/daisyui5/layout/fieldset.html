@@ -1,0 +1,17 @@
+<fieldset class="border border-base-300 rounded-lg p-4 md:p-6 mb-6 bg-base-100/50 shadow-xs relative {% if fieldset.css_class %}{{ fieldset.css_class }}{% endif %}"
+          {% if fieldset.css_id %}id="{{ fieldset.css_id }}"{% endif %}>
+
+    {% if fieldset.legend %}
+        <legend class="px-2 font-bold text-sm text-base-content/80 flex items-center gap-1.5 w-auto">
+            {{ fieldset.legend|safe }}
+        </legend>
+    {% endif %}
+
+    {% if fieldset.description %}
+        <p class="text-xs text-base-content/60 -mt-1 mb-4">
+            {{ fieldset.description|safe }}
+        </p>
+    {% endif %}
+
+    {{ fields }}
+</fieldset>
