@@ -30,7 +30,7 @@ def es_imagen_valida(archivo_file):
 
 
 class ExploradorEvidenciasMoldesView(PermissionRequiredMixin, BreadcrumbsMixin, TemplateView):
-    permission_required = 'evidencias_moldes.ver_fotos'
+    permission_required = 'evidencias_moldes.acceder_explorador_direccion_obras'
     template_name = "apps/evidencias_moldes/explorador.html"
     paginate_by = 24
 

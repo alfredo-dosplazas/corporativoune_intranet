@@ -1,3 +1,9 @@
 from django.db import models
 
-# Create your models here.
+
+class Permisos(models.Model):
+    class Meta:
+        managed = False
+        permissions = [
+            ('acceder_explorador_direccion_obras', 'Acceder al explorador carpeta Dirección Obras')
+        ]
