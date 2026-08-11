@@ -1,89 +1,221 @@
 {% load static %}
 
-<div id="navbar" class="navbar bg-primary w-full m-0 p-0 min-h-0">
-    <div class="flex-none">
-    </div>
+<div id="navbar"
+     class="navbar bg-primary text-primary-content shadow-sm sticky top-0 z-50 px-2 min-h-10 h-10 py-0 border-b border-primary-dark/20">
+    <div class="flex-1 flex justify-between items-center h-full">
 
-    <div class="flex-1 flex justify-between items-center">
-        <div class="flex items-center">
-            <a href="/" class="mx-2 px-2 text-primary-content font-bold">Intranet Corporativo UNE</a>
-        </div>
+        <!-- SECCIÓN IZQUIERDA: LOGO + MENÚ MOBILE -->
+        <div class="flex items-center gap-1 h-full">
 
-        <div class="hidden lg:flex items-center gap-2">
-
-            <!-- MENÚ DE REPORTES -->
-            {% if user.is_authenticated %}
-                <div class="dropdown dropdown-end">
-                    <div tabindex="0" role="button" class="btn btn-primary btn-ghost text-primary-content font-bold">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+            <!-- MENÚ DINÁMICO MOBILE -->
+            {% if navbar_menu_items %}
+                <div class="dropdown lg:hidden">
+                    <div tabindex="0" role="button" class="btn btn-ghost btn-xs btn-square text-primary-content">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                              stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M9 17v-6h6v6m2 0h-10a2 2 0 01-2-2V7a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2z"/>
+                                  d="M4 6h16M4 12h16M4 18h7"/>
                         </svg>
-                        Reportes
                     </div>
                     <ul tabindex="0"
-                        class="menu menu-sm dropdown-content bg-base-100 text-base-content z-10 w-60 p-2 shadow rounded-box">
-                        {% if perms.core.generar_reporte_presupuestos_vs %}
-                            <li class="menu-title text-xs font-semibold text-gray-500 uppercase px-2 py-1">
-                                Compras y Materiales
-                            </li>
-                            <li>
-                                <a href="{% url 'vs_erp:reporte_presupuestos' %}" class="flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-600" fill="none"
-                                         viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                    </svg>
-                                    Estatus financiero de obras VS (Excel)
-                                </a>
-                            </li>
-                        {% endif %}
+                        class="menu menu-xs dropdown-content bg-base-100 text-base-content z-50 mt-2 w-60 p-1.5 shadow-lg rounded-md border border-base-200 space-y-1">
+                        {% for item in navbar_menu_items %}
+                            {% if item.children %}
+                                <!-- Submenú con Hijos -->
+                                <li>
+                                    <details {% if item.active %}open{% endif %}>
+                                        <summary
+                                                class="py-1 text-xs {% if item.active %}font-bold text-primary{% endif %}">
+                                            {% if item.icon %}
+                                                <span class="{{ item.icon }} h-3.5 w-3.5 text-emerald-600 flex-shrink-0"></span>{% endif %}
+                                            <span>{{ item.title }}</span>
+                                        </summary>
+                                        <ul>
+                                            {% for child in item.children %}
+                                                <li>
+                                                    <a href="{{ child.url }}"
+                                                       class="flex items-center gap-2 py-1 text-xs {% if child.active %}active font-bold{% endif %}">
+                                                        {% if child.icon %}
+                                                            <span class="{{ child.icon }} h-3.5 w-3.5 text-emerald-600 flex-shrink-0"></span>{% endif %}
+                                                        <span>{{ child.title }}</span>
+                                                    </a>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </details>
+                                </li>
+                            {% else %}
+                                <!-- Ítem Simple -->
+                                <li>
+                                    <a href="{{ item.url }}"
+                                       class="flex items-center gap-2 py-1 text-xs {% if item.active %}active font-bold{% endif %}">
+                                        {% if item.icon %}
+                                            <span class="{{ item.icon }} h-3.5 w-3.5 text-emerald-600 flex-shrink-0"></span>{% endif %}
+                                        <span>{{ item.title }}</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        {% empty %}
+                            <li class="text-xs text-gray-400 p-2">Sin opciones disponibles</li>
+                        {% endfor %}
                     </ul>
                 </div>
             {% endif %}
 
-            <!-- PERFIL DE USUARIO -->
-            <div class="dropdown dropdown-end">
-                <div tabindex="0" role="button" class="btn btn-primary btn-ghost avatar">
-                    <span class="text-primary-content font-bold">
-                        {% if user.is_authenticated %}
-                            {{ user }}
+            <!-- Título / Marca -->
+            <a href="/"
+               class="btn btn-ghost btn-xs text-xs font-bold tracking-tight text-primary-content normal-case hover:bg-primary-dark/20 h-7 min-h-7 px-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1 hidden sm:inline-block" fill="none"
+                     viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+                Intranet UNE
+            </a>
+        </div>
+
+        <!-- SECCIÓN DERECHA: REPORTES DINÁMICOS + PERFIL -->
+        <div class="flex items-center gap-1 h-full">
+
+            <!-- MENÚ DINÁMICO DESKTOP -->
+            {% if user.is_authenticated and navbar_menu_items %}
+                <div class="hidden lg:flex items-center gap-1">
+                    {% for item in navbar_menu_items %}
+                        {% if item.children %}
+                            <!-- Dropdown con Hijos -->
+                            <div class="dropdown dropdown-end dropdown-hover">
+                                <div tabindex="0" role="button"
+                                     class="btn btn-ghost btn-xs text-primary-content hover:bg-primary-dark/20 h-7 min-h-7 px-2 text-xs gap-1 {% if item.active %}bg-primary-dark/20 font-bold{% else %}font-semibold{% endif %}">
+                                    {% if item.icon %}
+                                        <span class="{{ item.icon }} h-3.5 w-3.5 opacity-90"></span>{% endif %}
+                                    <span>{{ item.title }}</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-0.5 opacity-70"
+                                         fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </div>
+                                <ul tabindex="0"
+                                    class="menu menu-xs dropdown-content bg-base-100 text-base-content z-50 w-60 p-1.5 shadow-lg rounded-md border border-base-200 mt-1">
+                                    {% for child in item.children %}
+                                        <li>
+                                            <a href="{{ child.url }}"
+                                               class="flex items-center gap-2 py-1 text-xs {% if child.active %}active font-bold{% endif %}">
+                                                {% if child.icon %}
+                                                    <span class="{{ child.icon }} h-3.5 w-3.5 text-emerald-600 flex-shrink-0"></span>
+                                                {% else %}
+                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                         class="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" fill="none"
+                                                         viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                              stroke-width="2"
+                                                              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                    </svg>
+                                                {% endif %}
+                                                <span>{{ child.title }}</span>
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
                         {% else %}
-                            Invitado
+                            <!-- Ítem Simple sin Submenú -->
+                            <a href="{{ item.url }}"
+                               class="btn btn-ghost btn-xs text-primary-content hover:bg-primary-dark/20 h-7 min-h-7 px-2 text-xs gap-1 {% if item.active %}bg-primary-dark/20 font-bold{% else %}font-semibold{% endif %}">
+                                {% if item.icon %}
+                                    <span class="{{ item.icon }} h-3.5 w-3.5 opacity-90"></span>{% endif %}
+                                <span>{{ item.title }}</span>
+                            </a>
                         {% endif %}
-                    </span>
+                    {% endfor %}
                 </div>
+            {% endif %}
+
+            <!-- MENÚ PERFIL Y USUARIO -->
+            <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button"
+                     class="btn btn-ghost btn-xs gap-1.5 text-primary-content hover:bg-primary-dark/20 h-7 min-h-7 px-2">
+                    <div class="avatar placeholder">
+                        <div class="bg-primary-content/20 text-primary-content rounded-full w-5 h-5 flex items-center justify-center">
+                            <span class="text-[10px] font-bold uppercase">
+                                {% if user.is_authenticated %}{{ user.username|slice:":1" }}{% else %}I{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <span class="font-medium text-xs hidden sm:inline">
+                        {% if user.is_authenticated %}{{ user.get_short_name|default:user.username }}{% else %}
+                            Invitado{% endif %}
+                    </span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 opacity-70" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+
                 <ul tabindex="0"
-                    class="menu menu-sm dropdown-content bg-base-100 text-base-content z-10 w-52 p-2 shadow rounded-box">
-
-                    {% if user.is_staff %}
-                        <li>
-                            <a href="/admin/">Panel de administración</a>
-                        </li>
-                    {% endif %}
-
+                    class="menu menu-xs dropdown-content bg-base-100 text-base-content z-50 w-48 p-1.5 shadow-lg rounded-md border border-base-200 mt-1">
                     {% if user.is_authenticated %}
-                        <li>
-                            <a href="{% url 'perfil' %}">Perfil</a>
+                        <li class="px-2 py-1 text-[10px] text-gray-500 border-b border-base-200 mb-1">
+                            Usuario: <strong class="text-base-content truncate block">{{ user.username }}</strong>
                         </li>
-                    {% endif %}
 
-                    {% if user.is_authenticated %}
+                        {% if user.is_staff %}
+                            <li>
+                                <a href="/admin/" class="flex items-center gap-1.5 py-1 text-xs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 opacity-70" fill="none"
+                                         viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    </svg>
+                                    Administración
+                                </a>
+                            </li>
+                        {% endif %}
+
                         <li>
-                            <button type="submit" form="logout-form">Cerrar Sesión</button>
+                            <a href="{% url 'perfil' %}" class="flex items-center gap-1.5 py-1 text-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 opacity-70" fill="none"
+                                     viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                Perfil
+                            </a>
                         </li>
-                    {% endif %}
 
-                    {% if not user.is_authenticated %}
+                        <li class="my-0.5 border-t border-base-200"></li>
+
                         <li>
-                            <a href="{% url 'login' %}">Iniciar Sesión</a>
+                            <button type="submit" form="logout-form"
+                                    class="text-error flex items-center gap-1.5 py-1 text-xs w-full text-left">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                     viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                </svg>
+                                Salir
+                            </button>
+                        </li>
+                    {% else %}
+                        <li>
+                            <a href="{% url 'login' %}"
+                               class="text-primary flex items-center gap-1.5 font-semibold py-1 text-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                     viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                                </svg>
+                                Iniciar Sesión
+                            </a>
                         </li>
                     {% endif %}
                 </ul>
             </div>
 
-            <form id="logout-form" action="{% url 'logout' %}" method="post">
+            <!-- Formulario de Logout -->
+            <form id="logout-form" action="{% url 'logout' %}" method="post" class="hidden">
                 {% csrf_token %}
             </form>
         </div>

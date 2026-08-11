@@ -4,9 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Intranet Corporativo UNE {% if title %}
-        | {{ title }}
-    {% endif %} </title>
+    <title>
+        {% if page_title %}
+            {{ page_title }}
+        {% else %}
+            Intranet Corporativo UNE
+        {% endif %}
+    </title>
+
     {% htmx_script %}
 
     <link rel="stylesheet" href="{% static 'css/output.css' %}">

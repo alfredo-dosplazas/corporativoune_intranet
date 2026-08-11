@@ -16,7 +16,7 @@ urlpatterns = [
     path('compras/', include('apps.compras.urls')),
     path('vs-erp/', include('apps.vs_erp.urls')),
     path('evidencias-moldes/', include('apps.evidencias_moldes.urls')),
-    path('', include('apps.refacciones_servicios.urls')),
+    path('listas-precios/', include('apps.listas_precios.urls')),
 ]
 
 if settings.DEBUG:

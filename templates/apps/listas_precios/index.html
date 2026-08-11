@@ -1,0 +1,112 @@
+<form method="POST" action="{% url 'generar_listas_zip' %}">
+    {% csrf_token %}
+
+    <div style="display: flex; gap: 15px; margin-bottom: 15px; align-items: center;">
+        <div>
+            <label for="empresa">Empresa:</label>
+            <select name="empresa" id="empresa">
+                <option value="DOMINUM">DOMINUM</option>
+                <option value="ABRAHAM">ABRAHAM</option>
+            </select>
+        </div>
+
+        <div>
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="🔍 Buscar por clave o descripción..."
+                onkeyup="filtrarTabla()"
+                style="padding: 6px; width: 250px;"
+            />
+        </div>
+
+        <div>
+            <button type="submit" class="btn btn-primary">
+                🚀 Generar Listas (.ZIP)
+            </button>
+        </div>
+    </div>
+
+    <table border="1" cellpadding="5" cellspacing="0" id="tablaLineas">
+        <thead>
+            <tr>
+                <th>
+                    <input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)" checked />
+                </th>
+                <th>Línea</th>
+                <th>Descripción</th>
+                {% for lista in listas %}
+                    <th>Desc. {{ lista.DESCRIPCION }} (%)</th>
+                    <th>Util. {{ lista.DESCRIPCION }} (%)</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for linea in lineas %}
+                <tr class="linea-row">
+                    <td style="text-align: center;">
+                        <input
+                            type="checkbox"
+                            name="lineas_seleccionadas"
+                            value="{{ linea.CVE_LIN }}"
+                            class="linea-checkbox"
+                            checked
+                        />
+                    </td>
+                    <td class="col-cve">{{ linea.CVE_LIN }}</td>
+                    <td class="col-desc">{{ linea.DESC_LIN }}</td>
+                    {% for lista in listas %}
+                        <td>
+                            <input
+                                type="number"
+                                step="0.01"
+                                name="desc_{{ linea.CVE_LIN }}_{{ lista.CVE_PRECIO }}"
+                                value="0"
+                                style="width: 65px;"
+                            /> %
+                        </td>
+                        <td>
+                            <input
+                                type="number"
+                                step="0.01"
+                                name="util_{{ linea.CVE_LIN }}_{{ lista.CVE_PRECIO }}"
+                                value="0"
+                                style="width: 65px;"
+                            /> %
+                        </td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</form>
+
+<script>
+// Buscador en vivo
+function filtrarTabla() {
+    const filter = document.getElementById('searchInput').value.toUpperCase();
+    const rows = document.querySelectorAll('#tablaLineas tbody tr.linea-row');
+
+    rows.forEach(row => {
+        const cve = row.querySelector('.col-cve').textContent.toUpperCase();
+        const desc = row.querySelector('.col-desc').textContent.toUpperCase();
+
+        if (cve.includes(filter) || desc.includes(filter)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Seleccionar / Deseleccionar todos los checkboxes visibles
+function toggleSelectAll(master) {
+    const checkboxes = document.querySelectorAll('.linea-checkbox');
+    checkboxes.forEach(cb => {
+        // Solo marcar/desmarcar si la fila está visible por el filtro de búsqueda
+        if (cb.closest('tr').style.display !== 'none') {
+            cb.checked = master.checked;
+        }
+    });
+}
+</script>

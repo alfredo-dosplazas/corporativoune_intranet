@@ -65,6 +65,8 @@ INSTALLED_APPS = [
     'apps.compras',
     'apps.refacciones_servicios',
 
+    'apps.listas_precios',
+
     'apps.vs_erp',
 ]
 
@@ -100,6 +102,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'apps.core.context_processors.empresas',
                 'apps.core.context_processors.empresa',
+                'apps.core.context_processors.navbar_menu',
             ],
         },
     },
@@ -171,7 +174,7 @@ DATABASES = {
         'PASSWORD': env('VS_2012_PASSWORD'),
         'HOST': env('VS_2012_HOST'),
         'PORT': env('VS_2012_PORT', default=''),
-    }
+    },
 }
 
 DATABASE_ROUTERS = ['intranet.routers.CoreRouter']
@@ -325,8 +328,29 @@ LOGGING = {
     },
 }
 
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
+    },
+}
+
 SESSION_COOKIE_DOMAIN = env("SESSION_COOKIE_DOMAIN", default="localhost")
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_COOKIE_AGE = 60 * 24 * 60 * 60
 SESSION_SAVE_EVERY_REQUEST = True
+
+DOMINUM_HOST = env('DOMINUM_HOST')
+
+FIREBIRD_API_PATH = env('FIREBIRD_API_PATH')
+
+FIREBIRD_DB_DOMINUM_PATH = env('FIREBIRD_DB_DOMINUM_PATH')
+FIREBIRD_DB_ABRAHAM_PATH = env('FIREBIRD_DB_ABRAHAM_PATH')
+
+FIREBIRD_DB_USER = env('FIREBIRD_DB_USER')
+FIREBIRD_DB_PASSWORD = env('FIREBIRD_DB_PASSWORD')
+
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000

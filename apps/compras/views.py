@@ -14,6 +14,7 @@ from apps.compras.inlines import DetalleOrdenInline
 from apps.compras.models import Orden, Proveedor
 from apps.compras.tables import OrdenTable, ProveedorTable
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.mixins.title import PageTitleMixin
 
 
 class ProveedorListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMixin, SingleTableMixin, ListView):
@@ -33,7 +34,7 @@ class ProveedorListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableLis
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'Ordenes de compra', 'url': reverse('compras:ordenes__list')},
+            {'title': 'Órdenes de compra', 'url': reverse('compras:ordenes__list')},
             {'title': 'Proveedores'},
         ]
 
@@ -48,7 +49,7 @@ class ProveedorCreateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMess
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'Ordenes de compra', 'url': reverse('compras:ordenes__list')},
+            {'title': 'Órdenes de compra', 'url': reverse('compras:ordenes__list')},
             {'title': 'Proveedores', 'url': reverse('compras:proveedores__list')},
             {'title': 'Crear'}
         ]
@@ -67,7 +68,7 @@ class ProveedorUpdateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMess
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'Ordenes de compra', 'url': reverse('compras:ordenes__list')},
+            {'title': 'Órdenes de compra', 'url': reverse('compras:ordenes__list')},
             {'title': 'Proveedores', 'url': reverse('compras:proveedores__list')},
             {'title': 'Editar'}
         ]
@@ -85,7 +86,14 @@ class ProveedorDeleteView(PermissionRequiredMixin, SuccessMessageMixin, DeleteVi
         return reverse('compras:ordenes__list')
 
 
-class OrdenListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMixin, SingleTableMixin, ListView):
+class OrdenListView(
+    PermissionRequiredMixin,
+    PageTitleMixin,
+    BreadcrumbsMixin,
+    SearchableListMixin,
+    SingleTableMixin,
+    ListView
+):
     permission_required = ['compras.view_orden']
     template_name = "apps/compras/ordenes/list.html"
     model = Orden
@@ -106,33 +114,18 @@ class OrdenListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMix
         'solicitante__segundo_apellido',
     ]
 
-    def get_queryset(self):
-        qs = super().get_queryset()
-
-        usuario = self.request.user
-
-        es_administrador_compras = usuario.groups.filter(name='ADMINISTRADOR COMPRAS').exists()
-
-        if usuario.is_superuser or es_administrador_compras:
-            return qs
-
-        qs = qs.filter(
-            Q(solicitante=usuario.contacto) |
-            Q(autoriza=usuario.contacto) |
-            Q(creada_por=usuario)
-        )
-
-        return qs
-
     def get_table(self, **kwargs):
         table = super().get_table(**kwargs)
         table.auto_height = True
         return table
 
+    def get_page_title(self):
+        return "Órdenes de compra"
+
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'Ordenes de compra'},
+            {'title': 'Órdenes de compra'},
         ]
 
 
@@ -175,7 +168,7 @@ class OrdenCreateView(
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'Ordenes de compra', 'url': reverse('compras:ordenes__list')},
+            {'title': 'Órdenes de compra', 'url': reverse('compras:ordenes__list')},
             {'title': 'Crear'},
         ]
 
@@ -206,7 +199,7 @@ class OrdenUpdateView(
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'Ordenes de compra', 'url': reverse('compras:ordenes__list')},
+            {'title': 'Órdenes de compra', 'url': reverse('compras:ordenes__list')},
             {'title': 'Editar'},
         ]
 
@@ -220,7 +213,7 @@ class OrdenDeleteView(
     model = Orden
 
     def get_success_message(self, cleaned_data):
-        return "Orden eliminada correctamente."
+        return "Órden eliminada correctamente."
 
     def get_success_url(self):
         return reverse('compras:ordenes__list')

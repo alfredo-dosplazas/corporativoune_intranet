@@ -1,39 +1,141 @@
 {% load django_tables2 %}
 <c-layouts.app>
     <c-slot name="header">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2 border-b border-base-200 mb-4">
+        <div class="flex flex-col gap-2.5">
 
-            <!-- TÍTULO Y BADGE -->
-            <div>
-                <h1 class="text-xl font-bold text-base-content flex items-center gap-2">
-                    <span class="icon-[tabler--file-description] text-primary text-2xl"></span>
-                    Órdenes de Compra
-                </h1>
-                <p class="text-xs text-base-content/60">Gestiona y autoriza los pedidos de compra de la empresa</p>
-            </div>
+            <!-- FILA PRINCIPAL DEL CONTROL PANEL (TIPO ODOO) -->
+            <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
 
-            <!-- CONTROLES Y BÚSQUEDA -->
-            <div class="flex items-center gap-3">
-                <a href="{% url 'compras:proveedores__list' %}" class="btn btn-sm btn-ghost">
-                    <span class="icon-[tabler--users]"></span> Proveedores
-                </a>
+                <!-- 1. IZQUIERDA: Título de la vista + Botón de Acción Principal -->
+                <div class="flex items-center gap-3 shrink-0">
+                    <div class="flex items-center gap-2">
+                        <span class="icon-[tabler--file-description] text-primary size-5 sm:size-6"></span>
+                        <h1 class="font-extrabold text-lg md:text-xl leading-none tracking-tight">
+                            Órdenes de Compra
+                        </h1>
+                    </div>
 
-                <c-shared.searchbar placeholder="Buscar folio, solicitante..."/>
+                    <!-- BOTÓN CREAR / NUEVA ORDEN DE COMPRA -->
+                    {% if perms.compras.add_orden %}
+                        <a
+                                href="{% url 'compras:ordenes__create' %}"
+                                class="btn btn-primary btn-sm gap-1.5 shadow-sm"
+                        >
+                            <span class="icon-[tabler--plus] size-4"></span>
+                            <span>Nueva</span>
+                        </a>
+                    {% endif %}
+                </div>
 
-                {% if perms.compras.add_orden %}
-                    <a href="{% url 'compras:ordenes__create' %}" class="btn btn-sm btn-primary gap-1 shadow-sm">
-                        <span>+</span> Nueva Orden
-                    </a>
-                {% endif %}
+                <!-- 2. CENTRO: OMNIBAR TIPO ODOO (Buscador + Chips + Filtros Avanzados) -->
+                <div class="flex-1 max-w-2xl mx-auto w-full">
+                    <form method="get" class="relative flex items-center">
+                        <input type="hidden" name="view" value="{{ view_mode|default:'table' }}">
+
+                        <div class="join w-full border border-base-300 rounded-lg shadow-xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary bg-base-100 overflow-hidden">
+
+                            <!-- Ícono de Lupa -->
+                            <span class="join-item flex items-center px-3 text-base-content/50 bg-transparent">
+                            <span class="icon-[tabler--search] size-4"></span>
+                        </span>
+
+                            <!-- Chips de Filtros Activos (Estilo Odoo) -->
+                            <div class="flex items-center gap-1 py-1 pr-1 shrink-0">
+                                {% if request.GET.estado %}
+                                    <a href="{% querystring 'estado'="" %}"
+                                       class="badge badge-info badge-sm gap-1 cursor-pointer hover:opacity-80">
+                                        <span class="text-[11px]">{{ request.GET.estado }}</span>
+                                        <span class="icon-[tabler--x] size-3"></span>
+                                    </a>
+                                {% endif %}
+
+                                {% if request.GET.proveedor %}
+                                    <a href="{% querystring 'proveedor'="" %}"
+                                       class="badge badge-secondary badge-sm gap-1 cursor-pointer hover:opacity-80">
+                                        <span class="text-[11px]">{{ request.GET.proveedor }}</span>
+                                        <span class="icon-[tabler--x] size-3"></span>
+                                    </a>
+                                {% endif %}
+
+                                {% if request.GET.q %}
+                                    <a href="{% querystring 'q'="" %}"
+                                       class="badge badge-neutral badge-sm gap-1 cursor-pointer hover:opacity-80">
+                                        <span class="text-[11px]">"{{ request.GET.q }}"</span>
+                                        <span class="icon-[tabler--x] size-3"></span>
+                                    </a>
+                                {% endif %}
+                            </div>
+
+                            <!-- Input de Búsqueda Principal -->
+                            <input
+                                    type="text"
+                                    name="q"
+                                    value="{{ request.GET.q|default:'' }}"
+                                    placeholder="Buscar..."
+                                    class="join-item input input-sm w-full focus:outline-none bg-transparent text-xs sm:text-sm px-2 border-none"
+                            />
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 3. DERECHA: Switcher de Vistas (Tabla / Kanban) -->
+                <div class="flex items-center justify-end gap-2 shrink-0">
+                </div>
+
             </div>
 
         </div>
     </c-slot>
 
-    <!-- TABLA DE ORDENES -->
-    <div class="card bg-base-100 shadow-sm border border-base-200">
-        <div class="card-body p-0">
-            {% render_table table %}
+    {% if orden_list %}
+        {% render_table table %}
+    {% else %}
+        <div class="flex flex-col items-center justify-center py-12 px-4 text-center bg-base-100 rounded-lg border border-dashed border-base-300 my-4">
+            <!-- Ícono decorativo -->
+            <div class="bg-base-200/60 p-4 rounded-full mb-3 text-base-content/50">
+                <span class="size-8 icon-[tabler--question-mark]"></span>
+            </div>
+
+            <!-- Título principal -->
+            <h3 class="text-sm font-semibold text-base-content/80">
+                No se encontraron órdenes de compra
+            </h3>
+
+            <p class="text-xs text-base-content/60 mt-1 max-w-sm">
+                {% if request.GET.q or request.GET.search %}
+                    No hay resultados que coincidan con tu búsqueda o filtros aplicados. Intenta modificar los términos.
+                {% else %}
+                    Aún no hay órdenes de compra registradas en el sistema. Puedes registrar uno nuevo para comenzar.
+                {% endif %}
+            </p>
+
+            <!-- Botones de Acción -->
+            <div class="flex items-center gap-2 mt-4">
+                {% if request.GET.q or request.GET.search %}
+                    <a href="{% url 'compras:ordenes__list' %}" class="btn btn-ghost btn-xs text-xs font-normal">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1 opacity-70" fill="none"
+                             viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Limpiar filtros
+                    </a>
+                {% else %}
+                    {% if perms.compras.add_proveedor %}
+                        <a href="{% url 'compras:ordenes__create' %}"
+                           class="btn btn-primary btn-xs text-xs font-medium gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Nueva Órden de compra
+                        </a>
+                    {% endif %}
+                {% endif %}
+            </div>
         </div>
-    </div>
+
+    {% endif %}
+
 </c-layouts.app>

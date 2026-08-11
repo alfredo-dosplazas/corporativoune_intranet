@@ -1,36 +1,39 @@
 <c-layouts.base>
-    <div class="flex flex-col h-dvh bg-base-200 overflow-hidden">
-        <div class="shrink-0">
+    <div class="min-h-dvh bg-base-200 flex flex-col antialiased pb-16 md:pb-0">
+
+        <header class="sticky top-0 z-30 bg-base-100 shadow-sm shrink-0">
             <c-shared.navbar/>
-        </div>
 
-
-        {% if breadcrumbs %}
-            <div class="breadcrumb bg-base-100 shadow px-4 py-2 shrink-0">
+            {% if breadcrumbs %}
                 <c-shared.breadcrumbs :breadcrumbs="breadcrumbs"/>
-            </div>
-        {% endif %}
+            {% endif %}
 
-        {% if header %}
-            <div class="header px-4 bg-base-100/60 py-2 shrink-0 shadow">
-                {{ header }}
-            </div>
-        {% endif %}
+            {% if header %}
+                <div class="header px-4 bg-base-100/60 py-2 shrink-0 shadow">
+                    {{ header }}
+                </div>
+            {% endif %}
+        </header>
 
         {% if messages %}
-            <div class="shrink-0">
+            <div class="shrink-0 p-2">
                 <c-shared.messages/>
             </div>
         {% endif %}
 
-        <div class="flex-1 min-h-0 overflow-y-auto">
-            <main class="container max-w-[95vw] p-4 min-h-full">
-                {{ slot }}
-            </main>
-        </div>
+        <main class="flex-1 p-3 md:p-3 mx-auto w-full">
+            {{ slot }}
+        </main>
 
         <div class="shrink-0 hidden md:block">
             <c-shared.footer/>
+        </div>
+
+        <div class="dock md:hidden bg-base-300">
+            <a href="/">
+                <span class="icon-[heroicons--home] size-[1.2em]"></span>
+                <span class="dock-label">Inicio</span>
+            </a>
         </div>
     </div>
 </c-layouts.base>

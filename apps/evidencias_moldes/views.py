@@ -2,6 +2,7 @@ import os
 import re
 from datetime import datetime
 from PIL import Image
+from django.contrib.auth.mixins import PermissionRequiredMixin
 
 from django.core.paginator import Paginator
 from django.http import Http404, FileResponse, HttpResponseForbidden
@@ -10,8 +11,6 @@ from django.views.generic import TemplateView
 from django.shortcuts import redirect, render
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
-from apps.core.utils.network import get_client_ip, ip_in_allowed_range
-from apps.fotos.decorators import internal_network_required
 from apps.fotos.utils import get_thumbnail
 from intranet import settings
 
@@ -30,7 +29,8 @@ def es_imagen_valida(archivo_file):
         return False
 
 
-class ExploradorEvidenciasMoldesView(BreadcrumbsMixin, TemplateView):
+class ExploradorEvidenciasMoldesView(PermissionRequiredMixin, BreadcrumbsMixin, TemplateView):
+    permission_required = 'evidencias_moldes.ver_fotos'
     template_name = "apps/evidencias_moldes/explorador.html"
     paginate_by = 24
 
