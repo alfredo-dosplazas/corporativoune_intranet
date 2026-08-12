@@ -389,11 +389,11 @@ PWA_APP_SPLASH_SCREEN = [
 PWA_APP_DIR = 'ltr'
 PWA_APP_LANG = 'es-MX'
 PWA_APP_SHORTCUTS = [
-    # {
-    #     'name': 'Compras',
-    #     'url': '/compras',
-    #     'description': 'Módulo de compras'
-    # }
+    {
+        'name': 'Directorio',
+        'url': '/directorio',
+        'description': 'Directorio corporativo',
+    }
 ]
 PWA_APP_SCREENSHOTS = [
     {

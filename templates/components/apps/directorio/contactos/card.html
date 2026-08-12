@@ -1,201 +1,174 @@
 {% load phone_filters %}
 <div id="card_{{ contacto.pk }}"
      data-theme="{{ contacto.empresa.theme }}"
-     class="relative card w-full bg-base-100 rounded-xl
-            border border-base-300
-            shadow-sm hover:shadow-lg transition
-            print:shadow-none print:border-base-300
-            {% if contacto.usuario and not contacto.usuario.is_active %}opacity-70 grayscale{% endif %}">
+     class="group relative card w-full bg-base-100 border border-base-200 rounded-xl shadow-xs hover:shadow-md hover:border-primary/40 transition-all duration-200 flex flex-col justify-between overflow-hidden
+            {% if contacto.usuario and not contacto.usuario.is_active %}opacity-75 grayscale{% endif %}">
 
-    <!-- Empresa accent line -->
-    {% if contacto.empresa %}
-        <div class="absolute top-0 inset-x-0 h-1
-                bg-gradient-to-r
-                from-[var(--color-primary-light)]
-                via-primary
-                to-[var(--color-primary-dark)]
-                rounded-t-xl">
-        </div>
-    {% endif %}
+    <!-- 1. HEADER / ACCENT BAR CORPORATIVO -->
+    <div class="relative bg-base-200/50 p-4 border-b border-base-200/80">
+        <!-- Accent indicator de la empresa -->
+        {% if contacto.empresa %}
+            <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary/60 via-primary to-primary-dark"></div>
+        {% endif %}
 
-    <div class="card-body p-5 flex flex-col min-h-[320px]">
-
-        <div class="flex items-start gap-4 min-h-[80px]">
-
-            <!-- FOTO -->
-            <div class="avatar shrink-0">
-                <div class="w-16 h-16 rounded-full ring ring-primary ring-offset-2 ring-offset-base-100">
+        <div class="flex items-start gap-3">
+            <!-- AVATAR TIPO GAFETE -->
+            <div class="relative shrink-0">
+                <div class="w-13 h-13 rounded-lg overflow-hidden border border-base-300 shadow-2xs bg-base-100 flex items-center justify-center">
                     {% if contacto.foto %}
                         <img src="{{ contacto.foto.url }}"
                              alt="{{ contacto.nombre_completo }}"
-                             class="object-cover"/>
+                             class="w-full h-full object-cover"/>
                     {% else %}
-                        <div class="bg-primary text-primary-content flex items-center justify-center w-full h-full text-xl font-semibold">
+                        <span class="text-base font-bold text-primary tracking-wider">
                             {{ contacto.iniciales }}
-                        </div>
+                        </span>
+                    {% endif %}
+                </div>
+                <!-- Status Dot si está inactivo -->
+                {% if contacto.usuario and not contacto.usuario.is_active %}
+                    <span class="absolute -bottom-1 -right-1 badge badge-xs badge-error ring-2 ring-base-100"
+                          title="Usuario Inactivo"></span>
+                {% endif %}
+            </div>
+
+            <!-- INFO PRINCIPAL -->
+            <div class="flex-1 min-w-0 pr-1">
+                <div class="flex items-start justify-between gap-1">
+                    <h2 class="text-sm font-bold text-base-content leading-snug truncate">
+                        <a href="{% url 'directorio:detail' contacto.pk %}"
+                           class="hover:text-primary transition-colors">
+                            {{ contacto.nombre_completo }}
+                        </a>
+                    </h2>
+                </div>
+
+                <p class="text-xs font-medium text-base-content/70 truncate mt-0.5">
+                    {{ contacto.puesto.nombre|default:"Sin puesto asignado" }}
+                </p>
+
+                <div class="flex items-center gap-1.5 mt-1.5">
+                    <span class="badge badge-ghost badge-xs text-[10px] font-medium opacity-80 px-1.5 py-0.5 truncate">
+                        {{ contacto.area.nombre|default:"General" }}
+                    </span>
+                    {% if contacto.empresa and contacto.empresa.abreviatura %}
+                        <span class="badge badge-neutral badge-outline badge-xs text-[9px] uppercase tracking-wider font-semibold">
+                            {{ contacto.empresa.abreviatura }}
+                        </span>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- INFO -->
-            <div class="flex-1 min-w-0">
-
-                <h2 class="text-lg font-semibold leading-tight truncate">
-                    <a href="{% url 'directorio:detail' contacto.pk %}"
-                       class="hover:text-primary transition">
-                        {{ contacto.nombre_completo }}
-                    </a>
-                </h2>
-
-                <p class="text-sm opacity-80 truncate">
-                    {{ contacto.puesto.nombre|default:"Sin puesto" }}
-                </p>
-
-                <p class="text-xs opacity-60 truncate">
-                    {{ contacto.area.nombre|default:"Área no asignada" }}
-                </p>
-
-                {% if contacto.usuario and not contacto.usuario.is_active %}
-                    <span class="badge badge-sm mt-1">Inactivo</span>
-                {% endif %}
-            </div>
-
-            <!-- LOGO EMPRESA -->
+            <!-- LOGO EMPRESA SLIM -->
             {% if contacto.empresa and contacto.empresa.abreviatura %}
-                <div class="hidden sm:flex shrink-0 items-center">
+                <div class="shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
                     <c-component
                             is="apps.empresas.logos.{{ contacto.empresa.abreviatura }}"
-                            class="h-10 w-auto text-primary opacity-80"
+                            class="h-6 w-auto text-base-content"
                     />
                 </div>
             {% endif %}
         </div>
+    </div>
 
-        <!-- DIVIDER -->
-        <div class="divider my-1"></div>
+    <!-- 2. CUERPO DE DATOS (CONTACTO) -->
+    <div class="p-4 space-y-2.5 text-xs text-base-content/80 flex-1">
 
-        <div class="flex-1 flex flex-col justify-start gap-3 text-sm">
+        <!-- EMAIL -->
+        {% if contacto.email_principal %}
+            <div class="flex items-center justify-between gap-2 group/item hover:bg-base-200/50 p-1 rounded-md transition-colors">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="icon-[material-symbols--mail-outline] text-primary/80 size-4 shrink-0"></span>
+                    <a href="mailto:{{ contacto.email_principal.email }}"
+                       class="truncate hover:text-primary font-mono text-[11px] tracking-tight">
+                        {{ contacto.email_principal.email }}
+                    </a>
+                </div>
+                <button onclick="copyToClipboard('{{ contacto.email_principal.email }}')"
+                        type="button"
+                        class="btn btn-ghost btn-xs size-6 p-0 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                        title="Copiar correo">
+                    <span class="icon-[mdi--content-copy] size-3.5 text-base-content/60 hover:text-primary"></span>
+                </button>
+            </div>
+        {% endif %}
 
-            {% if contacto.email_principal %}
-                <div class="flex items-center justify-between group">
-
+        <!-- TELÉFONOS -->
+        {% for telefono in contacto.telefonos.all %}
+            {% if telefono.esta_activo %}
+                <div class="flex items-center justify-between gap-2 group/item hover:bg-base-200/50 p-1 rounded-md transition-colors">
                     <div class="flex items-center gap-2 min-w-0">
-                        <span class="icon-[material-symbols--mail-outline] text-primary"></span>
-                        <a href="mailto:{{ contacto.email_principal.email }}"
-                           class="truncate hover:underline">
-                            {{ contacto.email_principal.email }}
-                        </a>
+                        <span class="icon-[material-symbols--call-outline] text-primary/80 size-4 shrink-0"></span>
+                        <span class="font-mono text-[11px]">
+                            {{ telefono.telefono|phone_format }}
+                            {% if telefono.extension %}
+                                <span class="text-[10px] text-base-content/50 font-sans">ext. {{ telefono.extension }}</span>
+                            {% endif %}
+                        </span>
                     </div>
 
-                    <button
-                            onclick="copyToClipboard('{{ contacto.email_principal.email }}')"
-                            type="button"
-                            class="tooltip"
-                            data-tip="Copiar"
-                    >
-                        <span class="icon-[mdi--content-copy] text-base-content/50 hover:text-primary"></span>
-                    </button>
+                    <!-- Botones de Acción Directa para Teléfono -->
+                    <div class="flex items-center gap-1">
+                        {% if telefono.es_celular and telefono.whatsapp %}
+                            <a target="_blank"
+                               rel="noopener noreferrer"
+                               href="{{ telefono.whatsapp }}"
+                               class="btn btn-ghost btn-xs size-6 p-0 text-success hover:bg-success/10"
+                               title="WhatsApp">
+                                <span class="icon-[logos--whatsapp-icon] size-3.5"></span>
+                            </a>
+                        {% endif %}
+
+                        {% if telefono.telefono %}
+                            <a href="tel:{{ telefono.telefono }}"
+                               class="btn btn-ghost btn-xs size-6 p-0 hover:text-primary"
+                               title="Llamar">
+                                <span class="icon-[mdi--phone-outline] size-3.5"></span>
+                            </a>
+                        {% endif %}
+
+                        <button onclick="copyToClipboard('{{ telefono.telefono }}')"
+                                type="button"
+                                class="btn btn-ghost btn-xs size-6 p-0 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                                title="Copiar número">
+                            <span class="icon-[mdi--content-copy] size-3.5 text-base-content/60 hover:text-primary"></span>
+                        </button>
+                    </div>
                 </div>
             {% endif %}
+        {% endfor %}
 
+    </div>
 
-            {% for telefono in contacto.telefonos.all %}
-                {% if telefono.esta_activo %}
-                    <div class="flex items-center justify-between group">
+    <!-- 3. FOOTER INTEGRADO CON ACCIONES CLARAS -->
+    <div class="px-4 py-2.5 bg-base-200/40 border-t border-base-200 flex items-center justify-between gap-2 print:hidden">
 
-                        <div class="flex items-center gap-2">
-                            <span class="icon-[material-symbols--call-outline] text-primary"></span>
-                            <a href="{% if telefono.telefono %}tel:{{ telefono.telefono }}{% else %}#{% endif %}">
-                                {{ telefono.telefono|phone_format }}
-                                {% if telefono.extension %}
-                                    ext. {{ telefono.extension }}
-                                {% endif %}
-                            </a>
-                        </div>
+        <!-- Botón Ver Detalles / Perfil -->
+        <a href="{% url 'directorio:detail' contacto.pk %}"
+           class="btn btn-xs btn-ghost gap-1 font-semibold text-xs text-base-content/80 hover:text-primary">
+            <span class="icon-[mdi--account-card-details-outline] size-3.5"></span>
+            <span>Ver perfil</span>
+        </a>
 
-                        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5">
+            <!-- Slack integrado -->
+            {% if contacto.slack_id %}
+                <a href="{{ contacto.slack_url }}"
+                   target="_blank"
+                   class="btn btn-xs btn-ghost text-secondary hover:bg-secondary/10 size-7 p-0"
+                   title="Enviar mensaje en Slack">
+                    <span class="icon-[devicon--slack] size-3.5"></span>
+                </a>
+            {% endif %}
 
-                            {% if telefono.telefono %}
-                                <a href="tel:{{ telefono.telefono }}"
-                                   class="tooltip"
-                                   data-tip="Llamar">
-                                    <span class="icon-[mdi--phone] text-base-content/60 hover:text-primary"></span>
-                                </a>
-                            {% endif %}
-
-                            {% if telefono.es_celular %}
-                                <a target="_blank"
-                                   href="{{ telefono.whatsapp }}"
-                                   class="tooltip"
-                                   data-tip="WhatsApp">
-                                    <span class="icon-[logos--whatsapp-icon] text-green-500"></span>
-                                </a>
-                            {% endif %}
-
-                            <button
-                                    onclick="copyToClipboard('{{ telefono.telefono }}')"
-                                    type="button"
-                                    class="tooltip"
-                                    data-tip="Copiar"
-                            >
-                                <span class="icon-[mdi--content-copy] text-base-content/50 hover:text-primary"></span>
-                            </button>
-
-                        </div>
-                    </div>
-                {% endif %}
-            {% endfor %}
-
-
-        </div>
-
-        <!-- FOOTER -->
-        <div class="mt-auto pt-4 border-t border-base-200">
-
-            <div class="flex items-center gap-2 print:hidden">
-
-                <!-- Mobile icons -->
-                <div class="flex sm:hidden gap-2">
-
-                    <a href="{% url 'directorio:detail' contacto.pk %}"
-                       class="btn btn-xs btn-ghost">
-                        <span class="icon-[mdi--eye-outline]"></span>
-                    </a>
-
-                    {% if perms.directorio.change_contacto %}
-                        <a href="{% url 'directorio:update' contacto.pk %}"
-                           class="btn btn-xs btn-ghost text-info">
-                            <span class="icon-[mdi--pencil-outline]"></span>
-                        </a>
-                    {% endif %}
-
-                </div>
-
-                <!-- Desktop buttons -->
-                <div class="hidden sm:flex gap-2">
-
-                    <a href="{% url 'directorio:detail' contacto.pk %}"
-                       class="btn btn-xs">
-                        Ver
-                    </a>
-
-                    {% if perms.directorio.change_contacto %}
-                        <a href="{% url 'directorio:update' contacto.pk %}"
-                           class="btn btn-xs btn-info">
-                            Editar
-                        </a>
-                    {% endif %}
-
-                </div>
-
-                {% if contacto.slack_id %}
-                    <a href="{{ contacto.slack_url }}"
-                       class="btn btn-xs btn-outline btn-primary">
-                        <span class="icon-[devicon--slack]"></span>
-                    </a>
-                {% endif %}
-
-            </div>
+            <!-- Editar -->
+            {% if perms.directorio.change_contacto %}
+                <a href="{% url 'directorio:update' contacto.pk %}"
+                   class="btn btn-xs btn-outline btn-primary gap-1 font-medium text-[11px] px-2.5">
+                    <span class="icon-[mdi--pencil-outline] size-3"></span>
+                    <span>Editar</span>
+                </a>
+            {% endif %}
         </div>
 
     </div>

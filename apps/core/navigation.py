@@ -64,3 +64,18 @@ def build_compras_menu():
             'active_patterns': ['ordenes__'],
         },
     ]
+
+def build_directorio_menu():
+    """
+    Menú específico para el módulo de Directorio.
+    """
+    return [
+        {
+            'key': 'directorio_list',
+            'icon': 'icon-[fluent--book-contacts-28-filled]',
+            'title': 'Directorio',
+            'url_name': 'directorio:list',
+            'perms': ['directorio.view_contacto'],
+            'active_patterns': ['directorio:'],
+        },
+    ]

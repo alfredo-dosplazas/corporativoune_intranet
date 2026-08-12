@@ -1,7 +1,7 @@
 from django.urls import NoReverseMatch, reverse
 
 from apps.core.models import Empresa
-from apps.core.navigation import build_default_menu, build_compras_menu
+from apps.core.navigation import build_default_menu, build_compras_menu, build_directorio_menu
 from apps.core.utils.network import get_client_ip, get_empresa_from_ip
 
 
@@ -99,6 +99,8 @@ def navbar_menu(request):
     # 1. Detectar el módulo dinámicamente por la ruta actual
     if request.path.startswith('/compras/'):
         raw_menu = build_compras_menu()
+    if request.path.startswith('/directorio/'):
+        raw_menu = build_directorio_menu()
     else:
         raw_menu = build_default_menu()
 

@@ -10,6 +10,8 @@ from django_tables2 import SingleTableMixin
 from extra_views import SearchableListMixin, CreateWithInlinesView, NamedFormsetsMixin, UpdateWithInlinesView
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.mixins.session_filter_state import SessionFilterStateMixin
+from apps.core.mixins.title import PageTitleMixin
 from apps.core.services.notificaciones import notificar_soporte
 from apps.core.utils.network import get_client_ip, ip_in_allowed_range, get_empresas_from_ip, \
     get_sede_from_ip
@@ -22,7 +24,14 @@ from apps.directorio.tables import ContactoTable
 from apps.rrhh.models.sedes import Sede
 
 
-class DirectorioListView(BreadcrumbsMixin, SearchableListMixin, SingleTableMixin, FilterView):
+class DirectorioListView(
+    PageTitleMixin,
+    SessionFilterStateMixin,
+    BreadcrumbsMixin,
+    SearchableListMixin,
+    SingleTableMixin,
+    FilterView
+):
     template_name = "apps/directorio/list.html"
     model = Contacto
     table_class = ContactoTable
@@ -32,15 +41,14 @@ class DirectorioListView(BreadcrumbsMixin, SearchableListMixin, SingleTableMixin
                      'telefonos__telefono']
     filterset_class = ContactoFilter
 
+    def get_page_title(self):
+        return 'Directorio'
+
     def get_filterset_kwargs(self, filterset_class):
         kwargs = super().get_filterset_kwargs(filterset_class)
         kwargs['user'] = self.request.user
         return kwargs
 
-    def get_table(self, **kwargs):
-        table = super().get_table(**kwargs)
-        table.auto_height = True
-        return table
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
