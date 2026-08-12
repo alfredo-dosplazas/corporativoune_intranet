@@ -6,5 +6,6 @@ class Permiso(models.Model):
         managed = False
 
         permissions = [
-            ('acceder_explorador_direccion_obras', 'Acceder al explorador carpeta Dirección Obras')
+            ('acceder_explorador_direccion_obras', 'Acceder al explorador carpeta Dirección Obras'),
+            ('ver_foto', 'Ver foto en módulo de evidencias moldes'),
         ]

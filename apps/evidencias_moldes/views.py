@@ -2,6 +2,7 @@ import os
 import re
 from datetime import datetime
 from PIL import Image
+from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 
 from django.core.paginator import Paginator
@@ -211,6 +212,7 @@ class ExploradorEvidenciasMoldesView(PermissionRequiredMixin, BreadcrumbsMixin, 
         return redirect("evidencias_moldes:path", ruta=ruta_redireccion)
 
 
+@permission_required("evidencias_moldes.ver_foto")
 def ver_foto(request, ruta):
     path = (settings.PROYECTOS_ROOT / ruta).resolve()
 
