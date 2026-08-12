@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'django_celery_results',
     'django_celery_beat',
     'rangefilter',
+
     'apps.asistencias',
     'apps.core',
     'apps.cumpleanios',
@@ -64,6 +65,8 @@ INSTALLED_APPS = [
     'apps.monitoreo_servicios',
     'apps.compras',
     'apps.refacciones_servicios',
+
+    'apps.evidencias_moldes',
 
     'apps.listas_precios',
 
