@@ -17,6 +17,7 @@ urlpatterns = [
     path('vs-erp/', include('apps.vs_erp.urls')),
     path('evidencias-moldes/', include('apps.evidencias_moldes.urls')),
     path('listas-precios/', include('apps.listas_precios.urls')),
+    path('', include('pwa.urls'))
 ]
 
 if settings.DEBUG:

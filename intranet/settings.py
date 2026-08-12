@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'django_celery_results',
     'django_celery_beat',
     'rangefilter',
+    'pwa',
 
     'apps.asistencias',
     'apps.core',
@@ -357,3 +358,53 @@ FIREBIRD_DB_USER = env('FIREBIRD_DB_USER')
 FIREBIRD_DB_PASSWORD = env('FIREBIRD_DB_PASSWORD')
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+
+PWA_APP_NAME = 'Intranet CorporativoUNE'
+PWA_APP_DESCRIPTION = "Apps y Servicios Web internos del CorporativoUNE"
+PWA_APP_THEME_COLOR = '#0A0302'
+PWA_APP_BACKGROUND_COLOR = '#ffffff'
+PWA_APP_DISPLAY = 'standalone'
+PWA_APP_SCOPE = '/'
+PWA_APP_ORIENTATION = 'any'
+PWA_APP_START_URL = '/'
+PWA_APP_STATUS_BAR_COLOR = 'default'
+PWA_APP_ICONS = [
+    {
+        'src': '/static/img/app_icon_160x160.png',
+        'sizes': '160x160'
+    }
+]
+PWA_APP_ICONS_APPLE = [
+    {
+        'src': '/static/img/app_icon_160x160.png',
+        'sizes': '160x160'
+    }
+]
+PWA_APP_SPLASH_SCREEN = [
+    # {
+    #     'src': '/static/images/icons/splash-640x1136.png',
+    #     'media': '(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)'
+    # }
+]
+PWA_APP_DIR = 'ltr'
+PWA_APP_LANG = 'es-MX'
+PWA_APP_SHORTCUTS = [
+    # {
+    #     'name': 'Compras',
+    #     'url': '/compras',
+    #     'description': 'Módulo de compras'
+    # }
+]
+PWA_APP_SCREENSHOTS = [
+    {
+        'src': '/static/img/screenshots/mobile.jpg',
+        'sizes': '720x1600',
+        "type": "image/jpg"
+    },
+    {
+        'src': '/static/img/screenshots/desktop.png',
+        'sizes': '1919x946',
+        "form_factor": "wide",
+        "type": "image/png"
+    }
+]

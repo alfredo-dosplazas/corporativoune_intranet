@@ -1,0 +1,103 @@
+<c-layouts.no-auth>
+    <div class="min-h-[80vh] flex items-center justify-center p-4">
+        <div class="card w-full max-w-lg bg-base-100 shadow-xl border border-base-200">
+            <div class="card-body text-center items-center py-10 px-6">
+
+                <!-- Iluminación / Icono de Estado -->
+                <div class="relative mb-4">
+                    <div class="w-24 h-24 rounded-full bg-warning/10 flex items-center justify-center animate-pulse">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-warning" fill="none"
+                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M18.364 5.636a9 9 0 010 12.728m-12.728 0a9 9 0 010-12.728m2.828 2.828a6 6 0 018.486 0m-8.486 8.486a6 6 0 010-8.486M12 12h.01"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" class="text-error"/>
+                        </svg>
+                    </div>
+                    <span class="badge badge-error badge-sm absolute top-1 right-1 gap-1">
+                        <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                        Offline
+                    </span>
+                </div>
+
+                <!-- Texto Informativo -->
+                <h1 class="card-title text-2xl font-bold text-base-content mb-1">
+                    Sin conexión a la Intranet
+                </h1>
+
+                <p class="text-base-content/70 text-sm max-w-md mb-6">
+                    Parece que perdiste la conexión a la red de la empresa o a internet. Revisa tu conexión Wi-Fi / red
+                    local para continuar navegando.
+                </p>
+
+                <!-- Estado dinámico con JS -->
+                <div id="status-alert" class="alert alert-warning text-xs py-2 px-4 mb-6 hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-4 w-4" fill="none"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <span>Intentando reconectar... Por favor espera.</span>
+                </div>
+
+                <!-- Acciones -->
+                <div class="card-actions flex-col sm:flex-row gap-3 w-full max-w-xs">
+                    <button id="btn-retry" onclick="comprobarConexion()" class="btn btn-primary w-full gap-2">
+                        <svg id="icon-spin" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                             viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Reintentar conexión
+                    </button>
+
+                    <button onclick="window.history.back()" class="btn btn-ghost btn-sm w-full text-base-content/60">
+                        Volver a la página anterior
+                    </button>
+                </div>
+
+                <!-- Footer opcional de soporte interno -->
+                <div class="divider my-4 text-xs text-base-content/40">Soporte TI</div>
+                <p class="text-xs text-base-content/50">
+                    Si el problema persiste, contacta al departamento de Sistemas o extensión <span
+                        class="font-semibold text-base-content/80">#1234</span>.
+                </p>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Script de detección automática de red -->
+    <script>
+        function comprobarConexion() {
+            const btn = document.getElementById('btn-retry');
+            const icon = document.getElementById('icon-spin');
+            const alert = document.getElementById('status-alert');
+
+            // Feedback visual
+            icon.classList.add('animate-spin');
+            btn.classList.add('btn-disabled');
+            alert.classList.remove('hidden');
+
+            // Intenta hacer un fetch ligero para confirmar acceso real al servidor
+            fetch('/api/ping', {method: 'HEAD', cache: 'no-store'})
+                .then(() => {
+                    // Si responde, recargar la página donde se quedó
+                    window.location.reload();
+                })
+                .catch(() => {
+                    // Si falla la petición tras un breve tiempo
+                    setTimeout(() => {
+                        icon.classList.remove('animate-spin');
+                        btn.classList.remove('btn-disabled');
+                        alert.innerText = "Aún no hay conexión. Intenta de nuevo en unos momentos.";
+                        alert.classList.replace('alert-warning', 'alert-error');
+                    }, 1200);
+                });
+        }
+
+        // Listener automático: si la red vuelve sola, recarga la página
+        window.addEventListener('online', () => {
+            window.location.reload();
+        });
+    </script>
+</c-layouts.no-auth>

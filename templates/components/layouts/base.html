@@ -1,4 +1,5 @@
-{% load static django_htmx %}
+{% load static django_htmx pwa %}
+
 <!DOCTYPE html>
 <html lang="es" data-theme="{{ empresa.theme|default:'dos_plazas' }}">
 <head>
@@ -39,6 +40,7 @@
 
     <link rel="stylesheet" href="{% static 'css/tomcat-daisyui5.css' %}">
 
+    {% progressive_web_app_meta %}
 </head>
 <body hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
 
