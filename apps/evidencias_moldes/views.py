@@ -170,54 +170,60 @@ class ExploradorEvidenciasMoldesView(PermissionRequiredMixin, BreadcrumbsMixin, 
         if not str(obra_path).startswith(str(base_path)) or not obra_path.exists():
             raise Http404("Ruta inválida")
 
-        uploaded_file = request.FILES.get("foto_evidencia")
-        if not uploaded_file:
+        # Obtener lista de archivos recibidos
+        uploaded_files = request.FILES.getlist("foto_evidencia")
+        if not uploaded_files:
             context = self.get_context_data(**kwargs)
             context["error"] = "No se ha seleccionado ninguna imagen."
             return render(request, self.template_name, context)
 
-        # 3. Validar extensión de imagen
-        ext = os.path.splitext(uploaded_file.name)[1].lower()
-        if ext not in IMAGENES_EXT:
-            context = self.get_context_data(**kwargs)
-            context["error"] = f"Formato no permitido. Solo se aceptan: {', '.join(IMAGENES_EXT)}"
-            return render(request, self.template_name, context)
+        # 3 y 4. Validar formato y validez de cada archivo
+        archivos_validos = []
+        for uploaded_file in uploaded_files:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in IMAGENES_EXT:
+                context = self.get_context_data(**kwargs)
+                context["error"] = f"El archivo '{uploaded_file.name}' tiene un formato no permitido."
+                return render(request, self.template_name, context)
 
-        # 4. Validar contenido real con Pillow
-        if not es_imagen_valida(uploaded_file):
-            context = self.get_context_data(**kwargs)
-            context["error"] = "El archivo está dañado o no es una imagen válida."
-            return render(request, self.template_name, context)
+            if not es_imagen_valida(uploaded_file):
+                context = self.get_context_data(**kwargs)
+                context["error"] = f"El archivo '{uploaded_file.name}' está dañado o no es una imagen válida."
+                return render(request, self.template_name, context)
 
-        # 5. Construcción de carpeta destino: [Obra]/fotos_subidas_intranet/YYYY-MM-DD/
+            archivos_validos.append(uploaded_file)
+
+        # 5. Construcción de carpeta destino
         ahora = datetime.now()
         fecha_str = ahora.strftime("%Y-%m-%d")
-        hora_str = ahora.strftime("%H%M%S")
         usuario = request.user.username if request.user.is_authenticated else "anonimo"
 
         destino_dir = obra_path / CARPETA_EVIDENCIAS_NOMBRE / fecha_str
         destino_dir.mkdir(parents=True, exist_ok=True)
 
-        # Nombre único: [usuario]_[HHMMSS]_[nombre_limpio].ext
-        nombre_limpio = "".join(c for c in uploaded_file.name if c.isalnum() or c in "._-")
-        nombre_final = f"{usuario}_{hora_str}_{nombre_limpio}"
-        archivo_destino = destino_dir / nombre_final
+        archivos_guardados = []
 
-        # 6. Guardar imagen en disco
-        with open(archivo_destino, "wb+") as destination:
-            for chunk in uploaded_file.chunks():
-                destination.write(chunk)
+        # 6. Guardar imágenes en disco
+        for idx, uploaded_file in enumerate(archivos_validos):
+            hora_str = datetime.now().strftime("%H%M%S")
+            nombre_limpio = "".join(c for c in uploaded_file.name if c.isalnum() or c in "._-")
+            nombre_final = f"{usuario}_{hora_str}_{idx}_{nombre_limpio}"
+            archivo_destino = destino_dir / nombre_final
 
-        # Redireccionar hacia la carpeta de evidencias de la fecha correspondiente
+            with open(archivo_destino, "wb+") as destination:
+                for chunk in uploaded_file.chunks():
+                    destination.write(chunk)
+
+            archivos_guardados.append(archivo_destino)
+
+        # Redirección y notificación
         ruta_redireccion = f"{ruta}/{CARPETA_EVIDENCIAS_NOMBRE}/{fecha_str}".strip("/")
-
         url_carpeta = request.build_absolute_uri(
             reverse("evidencias_moldes:path", kwargs={"ruta": ruta_redireccion})
         )
 
-        # Notificar evidencias
         enviar_notificacion_evidencia_moldes(
-            archivo_destino=archivo_destino,
+            archivos_guardados=archivos_guardados,
             usuario=usuario,
             ruta_obra=ruta,
             url_carpeta=url_carpeta,
