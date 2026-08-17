@@ -21,7 +21,7 @@ def enviar_notificacion_evidencia_moldes(archivo_destino, usuario, ruta_obra, ur
     )
 
     for destino in destinatarios:
-        enviar_slack_task(
+        enviar_slack_task.delay(
             user_id=destino.usuario_slack.slack_id,
             mensaje=mensaje_slack,
         )
