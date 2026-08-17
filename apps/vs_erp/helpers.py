@@ -113,31 +113,47 @@ def obtener_resumen_compras_reales(alias_db, id_obra):
     Obtiene las compras reales de la BD y las agrupa por Concepto, Familia y Material.
     """
     query = """
-    DECLARE @IdObra AS VARCHAR(100) = %s;
+    DECLARE @IdObra AS VARCHAR (100) = %s;
 
     SELECT   cpoc.IdConceptoObra,
              cpoc.IdInsumo,
-             CAST(ig.Descripcion AS VARCHAR(8000)) AS Insumo,
+             CAST (ig.Descripcion AS VARCHAR (8000)) AS Insumo,
              ISNULL(f.IdFamilia, 0) AS IdFamilia,
-             COALESCE(f.Nombre, 'SIN FAMILIA') AS Familia,
-             cpoc.Cantidad,
-             cpoc.ImporteConIVA
+             COALESCE (f.Nombre, 'SIN FAMILIA') AS Familia,
+             -- Si es ORDENCOMPRA, calculamos la Cantidad Pendiente por facturar
+             CASE 
+                 WHEN cpoc.DocumentoOrigen = 'ORDENCOMPRA' 
+                     THEN cpoc.Cantidad - ISNULL(cpoc.CantidadFacturadaValidaciones, 0)
+                 ELSE cpoc.Cantidad 
+             END AS Cantidad,
+             -- Si es ORDENCOMPRA, calculamos el Importe Pendiente con IVA
+             CASE 
+                 WHEN cpoc.DocumentoOrigen = 'ORDENCOMPRA' 
+                     THEN (cpoc.Cantidad - ISNULL(cpoc.CantidadFacturadaValidaciones, 0)) * cpoc.PrecioConIVA
+                 ELSE cpoc.ImporteConIVA 
+             END AS ImporteConIVA
     FROM     CargosPorObraConsolidado AS cpoc
-             INNER JOIN InsumosGeneral AS ig ON cpoc.IdInsumo = ig.IdInsumo
-             INNER JOIN Estatus AS e ON e.IdEstatus = cpoc.IdEstatusDocumento
-             LEFT OUTER JOIN FamiliaInsumos AS f ON f.IdFamilia = ig.IdFamiliaInsumos
+             INNER JOIN InsumosGeneral AS ig
+                 ON cpoc.IdInsumo = ig.IdInsumo
+             INNER JOIN Estatus AS e
+                 ON e.IdEstatus = cpoc.IdEstatusDocumento
+             LEFT OUTER JOIN FamiliaInsumos AS f
+                 ON f.IdFamilia = ig.IdFamiliaInsumos
     WHERE    cpoc.IdObra = @IdObra
              AND ig.IdGrupoInsumos = 1
              AND cpoc.IdEstatusDocumento <> 4
              AND (
-                 cpoc.DocumentoOrigen = 'FACTURA'
-                 OR (
-                     cpoc.DocumentoOrigen = 'ORDENCOMPRA'
-                     AND ISNULL(cpoc.CantidadFacturadaValidaciones, 0) = 0
-                     AND e.Nombre <> 'FACTURADA'
-                 )
+                  -- 1. Incluye TODAS las Facturas
+                  cpoc.DocumentoOrigen = 'FACTURA'
+                  OR 
+                  -- 2. Incluye las Ordenes de Compra que tienen un saldo pendiente mayor a 0
+                  (
+                      cpoc.DocumentoOrigen = 'ORDENCOMPRA'
+                      AND (cpoc.Cantidad - ISNULL(cpoc.CantidadFacturadaValidaciones, 0)) > 0
+                      AND e.Nombre <> 'FACTURADA'
+                  )
              )
-    ORDER BY cpoc.IdDocumento ASC;
+    ORDER BY cpoc.Fecha;
     """
 
     query_2012 = """

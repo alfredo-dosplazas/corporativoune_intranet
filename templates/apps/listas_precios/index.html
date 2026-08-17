@@ -1,112 +1,177 @@
-<form method="POST" action="{% url 'generar_listas_zip' %}">
-    {% csrf_token %}
+<c-layouts.app>
+    <div class="p-4 max-w-7xl mx-auto space-y-6">
 
-    <div style="display: flex; gap: 15px; margin-bottom: 15px; align-items: center;">
-        <div>
-            <label for="empresa">Empresa:</label>
-            <select name="empresa" id="empresa">
-                <option value="DOMINUM">DOMINUM</option>
-                <option value="ABRAHAM">ABRAHAM</option>
-            </select>
+        <!-- HEADER DE PÁGINA -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-base-100 p-6 rounded-2xl border border-base-200 shadow-xs">
+            <div>
+                <h1 class="text-2xl font-black text-base-content tracking-tight flex items-center gap-2">
+                    <span class="icon-[lucide--tags] text-primary text-2xl"></span>
+                    Generador de Listas de Precios
+                </h1>
+                <p class="text-xs text-base-content/60 mt-1">
+                    Ajusta los porcentajes de descuento y utilidad por línea o modifica individualmente el precio base
+                    de los productos.
+                </p>
+            </div>
         </div>
 
-        <div>
-            <input
-                type="text"
-                id="searchInput"
-                placeholder="🔍 Buscar por clave o descripción..."
-                onkeyup="filtrarTabla()"
-                style="padding: 6px; width: 250px;"
-            />
-        </div>
+        <form method="POST" action="{% url 'generar_listas_zip' %}" class="space-y-4">
+            {% csrf_token %}
 
-        <div>
-            <button type="submit" class="btn btn-primary">
-                🚀 Generar Listas (.ZIP)
-            </button>
-        </div>
+            <!-- BARRA DE FILTROS Y ACCIONES -->
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-base-100 p-4 rounded-2xl border border-base-200 shadow-xs">
+
+                <div class="flex flex-wrap items-center gap-3">
+                    <!-- EMPRESA -->
+                    <div class="flex items-center gap-2">
+                        <label for="empresa" class="text-xs font-bold text-base-content/70">Empresa:</label>
+                        <select name="empresa" id="empresa"
+                                class="select select-sm select-bordered rounded-xl text-xs font-semibold">
+                            <option value="DOMINUM">DOMINUM</option>
+                            <option value="ABRAHAM">ABRAHAM</option>
+                        </select>
+                    </div>
+
+                    <!-- BUSCADOR -->
+                    <div class="relative w-64">
+                        <span class="icon-[lucide--search] absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40 text-sm"></span>
+                        <input type="text"
+                               id="searchInput"
+                               onkeyup="filtrarLineas()"
+                               placeholder="Buscar línea..."
+                               class="input input-sm input-bordered pl-9 w-full rounded-xl text-xs"/>
+                    </div>
+                </div>
+
+                <!-- SELECCIÓN Y BOTÓN GENERAR -->
+                <div class="flex items-center gap-2">
+                    <label class="label cursor-pointer gap-2 bg-base-200/60 px-3 py-1.5 rounded-xl border border-base-200 text-xs font-medium hover:bg-base-200">
+                        <input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)" checked
+                               class="checkbox checkbox-xs checkbox-primary rounded-md"/>
+                        <span>Seleccionar Visibles</span>
+                    </label>
+
+                    <button type="submit" class="btn btn-sm btn-primary rounded-xl gap-2 font-bold shadow-xs">
+                        <span class="icon-[lucide--download] text-base"></span>
+                        Generar Listas (.ZIP)
+                    </button>
+                </div>
+            </div>
+
+            <!-- CONTENEDOR DE LÍNEAS -->
+            <div class="space-y-3" id="contenedorLineas">
+                {% for linea in lineas %}
+                    <div class="linea-item bg-base-100 border border-base-200 rounded-2xl shadow-2xs overflow-hidden transition-all hover:border-base-300">
+
+                        <!-- FILA ENCABEZADO DE LA LÍNEA -->
+                        <div class="p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 bg-base-100">
+
+                            <!-- Checkbox + Clave + Descripción -->
+                            <div class="flex items-center gap-3 min-w-[220px]">
+                                <input type="checkbox"
+                                       name="lineas_seleccionadas"
+                                       value="{{ linea.CVE_LIN }}"
+                                       checked
+                                       class="linea-checkbox checkbox checkbox-sm checkbox-primary rounded-lg"/>
+
+                                <div class="col-info flex items-center gap-2">
+                                    <span class="col-cve badge badge-neutral badge-sm font-mono font-bold rounded-md">{{ linea.CVE_LIN }}</span>
+                                    <span class="col-desc font-bold text-sm text-base-content/80">{{ linea.DESC_LIN }}</span>
+                                </div>
+                            </div>
+
+                            <!-- CONTROLES DE DESCUENTO Y UTILIDAD -->
+                            <div class="flex flex-wrap items-center gap-2">
+                                {% for lista in listas %}
+                                    <div class="flex items-center gap-1.5 bg-base-200/50 p-1.5 rounded-xl border border-base-200 text-2xs">
+                                        <span class="font-bold px-1 text-base-content/70">{{ lista.DESCRIPCION }}:</span>
+
+                                        <div class="flex items-center gap-0.5">
+                                            <span class="text-xs opacity-50 font-bold">D%</span>
+                                            <input type="number"
+                                                   step="0.01"
+                                                   name="desc_{{ linea.CVE_LIN }}_{{ lista.CVE_PRECIO }}"
+                                                   value="0"
+                                                   class="input input-xs input-bordered w-14 text-center rounded-lg font-mono focus:input-primary"/>
+                                        </div>
+
+                                        <div class="flex items-center gap-0.5">
+                                            <span class="text-xs opacity-50 font-bold">U%</span>
+                                            <input type="number"
+                                                   step="0.01"
+                                                   name="util_{{ linea.CVE_LIN }}_{{ lista.CVE_PRECIO }}"
+                                                   value="0"
+                                                   class="input input-xs input-bordered w-14 text-center rounded-lg font-mono focus:input-primary"/>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+
+                                <!-- BOTÓN DESPLEGABLE DE PRODUCTOS (HTMX) -->
+                                <button type="button"
+                                        class="btn btn-xs btn-outline btn-ghost gap-1 rounded-xl text-2xs font-bold"
+                                        onclick="toggleProductos('prods-{{ linea.CVE_LIN }}')"
+                                        hx-get="{% url 'cargar_productos_linea' %}?cve_lin={{ linea.CVE_LIN }}"
+                                        hx-target="#prods-{{ linea.CVE_LIN }}"
+                                        hx-trigger="click once"
+                                        hx-include="#empresa"
+                                        hx-swap="innerHTML">
+                                    <span class="icon-[lucide--chevron-down] text-sm"></span>
+                                    Productos
+                                </button>
+                            </div>
+
+                        </div>
+
+                        <!-- SECCIÓN DESPLEGABLE DE PRODUCTOS -->
+                        <div id="prods-{{ linea.CVE_LIN }}" class="hidden border-t border-base-200/60 p-3 bg-base-100">
+                            <div class="flex items-center justify-center p-3 gap-2 text-xs text-base-content/50">
+                                <span class="loading loading-spinner loading-xs text-primary"></span>
+                                Cargando productos...
+                            </div>
+                        </div>
+
+                    </div>
+                {% endfor %}
+            </div>
+
+        </form>
     </div>
 
-    <table border="1" cellpadding="5" cellspacing="0" id="tablaLineas">
-        <thead>
-            <tr>
-                <th>
-                    <input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)" checked />
-                </th>
-                <th>Línea</th>
-                <th>Descripción</th>
-                {% for lista in listas %}
-                    <th>Desc. {{ lista.DESCRIPCION }} (%)</th>
-                    <th>Util. {{ lista.DESCRIPCION }} (%)</th>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for linea in lineas %}
-                <tr class="linea-row">
-                    <td style="text-align: center;">
-                        <input
-                            type="checkbox"
-                            name="lineas_seleccionadas"
-                            value="{{ linea.CVE_LIN }}"
-                            class="linea-checkbox"
-                            checked
-                        />
-                    </td>
-                    <td class="col-cve">{{ linea.CVE_LIN }}</td>
-                    <td class="col-desc">{{ linea.DESC_LIN }}</td>
-                    {% for lista in listas %}
-                        <td>
-                            <input
-                                type="number"
-                                step="0.01"
-                                name="desc_{{ linea.CVE_LIN }}_{{ lista.CVE_PRECIO }}"
-                                value="0"
-                                style="width: 65px;"
-                            /> %
-                        </td>
-                        <td>
-                            <input
-                                type="number"
-                                step="0.01"
-                                name="util_{{ linea.CVE_LIN }}_{{ lista.CVE_PRECIO }}"
-                                value="0"
-                                style="width: 65px;"
-                            /> %
-                        </td>
-                    {% endfor %}
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</form>
-
-<script>
-// Buscador en vivo
-function filtrarTabla() {
-    const filter = document.getElementById('searchInput').value.toUpperCase();
-    const rows = document.querySelectorAll('#tablaLineas tbody tr.linea-row');
-
-    rows.forEach(row => {
-        const cve = row.querySelector('.col-cve').textContent.toUpperCase();
-        const desc = row.querySelector('.col-desc').textContent.toUpperCase();
-
-        if (cve.includes(filter) || desc.includes(filter)) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
+    <script>
+        // Alternar visibilidad del contenedor de productos
+        function toggleProductos(targetId) {
+            const container = document.getElementById(targetId);
+            if (container) {
+                container.classList.toggle('hidden');
+            }
         }
-    });
-}
 
-// Seleccionar / Deseleccionar todos los checkboxes visibles
-function toggleSelectAll(master) {
-    const checkboxes = document.querySelectorAll('.linea-checkbox');
-    checkboxes.forEach(cb => {
-        // Solo marcar/desmarcar si la fila está visible por el filtro de búsqueda
-        if (cb.closest('tr').style.display !== 'none') {
-            cb.checked = master.checked;
+        // Buscador de líneas en tiempo real
+        function filtrarLineas() {
+            const filter = document.getElementById('searchInput').value.toUpperCase();
+            const items = document.querySelectorAll('#contenedorLineas .linea-item');
+
+            items.forEach(item => {
+                const cve = item.querySelector('.col-cve').textContent.toUpperCase();
+                const desc = item.querySelector('.col-desc').textContent.toUpperCase();
+
+                if (cve.includes(filter) || desc.includes(filter)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
         }
-    });
-}
-</script>
+
+        // Seleccionar / Deseleccionar visible
+        function toggleSelectAll(master) {
+            const checkboxes = document.querySelectorAll('.linea-checkbox');
+            checkboxes.forEach(cb => {
+                const container = cb.closest('.linea-item');
+                if (container && container.style.display !== 'none') {
+                    cb.checked = master.checked;
+                }
+            });
+        }
+    </script>
+</c-layouts.app>

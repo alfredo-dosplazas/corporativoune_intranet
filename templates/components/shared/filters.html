@@ -1,55 +1,44 @@
 {% load crispy_forms_tags %}
-<label for="filters-drawer" class="btn btn-sm btn-outline relative">
-    <span class="icon-[mdi--filter] size-4"></span>
-    Filtros
 
-    {% for field in filter.form %}
-        {% if field.value %}
-            <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-error rounded-full"></span>
-        {% endif %}
-    {% endfor %}
-</label>
-
-<div class="drawer drawer-end">
+<div class="drawer drawer-end z-[150]">
     <input id="filters-drawer" type="checkbox" class="drawer-toggle"/>
 
-    <div class="drawer-content"></div>
-
     <div class="drawer-side">
-        <label for="filters-drawer" class="drawer-overlay"></label>
+        <label for="filters-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 
-        <form method="get"
-              class="w-80 bg-base-100 min-h-full flex flex-col">
+        <!-- El contenido se incluye dentro del mismo formulario de la Omnibar o sincroniza sus inputs -->
+        <div class="w-80 sm:w-96 bg-base-100 min-h-full flex flex-col shadow-2xl border-l border-base-200">
 
             <!-- HEADER -->
-            <div class="p-4 border-b flex items-center justify-between">
-                <h3 class="font-bold text-lg">
-                    Filtros
-                </h3>
-                <label for="filters-drawer" class="btn btn-sm btn-ghost">✕</label>
+            <div class="p-4 border-b border-base-200 flex items-center justify-between bg-base-200/50">
+                <div class="flex items-center gap-2">
+                    <span class="icon-[mdi--tune] text-primary text-lg"></span>
+                    <h3 class="font-bold text-base">Filtros Avanzados</h3>
+                </div>
+                <label for="filters-drawer" class="btn btn-sm btn-circle btn-ghost text-base-content/70">✕</label>
             </div>
 
-            <!-- CONTENIDO SCROLLABLE -->
+            <!-- CONTENIDO SCROLLABLE CON CAMPOS CRISPY -->
             <div class="flex-1 overflow-y-auto p-4 space-y-4">
-                {% for key, value in request.GET.items %}
-                    {% if key != 'page' and key not in filter.form.fields %}
-                        <input type="hidden" name="{{ key }}" value="{{ value }}">
-                    {% endif %}
-                {% endfor %}
-
-                {% crispy filter.form %}
+                {% if filter %}
+                    {% crispy filter.form %}
+                {% endif %}
             </div>
 
-            <!-- FOOTER -->
-            <div class="p-4 border-t flex justify-between">
-                <a href="?" class="btn btn-sm btn-ghost">
-                    Limpiar
+            <!-- FOOTER CON ACCIONES -->
+            <div class="p-4 border-t border-base-200 bg-base-200/30 flex items-center justify-between gap-2">
+                <a href="?vista={{ vista|default:'tarjetas' }}" class="btn btn-sm btn-ghost text-xs">
+                    Limpiar Filtros
                 </a>
-                <button type="submit" class="btn btn-sm btn-primary">
-                    Buscar
+                <button type="submit"
+                        form="omnibar-form"
+                        onclick="document.getElementById('filters-drawer').checked = false;"
+                        class="btn btn-sm btn-primary gap-1 px-4">
+                    <span class="icon-[mdi--magnify] size-4"></span>
+                    Aplicar
                 </button>
             </div>
 
-        </form>
+        </div>
     </div>
 </div>
