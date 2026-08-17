@@ -18,8 +18,8 @@ class ConfiguracionUsuarioSlack(models.Model):
     usuario = models.OneToOneField(User, on_delete=models.SET_NULL, related_name='usuario_slack', blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        contacto = getattr(self.usuario, 'contacto')
-        contacto_slack_id = getattr(contacto, 'slack_id')
+        contacto = getattr(self.usuario, 'contacto', None)
+        contacto_slack_id = getattr(contacto, 'slack_id', None)
 
         if not self.slack_id:
             if contacto_slack_id:
