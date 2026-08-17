@@ -15,11 +15,11 @@ class ListaNotificacionSlack(models.Model):
 class ConfiguracionUsuarioSlack(models.Model):
     email = models.EmailField()
     slack_id = models.CharField(max_length=100, unique=True, blank=True)
-    usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='usuario_slack')
+    usuario = models.OneToOneField(User, on_delete=models.SET_NULL, related_name='usuario_slack', blank=True, null=True)
 
     def save(self, *args, **kwargs):
         contacto = getattr(self.usuario, 'contacto')
-        contacto_slack_id = contacto.slack_id
+        contacto_slack_id = getattr(contacto, 'slack_id')
 
         if not self.slack_id:
             if contacto_slack_id:
