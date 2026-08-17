@@ -12,6 +12,7 @@ from django.views.generic import TemplateView
 from django.shortcuts import redirect, render
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.evidencias_moldes.notifications import enviar_notificacion_evidencia_moldes
 from apps.fotos.utils import get_thumbnail
 from intranet import settings
 
@@ -209,6 +210,19 @@ class ExploradorEvidenciasMoldesView(PermissionRequiredMixin, BreadcrumbsMixin, 
 
         # Redireccionar hacia la carpeta de evidencias de la fecha correspondiente
         ruta_redireccion = f"{ruta}/{CARPETA_EVIDENCIAS_NOMBRE}/{fecha_str}".strip("/")
+
+        url_carpeta = request.build_absolute_uri(
+            reverse("evidencias_moldes:path", kwargs={"ruta": ruta_redireccion})
+        )
+
+        # Notificar evidencias
+        enviar_notificacion_evidencia_moldes(
+            archivo_destino=archivo_destino,
+            usuario=usuario,
+            ruta_obra=ruta,
+            url_carpeta=url_carpeta,
+        )
+
         return redirect("evidencias_moldes:path", ruta=ruta_redireccion)
 
 

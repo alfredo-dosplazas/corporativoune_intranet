@@ -408,3 +408,5 @@ PWA_APP_SCREENSHOTS = [
         "type": "image/png"
     }
 ]
+
+APP_URL = env('APP_URL', default='http://localhost:8000')
