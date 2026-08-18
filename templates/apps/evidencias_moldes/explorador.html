@@ -135,14 +135,13 @@
 
     <!-- BANNER ADMINISTRATIVO: Muestra el usuario SMB de conexión -->
     {% if smb_info %}
-        <div class="mb-4 px-4 py-2 bg-base-200 border border-base-300 rounded-xl flex items-center justify-between text-xs text-base-content/70">
-            <div class="flex items-center gap-2">
-                <span class="icon-[tabler--shield-lock] text-warning size-4"></span>
-                <span class="font-semibold">Modo Administrador:</span>
-                <span>Conectado como <code
-                        class="font-mono text-primary font-bold">{{ smb_info.dominio }}\{{ smb_info.usuario }}</code></span>
+        <div class="mb-4 p-3 bg-base-200 border border-base-300 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-base-content/70">
+            <div class="flex flex-wrap items-center gap-1.5 min-w-0">
+                <span class="icon-[tabler--shield-lock] text-warning size-4 shrink-0"></span>
+                <span class="font-semibold shrink-0">Modo Administrador:</span>
+                <span class="truncate">Conectado como <code class="font-mono text-primary font-bold break-all">{{ smb_info.dominio }}\{{ smb_info.usuario }}</code></span>
             </div>
-            <span class="badge badge-success badge-sm text-white gap-1 font-mono">Impersonación Activa</span>
+            <span class="badge badge-success badge-sm text-white gap-1 font-mono shrink-0 self-start sm:self-auto">Impersonación Activa</span>
         </div>
     {% endif %}
 
