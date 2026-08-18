@@ -9,4 +9,5 @@ class Permiso(models.Model):
         permissions = [
             ('acceder_explorador_direccion_obras', 'Acceder al explorador carpeta Dirección Obras'),
             ('ver_foto', 'Ver foto en módulo de evidencias moldes'),
+            ('subir_evidencia', 'Subir evidencia en módulo de evidencias moldes'),
         ]

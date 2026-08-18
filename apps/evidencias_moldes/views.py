@@ -2,26 +2,26 @@ import os
 import re
 from datetime import datetime
 from PIL import Image
+
+from django.conf import settings
 from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
-
 from django.core.paginator import Paginator
 from django.http import Http404, FileResponse, HttpResponseForbidden
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.generic import TemplateView
-from django.shortcuts import redirect, render
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.evidencias_moldes.notifications import enviar_notificacion_evidencia_moldes
+from apps.evidencias_moldes.win_impersonate import impersonate_user
 from apps.fotos.utils import get_thumbnail
-from intranet import settings
 
 IMAGENES_EXT = (".jpg", ".jpeg", ".png", ".webp")
 CARPETA_EVIDENCIAS_NOMBRE = "fotos_subidas_intranet"
 
 
 def es_imagen_valida(archivo_file):
-    """ Valida que el archivo subido sea realmente una imagen funcional """
     try:
         img = Image.open(archivo_file)
         img.verify()
@@ -32,54 +32,49 @@ def es_imagen_valida(archivo_file):
 
 
 class ExploradorEvidenciasMoldesView(PermissionRequiredMixin, BreadcrumbsMixin, TemplateView):
-    permission_required = 'evidencias_moldes.acceder_explorador_direccion_obras'
     template_name = "apps/evidencias_moldes/explorador.html"
     paginate_by = 24
 
-    # =========================================================================
-    # REGLAS DE NAVEGACIÓN Y PERMISOS POR NIVEL
-    # Nivel 0 (Raíz): Muestra solo carpetas de 4 dígitos (Años: 2024, 2025, 2026...)
-    # Nivel 1: Muestra solo 'moldes'
-    # Nivel 2: Muestra solo 'construidea'
-    # Nivel 3: Muestra cualquier Obra seleccionable (Cualquier carpeta)
-    # Nivel 4+: Dentro de la obra / fotos_subidas_intranet / YYYY-MM-DD
-    # =========================================================================
+    def has_permission(self):
+        """
+        Valida permisos dinámicamente según el método HTTP:
+        - GET: requiere 'acceder_explorador_direccion_obras'
+        - POST: requiere 'subir_evidencia' Y 'acceder_explorador_direccion_obras'
+        """
+        user = self.request.user
+        permiso_base = user.has_perm('evidencias_moldes.acceder_explorador_direccion_obras')
+
+        if self.request.method == "POST":
+            permiso_subida = user.has_perm('evidencias_moldes.subir_evidencia')
+            return permiso_base and permiso_subida
+
+        return permiso_base
+
     REGLAS_NIVEL = {
-        0: lambda nombre: bool(re.match(r"^\d{4}$", nombre)),  # Solo años de 4 dígitos
+        0: lambda nombre: bool(re.match(r"^\d{4}$", nombre)),
         1: lambda nombre: nombre.lower() in {"moldes"},
         2: lambda nombre: nombre.lower() in {"construidea"},
-        3: lambda nombre: True,  # Muestra todas las obras
+        3: lambda nombre: True,
     }
 
-    # Define a partir de qué nivel exacto se permite subir evidencias
     NIVEL_OBRA_SUBIDA = 4
 
     def _obtener_partes_ruta(self, ruta_relativa):
-        """Retorna las partes limpias de la ruta actual."""
         if not ruta_relativa:
             return []
-        return [p for p in ruta_relativa.strip("/").split("/") if p]
+        ruta_limpia = ruta_relativa.replace("\\", "/").strip("/")
+        return [p for p in ruta_limpia.split("/") if p]
 
     def _es_carpeta_permitida(self, nombre_carpeta, nivel_actual):
-        """
-        Aplica el filtro dinámico para saber si una carpeta debe ser visible
-        según el nivel de profundidad actual.
-        """
-        # Si hay regla definida para este nivel, la aplica. Si supera los niveles configurados, permite por defecto.
         regla = self.REGLAS_NIVEL.get(nivel_actual, lambda n: True)
         return regla(nombre_carpeta)
 
     def _es_nivel_obra(self, ruta_relativa):
-        """
-        Determina si el usuario se encuentra exactamente en el nivel configurado
-        para subir evidencias.
-        """
         partes = self._obtener_partes_ruta(ruta_relativa)
         return len(partes) == self.NIVEL_OBRA_SUBIDA
 
     def get_breadcrumbs(self):
         ruta = (self.kwargs.get("ruta") or "").strip("/")
-
         crumbs = [
             {"title": "Inicio", "url": reverse("home")},
             {"title": "Evidencias", "url": reverse("evidencias_moldes:root")},
@@ -89,7 +84,8 @@ class ExploradorEvidenciasMoldesView(PermissionRequiredMixin, BreadcrumbsMixin, 
             return crumbs
 
         acumulado = []
-        for parte in ruta.split("/"):
+        partes = self._obtener_partes_ruta(ruta)
+        for parte in partes:
             acumulado.append(parte)
             crumbs.append({
                 "title": parte,
@@ -100,6 +96,74 @@ class ExploradorEvidenciasMoldesView(PermissionRequiredMixin, BreadcrumbsMixin, 
 
         return crumbs
 
+    def post(self, request, *args, **kwargs):
+        ruta = (self.kwargs.get("ruta") or "").strip("/")
+
+        if not request.user.has_perm("evidencias_moldes.subir_evidencia"):
+            return HttpResponseForbidden("No tienes permiso para subir evidencias.")
+
+        if not self._es_nivel_obra(ruta):
+            return HttpResponseForbidden("No está permitido subir archivos en este directorio.")
+
+        base_path = settings.PROYECTOS_ROOT.resolve()
+        obra_path = (base_path / ruta).resolve()
+
+        if not str(obra_path).startswith(str(base_path)) or not obra_path.exists():
+            raise Http404("Ruta inválida")
+
+        uploaded_files = request.FILES.getlist("foto_evidencia")
+        if not uploaded_files:
+            context = self.get_context_data(**kwargs)
+            context["error"] = "No se ha seleccionado ninguna imagen."
+            return render(request, self.template_name, context)
+
+        archivos_validos = []
+        for uploaded_file in uploaded_files:
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in IMAGENES_EXT or not es_imagen_valida(uploaded_file):
+                context = self.get_context_data(**kwargs)
+                context["error"] = f"El archivo '{uploaded_file.name}' no es un formato de imagen válido."
+                return render(request, self.template_name, context)
+
+            archivos_validos.append(uploaded_file)
+
+        ahora = datetime.now()
+        fecha_str = ahora.strftime("%Y-%m-%d")
+        usuario = request.user.username if request.user.is_authenticated else "anonimo"
+
+        destino_dir = obra_path / CARPETA_EVIDENCIAS_NOMBRE / fecha_str
+        archivos_guardados = []
+
+        # Impersonación usando variables de configuración
+        with impersonate_user(settings.SMB_USER, settings.SMB_PASSWORD, settings.SMB_DOMAIN):
+            destino_dir.mkdir(parents=True, exist_ok=True)
+
+            for idx, uploaded_file in enumerate(archivos_validos):
+                hora_str = datetime.now().strftime("%H%M%S")
+                nombre_limpio = "".join(c for c in uploaded_file.name if c.isalnum() or c in "._-")
+                nombre_final = f"{usuario}_{hora_str}_{idx}_{nombre_limpio}"
+                archivo_destino = destino_dir / nombre_final
+
+                with open(archivo_destino, "wb+") as destination:
+                    for chunk in uploaded_file.chunks():
+                        destination.write(chunk)
+
+                archivos_guardados.append(archivo_destino)
+
+        ruta_redireccion = f"{ruta}/{CARPETA_EVIDENCIAS_NOMBRE}/{fecha_str}".strip("/")
+        url_carpeta = request.build_absolute_uri(
+            reverse("evidencias_moldes:path", kwargs={"ruta": ruta_redireccion})
+        )
+
+        enviar_notificacion_evidencia_moldes(
+            archivos_guardados=archivos_guardados,
+            usuario=usuario,
+            ruta_obra=ruta,
+            url_carpeta=url_carpeta,
+        )
+
+        return redirect("evidencias_moldes:path", ruta=ruta_redireccion)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
@@ -107,12 +171,8 @@ class ExploradorEvidenciasMoldesView(PermissionRequiredMixin, BreadcrumbsMixin, 
         base_path = settings.PROYECTOS_ROOT.resolve()
         current_path = (base_path / ruta).resolve()
 
-        # Validaciones de Seguridad (Path Traversal y existencia)
         if not str(current_path).startswith(str(base_path)):
             raise Http404("Ruta no permitida")
-
-        if not current_path.exists() or not current_path.is_dir():
-            raise Http404("Carpeta no existe")
 
         partes_ruta = self._obtener_partes_ruta(ruta)
         nivel_actual = len(partes_ruta)
@@ -120,17 +180,33 @@ class ExploradorEvidenciasMoldesView(PermissionRequiredMixin, BreadcrumbsMixin, 
         carpetas = []
         fotos = []
 
-        for item in current_path.iterdir():
-            # Ocultar la carpeta de miniaturas
-            if item.name == ".thumbs":
-                continue
+        query = self.request.GET.get("q", "").strip().lower()
 
-            if item.is_dir():
-                # Aplicar el filtro de carpetas por nivel
-                if self._es_carpeta_permitida(item.name, nivel_actual):
-                    carpetas.append(item.name)
-            elif item.suffix.lower() in IMAGENES_EXT:
-                fotos.append(item.name)
+        try:
+            with impersonate_user(
+                settings.SMB_PROYECTOS_USER,
+                settings.SMB_PROYECTOS_PASSWORD,
+                settings.SMB_PROYECTOS_DOMAIN
+            ):
+                if not current_path.exists() or not current_path.is_dir():
+                    raise Http404("Carpeta no existe o sin acceso")
+
+                for item in current_path.iterdir():
+                    if item.name == ".thumbs":
+                        continue
+
+                    # Filtro de Búsqueda (si el usuario escribió algo en ?q=)
+                    if query and query not in item.name.lower():
+                        continue
+
+                    if item.is_dir():
+                        if self._es_carpeta_permitida(item.name, nivel_actual):
+                            carpetas.append(item.name)
+                    elif item.suffix.lower() in IMAGENES_EXT:
+                        fotos.append(item.name)
+
+        except PermissionError:
+            raise Http404("Acceso denegado a este recurso")
 
         carpetas.sort()
         fotos.sort()
@@ -153,93 +229,40 @@ class ExploradorEvidenciasMoldesView(PermissionRequiredMixin, BreadcrumbsMixin, 
             "ruta_padre": "/".join(partes_ruta[:-1]) if partes_ruta else None,
             "es_nivel_obra": es_obra,
             "nombre_carpeta_evidencias": CARPETA_EVIDENCIAS_NOMBRE,
+            "query_busqueda": query,
+            # Datos técnicos de la conexión solo si es STAFF (Seguridad)
+            "smb_info": {
+                "usuario": settings.SMB_PROYECTOS_USER,
+                "dominio": settings.SMB_PROYECTOS_DOMAIN,
+            } if self.request.user.is_staff else None,
         })
+
         return context
-
-    def post(self, request, *args, **kwargs):
-        ruta = (self.kwargs.get("ruta") or "").strip("/")
-
-        # 1. Seguridad: Verificar nivel de permisos de subida
-        if not self._es_nivel_obra(ruta):
-            return HttpResponseForbidden("No está permitido subir archivos en este directorio.")
-
-        base_path = settings.PROYECTOS_ROOT.resolve()
-        obra_path = (base_path / ruta).resolve()
-
-        # 2. Path Traversal Check
-        if not str(obra_path).startswith(str(base_path)) or not obra_path.exists():
-            raise Http404("Ruta inválida")
-
-        # Obtener lista de archivos recibidos
-        uploaded_files = request.FILES.getlist("foto_evidencia")
-        if not uploaded_files:
-            context = self.get_context_data(**kwargs)
-            context["error"] = "No se ha seleccionado ninguna imagen."
-            return render(request, self.template_name, context)
-
-        # 3 y 4. Validar formato y validez de cada archivo
-        archivos_validos = []
-        for uploaded_file in uploaded_files:
-            ext = os.path.splitext(uploaded_file.name)[1].lower()
-            if ext not in IMAGENES_EXT:
-                context = self.get_context_data(**kwargs)
-                context["error"] = f"El archivo '{uploaded_file.name}' tiene un formato no permitido."
-                return render(request, self.template_name, context)
-
-            if not es_imagen_valida(uploaded_file):
-                context = self.get_context_data(**kwargs)
-                context["error"] = f"El archivo '{uploaded_file.name}' está dañado o no es una imagen válida."
-                return render(request, self.template_name, context)
-
-            archivos_validos.append(uploaded_file)
-
-        # 5. Construcción de carpeta destino
-        ahora = datetime.now()
-        fecha_str = ahora.strftime("%Y-%m-%d")
-        usuario = request.user.username if request.user.is_authenticated else "anonimo"
-
-        destino_dir = obra_path / CARPETA_EVIDENCIAS_NOMBRE / fecha_str
-        destino_dir.mkdir(parents=True, exist_ok=True)
-
-        archivos_guardados = []
-
-        # 6. Guardar imágenes en disco
-        for idx, uploaded_file in enumerate(archivos_validos):
-            hora_str = datetime.now().strftime("%H%M%S")
-            nombre_limpio = "".join(c for c in uploaded_file.name if c.isalnum() or c in "._-")
-            nombre_final = f"{usuario}_{hora_str}_{idx}_{nombre_limpio}"
-            archivo_destino = destino_dir / nombre_final
-
-            with open(archivo_destino, "wb+") as destination:
-                for chunk in uploaded_file.chunks():
-                    destination.write(chunk)
-
-            archivos_guardados.append(archivo_destino)
-
-        # Redirección y notificación
-        ruta_redireccion = f"{ruta}/{CARPETA_EVIDENCIAS_NOMBRE}/{fecha_str}".strip("/")
-        url_carpeta = request.build_absolute_uri(
-            reverse("evidencias_moldes:path", kwargs={"ruta": ruta_redireccion})
-        )
-
-        enviar_notificacion_evidencia_moldes(
-            archivos_guardados=archivos_guardados,
-            usuario=usuario,
-            ruta_obra=ruta,
-            url_carpeta=url_carpeta,
-        )
-
-        return redirect("evidencias_moldes:path", ruta=ruta_redireccion)
 
 
 @permission_required("evidencias_moldes.ver_foto")
 def ver_foto(request, ruta):
-    path = (settings.PROYECTOS_ROOT / ruta).resolve()
+    base_path = settings.PROYECTOS_ROOT.resolve()
+    path = (base_path / ruta).resolve()
 
-    if not path.exists():
-        raise Http404()
+    if not str(path).startswith(str(base_path)):
+        raise Http404("Ruta no permitida")
 
     if request.GET.get("thumb"):
         path = get_thumbnail(path)
 
-    return FileResponse(open(path, "rb"))
+    # IMPERSONACIÓN AL ABRIR EL ARCHIVO DE IMAGEN
+    try:
+        with impersonate_user(settings.SMB_PROYECTOS_USER, settings.SMB_PROYECTOS_PASSWORD,
+                              settings.SMB_PROYECTOS_DOMAIN):
+            if not path.exists():
+                raise Http404("Archivo no encontrado")
+
+            # Cargar el contenido en memoria / BytesIO para entregarlo de forma segura
+            from io import BytesIO
+            with open(path, "rb") as f:
+                contenido_foto = BytesIO(f.read())
+
+            return FileResponse(contenido_foto)
+    except PermissionError:
+        raise Http404("Sin permisos para ver este archivo")
