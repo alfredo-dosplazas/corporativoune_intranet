@@ -103,6 +103,9 @@
                 <div class="join justify-center md:justify-end shadow-sm border border-base-300 rounded-xl bg-base-100 overflow-hidden">
                     {% if page_obj.has_previous %}
                         <a href="?page=
+
+
+
                                 {{ page_obj.previous_page_number }}{% if query_busqueda %}&q={{ query_busqueda }}{% endif %}"
                            class="join-item btn btn-sm btn-ghost font-bold">
                             <span class="icon-[ph--arrow-left-bold]"></span>
@@ -119,6 +122,9 @@
 
                     {% if page_obj.has_next %}
                         <a href="?page=
+
+
+
                                 {{ page_obj.next_page_number }}{% if query_busqueda %}&q={{ query_busqueda }}{% endif %}"
                            class="join-item btn btn-sm btn-ghost font-bold">
                             <span class="icon-[ph--arrow-right-bold]"></span>
@@ -139,7 +145,8 @@
             <div class="flex flex-wrap items-center gap-1.5 min-w-0">
                 <span class="icon-[tabler--shield-lock] text-warning size-4 shrink-0"></span>
                 <span class="font-semibold shrink-0">Modo Administrador:</span>
-                <span class="truncate">Conectado como <code class="font-mono text-primary font-bold break-all">{{ smb_info.dominio }}\{{ smb_info.usuario }}</code></span>
+                <span class="truncate">Conectado como <code
+                        class="font-mono text-primary font-bold break-all">{{ smb_info.dominio }}\{{ smb_info.usuario }}</code></span>
             </div>
             <span class="badge badge-success badge-sm text-white gap-1 font-mono shrink-0 self-start sm:self-auto">Impersonación Activa</span>
         </div>
@@ -255,11 +262,13 @@
                          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-4"></div>
 
                     <div class="flex flex-wrap gap-2">
-                        <button type="submit" form="form-foto" class="btn btn-success text-white rounded-xl gap-2">
-                            <span class="icon-[ph--check-circle-bold] size-5"></span>
-                            Confirmar y Subir
+                        <button type="submit" id="btn-subir" form="form-foto"
+                                class="btn btn-success text-white rounded-xl gap-2">
+                            <span class="icon-[ph--check-circle-bold] size-5" id="btn-icon"></span>
+                            <span id="btn-text">Confirmar y Subir</span>
                         </button>
-                        <button type="button" onclick="cancelarCaptura()" class="btn btn-ghost rounded-xl">
+                        <button type="button" id="btn-cancelar" onclick="cancelarCaptura()"
+                                class="btn btn-ghost rounded-xl">
                             Cancelar
                         </button>
                     </div>
@@ -357,6 +366,33 @@
             cambiarModoVista(modoGuardado);
         });
 
+        const formFoto = document.getElementById('form-foto');
+        if (formFoto) {
+            formFoto.addEventListener('submit', function (e) {
+                const btnSubir = document.getElementById('btn-subir');
+                const btnIcon = document.getElementById('btn-icon');
+                const btnText = document.getElementById('btn-text');
+                const btnCancelar = document.getElementById('btn-cancelar');
+
+                if (btnSubir) {
+                    // Deshabilitar botones para prevenir múltiples envíos o cancelación
+                    btnSubir.disabled = true;
+                    btnSubir.classList.add('btn-disabled');
+                    if (btnCancelar) btnCancelar.classList.add('hidden');
+
+                    // Cambiar el icono por un spinner de carga
+                    if (btnIcon) {
+                        btnIcon.className = "loading loading-spinner loading-xs";
+                    }
+
+                    // Cambiar el texto del botón
+                    if (btnText) {
+                        btnText.textContent = "Subiendo fotografías...";
+                    }
+                }
+            });
+        }
+
         function cambiarModoVista(modo) {
             localStorage.setItem('vista_evidencias_modo', modo);
 
@@ -417,11 +453,25 @@
         function cancelarCaptura() {
             const cameraInput = document.getElementById('camera-input');
             const galleryInput = document.getElementById('gallery-input');
+            const btnSubir = document.getElementById('btn-subir');
+            const btnIcon = document.getElementById('btn-icon');
+            const btnText = document.getElementById('btn-text');
 
             if (cameraInput) cameraInput.value = "";
             if (galleryInput) galleryInput.value = "";
             if (cameraInput) cameraInput.disabled = false;
             if (galleryInput) galleryInput.disabled = false;
+
+            if (btnSubir) {
+                btnSubir.disabled = false;
+                btnSubir.classList.remove('btn-disabled');
+            }
+            if (btnIcon) {
+                btnIcon.className = "icon-[ph--check-circle-bold] size-5";
+            }
+            if (btnText) {
+                btnText.textContent = "Confirmar y Subir";
+            }
 
             document.getElementById('preview-grid').innerHTML = "";
             document.getElementById('preview-container').classList.add('hidden');

@@ -14,7 +14,7 @@ EMPRESAS = {
     "DP": "vs_dp",
     "DP 2012": "vs_dp_2012",
     "TERBA": "vs_terba",
-    "TERBA 2012": "vs_terba",
+    "TERBA 2012": "vs_terba_2012",
     "EDIFICATIUM": "vs_edificatium",
     "EDIFICATIUM 2012": "vs_edificatium_2012",
 }

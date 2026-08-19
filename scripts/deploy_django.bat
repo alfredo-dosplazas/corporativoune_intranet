@@ -17,10 +17,8 @@ set DJANGO_SERVICE=corporativoune_intranet
 set CELERY_SERVICE=corporativoune_intranet_celery_worker
 set BEAT_SERVICE=corporativoune_intranet_celery_beat
 
-echo Deteniendo servicios...
-%NSSM% stop %DJANGO_SERVICE%
-%NSSM% stop %CELERY_SERVICE%
-%NSSM% stop %BEAT_SERVICE%
+echo Bajando repositorio...
+git pull origin
 
 timeout /t 5 /nobreak >nul
 
@@ -50,6 +48,13 @@ if %errorlevel% neq 0 (
     pause
     exit /b 1
 )
+
+echo Deteniendo servicios...
+%NSSM% stop %DJANGO_SERVICE%
+%NSSM% stop %CELERY_SERVICE%
+%NSSM% stop %BEAT_SERVICE%
+
+timeout /t 3 /nobreak >nul
 
 echo Iniciando servicios...
 %NSSM% start %DJANGO_SERVICE%
