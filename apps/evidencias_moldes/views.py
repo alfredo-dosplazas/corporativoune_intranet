@@ -135,7 +135,7 @@ class ExploradorEvidenciasMoldesView(PermissionRequiredMixin, BreadcrumbsMixin, 
         archivos_guardados = []
 
         # Impersonación usando variables de configuración
-        with impersonate_user(settings.SMB_USER, settings.SMB_PASSWORD, settings.SMB_DOMAIN):
+        with impersonate_user(settings.SMB_PROYECTOS_USER, settings.SMB_PROYECTOS_PASSWORD, settings.SMB_PROYECTOS_DOMAIN):
             destino_dir.mkdir(parents=True, exist_ok=True)
 
             for idx, uploaded_file in enumerate(archivos_validos):
