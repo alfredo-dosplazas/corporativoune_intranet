@@ -127,9 +127,11 @@ class Contacto(models.Model):
 
     area = models.ForeignKey(
         Area,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         verbose_name='Área',
         related_name='contactos',
+        blank=True,
+        null=True,
     )
 
     puesto = models.ForeignKey(
@@ -137,6 +139,8 @@ class Contacto(models.Model):
         on_delete=models.CASCADE,
         verbose_name='Puesto',
         related_name='contactos',
+        blank=True,
+        null=True,
     )
 
     fecha_nacimiento = models.DateField(blank=True, null=True, verbose_name='Fecha de Nacimiento')

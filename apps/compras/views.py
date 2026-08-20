@@ -113,6 +113,7 @@ class OrdenListView(
         'solicitante__primer_apellido',
         'solicitante__segundo_apellido',
     ]
+    paginate_by = 12
 
     def get_table(self, **kwargs):
         table = super().get_table(**kwargs)

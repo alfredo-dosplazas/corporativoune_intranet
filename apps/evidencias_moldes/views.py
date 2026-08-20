@@ -6,12 +6,14 @@ from PIL import Image
 from django.conf import settings
 from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.http import Http404, FileResponse, HttpResponseForbidden
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.generic import TemplateView
 
+from apps.ad.models import CredencialADUsuario
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.evidencias_moldes.notifications import enviar_notificacion_evidencia_moldes
 from apps.evidencias_moldes.win_impersonate import impersonate_user
@@ -134,21 +136,35 @@ class ExploradorEvidenciasMoldesView(PermissionRequiredMixin, BreadcrumbsMixin, 
         destino_dir = obra_path / CARPETA_EVIDENCIAS_NOMBRE / fecha_str
         archivos_guardados = []
 
+        try:
+            credencial = self.request.user.credencial_ad
+            ad_user = credencial.ad_username
+            ad_pass = credencial.get_password()
+            ad_domain = credencial.ad_domain
+        except CredencialADUsuario.DoesNotExist:
+            raise PermissionDenied("Tu usuario de Django no tiene asignada una credencial de Active Directory.")
+
         # Impersonación usando variables de configuración
-        with impersonate_user(settings.SMB_PROYECTOS_USER, settings.SMB_PROYECTOS_PASSWORD, settings.SMB_PROYECTOS_DOMAIN):
-            destino_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            with impersonate_user(ad_user, ad_pass, ad_domain):
+                destino_dir.mkdir(parents=True, exist_ok=True)
 
-            for idx, uploaded_file in enumerate(archivos_validos):
-                hora_str = datetime.now().strftime("%H%M%S")
-                nombre_limpio = "".join(c for c in uploaded_file.name if c.isalnum() or c in "._-")
-                nombre_final = f"{usuario}_{hora_str}_{idx}_{nombre_limpio}"
-                archivo_destino = destino_dir / nombre_final
+                for idx, uploaded_file in enumerate(archivos_validos):
+                    hora_str = datetime.now().strftime("%H%M%S")
+                    nombre_limpio = "".join(c for c in uploaded_file.name if c.isalnum() or c in "._-")
+                    nombre_final = f"{usuario}_{hora_str}_{idx}_{nombre_limpio}"
+                    archivo_destino = destino_dir / nombre_final
 
-                with open(archivo_destino, "wb+") as destination:
-                    for chunk in uploaded_file.chunks():
-                        destination.write(chunk)
+                    with open(archivo_destino, "wb+") as destination:
+                        for chunk in uploaded_file.chunks():
+                            destination.write(chunk)
 
-                archivos_guardados.append(archivo_destino)
+                    archivos_guardados.append(archivo_destino)
+        except (PermissionError, OSError) as e:
+            if "1326" in str(e):
+                raise PermissionDenied("Las credenciales de Active Directory son incorrectas o vencieron.")
+
+            raise PermissionDenied("Tu usuario de Active Directory no tiene permisos NTFS para explorar esta carpeta.")
 
         ruta_redireccion = f"{ruta}/{CARPETA_EVIDENCIAS_NOMBRE}/{fecha_str}".strip("/")
         url_carpeta = request.build_absolute_uri(
@@ -183,19 +199,22 @@ class ExploradorEvidenciasMoldesView(PermissionRequiredMixin, BreadcrumbsMixin, 
         query = self.request.GET.get("q", "").strip().lower()
 
         try:
-            with impersonate_user(
-                settings.SMB_PROYECTOS_USER,
-                settings.SMB_PROYECTOS_PASSWORD,
-                settings.SMB_PROYECTOS_DOMAIN
-            ):
+            credencial = self.request.user.credencial_ad
+            ad_user = credencial.ad_username
+            ad_pass = credencial.get_password()
+            ad_domain = credencial.ad_domain
+        except CredencialADUsuario.DoesNotExist:
+            raise PermissionDenied("Tu usuario de Django no tiene asignada una credencial de Active Directory.")
+
+        try:
+            with impersonate_user(ad_user, ad_pass, ad_domain):
                 if not current_path.exists() or not current_path.is_dir():
-                    raise Http404("Carpeta no existe o sin acceso")
+                    raise Http404("La carpeta solicitada no existe.")
 
                 for item in current_path.iterdir():
                     if item.name == ".thumbs":
                         continue
 
-                    # Filtro de Búsqueda (si el usuario escribió algo en ?q=)
                     if query and query not in item.name.lower():
                         continue
 
@@ -205,8 +224,11 @@ class ExploradorEvidenciasMoldesView(PermissionRequiredMixin, BreadcrumbsMixin, 
                     elif item.suffix.lower() in IMAGENES_EXT:
                         fotos.append(item.name)
 
-        except PermissionError:
-            raise Http404("Acceso denegado a este recurso")
+        except (PermissionError, OSError) as e:
+            if "1326" in str(e):
+                raise PermissionDenied("Las credenciales de Active Directory son incorrectas o vencieron.")
+
+            raise PermissionDenied("Tu usuario de Active Directory no tiene permisos NTFS para explorar esta carpeta.")
 
         carpetas.sort()
         fotos.sort()
@@ -230,11 +252,10 @@ class ExploradorEvidenciasMoldesView(PermissionRequiredMixin, BreadcrumbsMixin, 
             "es_nivel_obra": es_obra,
             "nombre_carpeta_evidencias": CARPETA_EVIDENCIAS_NOMBRE,
             "query_busqueda": query,
-            # Datos técnicos de la conexión solo si es STAFF (Seguridad)
             "smb_info": {
-                "usuario": settings.SMB_PROYECTOS_USER,
-                "dominio": settings.SMB_PROYECTOS_DOMAIN,
-            } if self.request.user.is_staff else None,
+                "usuario": ad_user,
+                "dominio": ad_domain,
+            } if self.request.user.is_staff or settings.DEBUG else None,
         })
 
         return context
@@ -251,18 +272,27 @@ def ver_foto(request, ruta):
     if request.GET.get("thumb"):
         path = get_thumbnail(path)
 
+    try:
+        credencial = request.user.credencial_ad
+        ad_user = credencial.ad_username
+        ad_pass = credencial.get_password()
+        ad_domain = credencial.ad_domain
+    except CredencialADUsuario.DoesNotExist:
+        raise PermissionDenied("Tu usuario de Django no tiene asignada una credencial de Active Directory.")
+
     # IMPERSONACIÓN AL ABRIR EL ARCHIVO DE IMAGEN
     try:
-        with impersonate_user(settings.SMB_PROYECTOS_USER, settings.SMB_PROYECTOS_PASSWORD,
-                              settings.SMB_PROYECTOS_DOMAIN):
+        with impersonate_user(ad_user, ad_pass, ad_domain):
             if not path.exists():
                 raise Http404("Archivo no encontrado")
 
-            # Cargar el contenido en memoria / BytesIO para entregarlo de forma segura
             from io import BytesIO
             with open(path, "rb") as f:
                 contenido_foto = BytesIO(f.read())
 
             return FileResponse(contenido_foto)
-    except PermissionError:
-        raise Http404("Sin permisos para ver este archivo")
+    except (PermissionError, OSError) as e:
+        if "1326" in str(e):
+            raise PermissionDenied("Las credenciales de Active Directory son incorrectas o vencieron.")
+
+        raise PermissionDenied("Tu usuario de Active Directory no tiene permiso para consultar este archivo.")

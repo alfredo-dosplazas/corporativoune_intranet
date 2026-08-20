@@ -1,35 +1,64 @@
 <c-layouts.base>
-    <div class="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+    <div class="flex flex-col items-center justify-center min-h-[70vh] text-center px-4 py-12">
 
-        <!-- Icon -->
-        <div class="mb-6 text-primary opacity-70">
-            <span class="icon-[mingcute--search-3-line] text-7xl"></span>
+        <!-- Contenedor del Icono e Indicador 404 -->
+        <div class="relative flex items-center justify-center mb-6">
+            <!-- Número 404 de fondo estilizado -->
+            <span class="text-8xl md:text-9xl font-black text-base-content/10 select-none tracking-widest">
+                404
+            </span>
+
+            <!-- Icono flotante superpuesto -->
+            <div class="absolute inset-0 flex items-center justify-center">
+                <div class="p-4 bg-base-200/80 rounded-full shadow-inner backdrop-blur-sm border border-base-content/5">
+                    <span class="icon-[mingcute--search-3-line] text-5xl md:text-6xl text-primary"></span>
+                </div>
+            </div>
         </div>
 
-        <!-- Title -->
-        <h1 class="text-2xl md:text-3xl font-bold mb-2">
-            Página no encontrada
+        <!-- Encabezado Principal -->
+        <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
+            Página o recurso no encontrado
         </h1>
 
-        <!-- Description -->
-        <p class="text-base-content/70 max-w-md mb-6">
+        <!-- Mensaje de error / Descripción -->
+        <div class="max-w-md mb-8 space-y-2">
             {% if exception %}
-                {{ exception }}
+                <div class="p-3 bg-base-200 rounded-lg border border-base-content/10 text-sm font-mono text-base-content/80 text-left overflow-x-auto">
+                    <span class="font-semibold text-error">Detalle:</span> {{ exception }}
+                </div>
             {% else %}
-                La página que intentas acceder no existe, fue movida
-                o no tienes permisos para verla.
+                <p class="text-base text-base-content/70 leading-relaxed">
+                    La ruta que buscas no existe, ha cambiado de ubicación o la carpeta en la red no se encuentra
+                    disponible en este momento.
+                </p>
             {% endif %}
-        </p>
+        </div>
 
-        <!-- Actions -->
-        <div class="flex flex-col sm:flex-row gap-3">
-            <a href="{% url 'home' %}" class="btn btn-primary">
-                Ir al inicio
+        <!-- Acciones Principales (UX optimizado) -->
+        <div class="flex flex-wrap items-center justify-center gap-3 w-full max-w-xs sm:max-w-md">
+            <!-- Ir al inicio -->
+            <a href="{% url 'home' %}" class="btn btn-primary gap-2 flex-1 sm:flex-none">
+                <span class="icon-[mingcute--home-4-line] text-lg"></span>
+                Ir al Inicio
             </a>
 
-            <button onclick="history.back()" class="btn btn-outline">
+            <!-- Volver atrás -->
+            <button onclick="history.back()" class="btn btn-outline gap-2 flex-1 sm:flex-none">
+                <span class="icon-[mingcute--arrow-left-line] text-lg"></span>
                 Volver
             </button>
+
+            <!-- Reintentar / Recargar (clave para explorar carpetas SMB) -->
+            <button onclick="window.location.reload()" class="btn btn-ghost btn-square" title="Recargar página">
+                <span class="icon-[mingcute--refresh-1-line] text-lg"></span>
+            </button>
+        </div>
+
+        <!-- Ayuda contextual / Atajo secundario -->
+        <div class="mt-12 pt-6 border-t border-base-content/10 text-xs text-base-content/50 flex items-center gap-1.5">
+            <span class="icon-[mingcute--information-line]"></span>
+            <span>Si crees que esto es un error, verifica la ruta en el explorador o contacta a soporte.</span>
         </div>
 
     </div>

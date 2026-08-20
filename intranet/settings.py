@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'rangefilter',
     'pwa',
 
+    'apps.ad',
     'apps.asistencias',
     'apps.core',
     'apps.cumpleanios',
@@ -66,7 +67,6 @@ INSTALLED_APPS = [
     'apps.monitoreo_servicios',
     'apps.compras',
     'apps.refacciones_servicios',
-
     'apps.evidencias_moldes',
 
     'apps.listas_precios',
@@ -415,3 +415,5 @@ APP_URL = env('APP_URL', default='http://localhost:8000')
 SMB_PROYECTOS_USER=env('SMB_PROYECTOS_USER')
 SMB_PROYECTOS_PASSWORD=env('SMB_PROYECTOS_PASSWORD')
 SMB_PROYECTOS_DOMAIN=env('SMB_PROYECTOS_DOMAIN')
+
+FIELD_ENCRYPTION_KEY=env('FIELD_ENCRYPTION_KEY')
