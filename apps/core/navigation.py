@@ -79,3 +79,33 @@ def build_directorio_menu():
             'active_patterns': ['directorio:'],
         },
     ]
+
+def build_mobile_dock_menu():
+    return [
+        {
+            "nombre": "Inicio",
+            "icon": "icon-[heroicons--home]",
+            "url_name": "home",
+            "active_patterns": ["home"],
+            "exact": True,
+        },
+        {
+            "nombre": "Directorio",
+            "icon": "icon-[tabler--address-book]",
+            "url_name": "directorio:list",
+            "active_patterns": ["directorio:"],
+            "perms": ["directorio.view_contacto"],
+        },
+        {
+            "nombre": "Fotos",
+            "icon": "icon-[tabler--camera]",
+            "url_name": "fotos:root",
+            "active_patterns": ["fotos:"],
+        },
+        {
+            "nombre": "Configuración",
+            "icon": "icon-[mdi--gear]",
+            "url_name": "configuracion:index",
+            "active_patterns": ["configuracion:"],
+        },
+    ]

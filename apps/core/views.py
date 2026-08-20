@@ -27,21 +27,14 @@ class HomeView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        user = self.request.user
         empresa = getattr(getattr(self.request.user, 'contacto', None), 'empresa', None)
 
         modulos_disponibles = []
-        modulos_visibles_empresa = modulos_visibles(self.request, empresa)
+        modulos_empresa = modulos_visibles(self.request, empresa)
 
-        for modulo in modulos_visibles_empresa:
-            permisos = modulo.permisos.split(',') if modulo.permisos else []
-
-            url = reverse(modulo.url_name) if modulo.url_name else modulo.url
-            if url is None:
-                url = '#'
-
-            if all(user.has_perm(p) for p in permisos):
+        for modulo in modulos_empresa:
+            if modulo.puede_acceder(self.request, empresa):
+                url = reverse(modulo.url_name) if modulo.url_name else (modulo.url or '#')
                 modulos_disponibles.append({
                     "nombre": modulo.nombre,
                     "icono": modulo.icono,
@@ -50,7 +43,6 @@ class HomeView(LoginRequiredMixin, TemplateView):
                 })
 
         context['modulos'] = modulos_disponibles
-
         return context
 
 

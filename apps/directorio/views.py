@@ -10,6 +10,7 @@ from django_tables2 import SingleTableMixin
 from extra_views import SearchableListMixin, CreateWithInlinesView, NamedFormsetsMixin, UpdateWithInlinesView
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.mixins.modulo_required import ModuloRequiredMixin
 from apps.core.mixins.session_filter_state import SessionFilterStateMixin
 from apps.core.mixins.title import PageTitleMixin
 from apps.core.services.notificaciones import notificar_soporte
@@ -26,12 +27,15 @@ from apps.rrhh.models.sedes import Sede
 
 class DirectorioListView(
     PageTitleMixin,
+    ModuloRequiredMixin,
     SessionFilterStateMixin,
     BreadcrumbsMixin,
     SearchableListMixin,
     SingleTableMixin,
     FilterView
 ):
+    nombre_modulo = 'Directorio'
+
     template_name = "apps/directorio/list.html"
     model = Contacto
     table_class = ContactoTable
@@ -49,22 +53,11 @@ class DirectorioListView(
         kwargs['user'] = self.request.user
         return kwargs
 
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['vista'] = self.request.GET.get('vista')
 
         return context
-
-    def dispatch(self, request, *args, **kwargs):
-        ip = get_client_ip(request)
-
-        if not ip_in_allowed_range(ip):
-            return HttpResponseForbidden(
-                "Acceso permitido solo desde la red interna."
-            )
-
-        return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
         ip = get_client_ip(self.request)

@@ -29,23 +29,13 @@
             <c-shared.footer/>
         </div>
 
-        <div class="dock md:hidden bg-base-300 ">
-            <a href="/" class="{% if request.path == '/' %}dock-active{% endif %}">
-                <span class="icon-[heroicons--home] size-[1.2em]"></span>
-                <span class="dock-label">Inicio</span>
-            </a>
-            <a href="{% url 'directorio:list' %}" class="{% if 'directorio' in request.path %}dock-active{% endif %}">
-                <span class="icon-[tabler--address-book] size-[1.2em]"></span>
-                <span class="dock-label">Directorio</span>
-            </a>
-            <a href="{% url 'fotos:root' %}" class="{% if 'fotos' in request.path %}dock-active{% endif %}">
-                <span class="icon-[tabler--camera] size-[1.2em]"></span>
-                <span class="dock-label">Fotos</span>
-            </a>
-            <a href="/" class="{% if 'configuracion' in request.path %}dock-active{% endif %}">
-                <span class="icon-[mdi--gear] size-[1.2em]"></span>
-                <span class="dock-label">Configuración</span>
-            </a>
+        <div class="dock md:hidden bg-base-300">
+            {% for item in mobile_dock_items %}
+                <a href="{{ item.url }}" class="{% if item.active %}dock-active{% endif %}">
+                    <span class="{{ item.icon }} size-[1.2em]"></span>
+                    <span class="dock-label">{{ item.nombre }}</span>
+                </a>
+            {% endfor %}
         </div>
     </div>
 </c-layouts.base>

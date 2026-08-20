@@ -78,7 +78,7 @@ def obtener_desglose_obra(alias_db, id_obra):
 
         ISNULL(ip.CantidadTotalMaterial, 0) AS CantidadTotalMaterial,
         ISNULL(ip.PrecioPresupuestadoReal, 0) AS PrecioPresupuestadoReal,
-        {"ISNULL(ip.PresupuestoMaterial, 0) * pp.Cantidad AS PresupuestoMaterial" if "2012" in alias_db else "ISNULL(ip.PresupuestoMaterial, 0) AS PresupuestoMaterial"}
+        ISNULL(ip.PresupuestoMaterial, 0) AS PresupuestoMaterial
 
     FROM PresupuestoxPartidas pp
 
@@ -159,21 +159,54 @@ def obtener_resumen_compras_reales(alias_db, id_obra):
     query_2012 = """
     DECLARE @IdObra AS VARCHAR(100) = %s;
 
-    SELECT
-        cod.IdConceptoObra,
-        cod.IdInsumo,
-        CAST(ig.Descripcion AS VARCHAR(8000)) AS Insumo,
-        ISNULL(f.IdFamilia, 0) AS IdFamilia,
-        COALESCE(f.Nombre, 'SIN FAMILIA') AS Familia,
-        cod.Cantidad,
-        (cod.Cantidad * cod.Precio) * 1.16 AS ImporteConIVA
-    FROM CargosOrdenesDeCompra AS cod
-    INNER JOIN InsumosGeneral AS ig ON cod.IdInsumo = ig.IdInsumo
-    LEFT OUTER JOIN FamiliaInsumos AS f ON f.IdFamilia = ig.IdFamiliaInsumos
-    WHERE cod.IdObra = @IdObra
-      AND ig.IdGrupoInsumos = 1
-      AND ISNULL(cod.CantidadCancelada, 0) = 0
-    ORDER BY Familia ASC;
+    WITH     MovimientosConsolidados
+    AS       (-- 1. FACTURAS DIRECTAS Y DE PROVEEDOR (Precio subtotal * 1.16)
+              SELECT 'FACTURA' AS DocumentoOrigen,
+                     f.Folio AS FolioDocumento,
+                     cf.FechaEntrega,
+                     cf.IdConceptoObra,
+                     cf.IdInsumo,
+                     cf.Cantidad,
+                     (cf.Cantidad * cf.PrecioOC) * 1.16 AS ImporteConIVA
+              FROM   CargosFacturacionProveedores AS cf
+                     INNER JOIN
+                     FacturacionProveedores AS f
+                     ON cf.IdFacturaProveedor = f.IdFacturaProveedores
+              WHERE  cf.IdObra = @IdObra
+                     AND f.IdEstatus <> 4
+              UNION ALL
+              -- 2. ÓRDENES DE COMPRA PENDIENTES (Precio subtotal * 1.16)
+              SELECT 'ORDENCOMPRA' AS DocumentoOrigen,
+                     CAST (oc.IdOrdenCompra AS VARCHAR (50)) AS FolioDocumento,
+                     cod.FechaEntrega,
+                     cod.IdConceptoObra,
+                     cod.IdInsumo,
+                     (cod.Cantidad - ISNULL(cod.CantidadFacturada, 0)) AS Cantidad,
+                     ((cod.Cantidad - ISNULL(cod.CantidadFacturada, 0)) * cod.Precio) * 1.16 AS ImporteConIVA
+              FROM   CargosOrdenesDeCompra AS cod
+                     INNER JOIN
+                     OrdenesDeCompra AS oc
+                     ON cod.IdOrdenCompra = oc.IdOrdenCompra
+              WHERE  cod.IdObra = @IdObra
+                     AND ISNULL(cod.CantidadCancelada, 0) = 0
+                     AND oc.IdEstatus <> 4
+                     AND (cod.Cantidad - ISNULL(cod.CantidadFacturada, 0)) > 0)
+    SELECT   c.IdConceptoObra,
+             c.IdInsumo,
+             CAST (ig.Descripcion AS VARCHAR (8000)) AS Insumo,
+             ISNULL(f.IdFamilia, 0) AS IdFamilia,
+             COALESCE (f.Nombre, 'SIN FAMILIA') AS Familia,
+             c.Cantidad,
+             c.ImporteConIVA
+    FROM     MovimientosConsolidados AS c
+             INNER JOIN
+             InsumosGeneral AS ig
+             ON c.IdInsumo = ig.IdInsumo
+             LEFT OUTER JOIN
+             FamiliaInsumos AS f
+             ON f.IdFamilia = ig.IdFamiliaInsumos
+    WHERE    ig.IdGrupoInsumos = 1
+    ORDER BY Familia ASC, c.FechaEntrega ASC;
     """
 
     if "2012" in alias_db:

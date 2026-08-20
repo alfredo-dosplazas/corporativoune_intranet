@@ -3,7 +3,9 @@ from django.http import Http404, FileResponse, HttpResponseForbidden
 from django.urls import reverse
 from django.views.generic import TemplateView
 
+from apps.core.decorators import modulo_required
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.mixins.modulo_required import ModuloRequiredMixin
 from apps.core.utils.network import get_client_ip, ip_in_allowed_range
 from apps.fotos.decorators import internal_network_required
 from apps.fotos.utils import get_thumbnail
@@ -12,7 +14,8 @@ from intranet import settings
 IMAGENES_EXT = (".jpg", ".jpeg", ".png", ".webp", ".gif")
 
 
-class ExploradorFotosView(BreadcrumbsMixin, TemplateView):
+class ExploradorFotosView(ModuloRequiredMixin, BreadcrumbsMixin, TemplateView):
+    nombre_modulo = 'Fotos'
     template_name = "apps/fotos/explorador.html"
     paginate_by = 24
 
@@ -95,7 +98,7 @@ class ExploradorFotosView(BreadcrumbsMixin, TemplateView):
         return context
 
 
-@internal_network_required
+@modulo_required('Fotos')
 def ver_foto(request, ruta):
     path = (settings.FOTOS_ROOT / ruta).resolve()
 

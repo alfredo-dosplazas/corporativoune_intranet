@@ -1,6 +1,7 @@
 from django.contrib import admin
 
-from apps.core.models import Modulo, Empresa, ModuloEmpresa, RazonSocial, EmpresaIPRange, EmpresaSoporteSistemas
+from apps.core.models import Modulo, Empresa, ModuloEmpresa, RazonSocial, EmpresaIPRange, EmpresaSoporteSistemas, \
+    ModuloIPRange
 from apps.papeleria.models.configuracion import ConfiguracionEmpresaPapeleria
 
 
@@ -29,10 +30,12 @@ class EmpresaIPRangeInline(admin.TabularInline):
     model = EmpresaIPRange
     extra = 1
 
+
 class EmpresaSoporteSistemasInline(admin.TabularInline):
     model = EmpresaSoporteSistemas
     extra = 1
     max_num = 1
+
 
 @admin.register(Empresa)
 class EmpresaAdmin(admin.ModelAdmin):
@@ -41,7 +44,13 @@ class EmpresaAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'abreviatura', 'codigo', 'logo')
 
 
+class ModuloIpRangeInline(admin.TabularInline):
+    model = ModuloIPRange
+    extra = 1
+
+
 @admin.register(Modulo)
 class ModuloAdmin(admin.ModelAdmin):
+    inlines = [ModuloIpRangeInline]
     search_fields = ['nombre']
     list_display = ('nombre', 'descripcion', 'url_name', 'permisos')

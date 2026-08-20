@@ -1,7 +1,7 @@
 from django.urls import NoReverseMatch, reverse
 
 from apps.core.models import Empresa
-from apps.core.navigation import build_default_menu, build_compras_menu, build_directorio_menu
+from apps.core.navigation import build_default_menu, build_compras_menu, build_directorio_menu, build_mobile_dock_menu
 from apps.core.utils.network import get_client_ip, get_empresa_from_ip
 
 
@@ -113,4 +113,13 @@ def navbar_menu(request):
 
     return {
         'navbar_menu_items': processed_menu
+    }
+
+
+def mobile_dock_menu(request):
+    raw_menu = build_mobile_dock_menu()
+    processed_menu = process_menu_items(raw_menu, request)
+
+    return {
+        'mobile_dock_items': processed_menu
     }

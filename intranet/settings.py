@@ -107,6 +107,7 @@ TEMPLATES = [
                 'apps.core.context_processors.empresas',
                 'apps.core.context_processors.empresa',
                 'apps.core.context_processors.navbar_menu',
+                'apps.core.context_processors.mobile_dock_menu',
             ],
         },
     },
