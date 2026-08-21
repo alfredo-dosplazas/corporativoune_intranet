@@ -26,7 +26,8 @@
             flex-direction: row !important;
             align-items: center !important;
             padding: 0.5rem !important;
-            gap: 1rem !important;
+            gap: 0.75rem !important;
+            min-width: 0 !important;
         }
 
         [data-vista="list"] .item-foto .contenedor-imagen {
@@ -46,6 +47,7 @@
             align-items: center !important;
             justify-content: space-between !important;
             width: 100% !important;
+            min-width: 0 !important;
             padding: 0 !important;
         }
 
@@ -67,11 +69,13 @@
             justify-content: flex-start !important;
             text-align: left !important;
             padding: 0.75rem 1rem !important;
+            min-width: 0 !important;
         }
 
         [data-vista="list"] .item-carpeta .icon-folder {
             width: 1.75rem !important;
             height: 1.75rem !important;
+            flex-shrink: 0 !important;
         }
     </style>
 
@@ -103,9 +107,6 @@
                 <div class="join justify-center md:justify-end shadow-sm border border-base-300 rounded-xl bg-base-100 overflow-hidden">
                     {% if page_obj.has_previous %}
                         <a href="?page=
-
-
-
                                 {{ page_obj.previous_page_number }}{% if query_busqueda %}&q={{ query_busqueda }}{% endif %}"
                            class="join-item btn btn-sm btn-ghost font-bold">
                             <span class="icon-[ph--arrow-left-bold]"></span>
@@ -122,9 +123,6 @@
 
                     {% if page_obj.has_next %}
                         <a href="?page=
-
-
-
                                 {{ page_obj.next_page_number }}{% if query_busqueda %}&q={{ query_busqueda }}{% endif %}"
                            class="join-item btn btn-sm btn-ghost font-bold">
                             <span class="icon-[ph--arrow-right-bold]"></span>
@@ -139,23 +137,36 @@
         </div>
     </c-slot>
 
-    <!-- BANNER ADMINISTRATIVO: Muestra el usuario SMB de conexión -->
+    <!-- BANNER AD OPTIMIZADO PARA MÓVIL (SIN DESBORDAMIENTO) -->
     {% if smb_info %}
-        <div class="mb-4 p-3 bg-base-200 border border-base-300 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-base-content/70">
-            <div class="flex flex-wrap items-center gap-1.5 min-w-0">
-                <span class="icon-[tabler--shield-lock] text-warning size-4 shrink-0"></span>
-                <span class="font-semibold shrink-0">Modo Administrador:</span>
-                <span class="truncate">Conectado como <code
-                        class="font-mono text-primary font-bold break-all">{{ smb_info.dominio }}\{{ smb_info.usuario }}</code></span>
+        <div class="mb-4 p-3 bg-base-200/80 border border-base-300 rounded-xl flex flex-row items-center justify-between gap-2 text-xs text-base-content/80 min-w-0">
+            <div class="flex items-center gap-2 min-w-0 flex-1">
+                <!-- Icono de usuario de red -->
+                <div class="p-1.5 bg-primary/10 rounded-lg text-primary shrink-0">
+                    <span class="icon-[tabler--user-check] size-4"></span>
+                </div>
+
+                <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                    <span class="text-base-content/60 hidden sm:inline shrink-0">Sesión AD:</span>
+                    <code class="font-mono text-primary font-bold bg-base-300/50 px-1.5 py-0.5 rounded text-[11px] truncate min-w-0">
+                        {{ smb_info.dominio }}\{{ smb_info.usuario }}
+                    </code>
+                </div>
             </div>
-            <span class="badge badge-success badge-sm text-white gap-1 font-mono shrink-0 self-start sm:self-auto">Impersonación Activa</span>
+
+            <div class="flex items-center gap-1.5 shrink-0">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-success/10 text-success border border-success/20">
+                    <span class="size-1.5 rounded-full bg-success animate-pulse"></span>
+                    <span class="hidden xs:inline">Autenticado</span>
+                </span>
+            </div>
         </div>
     {% endif %}
 
     {% if error %}
         <div class="alert alert-error shadow-sm mb-6 rounded-xl text-sm font-medium">
-            <span class="icon-[tabler--alert-circle] size-5"></span>
-            <span>{{ error }}</span>
+            <span class="icon-[tabler--alert-circle] size-5 shrink-0"></span>
+            <span class="truncate">{{ error }}</span>
         </div>
     {% endif %}
 
@@ -204,7 +215,7 @@
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h3 class="font-bold text-base text-base-content flex items-center gap-2">
-                            <span class="icon-[mingcute--camera-line] text-success size-5"></span>
+                            <span class="icon-[mingcute--camera-line] text-success size-5 shrink-0"></span>
                             Capturar Evidencias
                         </h3>
                         <p class="text-xs text-base-content/60 mt-0.5">
@@ -284,9 +295,9 @@
                      class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
                     {% for carpeta in carpetas %}
                         <a href="{% url 'evidencias_moldes:path' ruta=ruta_actual|default:''|add:'/'|add:carpeta|stringformat:'s'|cut:'^/' %}"
-                           class="item-carpeta group border border-base-200 bg-base-100 hover:border-primary/40 rounded-xl p-3 transition-all duration-200 hover:shadow-md flex flex-col items-center justify-center text-center gap-2">
+                           class="item-carpeta group border border-base-200 bg-base-100 hover:border-primary/40 rounded-xl p-3 transition-all duration-200 hover:shadow-md flex flex-col items-center justify-center text-center gap-2 min-w-0">
                             <span class="icon-[material-symbols--folder] text-warning size-12 group-hover:scale-105 transition-transform icon-folder shrink-0"></span>
-                            <span class="text-sm font-medium text-base-content/80 group-hover:text-primary truncate w-full px-1">
+                            <span class="text-sm font-medium text-base-content/80 group-hover:text-primary truncate w-full px-1 min-w-0">
                                 {{ carpeta }}
                             </span>
                         </a>
@@ -305,22 +316,22 @@
                     {% for foto in fotos %}
                         <a href="{% url 'evidencias_moldes:show' ruta=ruta_actual|default:''|add:'/'|add:foto %}"
                            data-sub-html="<h4>{{ foto }}</h4>"
-                           class="item-foto group card bg-base-100 border border-base-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-base-300 transition-all duration-200 cursor-zoom-in">
+                           class="item-foto group card bg-base-100 border border-base-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-base-300 transition-all duration-200 cursor-zoom-in min-w-0">
 
-                            <div class="contenedor-imagen relative aspect-square w-full overflow-hidden bg-base-200">
+                            <div class="contenedor-imagen relative aspect-square w-full overflow-hidden bg-base-200 shrink-0">
                                 <img src="{% url 'evidencias_moldes:show' ruta=ruta_actual|default:''|add:'/'|add:foto %}?thumb=1"
                                      class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
                                      loading="lazy"
                                      alt="{{ foto }}">
                                 <div class="overlay-hover absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                                    <span class="text-white text-xs bg-black/60 backdrop-blur-sm px-2 py-1 rounded-md truncate w-full font-medium">
+                                    <span class="text-white text-xs bg-black/60 backdrop-blur-sm px-2 py-1 rounded-md truncate w-full font-medium min-w-0">
                                         {{ foto }}
                                     </span>
                                 </div>
                             </div>
-                            <div class="info-lista hidden p-3">
-                                <span class="text-sm font-medium text-base-content truncate">{{ foto }}</span>
-                                <span class="icon-[ph--magnifying-glass-plus-bold] text-primary size-5 shrink-0 ml-2"></span>
+                            <div class="info-lista hidden p-3 min-w-0 flex-1">
+                                <span class="text-sm font-medium text-base-content truncate min-w-0 flex-1 pr-2">{{ foto }}</span>
+                                <span class="icon-[ph--magnifying-glass-plus-bold] text-primary size-5 shrink-0"></span>
                             </div>
                         </a>
                     {% endfor %}
@@ -328,9 +339,9 @@
             </div>
         {% else %}
             {% if not carpetas %}
-                <div class="text-center py-16 border-2 border-dashed border-base-300 rounded-2xl bg-base-100/50">
+                <div class="text-center py-16 border-2 border-dashed border-base-300 rounded-2xl bg-base-100/50 px-4">
                     <span class="icon-[tabler--photo-off] size-12 text-base-content/30 mb-2"></span>
-                    <p class="text-sm font-medium text-base-content/50">
+                    <p class="text-sm font-medium text-base-content/50 max-w-sm mx-auto truncate">
                         {% if query_busqueda %}
                             No se encontraron resultados para "{{ query_busqueda }}".
                         {% else %}
@@ -375,17 +386,14 @@
                 const btnCancelar = document.getElementById('btn-cancelar');
 
                 if (btnSubir) {
-                    // Deshabilitar botones para prevenir múltiples envíos o cancelación
                     btnSubir.disabled = true;
                     btnSubir.classList.add('btn-disabled');
                     if (btnCancelar) btnCancelar.classList.add('hidden');
 
-                    // Cambiar el icono por un spinner de carga
                     if (btnIcon) {
                         btnIcon.className = "loading loading-spinner loading-xs";
                     }
 
-                    // Cambiar el texto del botón
                     if (btnText) {
                         btnText.textContent = "Subiendo fotografías...";
                     }
@@ -402,10 +410,8 @@
 
             if (!container) return;
 
-            // Cambiar atributo principal
             container.setAttribute('data-vista', modo);
 
-            // Actualizar botones de la barra de herramientas
             if (modo === 'list') {
                 btnList.classList.add('btn-primary', 'text-white');
                 btnList.classList.remove('btn-ghost');

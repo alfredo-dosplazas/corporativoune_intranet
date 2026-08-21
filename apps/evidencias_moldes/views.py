@@ -255,7 +255,7 @@ class ExploradorEvidenciasMoldesView(PermissionRequiredMixin, BreadcrumbsMixin, 
             "smb_info": {
                 "usuario": ad_user,
                 "dominio": ad_domain,
-            } if self.request.user.is_staff or settings.DEBUG else None,
+            },
         })
 
         return context
