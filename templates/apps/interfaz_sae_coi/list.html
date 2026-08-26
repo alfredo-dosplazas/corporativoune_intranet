@@ -1,0 +1,239 @@
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="flex flex-col gap-2.5">
+
+            <!-- FILA PRINCIPAL DEL CONTROL PANEL (TIPO ODOO) -->
+            <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+
+                <!-- 1. IZQUIERDA: Título de la vista + Badge informativo -->
+                <div class="flex items-center gap-3 shrink-0">
+                    <div class="flex items-center gap-2">
+                        <span class="icon-[tabler--receipt-tax] text-primary size-5 sm:size-6"></span>
+                        <h1 class="font-extrabold text-lg md:text-xl leading-none tracking-tight">
+                            Documentos a Contabilizar (SAE)
+                        </h1>
+                    </div>
+
+                    <span class="badge badge-neutral badge-sm font-medium">
+                        {{ documentos|length }} pendientes
+                    </span>
+                </div>
+
+                <!-- 2. CENTRO: OMNIBAR TIPO ODOO (Filtros Año/Mes + Buscador + Chips) -->
+                <div class="flex-1 max-w-3xl mx-auto w-full">
+                    <form method="get" class="flex flex-col sm:flex-row items-center gap-2">
+
+                        <!-- Selectores de Año y Mes -->
+                        <div class="join shrink-0 w-full sm:w-auto">
+                            <!-- Selector Mes -->
+                            <select name="mes" onchange="this.form.submit()"
+                                    class="join-item select select-sm select-bordered focus:outline-none text-xs bg-base-100">
+                                {% for m in meses_disponibles %}
+                                    <option value="{{ m.numero }}"
+                                            {% if m.numero == mes_seleccionado %}selected{% endif %}>
+                                        {{ m.nombre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <!-- Selector Año -->
+                            <select name="anio" onchange="this.form.submit()"
+                                    class="join-item select select-sm select-bordered focus:outline-none text-xs bg-base-100">
+                                {% for a in anios_disponibles %}
+                                    <option value="{{ a }}" {% if a == anio_seleccionado %}selected{% endif %}>
+                                        {{ a }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Omnibar con Chips y Buscador -->
+                        <div class="join w-full border border-base-300 rounded-lg shadow-xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary bg-base-100 overflow-hidden">
+
+                            <!-- Ícono de Lupa -->
+                            <span class="join-item flex items-center px-3 text-base-content/50 bg-transparent">
+                                <span class="icon-[tabler--search] size-4"></span>
+                            </span>
+
+                            <!-- Chips de Filtros Activos -->
+                            <div class="flex items-center gap-1 py-1 pr-1 shrink-0">
+                                {% if request.GET.almacen %}
+                                    <a href="{% querystring %}"
+                                       class="badge badge-info badge-sm gap-1 cursor-pointer hover:opacity-80">
+                                        <span class="text-[11px]">Alm: {{ request.GET.almacen }}</span>
+                                        <span class="icon-[tabler--x] size-3"></span>
+                                    </a>
+                                {% endif %}
+
+                                {% if request.GET.q %}
+                                    <a href="{% querystring %}"
+                                       class="badge badge-neutral badge-sm gap-1 cursor-pointer hover:opacity-80">
+                                        <span class="text-[11px]">"{{ request.GET.q }}"</span>
+                                        <span class="icon-[tabler--x] size-3"></span>
+                                    </a>
+                                {% endif %}
+                            </div>
+
+                            <!-- Input de Búsqueda Principal -->
+                            <input
+                                    type="text"
+                                    name="q"
+                                    value="{{ request.GET.q|default:'' }}"
+                                    placeholder="Buscar por folio, cliente..."
+                                    class="join-item input input-sm w-full focus:outline-none bg-transparent text-xs sm:text-sm px-2 border-none"
+                            />
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 3. DERECHA: Botón de Acción Global / Sincronización -->
+                <div class="flex items-center justify-end gap-2 shrink-0">
+                    <button class="btn btn-ghost btn-sm btn-square" title="Recargar documentos">
+                        <span class="icon-[tabler--refresh] size-4 text-base-content/70"></span>
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+    </c-slot>
+
+    <!-- LISTADO DE DOCUMENTOS -->
+    {% if documentos %}
+        <div class="card bg-base-100 shadow-xs border border-base-200 mt-4 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="table table-sm w-full">
+                    <thead>
+                    <tr class="bg-base-200/50 text-base-content/70">
+                        <th>Folio SAE</th>
+                        <th>Fecha</th>
+                        <th>Cliente</th>
+                        <th class="text-center">Almacén</th>
+                        <th class="text-right">Subtotal</th>
+                        <th class="text-right">IVA</th>
+                        <th class="text-right">Total</th>
+                        <th class="text-center">Estado COI</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for doc in documentos %}
+                        <tr class="hover:bg-base-200/30 transition-colors">
+                            <!-- Folio con ícono -->
+                            <td class="font-bold text-xs sm:text-sm text-primary">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="icon-[tabler--file-invoice] size-4 opacity-70"></span>
+                                    <span>{{ doc.FOLIO }}</span>
+                                </div>
+                            </td>
+
+                            <!-- Fecha -->
+                            <td class="text-xs whitespace-nowrap">
+                                {{ doc.FECHA|date:"d/m/Y"|default:doc.FECHA }}
+                            </td>
+
+                            <!-- Cliente -->
+                            <td class="text-xs max-w-xs truncate">
+                                <span class="font-semibold text-base-content/80">[{{ doc.CLAVE_CLIENTE }}]</span>
+                                <span class="text-base-content/70">{{ doc.NOMBRE_CLIENTE }}</span>
+                            </td>
+
+                            <!-- Almacén -->
+                            <td class="text-center">
+                                {% if doc.ALMACEN == 1 %}
+                                    <span class="badge badge-outline badge-primary text-[11px] font-medium">
+                                            Salamanca (1)
+                                        </span>
+                                {% elif doc.ALMACEN == 3 %}
+                                    <span class="badge badge-outline badge-secondary text-[11px] font-medium">
+                                            Cortazar (3)
+                                        </span>
+                                {% else %}
+                                    <span class="badge badge-ghost text-[11px]">
+                                            Alm {{ doc.ALMACEN }}
+                                        </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Montos -->
+                            <td class="text-right text-xs font-mono">${{ doc.SUBTOTAL|floatformat:2 }}</td>
+                            <td class="text-right text-xs font-mono text-base-content/70">
+                                ${{ doc.IVA|floatformat:2 }}</td>
+                            <td class="text-right text-xs font-mono font-bold">${{ doc.TOTAL|floatformat:2 }}</td>
+
+                            <!-- Estado COI -->
+                            <td class="text-center">
+                                    <span class="badge badge-warning badge-xs sm:badge-sm gap-1 font-medium">
+                                        <span class="size-1.5 rounded-full bg-warning-content animate-pulse"></span>
+                                        Pendiente
+                                    </span>
+                            </td>
+
+                            <!-- Acciones -->
+                            <td class="text-center">
+                                <div class="flex items-center justify-center gap-1">
+                                    <!-- Botón Vista Previa Póliza -->
+                                    <a href="{% url 'interfaz_sae_coi:documento_preview' doc.FOLIO %}"
+                                       class="btn btn-ghost btn-xs gap-1 text-primary hover:bg-primary/10"
+                                       title="Ver vista previa de pólizas">
+                                        <span class="icon-[tabler--eye] size-4"></span>
+                                        <span class="hidden sm:inline">Póliza Previa</span>
+                                    </a>
+
+                                    <!-- Botón Directo Contabilizar -->
+                                    <form method="post"
+                                          action=""
+                                          class="inline">
+                                        {% csrf_token %}
+                                        <button type="submit"
+                                                class="btn btn-primary btn-xs gap-1 shadow-xs"
+                                                onclick="return confirm('¿Generar pólizas en COI para la factura {{ doc.FOLIO }}?');"
+                                                title="Generar póliza en COI (No contabilizada)">
+                                            <span class="icon-[tabler--device-floppy] size-4"></span>
+                                            <span class="hidden lg:inline">Generar</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <!-- EMPTY STATE CUANDO NO HAY DOCUMENTOS PENDIENTES -->
+        <div class="flex flex-col items-center justify-center py-12 px-4 text-center bg-base-100 rounded-lg border border-dashed border-base-300 my-4">
+            <!-- Ícono decorativo -->
+            <div class="bg-base-200/60 p-4 rounded-full mb-3 text-base-content/50">
+                <span class="size-8 icon-[tabler--circle-check] text-success"></span>
+            </div>
+
+            <!-- Título principal -->
+            <h3 class="text-sm font-semibold text-base-content/80">
+                No hay facturas pendientes de contabilizar
+            </h3>
+
+            <p class="text-xs text-base-content/60 mt-1 max-w-sm">
+                {% if request.GET.q or request.GET.almacen %}
+                    No hay facturas que coincidan con tu búsqueda o filtros aplicados en el periodo
+                    {{ mes_seleccionado }}/{{ anio_seleccionado }}.
+                {% else %}
+                    Todas las facturas de SAE del periodo seleccionado ya han sido enviadas a COI o no existen ventas
+                    registradas.
+                {% endif %}
+            </p>
+
+            <!-- Botones de Acción -->
+            <div class="flex items-center gap-2 mt-4">
+                {% if request.GET.q or request.GET.almacen %}
+                    <a href="{% url 'interfaz_sae_coi:documentos_list' %}?mes={{ mes_seleccionado }}&anio={{ anio_seleccionado }}"
+                       class="btn btn-ghost btn-xs text-xs font-normal gap-1">
+                        <span class="icon-[tabler--filter-off] size-3.5 opacity-70"></span>
+                        Limpiar filtros
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+
+</c-layouts.app>

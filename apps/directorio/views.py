@@ -1,13 +1,16 @@
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Q
-from django.http import HttpResponseForbidden
-from django.shortcuts import redirect
+from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpResponse
+from django.shortcuts import redirect, get_object_or_404, render
+from django.template.loader import render_to_string
 from django.urls import reverse
+from django.views import View
 from django.views.generic import DetailView, DeleteView, UpdateView
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin
 from extra_views import SearchableListMixin, CreateWithInlinesView, NamedFormsetsMixin, UpdateWithInlinesView
+from playwright.sync_api import sync_playwright
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.mixins.modulo_required import ModuloRequiredMixin
@@ -120,6 +123,88 @@ class DirectorioListView(
             {'title': 'Inicio', 'url': reverse('home')},
             {'title': 'Directorio'},
         ]
+
+
+class ContactoExportMediaView(View):
+    """Genera Tarjetas (Horizontal) o Credenciales (Vertical) en PNG o PDF usando Playwright."""
+
+    def get(self, request, pk, tipo):
+        # tipo: 'tarjeta' (horizontal) o 'credencial' (vertical)
+        contacto = get_object_or_404(
+            Contacto.objects.select_related(
+                'empresa', 'puesto', 'area', 'sede_administrativa'
+            ).prefetch_related('telefonos', 'emails', 'empresas_relacionadas'),
+            pk=pk,
+        )
+
+        fmt = request.GET.get('fmt', 'png').lower()  # png o pdf
+        is_preview = request.GET.get('preview') == '1'
+
+        context = {
+            'contacto': contacto,
+            'tipo': tipo,
+            'base_url': request.build_absolute_uri('/'),
+        }
+
+        # Si es preview, solo renderizamos el HTML directamente en el navegador
+        if is_preview:
+            return render(
+                request, 'apps/directorio/export/card_render.html', context
+            )
+
+        # Configuración de dimensiones
+        if tipo == 'credencial':
+            # Credencial Vertical estilo Gafete (CR-80 Estándar: 3.375 x 2.125 pulgadas -> ratio a px)
+            viewport = {'width': 600, 'height': 960}
+            filename = f'credencial_{contacto.numero_empleado or contacto.pk}'
+        elif tipo == 'tarjeta':
+            # Tarjeta de Presentación Horizontal
+            viewport = {'width': 1050, 'height': 600}
+            filename = f'tarjeta_{contacto.nombre_completo.replace(" ", "_")}'
+        else:
+            return HttpResponseBadRequest('Tipo de exportación inválido.')
+
+        # Renderizar HTML interno para Playwright
+        html_content = render_to_string(
+            'apps/directorio/export/card_render.html', context, request=request
+        )
+
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page(
+                viewport=viewport, device_scale_factor=2
+            )  # Scale x2 para alta resolución (Retina)
+
+            page.set_content(html_content, wait_until='networkidle')
+
+            if fmt == 'png':
+                buffer = page.screenshot(type='png', full_page=True)
+                response = HttpResponse(buffer, content_type='image/png')
+                response['Content-Disposition'] = (
+                    f'attachment; filename="{filename}.png"'
+                )
+            elif fmt == 'pdf':
+                buffer = page.pdf(
+                    width=f'{viewport["width"]}px',
+                    height=f'{viewport["height"]}px',
+                    print_background=True,
+                    margin={
+                        'top': '0px',
+                        'right': '0px',
+                        'bottom': '0px',
+                        'left': '0px',
+                    },
+                )
+                response = HttpResponse(buffer, content_type='application/pdf')
+                response['Content-Disposition'] = (
+                    f'attachment; filename="{filename}.pdf"'
+                )
+            else:
+                browser.close()
+                return HttpResponseBadRequest('Formato no soportado')
+
+            browser.close()
+            return response
 
 
 class ContactoCreateView(

@@ -41,6 +41,7 @@ def build_default_menu():
         }
     ]
 
+
 def build_compras_menu():
     """
     Menú específico para el módulo de Compras.
@@ -65,6 +66,7 @@ def build_compras_menu():
         },
     ]
 
+
 def build_directorio_menu():
     """
     Menú específico para el módulo de Directorio.
@@ -80,7 +82,8 @@ def build_directorio_menu():
         },
     ]
 
-def build_mobile_dock_menu():
+
+def build_default_dock():
     return [
         {
             "nombre": "Inicio",
@@ -103,9 +106,34 @@ def build_mobile_dock_menu():
             "active_patterns": ["fotos:"],
         },
         {
-            "nombre": "Configuración",
+            "nombre": "Config",
             "icon": "icon-[mdi--gear]",
             "url_name": "configuracion:index",
             "active_patterns": ["configuracion:"],
+        },
+    ]
+
+
+def build_compras_dock():
+    return [
+        {
+            "nombre": "Inicio",
+            "icon": "icon-[heroicons--home]",
+            "url_name": "home",
+            "exact": True,
+        },
+        {
+            "nombre": "Órdenes",
+            "icon": "icon-[tabler--file-description]",
+            "url_name": "compras:ordenes__list",
+            "active_patterns": ["compras:ordenes__"],
+            "perms": ["compras.view_orden"],
+        },
+        {
+            "nombre": "Proveedores",
+            "icon": "icon-[tabler--building-store]",
+            "url_name": "compras:proveedores__list",
+            "active_patterns": ["compras:proveedores__"],
+            "perms": ["compras.view_proveedor"],
         },
     ]

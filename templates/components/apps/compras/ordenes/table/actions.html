@@ -1,44 +1,89 @@
 {% load requisiciones_extras %}
+
 <c-table.actions>
+    <!-- 1. DETALLE DE LA ÓRDEN -->
     {% if perms.compras.view_orden %}
         <li>
-            <a href="#"
-               onclick="abrirPDF('{% url 'compras:ordenes__pdf' record.pk %}'); return false;">
-                PDF
+            <a href="#" onclick="abrirPDF('{% url 'compras:ordenes__pdf' record.pk %}'); return false;"
+               class="flex items-center gap-2">
+                <span class="icon-[tabler--file-type-pdf] size-4 opacity-70 text-error"></span>
+                Ver PDF
             </a>
         </li>
     {% endif %}
+
+    <!-- 2. EDITAR ÓRDEN -->
     {% if perms.compras.change_orden %}
-        <li><a href="{% url 'compras:ordenes__update' record.pk %}">Editar</a></li>
-    {% endif %}
-    {% if perms.compras.delete_orden %}
         <li>
-            <button onclick="orden_delete_modal_{{ record.pk }}.showModal()">Eliminar</button>
+            <a href="{% url 'compras:ordenes__update' record.pk %}" class="flex items-center gap-2">
+                <span class="icon-[tabler--edit] size-4 opacity-70"></span>
+                Editar
+            </a>
         </li>
     {% endif %}
 
+    <!-- 3. ELIMINAR ÓRDEN (ACCIÓN PELIGROSA) -->
+    {% if perms.compras.delete_orden %}
+        <li>
+            <hr class="opacity-20 my-1">
+        </li>
+        <li class="text-error hover:bg-error/10 rounded-lg">
+            <button class="flex items-center gap-2 w-full text-left text-error"
+                    onclick="orden_delete_modal_{{ record.pk }}.showModal()">
+                <span class="icon-[tabler--trash] size-4"></span>
+                Eliminar
+            </button>
+        </li>
+    {% endif %}
 
+    <!-- MODAL DE CONFIRMACIÓN DE ELIMINACIÓN -->
     {% if perms.compras.delete_orden %}
         <dialog id="orden_delete_modal_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
-            <div class="modal-box">
+            <div class="modal-box max-w-md p-6 border border-base-200 shadow-xl">
+                <!-- Botón de Cierre (X) -->
                 <form method="dialog">
-                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                    <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3">✕</button>
                 </form>
-                <h3 class="text-lg font-bold">¿Eliminar {{ record }}?</h3>
-                <p class="py-4">Esta acción no se podrá deshacer.</p>
 
-                <div class="modal-action">
-                    <form action="{% url 'compras:ordenes__delete' record.pk %}" method="post">
-                        {% csrf_token %}
-                        <button class="btn btn-error">Confirmar</button>
-                    </form>
-                    <form method="dialog">
-                        <button class="btn">Cancelar</button>
-                    </form>
+                <!-- Encabezado con Ícono e Información -->
+                <div class="flex items-start gap-4 mb-4">
+                    <div class="p-3 bg-error/10 text-error rounded-full shrink-0">
+                        <span class="icon-[tabler--alert-triangle] size-6 block"></span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-base-content">¿Eliminar Orden de Compra?</h3>
+                        <p class="text-sm text-base-content/70 mt-1">
+                            Estás por eliminar la orden <span
+                                class="font-semibold text-base-content">#{{ record.folio|default:record.pk }}</span>.
+                        </p>
+                    </div>
                 </div>
 
+                <!-- Caja de Advertencia -->
+                <div class="bg-base-200/50 border border-base-200 rounded-lg p-3 text-xs text-base-content/70 mb-6 flex gap-2">
+                    <span class="icon-[tabler--info-circle] size-4 shrink-0 mt-0.5 text-warning"></span>
+                    <span>
+                        Esta acción no se puede deshacer y eliminará permanentemente los registros asociados a esta orden de compra.
+                    </span>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                    <form method="dialog" class="w-full sm:w-auto">
+                        <button class="btn btn-ghost w-full sm:w-auto normal-case">Cancelar</button>
+                    </form>
+                    <form action="{% url 'compras:ordenes__delete' record.pk %}" method="post" class="w-full sm:w-auto">
+                        {% csrf_token %}
+                        <button class="btn btn-error w-full sm:w-auto normal-case gap-2 text-white">
+                            <span class="icon-[tabler--trash] size-4"></span>
+                            Confirmar Eliminación
+                        </button>
+                    </form>
+                </div>
             </div>
-            <form method="dialog" class="modal-backdrop">
+
+            <!-- Backdrop con Blur -->
+            <form method="dialog" class="modal-backdrop bg-neutral-focus/40 backdrop-blur-xs">
                 <button>close</button>
             </form>
         </dialog>

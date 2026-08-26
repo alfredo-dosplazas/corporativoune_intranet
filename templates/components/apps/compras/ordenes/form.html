@@ -22,18 +22,20 @@
         </div>
     </div>
 
-    <!-- TABLA ESTILO HOJA DE CÁLCULO -->
+    <!-- SECCIÓN DE DETALLE / PARTIDAS DE LA ORDEN -->
     <div class="card bg-base-100 shadow-sm border border-base-300 overflow-hidden mb-6">
         <div class="card-body p-0">
 
             {{ Detalle.management_form }}
 
-            <!-- PLANTILLA OCULTA (EMPTY FORM) -->
-            <div id="empty_row" class="hidden">
+            <!-- PLANTILLA OCULTA DESKTOP (EMPTY ROW) -->
+            <div id="empty_row_desktop" class="hidden">
                 <table>
                     <tbody>
                     <tr class="form-row">
-                        <td class="text-center bg-base-200/40 text-[11px] text-base-content/60 font-mono row-number align-middle select-none">#</td>
+                        <td class="text-center bg-base-200/40 text-[11px] text-base-content/60 font-mono row-number align-middle select-none">
+                            #
+                        </td>
                         <td>
                             <input type="number" name="detalle_orden-__prefix__-cantidad" value="1" step="1" min="1"
                                    class="excel-input excel-input-num input-cantidad">
@@ -52,7 +54,8 @@
                             $0.00
                         </td>
                         <td class="text-center align-middle bg-base-100">
-                            <input type="checkbox" name="detalle_orden-__prefix__-DELETE" class="hidden">
+                            <input type="checkbox" name="detalle_orden-__prefix__-DELETE"
+                                   class="hidden input-delete-check">
                             <button type="button"
                                     class="btn btn-ghost btn-xs btn-square text-error/60 hover:text-error hover:bg-error/10 h-7 w-7 rounded-none btn-delete-row"
                                     title="Eliminar fila">
@@ -64,87 +67,216 @@
                 </table>
             </div>
 
-            <!-- TABLA DE DETALLE -->
-            <div class="overflow-x-auto border-t border-l border-base-300">
-                <table id="table-detalle" class="w-full text-left excel-table">
-                    <thead>
-                    <tr>
-                        <th class="w-10">#</th>
-                        <th class="w-28">Cant.</th>
-                        <th>Descripción</th>
-                        <th class="w-40 text-right">Precio Unit.</th>
-                        <th class="w-40 text-right">Importe</th>
-                        <th class="w-10"></th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for inline_form in Detalle %}
-                        <tr class="form-row {% if inline_form.errors %}bg-error/10{% endif %}"
-                            data-has-id="{% if inline_form.instance.pk %}1{% else %}0{% endif %}">
-                            <td class="text-center bg-base-200/40 text-[11px] text-base-content/60 font-mono row-number align-middle select-none">
-                                {{ forloop.counter }}
-                            </td>
-                            <td>
+            <!-- PLANTILLA OCULTA MOBILE (EMPTY CARD) -->
+            <div id="empty_row_mobile" class="hidden">
+                <div class="form-row-card bg-base-200/30 border border-base-200 rounded-lg p-3 space-y-3 shadow-2xs relative">
+                    <div class="flex items-center justify-between border-b border-base-200 pb-2">
+                        <span class="badge badge-sm badge-neutral font-mono text-[11px] gap-1">
+                            Partida #<span class="row-number">#</span>
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-base-content/60 font-medium">Importe:</span>
+                            <span class="importe font-mono font-bold text-sm text-primary">$0.00</span>
+                            <input type="checkbox" name="detalle_orden-__prefix__-DELETE"
+                                   class="hidden input-delete-check">
+                            <button type="button"
+                                    class="btn btn-ghost btn-xs text-error hover:bg-error/10 h-8 px-2 rounded-md btn-delete-row ml-1"
+                                    title="Eliminar partida">
+                                <span class="icon-[tabler--trash] text-base"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div>
+                            <label class="text-[11px] font-medium text-base-content/70 block mb-1">Descripción del
+                                artículo</label>
+                            <input type="hidden" name="detalle_orden-__prefix__-id">
+                            <input type="text"
+                                   name="detalle_orden-__prefix__-descripcion"
+                                   class="input input-sm input-bordered w-full input-descripcion text-xs"
+                                   placeholder="Descripción del artículo o servicio...">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[11px] font-medium text-base-content/70 block mb-1">Cantidad</label>
                                 <input type="number"
-                                       name="{{ inline_form.cantidad.html_name }}"
-                                       id="{{ inline_form.cantidad.id_for_label }}"
-                                       value="{{ inline_form.cantidad.value|default_if_none:'' }}"
-                                       step="1" min="1"
-                                       class="excel-input excel-input-num input-cantidad">
-                            </td>
-                            <td>
-                                {{ inline_form.id }}
-                                <input type="text"
-                                       name="{{ inline_form.descripcion.html_name }}"
-                                       id="{{ inline_form.descripcion.id_for_label }}"
-                                       value="{{ inline_form.descripcion.value|default_if_none:'' }}"
-                                       class="excel-input input-descripcion"
-                                       placeholder="Descripción del artículo o servicio...">
-                                {% if inline_form.errors %}
-                                    <div class="text-[10px] text-error px-2 py-0.5 bg-error/10 border-t border-error/20">
-                                        {% for error in inline_form.errors.values %}{{ error }}{% endfor %}
-                                    </div>
-                                {% endif %}
-                            </td>
-                            <td>
+                                       name="detalle_orden-__prefix__-cantidad"
+                                       value="1" step="1" min="1"
+                                       class="input input-sm input-bordered w-full input-cantidad text-xs font-mono">
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-medium text-base-content/70 block mb-1">Precio
+                                    Unitario</label>
                                 <input type="number"
-                                       name="{{ inline_form.precio_unitario.html_name }}"
-                                       id="{{ inline_form.precio_unitario.id_for_label }}"
-                                       value="{{ inline_form.precio_unitario.value|default_if_none:'' }}"
+                                       name="detalle_orden-__prefix__-precio_unitario"
                                        step="0.000001" min="0"
-                                       class="excel-input excel-input-num input-precio"
+                                       class="input input-sm input-bordered w-full input-precio text-xs font-mono"
                                        placeholder="0.00">
-                            </td>
-                            <td class="px-3 text-right font-mono text-xs font-semibold text-base-content/90 align-middle bg-base-200/10 importe select-none">
-                                $0.00
-                            </td>
-                            <td class="text-center align-middle bg-base-100">
-                                <input type="checkbox"
-                                       name="{{ inline_form.DELETE.html_name }}"
-                                       id="{{ inline_form.DELETE.id_for_label }}"
-                                       class="hidden">
-                                <button type="button"
-                                        class="btn btn-ghost btn-xs btn-square text-error/60 hover:text-error hover:bg-error/10 h-7 w-7 rounded-none btn-delete-row"
-                                        title="Eliminar fila">
-                                    ✕
-                                </button>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- BOTÓN + AGREGAR AL PIE DE LA TABLA -->
-            <div class="p-2 border-b border-r border-l border-base-300 bg-base-200/20">
+            <!-- CONTENEDOR HÍBRIDO -->
+            <div class="border-t border-base-300">
+
+                <!-- 1. VISTA DESKTOP: TABLA ESTILO EXCEL -->
+                <div class="hidden md:block overflow-x-auto">
+                    <table id="table-detalle" class="w-full text-left excel-table">
+                        <thead>
+                        <tr class="bg-base-200/50 text-[11px] uppercase tracking-wider text-base-content/70">
+                            <th class="w-10 text-center">#</th>
+                            <th class="w-28">Cant.</th>
+                            <th>Descripción</th>
+                            <th class="w-40 text-right">Precio Unit.</th>
+                            <th class="w-40 text-right">Importe</th>
+                            <th class="w-10"></th>
+                        </tr>
+                        </thead>
+                        <tbody id="detalle-container-desktop">
+                        {% for inline_form in Detalle %}
+                            <tr class="form-row {% if inline_form.errors %}bg-error/10{% endif %}"
+                                data-has-id="{% if inline_form.instance.pk %}1{% else %}0{% endif %}">
+                                <td class="text-center bg-base-200/40 text-[11px] text-base-content/60 font-mono row-number align-middle select-none">
+                                    {{ forloop.counter }}
+                                </td>
+                                <td>
+                                    <input type="number"
+                                           name="{{ inline_form.cantidad.html_name }}"
+                                           id="{{ inline_form.cantidad.id_for_label }}"
+                                           value="{{ inline_form.cantidad.value|default_if_none:'' }}"
+                                           step="1" min="1"
+                                           class="excel-input excel-input-num input-cantidad">
+                                </td>
+                                <td>
+                                    {{ inline_form.id }}
+                                    <input type="text"
+                                           name="{{ inline_form.descripcion.html_name }}"
+                                           id="{{ inline_form.descripcion.id_for_label }}"
+                                           value="{{ inline_form.descripcion.value|default_if_none:'' }}"
+                                           class="excel-input input-descripcion"
+                                           placeholder="Descripción del artículo o servicio...">
+                                    {% if inline_form.errors %}
+                                        <div class="text-[10px] text-error px-2 py-0.5 bg-error/10 border-t border-error/20">
+                                            {% for error in inline_form.errors.values %}{{ error }}{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <input type="number"
+                                           name="{{ inline_form.precio_unitario.html_name }}"
+                                           id="{{ inline_form.precio_unitario.id_for_label }}"
+                                           value="{{ inline_form.precio_unitario.value|default_if_none:'' }}"
+                                           step="0.000001" min="0"
+                                           class="excel-input excel-input-num input-precio"
+                                           placeholder="0.00">
+                                </td>
+                                <td class="px-3 text-right font-mono text-xs font-semibold text-base-content/90 align-middle bg-base-200/10 importe select-none">
+                                    $0.00
+                                </td>
+                                <td class="text-center align-middle bg-base-100">
+                                    <input type="checkbox"
+                                           name="{{ inline_form.DELETE.html_name }}"
+                                           id="{{ inline_form.DELETE.id_for_label }}"
+                                           class="hidden input-delete-check">
+                                    <button type="button"
+                                            class="btn btn-ghost btn-xs btn-square text-error/60 hover:text-error hover:bg-error/10 h-7 w-7 rounded-none btn-delete-row"
+                                            title="Eliminar fila">
+                                        ✕
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 2. VISTA MÓVIL: TARJETAS APILADAS (< 768px) -->
+                <div id="detalle-container-mobile" class="md:hidden divide-y divide-base-200 p-3 space-y-3 bg-base-100">
+                    {% for inline_form in Detalle %}
+                        <div class="form-row-card bg-base-200/30 border border-base-200 rounded-lg p-3 space-y-3 shadow-2xs relative"
+                             data-has-id="{% if inline_form.instance.pk %}1{% else %}0{% endif %}">
+
+                            <div class="flex items-center justify-between border-b border-base-200 pb-2">
+                                <span class="badge badge-sm badge-neutral font-mono text-[11px] gap-1">
+                                    Partida #<span class="row-number">{{ forloop.counter }}</span>
+                                </span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-base-content/60 font-medium">Importe:</span>
+                                    <span class="importe font-mono font-bold text-sm text-primary">$0.00</span>
+                                    <input type="checkbox"
+                                           name="{{ inline_form.DELETE.html_name }}"
+                                           id="{{ inline_form.DELETE.id_for_label }}_mobile"
+                                           class="hidden input-delete-check">
+                                    <button type="button"
+                                            class="btn btn-ghost btn-xs text-error hover:bg-error/10 h-8 px-2 rounded-md btn-delete-row ml-1"
+                                            title="Eliminar partida">
+                                        <span class="icon-[tabler--trash] text-base"></span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div>
+                                    <label class="text-[11px] font-medium text-base-content/70 block mb-1">Descripción
+                                        del artículo</label>
+                                    {{ inline_form.id }}
+                                    <input type="text"
+                                           name="{{ inline_form.descripcion.html_name }}"
+                                           id="{{ inline_form.descripcion.id_for_label }}_mobile"
+                                           value="{{ inline_form.descripcion.value|default_if_none:'' }}"
+                                           class="input input-sm input-bordered w-full input-descripcion text-xs"
+                                           placeholder="Descripción del artículo o servicio...">
+                                    {% if inline_form.errors %}
+                                        <div class="text-[10px] text-error px-2 py-0.5 bg-error/10 border-t border-error/20 rounded mt-1">
+                                            {% for error in inline_form.errors.values %}{{ error }}{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[11px] font-medium text-base-content/70 block mb-1">Cantidad</label>
+                                        <input type="number"
+                                               name="{{ inline_form.cantidad.html_name }}"
+                                               id="{{ inline_form.cantidad.id_for_label }}_mobile"
+                                               value="{{ inline_form.cantidad.value|default_if_none:'' }}"
+                                               step="1" min="1"
+                                               class="input input-sm input-bordered w-full input-cantidad text-xs font-mono">
+                                    </div>
+                                    <div>
+                                        <label class="text-[11px] font-medium text-base-content/70 block mb-1">Precio
+                                            Unitario</label>
+                                        <input type="number"
+                                               name="{{ inline_form.precio_unitario.html_name }}"
+                                               id="{{ inline_form.precio_unitario.id_for_label }}_mobile"
+                                               value="{{ inline_form.precio_unitario.value|default_if_none:'' }}"
+                                               step="0.000001" min="0"
+                                               class="input input-sm input-bordered w-full input-precio text-xs font-mono"
+                                               placeholder="0.00">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+
+            <!-- BOTÓN + AGREGAR PARCIAL -->
+            <div class="p-3 border-b border-r border-l border-base-300 bg-base-200/20 flex items-center justify-between">
                 <button type="button" id="add-form"
-                        class="btn btn-xs btn-ghost text-primary hover:bg-primary/10 gap-1.5 font-semibold text-xs rounded-sm">
-                    <span class="text-sm font-bold">+</span> Agregar fila (o presiona Enter al final)
+                        class="btn btn-sm btn-ghost text-primary hover:bg-primary/10 gap-1.5 font-semibold text-xs rounded-md w-full sm:w-auto">
+                    <span class="text-base font-bold">+</span> Agregar partida
                 </button>
+                <span class="text-[11px] text-base-content/50 hidden sm:inline">Presiona Enter al final de cada fila para agregar rápida</span>
             </div>
 
             <!-- BLOQUE DE RESUMEN FINANCIERO -->
-            <div class="flex justify-end p-6 bg-base-100">
+            <div class="flex justify-end p-4 sm:p-6 bg-base-100">
                 <div class="w-full max-w-xs space-y-2 text-xs border border-base-300 rounded-md p-3.5 bg-base-200/30 shadow-2xs">
                     <div class="flex justify-between items-center text-base-content/80">
                         <span class="font-medium">Subtotal:</span>
@@ -155,20 +287,29 @@
                         <span id="iva-general" class="font-mono font-semibold text-sm">$0.00</span>
                     </div>
 
-                    <!-- Fila Retención ISR -->
-                    <div id="row-ret-isr" class="flex justify-between items-center text-error hidden pt-1 border-t border-base-200">
+                    <!-- Retención ISR -->
+                    <div id="row-ret-isr"
+                         class="flex justify-between items-center text-error hidden pt-2 border-t border-base-200">
                         <span class="font-medium">
                             Retención ISR <span id="pct-isr-label" class="text-[11px] opacity-80">(0%)</span>:
                         </span>
                         <span id="ret-isr-general" class="font-mono font-semibold text-sm">-$0.00</span>
                     </div>
 
-                    <!-- Fila Retención Cedular -->
+                    <!-- Retención Cedular -->
                     <div id="row-ret-cedular" class="flex justify-between items-center text-error hidden">
                         <span class="font-medium">
                             Retención Cedular <span id="pct-cedular-label" class="text-[11px] opacity-80">(0%)</span>:
                         </span>
                         <span id="ret-cedular-general" class="font-mono font-semibold text-sm">-$0.00</span>
+                    </div>
+
+                    <!-- Retención 3 -->
+                    <div id="row-retencion3" class="flex justify-between items-center text-error hidden">
+                        <span class="font-medium">
+                            Retención 3 <span id="pct-retencion3-label" class="text-[11px] opacity-80">(0%)</span>:
+                        </span>
+                        <span id="ret-retencion3-general" class="font-mono font-semibold text-sm">-$0.00</span>
                     </div>
 
                     <div class="flex justify-between items-center font-bold text-base pt-2.5 border-t-2 border-base-300 text-base-content">
@@ -184,8 +325,9 @@
 
 <script>
     (function () {
-        const $table = $("#table-detalle");
         const $totalForms = $("#id_detalle_orden-TOTAL_FORMS");
+        const $desktopContainer = $("#detalle-container-desktop");
+        const $mobileContainer = $("#detalle-container-mobile");
 
         const currencyFormatter = new Intl.NumberFormat('es-MX', {
             style: 'currency',
@@ -198,11 +340,6 @@
             return parseFloat(val.toString().replace(/,/g, "")) || 0;
         }
 
-        /**
-         * Normaliza el porcentaje ingresado.
-         * Si el usuario escribe 1.25 -> retorna 1.25
-         * Si el usuario escribe 0.0125 -> retorna 1.25
-         */
         function normalizePercentage(rawVal) {
             const val = parseNumber(rawVal);
             if (val > 0 && val < 1) {
@@ -211,26 +348,54 @@
             return val;
         }
 
+        function isMobile() {
+            return window.innerWidth < 768;
+        }
+
         function reindexarFilas() {
-            $table.find("tbody tr:visible").each(function (index) {
+            $desktopContainer.find("tr:visible").each(function (index) {
+                $(this).find(".row-number").text(index + 1);
+            });
+            $mobileContainer.find(".form-row-card:visible").each(function (index) {
                 $(this).find(".row-number").text(index + 1);
             });
         }
 
-        function actualizarFila($row) {
-            const cantidad = parseNumber($row.find(".input-cantidad").val());
-            const precio = parseNumber($row.find(".input-precio").val());
+        function actualizarFila($item) {
+            const cantidad = parseNumber($item.find(".input-cantidad").val());
+            const precio = parseNumber($item.find(".input-precio").val());
             const importe = cantidad * precio;
 
-            $row.find(".importe").text(currencyFormatter.format(importe));
+            // Sincronizar el importe impreso en la fila o card
+            $item.find(".importe").text(currencyFormatter.format(importe));
+
+            // Sincronizar cambios de valor entre vista Desktop y Mobile según la posición (index)
+            const index = $item.index();
+            const isDesktopItem = $item.is("tr");
+
+            if (isDesktopItem) {
+                const $targetCard = $mobileContainer.children().eq(index);
+                $targetCard.find(".input-cantidad").val($item.find(".input-cantidad").val());
+                $targetCard.find(".input-descripcion").val($item.find(".input-descripcion").val());
+                $targetCard.find(".input-precio").val($item.find(".input-precio").val());
+                $targetCard.find(".importe").text(currencyFormatter.format(importe));
+            } else {
+                const $targetRow = $desktopContainer.children().eq(index);
+                $targetRow.find(".input-cantidad").val($item.find(".input-cantidad").val());
+                $targetRow.find(".input-descripcion").val($item.find(".input-descripcion").val());
+                $targetRow.find(".input-precio").val($item.find(".input-precio").val());
+                $targetRow.find(".importe").text(currencyFormatter.format(importe));
+            }
+
             recalcularTotales();
         }
 
         function recalcularTotales() {
             let subtotal = 0;
+            const $activeRows = isMobile() ? $mobileContainer.find(".form-row-card:visible") : $desktopContainer.find("tr:visible");
 
-            $table.find("tbody tr:visible").each(function () {
-                if ($(this).find("input[name$='-DELETE']").prop("checked")) return;
+            $activeRows.each(function () {
+                if ($(this).find(".input-delete-check").prop("checked")) return;
 
                 const cantidad = parseNumber($(this).find(".input-cantidad").val());
                 const precio = parseNumber($(this).find(".input-precio").val());
@@ -239,19 +404,20 @@
 
             const iva = subtotal * 0.16;
 
-            // Obtener y normalizar valores de retención porcentual
             const pctISR = normalizePercentage($("#id_retencion_isr").val());
             const pctCedular = normalizePercentage($("#id_retencion_cedular").val());
+            const pctRetencion3 = normalizePercentage($("#id_retencion_3").val());
 
             const retISR = (pctISR / 100) * subtotal;
             const retCedular = (pctCedular / 100) * subtotal;
+            const ret3 = (pctRetencion3 / 100) * subtotal;
 
-            const total = subtotal + iva - (retISR + retCedular);
+            const total = subtotal + iva - (retISR + retCedular + ret3);
 
             $("#subtotal-general").text(currencyFormatter.format(subtotal));
             $("#iva-general").text(currencyFormatter.format(iva));
 
-            // Despliegue de Retención ISR
+            // Despliegue Retención ISR
             if (retISR > 0) {
                 $("#pct-isr-label").text(`(${pctISR.toFixed(2).replace(/\.00$/, '')}%)`);
                 $("#ret-isr-general").text("-" + currencyFormatter.format(retISR));
@@ -260,7 +426,7 @@
                 $("#row-ret-isr").addClass("hidden");
             }
 
-            // Despliegue de Retención Cedular
+            // Despliegue Retención Cedular
             if (retCedular > 0) {
                 $("#pct-cedular-label").text(`(${pctCedular.toFixed(2).replace(/\.00$/, '')}%)`);
                 $("#ret-cedular-general").text("-" + currencyFormatter.format(retCedular));
@@ -269,53 +435,90 @@
                 $("#row-ret-cedular").addClass("hidden");
             }
 
+            // Despliegue Retención 3
+            if (ret3 > 0) {
+                $("#pct-retencion3-label").text(`(${pctRetencion3.toFixed(2).replace(/\.00$/, '')}%)`);
+                $("#ret-retencion3-general").text("-" + currencyFormatter.format(ret3));
+                $("#row-retencion3").removeClass("hidden");
+            } else {
+                $("#row-retencion3").addClass("hidden");
+            }
+
             $("#total-general").text(currencyFormatter.format(total));
         }
 
         function addForm(focusNewRow = false) {
             const index = parseInt($totalForms.val());
-            let html = $("#empty_row tbody").html().replace(/__prefix__/g, index);
-            const $row = $(html);
 
-            $table.find("tbody").append($row);
+            // 1. Agregar plantilla Desktop
+            let desktopHtml = $("#empty_row_desktop tbody").html().replace(/__prefix__/g, index);
+            const $newRow = $(desktopHtml);
+            $desktopContainer.append($newRow);
+
+            // 2. Agregar plantilla Mobile
+            let mobileHtml = $("#empty_row_mobile").html().replace(/__prefix__/g, index);
+            const $newCard = $(mobileHtml);
+            $mobileContainer.append($newCard);
+
             $totalForms.val(index + 1);
-
             reindexarFilas();
 
             if (focusNewRow) {
-                $row.find(".input-cantidad").focus().select();
+                if (isMobile()) {
+                    $newCard.find(".input-descripcion").focus();
+                } else {
+                    $newRow.find(".input-cantidad").focus().select();
+                }
             }
         }
 
-        function deleteForm($row) {
-            const $delete = $row.find("input[name$='-DELETE']");
-            const hasId = $row.find("input[name$='id']").val();
+        function deleteForm($item) {
+            const index = $item.index();
+            const $desktopRow = $desktopContainer.children().eq(index);
+            const $mobileCard = $mobileContainer.children().eq(index);
+
+            const hasId = $desktopRow.find("input[name$='id']").val();
 
             if (hasId) {
-                $delete.prop("checked", true);
-                $row.addClass("hidden");
+                $desktopRow.find(".input-delete-check").prop("checked", true);
+                $mobileCard.find(".input-delete-check").prop("checked", true);
+                $desktopRow.addClass("hidden");
+                $mobileCard.addClass("hidden");
             } else {
-                $row.remove();
+                $desktopRow.remove();
+                $mobileCard.remove();
             }
+
             reindexarFilas();
             recalcularTotales();
         }
 
-        // Event Listeners
+        // Prevenir valores > 100 en las retenciones
+        $(document).on("input change", "#id_retencion_isr, #id_retencion_cedular, #id_retencion_3", function () {
+            let val = parseFloat($(this).val());
+            if (val > 100) $(this).val(100);
+            else if (val < 0 || isNaN(val)) $(this).val(0);
+
+            recalcularTotales();
+        });
+
+        // Event Listeners principales
         $("#add-form").on("click", function () {
             addForm(true);
         });
 
-        $table.on("click", ".btn-delete-row", function () {
-            deleteForm($(this).closest("tr"));
+        $(document).on("click", ".btn-delete-row", function () {
+            const $item = $(this).closest("tr, .form-row-card");
+            deleteForm($item);
         });
 
-        $table.on("input", "input", function () {
-            actualizarFila($(this).closest("tr"));
+        $(document).on("input", ".input-cantidad, .input-descripcion, .input-precio", function () {
+            const $item = $(this).closest("tr, .form-row-card");
+            actualizarFila($item);
         });
 
-        // Navegación rápida con Enter tipo Hoja de Cálculo
-        $table.on("keydown", "input", function (e) {
+        // Navegación rápida con tecla ENTER (estilo Excel)
+        $desktopContainer.on("keydown", "input", function (e) {
             if (e.key === "Enter") {
                 e.preventDefault();
                 const $currentInput = $(this);
@@ -336,13 +539,9 @@
             }
         });
 
-        $(document).on("input change", "#id_retencion_isr, #id_retencion_cedular", function () {
-            recalcularTotales();
-        });
-
         $(document).ready(function () {
             reindexarFilas();
-            $table.find("tbody tr").each(function () {
+            $desktopContainer.find("tr").each(function () {
                 actualizarFila($(this));
             });
         });

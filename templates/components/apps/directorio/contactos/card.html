@@ -1,92 +1,113 @@
 {% load phone_filters %}
+
 <div id="card_{{ contacto.pk }}"
-     data-theme="{{ contacto.empresa.theme }}"
-     class="group relative card w-full bg-base-100 border border-base-200 rounded-xl shadow-xs hover:shadow-md hover:border-primary/40 transition-all duration-200 flex flex-col justify-between overflow-hidden
+     data-theme="{{ contacto.empresa.theme|default:'light' }}"
+     class="group relative card w-full bg-base-100 border border-base-200/80 rounded-2xl shadow-2xs hover:shadow-lg hover:border-[var(--color-primary)]/50 transition-all duration-300 flex flex-col justify-between focus-within:z-30
             {% if contacto.usuario and not contacto.usuario.is_active %}opacity-75 grayscale{% endif %}">
 
-    <!-- 1. HEADER / ACCENT BAR CORPORATIVO -->
-    <div class="relative bg-base-200/50 p-4 border-b border-base-200/80">
-        <!-- Accent indicator de la empresa -->
-        {% if contacto.empresa %}
-            <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary/60 via-primary to-primary-dark"></div>
-        {% endif %}
+    <!-- 1. HEADER CON DEGRADADO CORPORATIVO (overflow-hidden movido aquí) -->
+    <div class="relative p-3.5 sm:p-4 border-b border-base-200/80 bg-gradient-to-r from-[var(--color-primary-dark)] via-[var(--color-primary)] to-[var(--color-primary-light)] text-primary-content rounded-t-2xl overflow-hidden">
+
+        <!-- Borde inferior sutil dentro del banner -->
+        <div class="absolute bottom-0 inset-x-0 h-px bg-base-100/20"></div>
 
         <div class="flex items-start gap-3">
-            <!-- AVATAR TIPO GAFETE -->
+
+            <!-- AVATAR CON ANILLO DE LUZ CORPORATIVO -->
             <div class="relative shrink-0">
-                <div class="w-13 h-13 rounded-lg overflow-hidden border border-base-300 shadow-2xs bg-base-100 flex items-center justify-center">
+                <div class="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl overflow-hidden ring-2 ring-white/40 shadow-sm bg-base-100 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     {% if contacto.foto %}
                         <img src="{{ contacto.foto.url }}"
                              alt="{{ contacto.nombre_completo }}"
                              class="w-full h-full object-cover"/>
                     {% else %}
-                        <span class="text-base font-bold text-primary tracking-wider">
+                        <span class="text-base sm:text-lg font-black text-primary tracking-wider">
                             {{ contacto.iniciales }}
                         </span>
                     {% endif %}
                 </div>
-                <!-- Status Dot si está inactivo -->
+
+                <!-- Status Dot -->
                 {% if contacto.usuario and not contacto.usuario.is_active %}
                     <span class="absolute -bottom-1 -right-1 badge badge-xs badge-error ring-2 ring-base-100"
-                          title="Usuario Inactivo"></span>
+                          title="Inactivo"></span>
+                {% else %}
+                    <span class="absolute -bottom-1 -right-1 badge badge-xs badge-success ring-2 ring-base-100"
+                          title="Activo"></span>
                 {% endif %}
             </div>
 
-            <!-- INFO PRINCIPAL -->
-            <div class="flex-1 min-w-0 pr-1">
-                <div class="flex items-start justify-between gap-1">
-                    <h2 class="text-sm font-bold text-base-content leading-snug truncate">
-                        <a href="{% url 'directorio:detail' contacto.pk %}"
-                           class="hover:text-primary transition-colors">
-                            {{ contacto.nombre_completo }}
-                        </a>
-                    </h2>
-                </div>
+            <!-- DATOS DEL CONTACTO -->
+            <div class="flex-1 min-w-0">
+                <h2 class="text-sm font-extrabold leading-tight truncate">
+                    <a href="{% url 'directorio:detail' contacto.pk %}"
+                       class="hover:underline transition-all">
+                        {{ contacto.nombre_completo }}
+                    </a>
+                </h2>
 
-                <p class="text-xs font-medium text-base-content/70 truncate mt-0.5">
+                <p class="text-[11px] sm:text-xs font-medium opacity-90 truncate mt-0.5">
                     {{ contacto.puesto.nombre|default:"Sin puesto asignado" }}
                 </p>
 
-                <div class="flex items-center gap-1.5 mt-1.5">
-                    <span class="badge badge-ghost badge-xs text-[10px] font-medium opacity-80 px-1.5 py-0.5 truncate">
+                <!-- BADGES Y EMPRESAS -->
+                <div class="flex items-center gap-1.5 flex-wrap mt-2">
+                    <!-- Área -->
+                    <span class="badge bg-white/20 text-white border-none badge-xs text-[10px] font-medium backdrop-blur-xs px-1.5 py-0.5 truncate">
                         {{ contacto.area.nombre|default:"General" }}
                     </span>
-                    {% if contacto.empresa and contacto.empresa.abreviatura %}
-                        <span class="badge badge-neutral badge-outline badge-xs text-[9px] uppercase tracking-wider font-semibold">
-                            {{ contacto.empresa.abreviatura }}
+
+                    <!-- EMPRESA PRINCIPAL -->
+                    {% if contacto.empresa %}
+                        <span class="badge bg-white text-primary font-black border-none badge-xs text-[9px] uppercase tracking-wider shadow-2xs"
+                              title="Empresa Principal: {{ contacto.empresa.nombre }}">
+                            {{ contacto.empresa.abreviatura|default:contacto.empresa.nombre_corto }}
                         </span>
                     {% endif %}
+
+                    <!-- EMPRESAS RELACIONADAS -->
+                    {% for emp_rel in contacto.empresas_relacionadas.all %}
+                        {% if emp_rel.pk != contacto.empresa.pk %}
+                            <span class="badge border-white/40 text-white badge-xs text-[9px] uppercase tracking-wider font-semibold opacity-90"
+                                  title="Relacionado con: {{ emp_rel.nombre }}">
+                                +{{ emp_rel.abreviatura|default:emp_rel.nombre_corto }}
+                            </span>
+                        {% endif %}
+                    {% endfor %}
                 </div>
             </div>
 
-            <!-- LOGO EMPRESA SLIM -->
+            <!-- LOGO EMPRESA -->
             {% if contacto.empresa and contacto.empresa.abreviatura %}
-                <div class="shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
+                <div class="shrink-0 opacity-90 hover:opacity-100 transition-opacity drop-shadow-xs"
+                     title="{{ contacto.empresa.nombre }}">
                     <c-component
                             is="apps.empresas.logos.{{ contacto.empresa.abreviatura }}"
-                            class="h-6 w-auto text-base-content"
+                            class="h-7 sm:h-8 w-auto text-white"
                     />
                 </div>
             {% endif %}
+
         </div>
     </div>
 
-    <!-- 2. CUERPO DE DATOS (CONTACTO) -->
-    <div class="p-4 space-y-2.5 text-xs text-base-content/80 flex-1">
+    <!-- 2. CUERPO DE DATOS -->
+    <div class="p-3 sm:p-4 space-y-2 text-xs text-base-content/80 flex-1 bg-gradient-to-b from-[var(--color-primary-light)]/5 to-transparent">
 
-        <!-- EMAIL -->
+        <!-- EMAIL PRINCIPAL -->
         {% if contacto.email_principal %}
-            <div class="flex items-center justify-between gap-2 group/item hover:bg-base-200/50 p-1 rounded-md transition-colors">
+            <div class="flex items-center justify-between gap-2 group/item bg-base-200/40 sm:bg-transparent hover:bg-base-200/60 p-2 sm:p-1.5 rounded-lg transition-colors">
                 <div class="flex items-center gap-2 min-w-0">
-                    <span class="icon-[material-symbols--mail-outline] text-primary/80 size-4 shrink-0"></span>
+                    <span class="icon-[material-symbols--mail-outline] text-primary size-4 shrink-0"></span>
                     <a href="mailto:{{ contacto.email_principal.email }}"
-                       class="truncate hover:text-primary font-mono text-[11px] tracking-tight">
+                       class="truncate hover:text-primary font-mono text-[11px] sm:text-xs tracking-tight">
                         {{ contacto.email_principal.email }}
                     </a>
                 </div>
+
                 <button onclick="copyToClipboard('{{ contacto.email_principal.email }}')"
                         type="button"
-                        class="btn btn-ghost btn-xs size-6 p-0 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                        class="btn btn-ghost btn-xs size-7 sm:size-6 p-0 opacity-100 md:opacity-0 md:group-hover/item:opacity-100 transition-opacity"
                         title="Copiar correo">
                     <span class="icon-[mdi--content-copy] size-3.5 text-base-content/60 hover:text-primary"></span>
                 </button>
@@ -96,10 +117,10 @@
         <!-- TELÉFONOS -->
         {% for telefono in contacto.telefonos.all %}
             {% if telefono.esta_activo %}
-                <div class="flex items-center justify-between gap-2 group/item hover:bg-base-200/50 p-1 rounded-md transition-colors">
+                <div class="flex items-center justify-between gap-2 group/item bg-base-200/40 sm:bg-transparent hover:bg-base-200/60 p-2 sm:p-1.5 rounded-lg transition-colors">
                     <div class="flex items-center gap-2 min-w-0">
-                        <span class="icon-[material-symbols--call-outline] text-primary/80 size-4 shrink-0"></span>
-                        <span class="font-mono text-[11px]">
+                        <span class="icon-[material-symbols--call-outline] text-primary size-4 shrink-0"></span>
+                        <span class="font-mono text-[11px] sm:text-xs">
                             {{ telefono.telefono|phone_format }}
                             {% if telefono.extension %}
                                 <span class="text-[10px] text-base-content/50 font-sans">ext. {{ telefono.extension }}</span>
@@ -107,29 +128,28 @@
                         </span>
                     </div>
 
-                    <!-- Botones de Acción Directa para Teléfono -->
-                    <div class="flex items-center gap-1">
+                    <div class="flex items-center gap-1 shrink-0">
                         {% if telefono.es_celular and telefono.whatsapp %}
                             <a target="_blank"
                                rel="noopener noreferrer"
                                href="{{ telefono.whatsapp }}"
-                               class="btn btn-ghost btn-xs size-6 p-0 text-success hover:bg-success/10"
+                               class="btn btn-ghost btn-xs size-7 sm:size-6 p-0 text-success hover:bg-success/10"
                                title="WhatsApp">
-                                <span class="icon-[ri--whatsapp-fill] size-3.5"></span>
+                                <span class="icon-[ri--whatsapp-fill] size-4 sm:size-3.5"></span>
                             </a>
                         {% endif %}
 
                         {% if telefono.telefono %}
                             <a href="tel:{{ telefono.telefono }}"
-                               class="btn btn-ghost btn-xs size-6 p-0 hover:text-primary"
+                               class="btn btn-ghost btn-xs size-7 sm:size-6 p-0 hover:text-primary"
                                title="Llamar">
-                                <span class="icon-[mdi--phone-outline] size-3.5"></span>
+                                <span class="icon-[mdi--phone-outline] size-4 sm:size-3.5"></span>
                             </a>
                         {% endif %}
 
                         <button onclick="copyToClipboard('{{ telefono.telefono }}')"
                                 type="button"
-                                class="btn btn-ghost btn-xs size-6 p-0"
+                                class="btn btn-ghost btn-xs size-7 sm:size-6 p-0 opacity-100 md:opacity-0 md:group-hover/item:opacity-100 transition-opacity"
                                 title="Copiar número">
                             <span class="icon-[mdi--content-copy] size-3.5 text-base-content/60 hover:text-primary"></span>
                         </button>
@@ -140,18 +160,32 @@
 
     </div>
 
-    <!-- 3. FOOTER INTEGRADO CON ACCIONES CLARAS -->
-    <div class="px-4 py-2.5 bg-base-200/40 border-t border-base-200 flex items-center justify-between gap-2 print:hidden">
+    <!-- 3. FOOTER INTEGRADO CON DROPDOWN CORREGIDO -->
+    <div class="px-3.5 py-2.5 bg-base-200/40 border-t border-base-200/80 flex items-center justify-between gap-2 rounded-b-2xl print:hidden">
 
-        <!-- Botón Ver Detalles / Perfil -->
-        <a href="{% url 'directorio:detail' contacto.pk %}"
-           class="btn btn-xs btn-ghost gap-1 font-semibold text-xs text-base-content/80 hover:text-primary">
-            <span class="icon-[mdi--account-card-details-outline] size-3.5"></span>
-            <span>Ver perfil</span>
-        </a>
+        <div class="flex items-center gap-2 min-w-0">
+            <a href="{% url 'directorio:detail' contacto.pk %}"
+               class="btn btn-xs btn-ghost gap-1 font-semibold text-xs text-base-content/80 hover:text-primary px-1">
+                <span class="icon-[mdi--account-card-details-outline] size-3.5"></span>
+                <span>Perfil</span>
+            </a>
+
+            {% if contacto.empresas_relacionadas.all %}
+                <div class="hidden md:flex items-center gap-1.5 border-l border-base-300 pl-2 opacity-60">
+                    {% for emp_rel in contacto.empresas_relacionadas.all %}
+                        {% if emp_rel.pk != contacto.empresa.pk and emp_rel.abreviatura %}
+                            <c-component
+                                    is="apps.empresas.logos.{{ emp_rel.abreviatura }}"
+                                    class="h-3.5 w-auto text-base-content/70 hover:text-primary transition-colors"
+                                    title="Relacionado con {{ emp_rel.nombre }}"
+                            />
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
 
         <div class="flex items-center gap-1.5">
-            <!-- Slack integrado -->
             {% if contacto.slack_id %}
                 <a href="{{ contacto.slack_url }}"
                    target="_blank"
@@ -161,7 +195,6 @@
                 </a>
             {% endif %}
 
-            <!-- Editar -->
             {% if perms.directorio.change_contacto %}
                 <a href="{% url 'directorio:update' contacto.pk %}"
                    class="btn btn-xs btn-outline btn-primary gap-1 font-medium text-[11px] px-2.5">
@@ -169,6 +202,56 @@
                     <span>Editar</span>
                 </a>
             {% endif %}
+
+            <!-- DROPDOWN DE EXPORTACIÓN -->
+            <div class="dropdown dropdown-top dropdown-end">
+                <div tabindex="0"
+                     role="button"
+                     class="btn btn-xs btn-ghost gap-1 text-xs text-base-content/80 hover:text-primary px-1.5">
+                    <span class="icon-[mdi--card-account-details-outline] size-3.5"></span>
+                    <span class="hidden sm:inline">Exportar</span>
+                    <span class="icon-[mdi--chevron-down] size-3"></span>
+                </div>
+
+                <ul tabindex="0"
+                    class="dropdown-content z-50 menu p-1.5 shadow-xl bg-base-100 border border-base-200 rounded-xl w-48 text-xs space-y-1">
+                    <li class="menu-title text-[10px] uppercase font-bold opacity-50 px-2 py-1">Credencial (Vertical)
+                    </li>
+                    <li>
+                        <a href="{% url 'directorio:exportar_media' contacto.pk 'credencial' %}?fmt=png" download
+                           class="gap-2">
+                            <span class="icon-[mdi--file-image-outline] text-info"></span>
+                            <span>Descargar Credencial PNG</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'directorio:exportar_media' contacto.pk 'credencial' %}?fmt=pdf" download
+                           class="gap-2">
+                            <span class="icon-[mdi--file-pdf-box] text-error"></span>
+                            <span>Descargar Credencial PDF</span>
+                        </a>
+                    </li>
+
+                    <div class="divider my-0"></div>
+
+                    <li class="menu-title text-[10px] uppercase font-bold opacity-50 px-2 py-1">Tarjeta (Horizontal)
+                    </li>
+                    <li>
+                        <a href="{% url 'directorio:exportar_media' contacto.pk 'tarjeta' %}?fmt=png" download
+                           class="gap-2">
+                            <span class="icon-[mdi--file-image-outline] text-info"></span>
+                            <span>Descargar Tarjeta PNG</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'directorio:exportar_media' contacto.pk 'tarjeta' %}?fmt=pdf" download
+                           class="gap-2">
+                            <span class="icon-[mdi--file-pdf-box] text-error"></span>
+                            <span>Descargar Tarjeta PDF</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
 
     </div>

@@ -27,11 +27,19 @@
                     {% endif %}
                 </div>
 
-                <!-- 2. CENTRO: OMNIBAR TIPO ODOO -->
+                <!-- 2. CENTRO: OMNIBAR TIPO ODOO (FORMULARIO MAESTRO) -->
                 <div class="flex-1 max-w-2xl mx-auto w-full">
-                    <!-- FORMULARIO UNIFICADO -->
-                    <form id="omnibar-form" method="get" class="relative flex items-center">
+                    <form id="omnibar-form" method="get" action="" class="relative flex items-center">
+                        <!-- Conservamos la vista actual al filtrar -->
                         <input type="hidden" name="vista" value="{{ vista|default:'tarjetas' }}">
+
+                        <!-- PERSISTENCIA DE FILTROS EN LA OMNIBAR -->
+                        <!-- Conservar los campos del django-filter si se presiona ENTER en el buscador q -->
+                        {% for key, value in request.GET.items %}
+                            {% if key != 'q' and key != 'vista' and key != 'page' and value %}
+                                <input type="hidden" name="{{ key }}" value="{{ value }}">
+                            {% endif %}
+                        {% endfor %}
 
                         <div class="join w-full border border-base-300 rounded-lg shadow-sm focus-within:border-primary focus-within:ring-1 focus-within:ring-primary bg-base-100">
 
@@ -40,28 +48,35 @@
                                 <span class="icon-[mdi--magnify] text-lg"></span>
                             </span>
 
-                            <!-- CHIPS DE FILTROS ACTIVOS (Efecto Odoo) -->
-                            <div class="flex items-center gap-1 py-1 pr-1 shrink-0">
+                            <!-- CHIPS DE FILTROS ACTIVOS -->
+                            <div class="flex items-center gap-1 py-1 pr-1 shrink-0 flex-wrap">
                                 {% if request.GET.q %}
                                     <a href="{% querystring 'q'="" %}"
                                        class="badge badge-neutral badge-sm gap-1 cursor-pointer hover:opacity-80"
-                                       title="Limpiar texto">
+                                       title="Limpiar búsqueda por texto">
                                         <span class="text-[11px]">"{{ request.GET.q }}"</span>
                                         <span class="icon-[mdi--close] text-xs"></span>
                                     </a>
                                 {% endif %}
 
-                                {% if filtros_activos and not request.GET.q %}
-                                    <span class="badge badge-primary badge-sm text-[10px]">Filtros Activos</span>
+                                {% if filtros_activos %}
+                                    <span class="badge badge-primary badge-sm text-[10px] gap-1">
+                                        Filtros Activos
+                                        <a href="
+                                                {% url 'directorio:index' %}{% if request.GET.vista %}?vista={{ request.GET.vista }}{% endif %}"
+                                           class="hover:text-error" title="Limpiar todos los filtros">
+                                            <span class="icon-[mdi--close] text-xs"></span>
+                                        </a>
+                                    </span>
                                 {% endif %}
                             </div>
 
-                            <!-- Input de Búsqueda -->
+                            <!-- Input de Búsqueda General -->
                             <input type="text"
                                    name="q"
                                    value="{{ request.GET.q|default:'' }}"
                                    placeholder="Buscar contacto, puesto, área..."
-                                   class="join-item input input-sm w-full focus:outline-none bg-transparent text-xs sm:text-sm px-2 border-none" />
+                                   class="join-item input input-sm w-full focus:outline-none bg-transparent text-xs sm:text-sm px-2 border-none"/>
 
                             <!-- DROPDOWN DE OPCIONES DE FILTRO -->
                             <div class="dropdown dropdown-end join-item">
@@ -78,7 +93,6 @@
                                             <span class="icon-[mdi--filter-outline]"></span>
                                             Opciones de Filtro
                                         </h4>
-                                        <!-- ABRE EL DRAWER DE FILTROS CORTESÍA DEL LABEL -->
                                         <label for="filters-drawer"
                                                class="btn btn-sm btn-block btn-outline gap-1.5 text-xs font-normal cursor-pointer">
                                             <span class="icon-[mdi--tune]"></span>
@@ -95,7 +109,7 @@
                     </form>
                 </div>
 
-                <!-- 3. DERECHA: Switcher de Vistas -->
+                <!-- 3. DERECHA: Switcher de Vistas (Mantiene todos los filtros mediante querystring) -->
                 <div class="hidden md:flex items-center justify-end gap-2 shrink-0">
                     <div class="join border border-base-300 rounded-lg p-0.5 bg-base-200/50">
                         <a href="{% querystring 'vista'='tarjetas' %}"
@@ -131,7 +145,8 @@
         {% if page_obj.has_other_pages %}
             <div class="mt-6 flex justify-center space-x-1 sm:space-x-2">
                 {% if page_obj.has_previous %}
-                    <a href="{% querystring 'page'=page_obj.previous_page_number %}" class="btn btn-xs sm:btn-sm btn-outline">Anterior</a>
+                    <a href="{% querystring 'page'=page_obj.previous_page_number %}"
+                       class="btn btn-xs sm:btn-sm btn-outline">Anterior</a>
                 {% endif %}
 
                 {% for num in page_obj.paginator.page_range %}
@@ -143,7 +158,8 @@
                 {% endfor %}
 
                 {% if page_obj.has_next %}
-                    <a href="{% querystring 'page'=page_obj.next_page_number %}" class="btn btn-xs sm:btn-sm btn-outline">Siguiente</a>
+                    <a href="{% querystring 'page'=page_obj.next_page_number %}"
+                       class="btn btn-xs sm:btn-sm btn-outline">Siguiente</a>
                 {% endif %}
             </div>
         {% endif %}

@@ -8,16 +8,21 @@ class SessionFilterStateMixin:
     modificando request.GET directamente sin realizar redirecciones HTTP.
     """
     clear_param = "clear_filters"
+    filter_state_key = None
 
-    def get_session_key(self):
-        return f"saved_params_{self.__class__.__name__}"
+    def get_session_key(self, request):
+        if self.filter_state_key:
+            return f"saved_params_{self.filter_state_key}"
+
+        path_clean = request.path.strip("/").replace("/", "_")
+        return f"saved_params_{self.__class__.__name__}_{path_clean}"
 
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
 
         # Solo aplicamos la logica para peticiones GET
         if request.method == "GET":
-            session_key = self.get_session_key()
+            session_key = self.get_session_key(request)
 
             # 1. Caso de limpieza explicitamente solicitada (?clear_filters=1)
             if request.GET.get(self.clear_param) == "1":

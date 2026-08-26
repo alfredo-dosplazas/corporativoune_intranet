@@ -86,10 +86,12 @@ class OrdenForm(forms.ModelForm):
                     css_class="grid grid-cols-12 gap-4 mt-2"
                 ),
                 Row(
-                    Column('retencion_isr', css_class="col-span-12 md:col-span-6"),
-                    Column('retencion_cedular', css_class="col-span-12 md:col-span-6"),
+                    Column('retencion_isr', css_class="col-span-12 md:col-span-4"),
+                    Column('retencion_cedular', css_class="col-span-12 md:col-span-4"),
+                    Column('retencion_3', css_class="col-span-12 md:col-span-4"),
                     css_class="grid grid-cols-12 gap-4 mt-2"
                 ),
+
                 css_class="mb-4"
             )
         )

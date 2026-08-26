@@ -1,0 +1,235 @@
+{% load poliza_tags %}
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="flex flex-col gap-2.5">
+            <!-- CABECERA DE CONTROL PANEL -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+
+                <!-- IZQUIERDA: Regresar + Título -->
+                <div class="flex items-center gap-3">
+                    <a href="{% url 'interfaz_sae_coi:documentos_list' %}"
+                       class="btn btn-ghost btn-sm btn-square"
+                       title="Volver al listado">
+                        <span class="icon-[tabler--arrow-left] size-5"></span>
+                    </a>
+
+                    <div class="flex items-center gap-2">
+                        <span class="icon-[tabler--file-code] text-primary size-6"></span>
+                        <div>
+                            <h1 class="font-extrabold text-lg md:text-xl leading-none tracking-tight">
+                                Vista Previa de Pólizas: {{ factura.FOLIO }}
+                            </h1>
+                            <p class="text-xs text-base-content/60 mt-0.5">
+                                Emisión: {{ factura.FECHA|date:"d/m/Y"|default:factura.FECHA }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DERECHA: Botón de Acción Principal (Generar en COI) -->
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <a href="{% url 'interfaz_sae_coi:documentos_list' %}" class="btn btn-ghost btn-sm">
+                        Cancelar
+                    </a>
+
+                    <form method="post" action="{% url 'interfaz_sae_coi:documento_contabilizar' factura.FOLIO %}"
+                          class="inline">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="btn btn-primary btn-sm gap-1.5 shadow-sm"
+                                onclick="return confirm('¿Confirmas la generación de las 2 pólizas en COI?');">
+                            <span class="icon-[tabler--device-floppy] size-4"></span>
+                            <span>Generar en COI</span>
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </c-slot>
+
+    <!-- TARJETA INFORMACIÓN GENERAL DE LA FACTURA -->
+    <div class="card bg-base-100 shadow-xs border border-base-200 mt-4">
+        <div class="card-body p-4">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-base-content/50 mb-3 flex items-center gap-1.5">
+                <span class="icon-[tabler--info-circle] size-4"></span>
+                Datos Origen (SAE)
+            </h2>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-xs">
+                <!-- Cliente -->
+                <div class="col-span-2">
+                    <span class="text-base-content/60 block">Cliente:</span>
+                    <span class="font-bold text-base-content/90">[{{ factura.CLAVE_CLIENTE }}] {{ factura.NOMBRE_CLIENTE }}</span>
+                    {% if factura.es_parte_relacionada %}
+                        <span class="badge badge-secondary badge-xs ml-1 font-medium">Parte Relacionada</span>
+                    {% else %}
+                        <span class="badge badge-ghost badge-xs ml-1">Tercero</span>
+                    {% endif %}
+                </div>
+
+                <!-- Almacén -->
+                <div>
+                    <span class="text-base-content/60 block">Almacén Origen:</span>
+                    <span class="font-semibold">
+                        {% if factura.ALMACEN == 1 %}
+                            Salamanca (1)
+                        {% elif factura.ALMACEN == 2 %}
+                            Cortazar (2)
+                        {% else %}
+                            Almacén {{ factura.ALMACEN }}
+                        {% endif %}
+                    </span>
+                </div>
+
+                <!-- Subtotal / IVA -->
+                <div>
+                    <span class="text-base-content/60 block">Subtotal / IVA:</span>
+                    <span class="font-mono text-base-content/80">
+                        ${{ factura.SUBTOTAL|floatformat:2 }} + ${{ factura.IVA|floatformat:2 }}
+                    </span>
+                </div>
+
+                <!-- Total Factura -->
+                <div>
+                    <span class="text-base-content/60 block">Total Factura:</span>
+                    <span class="font-mono font-extrabold text-primary">
+                        ${{ factura.TOTAL|floatformat:2 }}
+                    </span>
+                </div>
+
+                <!-- Costo Total -->
+                <div>
+                    <span class="text-base-content/60 block">Costo de Venta:</span>
+                    <span class="font-mono font-bold text-warning-content">
+                        ${{ factura.costo_total|floatformat:2 }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- UUID del CFDI -->
+            {% if factura.UUID_CFDI %}
+                <div class="mt-2 pt-2 border-t border-base-200 text-[11px] font-mono text-base-content/60 flex items-center gap-1">
+                    <span class="icon-[tabler--barcode] size-3.5"></span>
+                    <span>UUID: {{ factura.UUID_CFDI }}</span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- PÓLIZAS SIMULADAS DE COI -->
+    <div class="space-y-6 mt-6">
+        {% for poliza in polizas %}
+            <div class="card bg-base-100 shadow-xs border border-base-200 overflow-hidden">
+
+                <!-- ENCABEZADO DE LA PÓLIZA -->
+                <div class="bg-base-200/50 p-3 px-4 border-b border-base-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="badge {% if poliza.tipo == 'Ig' %}badge-primary{% else %}badge-warning{% endif %} font-bold">
+                            {{ poliza.tipo }}
+                        </span>
+                        <h3 class="font-bold text-sm text-base-content/90">
+                            Póliza de {{ poliza.tipo_nombre }} - {{ poliza.concepto }}
+                        </h3>
+                    </div>
+
+                    <div class="flex items-center gap-3 text-xs">
+                        <span class="text-base-content/60">
+                            Estado: <strong class="text-warning">Sin Contabilizar (N)</strong>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- TABLA DE PARTIDAS (AUXILIAR) -->
+                <div class="overflow-x-auto">
+                    <table class="table table-sm w-full">
+                        <thead>
+                        <tr class="text-base-content/60 text-[11px] uppercase tracking-wider bg-base-100">
+                            <th class="w-12 text-center">#</th>
+                            <th>Cuenta Contable</th>
+                            <th>Nombre Cuenta</th>
+                            <th>Concepto Partida</th>
+                            <th class="text-right w-32">Debe (Cargo)</th>
+                            <th class="text-right w-32">Haber (Abono)</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for part in poliza.partidas %}
+                            <tr class="hover:bg-base-200/20">
+                                <td class="text-center font-mono text-xs text-base-content/50">
+                                    {{ part.num }}
+                                </td>
+                                <td class="font-mono font-bold text-xs text-primary">
+                                    {{ part.cuenta }}
+                                </td>
+                                <td class="text-xs font-medium text-base-content/80">
+                                    {{ part.nombre_cuenta }}
+                                </td>
+                                <td class="text-xs text-base-content/70">
+                                    {{ part.concepto }}
+                                </td>
+                                <!-- Debe -->
+                                <td class="text-right font-mono text-xs font-semibold">
+                                    {% if part.debe > 0 %}
+                                        ${{ part.debe|floatformat:2 }}
+                                    {% else %}
+                                        <span class="text-base-content/30">-</span>
+                                    {% endif %}
+                                </td>
+                                <!-- Haber -->
+                                <td class="text-right font-mono text-xs font-semibold">
+                                    {% if part.haber > 0 %}
+                                        ${{ part.haber|floatformat:2 }}
+                                    {% else %}
+                                        <span class="text-base-content/30">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                        <!-- TOTALES Y CUADRE DE PÓLIZA -->
+                        <tfoot>
+                        <tr class="bg-base-200/30 font-bold text-xs">
+                            <td colspan="4" class="text-right uppercase text-base-content/60">
+                                Totales Póliza:
+                            </td>
+                            <!-- Suma Debe -->
+                            <td class="text-right font-mono text-primary">
+                                {% with total_debe=poliza.partidas|sum_debe %}
+                                    ${{ total_debe|floatformat:2 }}
+                                {% endwith %}
+                            </td>
+                            <!-- Suma Haber -->
+                            <td class="text-right font-mono text-primary">
+                                {% with total_haber=poliza.partidas|sum_haber %}
+                                    ${{ total_haber|floatformat:2 }}
+                                {% endwith %}
+                            </td>
+                        </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- BOTONES DE ACCIÓN INFERIORES -->
+    <div class="flex items-center justify-between mt-6 pt-4 border-t border-base-200">
+        <a href="{% url 'interfaz_sae_coi:documentos_list' %}" class="btn btn-ghost btn-sm gap-1">
+            <span class="icon-[tabler--arrow-left] size-4"></span>
+            Regresar al listado
+        </a>
+
+        <form method="post" action="{% url 'interfaz_sae_coi:documento_contabilizar' factura.FOLIO %}">
+            {% csrf_token %}
+            <button type="submit"
+                    class="btn btn-primary btn-sm gap-1.5 shadow-sm"
+                    onclick="return confirm('¿Confirmas la generación de las 2 pólizas en COI?');">
+                <span class="icon-[tabler--device-floppy] size-4"></span>
+                <span>Generar Pólizas en COI</span>
+            </button>
+        </form>
+    </div>
+
+</c-layouts.app>

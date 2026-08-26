@@ -1,0 +1,244 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" data-theme="{{ contacto.empresa.theme|default:'light' }}">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ contacto.nombre_completo }} - {{ tipo|capfirst }}</title>
+
+    <link rel="stylesheet" href="{{ base_url }}{% static 'css/output.css' %}">
+
+    <style>
+        @page {
+            margin: 0;
+        {% if tipo == 'credencial' %}
+            size: 600px 960px;
+        {% else %}
+            size: 1050px 600px;
+        {% endif %}
+        }
+
+        body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+        }
+
+        /* Patrón de seguridad Guilloché vectorial fino */
+        .guilloche-bg {
+            background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1.2px, transparent 0);
+            background-size: 14px 14px;
+        }
+
+        .guilloche-dark {
+            background-image: radial-gradient(rgba(0, 0, 0, 0.08) 1.2px, transparent 0);
+            background-size: 14px 14px;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 flex items-center justify-center m-0 p-0 overflow-hidden min-h-screen">
+
+{% if tipo == 'credencial' %}
+    <!-- ======================================================= -->
+    <!-- OPCIÓN 1: CREDENCIAL CORPORATIVA VERTICAL (PVC ISO CR-80) -->
+    <!-- ======================================================= -->
+    <div class="w-[600px] h-[960px] bg-white relative flex flex-col justify-between shadow-2xl overflow-hidden rounded-[28px] border border-slate-200">
+
+        <!-- HEADER DEGRADADO Y PATRÓN DE SEGURIDAD -->
+        <div class="h-80 bg-gradient-to-br from-[var(--color-primary-dark)] via-[var(--color-primary)] to-[var(--color-primary-light)] p-8 text-white relative flex flex-col justify-between items-center text-center guilloche-bg">
+
+            <!-- Ranura Gafete Slot/Lanyard -->
+            <div class="w-16 h-3 bg-slate-950/40 rounded-full border border-white/20 shadow-inner"></div>
+
+            <!-- LOGO EMPRESA DESTACADO Y GRANDE -->
+            <div class="flex flex-col items-center gap-2">
+                {% if contacto.empresa and contacto.empresa.abreviatura %}
+                    <c-component is="apps.empresas.logos.{{ contacto.empresa.abreviatura }}"
+                                 class="h-14 w-auto text-white fill-current drop-shadow-md"/>
+                {% endif %}
+                <span class="uppercase tracking-[0.25em] text-xs font-black text-white/95 mt-1">
+                    {{ contacto.empresa.nombre }}
+                </span>
+            </div>
+
+            <!-- Banda Holográfica de Seguridad -->
+            <div class="w-full h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent my-1"></div>
+        </div>
+
+        <!-- FOTO DE PERFIL, CHIP NFC Y DATOS -->
+        <div class="flex flex-col items-center -mt-24 px-8 z-10 relative">
+            <div class="relative">
+                <!-- Avatar / Foto con Anillo Blanco -->
+                <div class="w-44 h-44 rounded-3xl overflow-hidden ring-8 ring-white shadow-2xl bg-slate-100 flex items-center justify-center">
+                    {% if contacto.foto %}
+                        <img src="{{ base_url }}{{ contacto.foto.url }}" class="w-full h-full object-cover"
+                             alt="{{ contacto.nombre_completo }}">
+                    {% else %}
+                        <span class="text-6xl font-black text-slate-400">{{ contacto.iniciales }}</span>
+                    {% endif %}
+                </div>
+
+                <!-- Chip Inteligente RFID/NFC -->
+                <div class="absolute -bottom-2 -left-3 w-11 h-8 bg-gradient-to-br from-amber-300 via-yellow-500 to-amber-600 rounded-md border border-amber-200 shadow-md flex items-center justify-center"
+                     title="Smart Access Chip">
+                    <div class="w-7 h-5 border border-amber-800/40 rounded-xs grid grid-cols-2 gap-0.5 p-0.5">
+                        <div class="bg-amber-700/20 rounded-xs"></div>
+                        <div class="bg-amber-700/20 rounded-xs"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nombre -->
+            <h1 class="text-2xl font-black text-slate-900 text-center mt-5 leading-snug tracking-tight max-w-[480px]">
+                {{ contacto.nombre_completo }}
+            </h1>
+
+            <!-- Puesto -->
+            <p class="text-sm font-extrabold text-[var(--color-primary)] text-center mt-1 uppercase tracking-wider">
+                {{ contacto.puesto.nombre|default:"Colaborador" }}
+            </p>
+
+            <!-- Badge Área -->
+            <span class="mt-2.5 px-4 py-1 bg-slate-100 text-slate-700 rounded-full text-[11px] font-extrabold uppercase tracking-widest border border-slate-200">
+                {{ contacto.area.nombre|default:"General" }}
+            </span>
+        </div>
+
+        <!-- DATOS DE CONTACTO & QR CODE -->
+        <div class="px-10 flex items-center justify-between gap-6 my-2">
+            <div class="space-y-3 flex-1 text-slate-600 text-xs">
+                {% if contacto.numero_empleado %}
+                    <div>
+                        <span class="block text-[9px] uppercase font-black tracking-widest text-slate-400">ID Empleado</span>
+                        <span class="font-mono font-bold text-slate-900 text-sm">#{{ contacto.numero_empleado }}</span>
+                    </div>
+                {% endif %}
+
+                {% if contacto.email_principal %}
+                    <div>
+                        <span class="block text-[9px] uppercase font-black tracking-widest text-slate-400">Correo Electrónico</span>
+                        <span class="font-mono text-xs text-slate-800 truncate block max-w-[260px]">{{ contacto.email_principal.email }}</span>
+                    </div>
+                {% endif %}
+
+                {% if contacto.telefono_principal %}
+                    <div>
+                        <span class="block text-[9px] uppercase font-black tracking-widest text-slate-400">Contacto Directo</span>
+                        <span class="font-mono text-xs text-slate-800">{{ contacto.telefono_principal.telefono }}</span>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- QR Code -->
+            <div class="shrink-0 p-2.5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=
+                        {{ base_url }}{% url 'directorio:detail' contacto.pk %}"
+                     alt="QR Perfil" class="w-20 h-20 rounded-lg">
+                <span class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mt-1">Escanear Perfil</span>
+            </div>
+        </div>
+
+        <!-- FOOTER SEDE -->
+        <div class="bg-slate-950 text-white px-8 py-4 flex items-center justify-between border-t-4 border-[var(--color-primary)]">
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+                <div>
+                    <p class="text-[9px] text-slate-400 uppercase tracking-widest font-black">Sede Administrativa</p>
+                    <p class="text-xs font-bold text-slate-200">{{ contacto.sede_administrativa.nombre|default:"Oficina Central" }}</p>
+                </div>
+            </div>
+
+            <div class="text-right">
+                <span class="text-xs font-black tracking-widest text-[var(--color-primary-light)] uppercase">
+                    {{ contacto.empresa.abreviatura|default:"CORP" }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+{% else %}
+    <!-- ======================================================= -->
+    <!-- OPCIÓN 2: TARJETA DE PRESENTACIÓN EJECUTIVA HORIZONTAL    -->
+    <!-- ======================================================= -->
+    <div class="w-[1050px] h-[600px] bg-gradient-to-br from-[var(--color-primary-dark)] via-[var(--color-primary)] to-[var(--color-primary-light)] relative flex shadow-2xl overflow-hidden rounded-[26px] border border-white/20 text-white guilloche-bg">
+
+        <!-- Borde superior de acento luminoso -->
+        <div class="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-white/20 via-white/80 to-white/20"></div>
+
+        <div class="flex-1 p-12 flex flex-col justify-between relative z-10">
+
+            <!-- HEADER: LOGO GRANDE Y DATOS CORPORATIVOS -->
+            <div class="flex justify-between items-start">
+                <div class="flex items-center gap-5">
+                    <!-- LOGO DE LA EMPRESA MÁS GRANDE Y RECTANGULAR -->
+                    {% if contacto.empresa and contacto.empresa.abreviatura %}
+                        <div class="p-3 bg-white/10 rounded-2xl border border-white/20 backdrop-blur-md shadow-lg">
+                            <c-component is="apps.empresas.logos.{{ contacto.empresa.abreviatura }}"
+                                         class="h-12 sm:h-14 w-auto text-white fill-current"/>
+                        </div>
+                    {% endif %}
+
+                    <div>
+                        <h2 class="text-2xl font-black uppercase tracking-[0.2em] text-white leading-tight drop-shadow-sm">
+                            {{ contacto.empresa.nombre }}
+                        </h2>
+                        <p class="text-xs text-white/80 font-bold uppercase tracking-widest mt-1">
+                            Tarjeta de Presentación Oficial
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Foto del Ejecutivo con Borde Corporativo -->
+                <div class="w-28 h-28 rounded-2xl bg-white/10 border-2 border-white/40 shadow-2xl overflow-hidden backdrop-blur-sm p-1">
+                    {% if contacto.foto %}
+                        <img src="{{ base_url }}{{ contacto.foto.url }}" class="w-full h-full object-cover rounded-xl"
+                             alt="{{ contacto.nombre_completo }}">
+                    {% else %}
+                        <div class="w-full h-full bg-white/20 rounded-xl flex items-center justify-center">
+                            <span class="text-3xl font-black text-white">{{ contacto.iniciales }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- CUERPO CENTRAL: NOMBRE Y PUESTO CON ALTO CONTRASTE -->
+            <div class="my-auto py-2">
+                <h1 class="text-4xl sm:text-5xl font-black text-white tracking-tight drop-shadow-md">
+                    {{ contacto.nombre_completo }}
+                </h1>
+                <p class="text-2xl font-black text-white/90 mt-2 uppercase tracking-wide">
+                    {{ contacto.puesto.nombre|default:"Colaborador" }}
+                </p>
+                <div class="inline-block mt-3 px-3.5 py-1 bg-white/15 border border-white/20 rounded-full backdrop-blur-md">
+                    <p class="text-xs font-black text-white uppercase tracking-widest">
+                        {{ contacto.area.nombre|default:"General" }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- FOOTER CON ESTILO VIDRIO ESMERILADO (GLASSMORPHISM) & CÓDIGO QR -->
+            <div class="flex items-center justify-between p-5 bg-black/20 border border-white/15 rounded-2xl backdrop-blur-md shadow-xl">
+                <div class="grid grid-cols-2 gap-x-12 gap-y-2 text-white">
+                    <div>
+                        <span class="block text-[9px] text-white/70 uppercase font-black tracking-widest">Correo Electrónico</span>
+                        <span class="font-mono text-sm font-bold text-white tracking-tight">{{ contacto.email_principal.email|default:"N/A" }}</span>
+                    </div>
+                    <div>
+                        <span class="block text-[9px] text-white/70 uppercase font-black tracking-widest">Teléfono Directo</span>
+                        <span class="font-mono text-sm font-bold text-white tracking-tight">{{ contacto.telefono_principal.telefono|default:"N/A" }}</span>
+                    </div>
+                </div>
+
+                <!-- Contenedor del QR Code -->
+                <div class="flex items-center gap-3 bg-white p-2 rounded-xl shadow-lg border border-white/40 shrink-0">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=
+                            {{ base_url }}{% url 'directorio:detail' contacto.pk %}"
+                         alt="QR Perfil" class="w-14 h-14 rounded-md">
+                </div>
+            </div>
+
+        </div>
+    </div>
+{% endif %}
+
+</body>
+</html>

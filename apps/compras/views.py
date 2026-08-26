@@ -14,10 +14,19 @@ from apps.compras.inlines import DetalleOrdenInline
 from apps.compras.models import Orden, Proveedor
 from apps.compras.tables import OrdenTable, ProveedorTable
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.mixins.session_filter_state import SessionFilterStateMixin
 from apps.core.mixins.title import PageTitleMixin
 
 
-class ProveedorListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMixin, SingleTableMixin, ListView):
+class ProveedorListView(
+    SessionFilterStateMixin,
+    PageTitleMixin,
+    PermissionRequiredMixin,
+    BreadcrumbsMixin,
+    SearchableListMixin,
+    SingleTableMixin,
+    ListView
+):
     permission_required = ['compras.view_orden']
     template_name = "apps/compras/proveedores/list.html"
     model = Proveedor
@@ -25,6 +34,7 @@ class ProveedorListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableLis
     search_fields = [
         'nombre_completo',
     ]
+    page_title = 'Proveedores'
 
     def get_table(self, **kwargs):
         table = super().get_table(**kwargs)
@@ -39,12 +49,13 @@ class ProveedorListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableLis
         ]
 
 
-class ProveedorCreateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMessageMixin, CreateView):
+class ProveedorCreateView(PageTitleMixin, PermissionRequiredMixin, BreadcrumbsMixin, SuccessMessageMixin, CreateView):
     permission_required = ['compras.add_proveedor']
     template_name = "apps/compras/proveedores/create.html"
     model = Proveedor
     form_class = ProveedorForm
     success_message = 'Proveedor creada correctamente.'
+    page_title = 'Crear Nuevo Proveedor'
 
     def get_breadcrumbs(self):
         return [
@@ -58,12 +69,13 @@ class ProveedorCreateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMess
         return reverse('compras:proveedores__update', args=(self.object.pk,))
 
 
-class ProveedorUpdateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMessageMixin, UpdateView):
+class ProveedorUpdateView(PageTitleMixin, PermissionRequiredMixin, BreadcrumbsMixin, SuccessMessageMixin, UpdateView):
     permission_required = ['compras.change_proveedor']
     template_name = "apps/compras/proveedores/update.html"
     model = Proveedor
     form_class = ProveedorForm
     success_message = 'Proveedor actualizado correctamente.'
+    page_title = 'Actualizar Proveedor'
 
     def get_breadcrumbs(self):
         return [
@@ -87,8 +99,9 @@ class ProveedorDeleteView(PermissionRequiredMixin, SuccessMessageMixin, DeleteVi
 
 
 class OrdenListView(
-    PermissionRequiredMixin,
     PageTitleMixin,
+    SessionFilterStateMixin,
+    PermissionRequiredMixin,
     BreadcrumbsMixin,
     SearchableListMixin,
     SingleTableMixin,
@@ -114,14 +127,12 @@ class OrdenListView(
         'solicitante__segundo_apellido',
     ]
     paginate_by = 12
+    page_title = "Órdenes de compra"
 
     def get_table(self, **kwargs):
         table = super().get_table(**kwargs)
         table.auto_height = True
         return table
-
-    def get_page_title(self):
-        return "Órdenes de compra"
 
     def get_breadcrumbs(self):
         return [
@@ -131,6 +142,7 @@ class OrdenListView(
 
 
 class OrdenCreateView(
+    PageTitleMixin,
     PermissionRequiredMixin,
     BreadcrumbsMixin,
     SuccessMessageMixin,
@@ -144,6 +156,7 @@ class OrdenCreateView(
     success_message = 'Orden creada correctamente.'
     inlines = [DetalleOrdenInline]
     inlines_names = ['Detalle']
+    page_title = 'Crear Órden de compra'
 
     def get_initial(self):
         return {
@@ -175,6 +188,7 @@ class OrdenCreateView(
 
 
 class OrdenUpdateView(
+    PageTitleMixin,
     PermissionRequiredMixin,
     BreadcrumbsMixin,
     SuccessMessageMixin,
@@ -185,9 +199,10 @@ class OrdenUpdateView(
     template_name = "apps/compras/ordenes/update.html"
     model = Orden
     form_class = OrdenForm
-    success_message = 'Orden actualizada correctamente.'
+    success_message = 'Órden actualizada correctamente.'
     inlines = [DetalleOrdenInline]
     inlines_names = ['Detalle']
+    page_title = 'Actualizar Órden de compra'
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -221,7 +236,9 @@ class OrdenDeleteView(
 
 
 class OrdenPdfView(
-    PermissionRequiredMixin, WeasyTemplateResponseMixin, DetailView
+    PermissionRequiredMixin,
+    WeasyTemplateResponseMixin,
+    DetailView
 ):
     permission_required = ['compras.view_orden']
     pdf_attachment = False

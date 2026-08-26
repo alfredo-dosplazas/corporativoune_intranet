@@ -6,7 +6,6 @@
     <div class="drawer-side">
         <label for="filters-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 
-        <!-- El contenido se incluye dentro del mismo formulario de la Omnibar o sincroniza sus inputs -->
         <div class="w-80 sm:w-96 bg-base-100 min-h-full flex flex-col shadow-2xl border-l border-base-200">
 
             <!-- HEADER -->
@@ -21,18 +20,22 @@
             <!-- CONTENIDO SCROLLABLE CON CAMPOS CRISPY -->
             <div class="flex-1 overflow-y-auto p-4 space-y-4">
                 {% if filter %}
+                    <!-- Renderiza solo los inputs sin la etiqueta <form> alrededor -->
                     {% crispy filter.form %}
                 {% endif %}
             </div>
 
             <!-- FOOTER CON ACCIONES -->
             <div class="p-4 border-t border-base-200 bg-base-200/30 flex items-center justify-between gap-2">
-                <a href="?vista={{ vista|default:'tarjetas' }}" class="btn btn-sm btn-ghost text-xs">
+                <!-- Mantiene el parámetro 'q' de la Omnibar al hacer reset básico -->
+                <a href="?vista={{ vista|default:'tarjetas' }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+                   class="btn btn-sm btn-ghost text-xs">
                     Limpiar Filtros
                 </a>
+
                 <button type="submit"
                         form="omnibar-form"
-                        onclick="document.getElementById('filters-drawer').checked = false;"
+                        onclick="syncDrawerInputs(); document.getElementById('filters-drawer').checked = false;"
                         class="btn btn-sm btn-primary gap-1 px-4">
                     <span class="icon-[mdi--magnify] size-4"></span>
                     Aplicar
@@ -42,3 +45,21 @@
         </div>
     </div>
 </div>
+
+<!-- SCRIPT DE VINCULACIÓN AUTOMÁTICA -->
+<script>
+    function syncDrawerInputs() {
+        // Asigna dinámicamente el atributo form="omnibar-form" a todos los inputs, selects y textareas
+        // que estén dentro del drawer justo antes de enviar
+        const drawer = document.querySelector('.drawer-side');
+        if (drawer) {
+            const inputs = drawer.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                input.setAttribute('form', 'omnibar-form');
+            });
+        }
+    }
+
+    // Ejecutar también al cargar la página para soportar submit vía Enter dentro de un select/input del drawer
+    document.addEventListener('DOMContentLoaded', syncDrawerInputs);
+</script>

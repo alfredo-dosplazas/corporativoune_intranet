@@ -1,7 +1,14 @@
 {% if field.help_text %}
     {% if help_text_inline %}
-        <span id="{{ field.auto_id }}_helptext" class="text-xs text-muted text-base-content/80">{{ field.help_text|safe }}</span>
+        <span id="{{ field.auto_id }}_helptext"
+              class="inline-flex items-center gap-1 text-[11px] text-base-content/60 mt-1">
+            <span class="icon-[tabler--info-circle] text-xs shrink-0 text-info/70"></span>
+            <span>{{ field.help_text|safe }}</span>
+        </span>
     {% else %}
-        <div {% if field.auto_id %}id="{{ field.auto_id }}_helptext" {% endif %}class="text-xs text-muted text-base-content/80">{{ field.help_text|safe }}</div>
+        <div {% if field.auto_id %}id="{{ field.auto_id }}_helptext" {% endif %}class="flex items-start gap-1 text-[11px] text-base-content/60 mt-1">
+            <span class="icon-[tabler--info-circle] text-xs shrink-0 text-info/70 mt-0.5"></span>
+            <span>{{ field.help_text|safe }}</span>
+        </div>
     {% endif %}
 {% endif %}

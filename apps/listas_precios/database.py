@@ -12,6 +12,7 @@ def get_connection_dominum():
         password=settings.FIREBIRD_DB_PASSWORD
     )
 
+
 def get_connection_abraham():
     fdb.load_api(settings.FIREBIRD_API_PATH)
 
@@ -22,16 +23,32 @@ def get_connection_abraham():
         password=settings.FIREBIRD_DB_PASSWORD
     )
 
+
+def get_connection_coi():
+    fdb.load_api(settings.FIREBIRD_API_PATH)
+
+    return fdb.connect(
+        host=settings.COI_HOST,
+        database=settings.FIREBIRD_DB_COI_PATH,
+        user=settings.FIREBIRD_DB_USER,
+        password=settings.FIREBIRD_DB_PASSWORD,
+    )
+
+
 def get_connection(alias='DOMINUM'):
     if alias == 'ABRAHAM':
         return get_connection_abraham()
+    elif alias == 'COI_PRUEBAS':
+        return get_connection_coi()
 
     return get_connection_dominum()
+
 
 def get_table_postfix(alias='DOMINUM'):
     if alias == 'ABRAHAM':
         return '03'
     return '01'
+
 
 def fetch_as_dicts(cur):
     columns = [column[0] for column in cur.description]
@@ -42,8 +59,6 @@ def fetch_as_dicts(cur):
 
 
 def get_listas_precios(alias='DOMINUM'):
-
-
     con = get_connection(alias)
     try:
         cur = con.cursor()
@@ -63,6 +78,7 @@ def get_lineas(alias='DOMINUM'):
         return fetch_as_dicts(cur)
     finally:
         con.close()
+
 
 def get_productos(alias='DOMINUM'):
     con = get_connection(alias)

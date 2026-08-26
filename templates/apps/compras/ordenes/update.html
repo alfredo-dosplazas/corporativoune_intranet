@@ -1,32 +1,84 @@
-{% load django_tables2 %}
+{% load static %}
 <c-layouts.app>
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
 
-            <!-- START -->
-            <div class="justify-self-start">
-                <h1 class="font-bold text-xl flex items-center gap-2">{{ orden }}</h1>
-            </div>
-
-            <!-- MIDDLE -->
-            <div class="justify-self-center w-full flex justify-center">
-
-            </div>
-
-
-            <!-- END -->
-            <div class="justify-self-end flex gap-2">
-                <a href="#"
-                   class="btn btn-sm"
-                   onclick="abrirPDF('{% url 'compras:ordenes__pdf' orden.pk %}'); return false;">
-                    PDF
+            <!-- 1. NAVEGACIÓN Y TÍTULO -->
+            <div class="flex items-center gap-3">
+                <!-- Botón Volver -->
+                <a href="{% url 'compras:ordenes__list' %}"
+                   class="btn btn-ghost btn-sm btn-square hover:bg-base-200"
+                   title="Volver a la lista">
+                    <span class="icon-[tabler--arrow-left] text-lg"></span>
                 </a>
 
-                <button form="orden-form" class="btn btn-primary btn-sm">Guardar</button>
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="icon-[tabler--file-pencil] text-primary text-xl hidden sm:inline-block"></span>
+                        <h1 class="font-extrabold text-lg md:text-xl leading-none tracking-tight">
+                            {{ orden }}
+                        </h1>
+
+                        <!-- Badge opcional de Estado actual de la Orden -->
+                        <span class="badge badge-sm
+                            {% if orden.estado == 'aprobado' %}badge-success
+                            {% elif orden.estado == 'pendiente' %}badge-warning
+                            {% elif orden.estado == 'cancelado' %}badge-error
+                            {% else %}badge-ghost{% endif %} font-medium">
+                            {{ orden.get_estado_display|default:orden.estado|default:"Editando" }}
+                        </span>
+                    </div>
+                    <p class="text-xs text-base-content/60 mt-0.5">
+                        Modifica los datos generales o los ítems de esta orden de compra
+                    </p>
+                </div>
+            </div>
+
+            <!-- 2. ACCIONES EN DESKTOP (Hidden en mobile) -->
+            <div class="hidden sm:flex items-center gap-2">
+                <!-- Ver PDF -->
+                <a href="#"
+                   class="btn btn-outline btn-sm gap-1.5"
+                   onclick="abrirPDF('{% url 'compras:ordenes__pdf' orden.pk %}'); return false;">
+                    <span class="icon-[tabler--file-type-pdf] text-error text-base"></span>
+                    <span>PDF</span>
+                </a>
+
+                <a href="{% url 'compras:ordenes__list' %}" class="btn btn-ghost btn-sm">
+                    Cancelar
+                </a>
+
+                <button form="orden-form" type="submit" class="btn btn-primary btn-sm gap-1.5 shadow-xs">
+                    <span class="icon-[tabler--device-floppy] text-base"></span>
+                    <span>Guardar Cambios</span>
+                </button>
             </div>
         </div>
-
     </c-slot>
 
-    <c-apps.compras.ordenes.form/>
+    <!-- CONTENEDOR PRINCIPAL DEL FORMULARIO -->
+    <div class="max-w-5xl mx-auto pb-20 sm:pb-6">
+        <c-apps.compras.ordenes.form/>
+    </div>
+
+    <!-- BARRA FLOTANTE INFERIOR DE ACCIONES (SOLO MOBILE) -->
+    <div class="fixed bottom-0 left-0 right-0 py-5 px-3 bg-base-100/95 backdrop-blur-md border-t border-base-300 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] sm:hidden z-50 flex items-center gap-2 justify-between">
+        <!-- Acción secundaria rápida: PDF en mobile -->
+        <a href="#"
+           class="btn btn-ghost btn-sm btn-square text-error hover:bg-error/10"
+           title="Ver PDF"
+           onclick="abrirPDF('{% url 'compras:ordenes__pdf' orden.pk %}'); return false;">
+            <span class="icon-[tabler--file-type-pdf] text-xl"></span>
+        </a>
+
+        <a href="{% url 'compras:ordenes__list' %}"
+           class="btn btn-ghost btn-sm flex-1 font-medium text-base-content/70">
+            Cancelar
+        </a>
+
+        <button form="orden-form" type="submit" class="btn btn-primary btn-sm flex-1 gap-1.5 shadow-md font-semibold">
+            <span class="icon-[tabler--device-floppy] text-base"></span>
+            <span>Guardar</span>
+        </button>
+    </div>
 </c-layouts.app>

@@ -1,6 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models, transaction
 from django.utils import timezone
 
@@ -144,9 +145,28 @@ class Orden(models.Model):
     fecha_entrega = models.DateField(verbose_name='Fecha de entrega')
     lugar_entrega = models.TextField(verbose_name='Lugar de entrega')
 
-    retencion_isr = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Retención ISR')
-    retencion_cedular = models.DecimalField(max_digits=10, decimal_places=2, default=0,
-                                            verbose_name='Retención Cedular')
+    retencion_isr = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Retención ISR (%)',
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Porcentaje del 0 al 100",
+    )
+    retencion_cedular = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Retención Cedular (%)',
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    retencion_3 = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Retención 3 (%)',
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -161,7 +181,19 @@ class Orden(models.Model):
 
     @property
     def total_retenciones(self):
-        return ((self.retencion_cedular / 100) * self.subtotal) + ((self.retencion_isr / 100) * self.subtotal)
+        return ((self.retencion_cedular / 100) * self.subtotal) + ((self.retencion_isr / 100) * self.subtotal) + ((self.retencion_3 / 100) * self.subtotal)
+
+    @property
+    def monto_retencion_isr(self):
+        return (self.retencion_isr / Decimal("100")) * self.subtotal
+
+    @property
+    def monto_retencion_cedular(self):
+        return (self.retencion_cedular / Decimal("100")) * self.subtotal
+
+    @property
+    def monto_retencion_3(self):
+        return (self.retencion_3 / Decimal("100")) * self.subtotal
 
     @property
     def total(self):
@@ -201,6 +233,9 @@ class Orden(models.Model):
             self.folio = OrdenFolio.generar_folio(self.razon_social)
 
         super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ['-created_at']
 
     def __str__(self):
         return self.folio

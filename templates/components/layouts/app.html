@@ -29,11 +29,12 @@
             <c-shared.footer/>
         </div>
 
-        <div class="dock md:hidden bg-base-300">
+        <div class="dock md:hidden bg-base-100 border-t border-base-300 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] z-40">
             {% for item in mobile_dock_items %}
-                <a href="{{ item.url }}" class="{% if item.active %}dock-active{% endif %}">
-                    <span class="{{ item.icon }} size-[1.2em]"></span>
-                    <span class="dock-label">{{ item.nombre }}</span>
+                <a href="{{ item.url }}"
+                   class="{% if item.active %}dock-active text-primary font-bold{% else %}text-base-content/60 hover:text-base-content{% endif %} transition-colors">
+                    <span class="{{ item.icon }} size-[1.3em]"></span>
+                    <span class="dock-label text-[11px] mt-0.5">{{ item.nombre }}</span>
                 </a>
             {% endfor %}
         </div>

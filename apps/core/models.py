@@ -19,6 +19,8 @@ class RazonSocial(models.Model):
     nombre_corto = models.CharField(max_length=100, null=True)
     abreviatura = models.CharField(max_length=100, null=True)
     prefijo = models.CharField(max_length=100, null=True)
+    rfc = models.CharField(max_length=13, null=True)
+    domicilio = models.TextField(null=True)
 
     logo = models.ImageField(upload_to="logos/", blank=True, null=True)
 
