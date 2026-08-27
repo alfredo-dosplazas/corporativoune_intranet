@@ -164,7 +164,7 @@ class Orden(models.Model):
         max_digits=10,
         decimal_places=2,
         default=0,
-        verbose_name='Retención 3 (%)',
+        verbose_name='Retención Fletes (%)',
         validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
 

@@ -3,7 +3,7 @@ from datetime import datetime
 from apps.listas_precios.database import get_connection, fetch_as_dicts, get_table_postfix
 
 
-def obtener_facturas_sae(alias='DOMINUM', anio=None, mes=None):
+def obtener_facturas_sae(alias='DOMINUM', anio=None, mes=None, q=None):
     """
     Obtiene el listado de cabeceras de facturas de SAE que NO han sido contabilizadas en COI,
     filtradas por Año y Mes.
@@ -43,6 +43,7 @@ def obtener_facturas_sae(alias='DOMINUM', anio=None, mes=None):
               AND f.STATUS <> 'C'
               AND f.TIP_DOC = 'F'
               AND (f.ACT_COI IS NULL OR f.ACT_COI <> 'S')
+              {f'AND f.CVE_DOC LIKE %{q}%' if q else ''}
             ORDER BY f.FECHA_DOC DESC, f.CVE_DOC DESC
         """
 

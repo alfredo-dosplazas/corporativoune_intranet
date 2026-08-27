@@ -30,6 +30,8 @@ class DocumentoContabilizarSAE(
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
+        q = self.request.GET.get('q', '')
+
         # Capturar filtros del GET o usar el mes/año actual por defecto
         anio_actual = datetime.now().year
         mes_actual = datetime.now().month
@@ -38,7 +40,7 @@ class DocumentoContabilizarSAE(
         mes = int(self.request.GET.get('mes', mes_actual))
 
         # Consultar solo encabezados para el listado
-        documentos = obtener_facturas_sae(anio=anio, mes=mes)
+        documentos = obtener_facturas_sae(anio=anio, mes=mes, q=q)
 
         # Opciones para los selectores de filtro en la plantilla
         context['documentos'] = documentos
