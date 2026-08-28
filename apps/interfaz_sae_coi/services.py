@@ -1,3 +1,4 @@
+from apps.interfaz_sae_coi.models import Cuenta
 from apps.listas_precios.database import fetch_as_dicts, get_table_postfix, get_connection
 
 
@@ -138,38 +139,41 @@ def generar_simulacion_polizas(factura):
     almacen_id = factura['ALMACEN']
     fecha = factura['FECHA']
 
+    cuenta_ventas_salamanca = Cuenta.objects.get(nombre="VENTAS SALAMANCA")
+    cuenta_ventas_cortazar = Cuenta.objects.get(nombre="VENTAS CORTAZAR")
+
     CUENTAS_VENTAS = {
-        1: (formatear_cuenta_coi("4000-001-001-000-000"), "Ventas Salamanca"),
-        3: (formatear_cuenta_coi("4000-001-002-000-000"), "Ventas Cortazar"),
+        1: (cuenta_ventas_salamanca.numero_cuenta_coi, cuenta_ventas_salamanca.nombre),
+        3: (cuenta_ventas_cortazar.numero_cuenta_coi, cuenta_ventas_cortazar.nombre),
     }
     cuenta_ventas, nom_ventas = CUENTAS_VENTAS.get(
         almacen_id,
-        (formatear_cuenta_coi("401-001-000-000"), "Ventas Genéricas")
+        ("401-001-000-000", "Ventas Genéricas")
     )
 
     if "INMOBILIARIA DOS PLAZAS" in cliente_nombre:
-        cuenta_cliente = formatear_cuenta_coi("1150-002-002-000-000")
+        cuenta_cliente = "1150-002-002-000-000"
         nom_cliente = f"Cliente Parte Relacionada ({cliente_nombre})"
     elif "ABOCOSA" in cliente_nombre:
-        cuenta_cliente = formatear_cuenta_coi("1150-002-001-000-000")
+        cuenta_cliente = "1150-002-001-000-000"
         nom_cliente = f"Cliente Parte Relacionada ({cliente_nombre})"
     elif "EDIFICATIUM" in cliente_nombre:
-        cuenta_cliente = formatear_cuenta_coi("1150-002-003-000-000")
+        cuenta_cliente = "1150-002-003-000-000"
         nom_cliente = f"Cliente Parte Relacionada ({cliente_nombre})"
     elif "TERBA" in cliente_nombre:
-        cuenta_cliente = formatear_cuenta_coi("1150-002-006-000-000")
+        cuenta_cliente = "1150-002-006-000-000"
         nom_cliente = f"Cliente Parte Relacionada ({cliente_nombre})"
     elif "ELECTRAVIA" in cliente_nombre:
-        cuenta_cliente = formatear_cuenta_coi("1150-002-008-000-000")
+        cuenta_cliente = "1150-002-008-000-000"
         nom_cliente = f"Cliente Parte Relacionada ({cliente_nombre})"
     elif "FRESCOPACK" in cliente_nombre:
-        cuenta_cliente = formatear_cuenta_coi("1150-002-007-000-000")
+        cuenta_cliente = "1150-002-007-000-000"
         nom_cliente = f"Cliente Parte Relacionada ({cliente_nombre})"
     else:
-        cuenta_cliente = formatear_cuenta_coi("1150-001-001-000-000")
+        cuenta_cliente = "1150-001-001-000-000"
         nom_cliente = f"Clientes Terceros ({cliente_nombre})"
 
-    cuenta_iva = formatear_cuenta_coi("2132-001-001-000-000")
+    cuenta_iva = "2132-001-001-000-000"
 
     subtotal = round(float(factura.get('SUBTOTAL', 0.0)), 2)
     descuento = round(float(factura.get('DESCUENTO_TOTAL', 0.0)), 2)
@@ -223,8 +227,8 @@ def generar_simulacion_polizas(factura):
     }
 
     # --- PÓLIZA 2: COSTO DE VENTAS (DIARIO) ---
-    cuenta_costos = formatear_cuenta_coi("5000-001-006-000-000")
-    cuenta_inventario = formatear_cuenta_coi("1161-002-001-000-000")
+    cuenta_costos = "5000-001-006-000-000"
+    cuenta_inventario = "1161-002-001-000-000"
 
     partidas_costo = []
     num_partida = 1

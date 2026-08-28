@@ -52,6 +52,9 @@ INSTALLED_APPS = [
     'django_celery_beat',
     'rangefilter',
     'pwa',
+    'inertia',
+    'django_vite',
+    'django_js_reverse',
 
     'apps.ad',
     'apps.asistencias',
@@ -83,9 +86,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'inertia.middleware.InertiaMiddleware',
     'apps.auditoria.middleware.UserAccessLogMiddleware',
     'apps.auditoria.middleware.AuditMiddleware',
     'django_htmx.middleware.HtmxMiddleware',
+    'apps.core.middleware.inertia_share',
 ]
 
 AUTHENTICATION_BACKENDS = [
@@ -226,6 +231,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
+    BASE_DIR / 'assets',
 ]
 
 COTTON_DIR = 'components'
@@ -415,4 +421,12 @@ PWA_APP_SCREENSHOTS = [
 
 APP_URL = env('APP_URL', default='http://localhost:8000')
 
-FIELD_ENCRYPTION_KEY=env('FIELD_ENCRYPTION_KEY')
+FIELD_ENCRYPTION_KEY = env('FIELD_ENCRYPTION_KEY')
+
+INERTIA_LAYOUT = 'components/layouts/inertia.html'
+
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": DEBUG,
+    }
+}

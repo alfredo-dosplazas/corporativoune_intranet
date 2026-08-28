@@ -266,6 +266,35 @@ class Contacto(models.Model):
 
         super().save(*args, **kwargs)
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "nombre_completo": self.nombre_completo,
+            "titulo_nombre_completo": self.titulo_nombre_completo,
+            "iniciales": self.iniciales,
+            "numero_empleado": self.numero_empleado,
+            "abreviatura_titulo": self.abreviatura_titulo,
+            "primer_nombre": self.primer_nombre,
+            "segundo_nombre": self.segundo_nombre,
+            "primer_apellido": self.primer_apellido,
+            "segundo_apellido": self.segundo_apellido,
+            "foto": self.foto.url if self.foto else None,
+            "empresa": {
+                "id": self.empresa.id,
+                "nombre": self.empresa.nombre,
+                "slug": self.empresa.slug,
+            } if self.empresa else None,
+            "area": self.area.nombre if self.area else None,
+            "puesto": self.puesto.nombre if self.puesto else None,
+            "sede_administrativa": self.sede_administrativa.nombre if self.sede_administrativa else None,
+            "email_principal": self.email_principal.email if self.email_principal else None,
+            "telefono_principal": self.telefono_principal.telefono if self.telefono_principal else None,
+            "whatsapp": self.telefono_principal.whatsapp if self.telefono_principal else None,
+            "fecha_ingreso": self.fecha_ingreso.isoformat() if self.fecha_ingreso else None,
+            "fecha_egreso": self.fecha_egreso.isoformat() if self.fecha_egreso else None,
+            "mostrar_en_directorio": self.mostrar_en_directorio,
+        }
+
     def __str__(self):
         return f"{self.nombre_completo}"
 

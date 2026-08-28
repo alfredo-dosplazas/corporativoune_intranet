@@ -2,6 +2,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
+from django_js_reverse.views import urls_json
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -18,7 +19,8 @@ urlpatterns = [
     path('evidencias-moldes/', include('apps.evidencias_moldes.urls')),
     path('listas-precios/', include('apps.listas_precios.urls')),
     path('interfaz-sae-coi/', include('apps.interfaz_sae_coi.urls')),
-    path('', include('pwa.urls'))
+    path('', include('pwa.urls')),
+    path("jsreverse.json", urls_json, name="js_reverse"),
 ]
 
 if settings.DEBUG:

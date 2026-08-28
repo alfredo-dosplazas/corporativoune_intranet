@@ -32,17 +32,19 @@ def obtener_facturas_sae(alias='DOMINUM', anio=None, mes=None, q=None):
                 f.CAN_TOT AS SUBTOTAL,
                 f.IMP_TOT1 AS IVA,
                 f.IMPORTE AS TOTAL,
-                f.NUM_ALMA AS ALMACEN,
+                f.NUM_ALMA AS CLAVE_ALMACEN,
+                a.DESCR AS ALMACEN,
                 f.STATUS AS ESTATUS,
                 f.UUID AS UUID_CFDI,
                 f.ACT_COI AS CONTABILIZADO_COI
             FROM FACTF{postfix} f
+            INNER JOIN ALMACENES{postfix} a ON f.NUM_ALMA = a.CVE_ALM
             LEFT JOIN CLIE{postfix} c ON c.CLAVE = f.CVE_CLPV
             WHERE EXTRACT(YEAR FROM f.FECHA_DOC) = ?
               AND EXTRACT(MONTH FROM f.FECHA_DOC) = ?
               AND f.STATUS <> 'C'
               AND f.TIP_DOC = 'F'
-              AND (f.ACT_COI IS NULL OR f.ACT_COI <> 'S')
+              AND (f.ACT_COI IS NULL OR f.ACT_COI <> 'A')
               {f'AND f.CVE_DOC LIKE %{q}%' if q else ''}
             ORDER BY f.FECHA_DOC DESC, f.CVE_DOC DESC
         """

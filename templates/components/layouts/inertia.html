@@ -1,0 +1,16 @@
+{% load django_vite %}
+
+<!DOCTYPE html>
+<html lang="es" data-theme="dos_plazas">
+<head>
+    <meta charset="UTF-8">
+    <title>Intranet CorporativoUNE</title>
+
+    {% vite_react_refresh %}
+    {% vite_hmr_client %}
+    {% vite_asset './src/main.tsx' %}
+</head>
+<body>
+    {% block inertia %}{% endblock %}
+</body>
+</html>

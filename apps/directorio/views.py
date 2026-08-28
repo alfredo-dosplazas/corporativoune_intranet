@@ -1,8 +1,9 @@
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpResponse
-from django.shortcuts import redirect, get_object_or_404, render
+from django.shortcuts import redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.views import View
@@ -10,12 +11,14 @@ from django.views.generic import DetailView, DeleteView, UpdateView
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin
 from extra_views import SearchableListMixin, CreateWithInlinesView, NamedFormsetsMixin, UpdateWithInlinesView
+from inertia import render
 from playwright.sync_api import sync_playwright
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.mixins.modulo_required import ModuloRequiredMixin
 from apps.core.mixins.session_filter_state import SessionFilterStateMixin
 from apps.core.mixins.title import PageTitleMixin
+from apps.core.models import Empresa
 from apps.core.services.notificaciones import notificar_soporte
 from apps.core.utils.network import get_client_ip, ip_in_allowed_range, get_empresas_from_ip, \
     get_sede_from_ip
@@ -26,6 +29,61 @@ from apps.directorio.inlines import EmailContactoInline, TelefonoContactoInline
 from apps.directorio.models import Contacto
 from apps.directorio.tables import ContactoTable
 from apps.rrhh.models.sedes import Sede
+
+
+def directorio(request):
+    search_query = request.GET.get('search', '')
+    empresa_id = request.GET.get('empresa', '')
+    page_number = request.GET.get('page', 1)
+
+    contactos = (
+        Contacto.objects.filter(esta_archivado=False)
+        .select_related('empresa', 'sede_administrativa', 'area', 'puesto')
+        .prefetch_related('emails', 'telefonos')
+    )
+
+    if search_query:
+        contactos = contactos.filter(
+            Q(primer_nombre__icontains=search_query) |
+            Q(segundo_nombre__icontains=search_query) |
+            Q(primer_apellido__icontains=search_query) |
+            Q(segundo_apellido__icontains=search_query) |
+            Q(numero_empleado__icontains=search_query)
+        )
+
+    if empresa_id:
+        contactos = contactos.filter(empresa_id=empresa_id)
+
+    paginator = Paginator(contactos, 10)
+    page_obj = paginator.get_page(page_number)
+
+    props = {
+        'contactos': {
+            'data': [c.to_dict() for c in page_obj],
+            'current_page': page_obj.number,
+            'has_next': page_obj.has_next(),
+            'has_previous': page_obj.has_previous(),
+            'num_pages': paginator.num_pages,
+            'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
+            'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
+        },
+        'filters': {
+            'search': search_query,
+            'empresa': empresa_id,
+        },
+        # Añadimos las empresas para iterarlas en el select del frontend
+        'empresas': list(Empresa.objects.values('id', 'nombre'))
+    }
+    return render(request, 'Directorio/Index', props)
+
+
+def contacto_detail(request, pk):
+    contacto = get_object_or_404(Contacto, pk=pk)
+
+    props = {
+        'contacto': contacto.to_dict(),
+    }
+    return render(request, 'Directorio/Contacto/Detail', props)
 
 
 class DirectorioListView(
