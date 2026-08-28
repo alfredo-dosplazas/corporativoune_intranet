@@ -1,4 +1,3 @@
-import React from "react";
 import {getUrl} from "@/utils/routes.ts";
 import {Link} from "@inertiajs/react";
 import type {MenuItem} from "@/types/navigation.ts";

@@ -1,0 +1,85 @@
+{
+  "_AppLayout-bldbbcm7.js": {
+    "file": "assets/AppLayout-bldbbcm7.js",
+    "name": "AppLayout",
+    "imports": [
+      "src/main.tsx"
+    ]
+  },
+  "src/Pages/Directorio/Contacto/Detail.tsx": {
+    "file": "assets/Detail-mdPXctIf.js",
+    "name": "Detail",
+    "src": "src/Pages/Directorio/Contacto/Detail.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_AppLayout-bldbbcm7.js"
+    ]
+  },
+  "src/Pages/Directorio/Index.tsx": {
+    "file": "assets/Index-OMS6wXAG.js",
+    "name": "Index",
+    "src": "src/Pages/Directorio/Index.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "src/main.tsx",
+      "_AppLayout-bldbbcm7.js"
+    ]
+  },
+  "src/Pages/Evidencias_Moldes/Explorador.tsx": {
+    "file": "assets/Explorador-BmhXy4B3.js",
+    "name": "Explorador",
+    "src": "src/Pages/Evidencias_Moldes/Explorador.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "src/main.tsx",
+      "_AppLayout-bldbbcm7.js"
+    ]
+  },
+  "src/Pages/Interfaz_SAE_COI/Cuentas/Asignar.tsx": {
+    "file": "assets/Asignar-CwTVNcGW.js",
+    "name": "Asignar",
+    "src": "src/Pages/Interfaz_SAE_COI/Cuentas/Asignar.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "src/main.tsx",
+      "_AppLayout-bldbbcm7.js"
+    ]
+  },
+  "src/Pages/Interfaz_SAE_COI/Index.tsx": {
+    "file": "assets/Index-BDfbJeUv.js",
+    "name": "Index",
+    "src": "src/Pages/Interfaz_SAE_COI/Index.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "src/main.tsx",
+      "_AppLayout-bldbbcm7.js"
+    ]
+  },
+  "src/Pages/Interfaz_SAE_COI/Preview.tsx": {
+    "file": "assets/Preview-Bmate3Bs.js",
+    "name": "Preview",
+    "src": "src/Pages/Interfaz_SAE_COI/Preview.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "src/main.tsx",
+      "_AppLayout-bldbbcm7.js"
+    ]
+  },
+  "src/main.tsx": {
+    "file": "assets/main-BBEaNZqx.js",
+    "name": "main",
+    "src": "src/main.tsx",
+    "isEntry": true,
+    "dynamicImports": [
+      "src/Pages/Directorio/Contacto/Detail.tsx",
+      "src/Pages/Directorio/Index.tsx",
+      "src/Pages/Evidencias_Moldes/Explorador.tsx",
+      "src/Pages/Interfaz_SAE_COI/Cuentas/Asignar.tsx",
+      "src/Pages/Interfaz_SAE_COI/Index.tsx",
+      "src/Pages/Interfaz_SAE_COI/Preview.tsx"
+    ],
+    "css": [
+      "assets/main-BzWAxQgi.css"
+    ]
+  }
+}

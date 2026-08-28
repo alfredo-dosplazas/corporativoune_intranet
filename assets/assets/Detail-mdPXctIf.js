@@ -1,0 +1,1 @@
+import{n as e,r as t,t as n}from"./AppLayout-bldbbcm7.js";var r=t(),i=e();function a(e){let t=(0,r.c)(4),{contacto:a}=e,o;t[0]===a?o=t[1]:(o=JSON.stringify(a,null,2),t[0]=a,t[1]=o);let s;return t[2]===o?s=t[3]:(s=(0,i.jsx)(n,{children:o}),t[2]=o,t[3]=s),s}export{a as default};
