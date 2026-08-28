@@ -1,9 +1,10 @@
 {% load django_vite %}
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es" data-theme="dos_plazas">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Intranet CorporativoUNE</title>
 
     {% vite_react_refresh %}
@@ -11,6 +12,6 @@
     {% vite_asset 'src/main.tsx' %}
 </head>
 <body>
-    {% block inertia %}{% endblock %}
+{% block inertia %}{% endblock %}
 </body>
 </html>
