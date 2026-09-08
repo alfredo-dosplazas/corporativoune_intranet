@@ -225,21 +225,6 @@ class Contacto(models.Model):
     def slack_url(self):
         return f"slack://user?team={settings.SLACK_TEAM_ID}&id={self.slack_id}"
 
-    def json(self):
-        return {
-            'nombre_completo': self.nombre_completo,
-            'numero_empleado': self.numero_empleado,
-            'empresa': self.empresa.nombre if self.empresa else None,
-            'area': self.area.nombre if self.area else None,
-            'puesto': self.puesto.nombre if self.puesto else None,
-            'sede_administrativa': self.sede_administrativa.nombre if self.sede_administrativa else None,
-            'email_principal': self.email_principal.email if self.email_principal else None,
-            'telefono_principal': self.telefono_principal.telefono if self.telefono_principal else None,
-            'telefono_principal__extension': self.telefono_principal.extension if self.telefono_principal else None,
-            'fecha_ingreso': self.fecha_ingreso,
-            'fecha_egreso': self.fecha_egreso,
-        }
-
     def clean(self):
         errors = {}
 
@@ -279,13 +264,10 @@ class Contacto(models.Model):
             "primer_apellido": self.primer_apellido,
             "segundo_apellido": self.segundo_apellido,
             "foto": self.foto.url if self.foto else None,
-            "empresa": {
-                "id": self.empresa.id,
-                "nombre": self.empresa.nombre,
-                "slug": self.empresa.slug,
-            } if self.empresa else None,
+            "empresa": self.empresa.to_dict() if self.empresa else None,
             "area": self.area.nombre if self.area else None,
             "puesto": self.puesto.nombre if self.puesto else None,
+            "sede_administrativa_id": self.sede_administrativa.id if self.sede_administrativa else None,
             "sede_administrativa": self.sede_administrativa.nombre if self.sede_administrativa else None,
             "email_principal": self.email_principal.email if self.email_principal else None,
             "telefono_principal": self.telefono_principal.telefono if self.telefono_principal else None,
@@ -293,6 +275,12 @@ class Contacto(models.Model):
             "fecha_ingreso": self.fecha_ingreso.isoformat() if self.fecha_ingreso else None,
             "fecha_egreso": self.fecha_egreso.isoformat() if self.fecha_egreso else None,
             "mostrar_en_directorio": self.mostrar_en_directorio,
+            'slack_url': self.slack_url if self.slack_id else None,
+            'empresas_relacionadas': [
+                {"id": emp.id, "nombre": emp.nombre}
+                for emp in self.empresas_relacionadas.all()
+            ],
+            'theme': self.empresa.theme if self.empresa else None,
         }
 
     def __str__(self):

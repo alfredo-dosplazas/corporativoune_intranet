@@ -1,140 +1,456 @@
 import json
+import re
+import uuid
 from datetime import datetime
 
 from django.contrib import messages
-from django.contrib.auth.decorators import permission_required
-from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.core.paginator import Paginator
-from django.http import Http404
+from django.contrib.auth.decorators import permission_required, login_required
+from django.db import transaction
+from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, get_object_or_404
-from django.views import View
-from django.views.generic import TemplateView
+from django.urls import reverse
+from django.utils.timezone import now
 from inertia import render
+from sqlalchemy import or_, extract, cast, Integer
+from sqlalchemy import func
 
-from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
-from apps.core.mixins.title import PageTitleMixin
-from apps.interfaz_sae_coi.database import obtener_facturas_sae
-from apps.interfaz_sae_coi.models import Cuenta
-from apps.interfaz_sae_coi.services import (
-    obtener_detalle_factura_sae,
-    generar_simulacion_polizas,
-    guardar_poliza_en_coi
-)
+from apps.coi.db import coi_session
+from apps.coi.models_coi import get_coi_models
+from apps.coi.utils import obtener_cuenta_clave
+from apps.core.utils.navigation import paginate_queryset, paginate_list, make_breadcrumbs
+from apps.interfaz_sae_coi.generators import PolizaVentaGenerator, PolizaCostoVentaGenerator
+from apps.interfaz_sae_coi.models import Cuenta, DocumentoContabilizado
+from apps.sae.db import sae_session
+from apps.sae.models_sae import get_sae_models, FacturaMixin, ClienteMixin
+
+TIPOS_DOCUMENTOS = [
+    {
+        'value': 'ventas',
+        'label': 'Ventas',
+    }
+]
 
 
-@permission_required('interfaz_sae_coi.view_documentos')
+@login_required()
+@permission_required('interfaz_sae_coi.view_documentos', raise_exception=True)
 def documentos_contabilizar_sae(request):
-    anio_actual = datetime.now().year
-    mes_actual = datetime.now().month
+    today = now().date()
 
-    # 1. Obtener parámetros de filtro y paginación
-    search_query = request.GET.get('q', '')
-    anio = int(request.GET.get('anio', anio_actual))
-    mes = int(request.GET.get('mes', mes_actual))
+    q = request.GET.get('q', '').strip()
+    mes = request.GET.get('mes', str(today.month))
+    anio = request.GET.get('anio', str(today.year))
     almacen = request.GET.get('almacen', '')
-    page_number = request.GET.get('page', 1)
+    tipo_documento = request.GET.get('tipo_documento', 'ventas')
+    estado_conta = request.GET.get('estado_conta', 'todos')
 
-    # 2. Obtener documentos aplicando los filtros
-    documentos = obtener_facturas_sae(anio=anio, mes=mes, q=search_query)
+    with sae_session() as (db_sae, suffix):
+        m = get_sae_models(suffix)
 
-    # Filtrar por almacén si viene definido
-    if almacen != '':
-        documentos = [d for d in documentos if str(d.get('CLAVE_ALMACEN')) == str(almacen)]
+        almacenes = [a.nombre for a in db_sae.query(m.Almacen.nombre).all()]
 
-    # Extraer almacenes únicos de todos los documentos del mes/año sin filtrar por texto o almacén
-    documentos_base = obtener_facturas_sae(anio=anio, mes=mes, q='')
-    almacenes_disponibles = sorted(list({(d.get('CLAVE_ALMACEN'), d.get('ALMACEN')) for d in documentos_base}),
-                                   key=lambda x: x[0])
+        query = db_sae.query(
+            m.Factura.folio,
+            m.Factura.fecha,
+            m.Cliente.nombre.label('cliente'),
+            m.Almacen.nombre.label('almacen'),
+            m.Factura.subtotal,
+            m.Factura.total_impuesto4,
+            m.Factura.total,
+            m.Factura.status,
+            m.Factura.uuid,
+        ).join(m.Cliente).join(m.Almacen).order_by(m.Factura.fecha.desc(), m.Factura.folio.desc())
 
-    # 3. Paginar resultados (ej. 15 documentos por página)
-    paginator = Paginator(documentos, 15)
-    page_obj = paginator.get_page(page_number)
+        if q:
+            sp = f"%{q}%"
+            query = query.filter(or_(m.Factura.folio.ilike(sp), m.Cliente.nombre.ilike(sp), m.Factura.uuid.ilike(sp)))
+        if almacen:
+            query = query.filter(m.Almacen.nombre == almacen)
+        if mes and mes.isdigit():
+            query = query.filter(extract('month', m.Factura.fecha) == int(mes))
+        if anio and anio.isdigit():
+            query = query.filter(extract('year', m.Factura.fecha) == int(anio))
 
-    anios_disponibles = list(range(anio_actual, anio_actual - 5, -1))
+        facturas_raw = query.all()
+        facturas_dicts = [f._asdict() for f in facturas_raw]
+
+        # Lista de folios tal cual vienen de la base de datos
+        folios = [f['folio'] for f in facturas_dicts if f.get('folio')]
+
+        coi_map = {}
+        with coi_session() as (db_coi, suffix):
+            m_coi = get_coi_models(suffix)
+
+            if folios:
+                # Consultar en COI usando los folios directos de la BD
+                registros_coi = db_coi.query(m_coi.DiarioSAE).all()
+
+                for reg in registros_coi:
+                    contabilizado_flag = str(reg.contabiliz or '').strip().upper() == 'S'
+
+                    info = {
+                        'contabiliz': contabilizado_flag,
+                        'poliza': reg.poliza,
+                        'ejercicio': reg.ejercicio,
+                        'periodo': reg.periodo,
+                        'fecha_conta': reg.fecha_conta.isoformat() if reg.fecha_conta else None
+                    }
+
+                    # Mapear tanto por la referencia original como por la versión sin espacios
+                    # por si en una tabla viene como CHAR(20) y en otra como VARCHAR
+                    if reg.referencia:
+                        coi_map[reg.referencia] = info
+                        coi_map[reg.referencia.strip()] = info
+
+        # Búsqueda en Django
+        django_docs = {
+            doc.folio_sae: doc
+            for doc in DocumentoContabilizado.objects.filter(
+                empresa_suffix=suffix,
+                folio_sae__in=folios
+            )
+        }
+
+        documentos_procesados = []
+        for doc_dict in facturas_dicts:
+            folio_db = doc_dict.get('folio') or ''
+            folio_clean = folio_db.strip()
+
+            # Buscar coincidencias usando el valor original de la BD o el limpio
+            info_coi = coi_map.get(folio_db) or coi_map.get(folio_clean)
+            info_django = django_docs.get(folio_db) or django_docs.get(folio_clean)
+
+            if info_coi and info_coi['contabiliz']:
+                doc_dict['contabilizado'] = True
+                doc_dict['origen_conta'] = 'COI'
+                doc_dict['poliza_info'] = f"Póliza {info_coi['poliza']} ({info_coi['periodo']}/{info_coi['ejercicio']})"
+            elif info_django and info_django.status == 'ENVIADO_COI':
+                doc_dict['contabilizado'] = True
+                doc_dict['origen_conta'] = 'DJANGO'
+                doc_dict['poliza_info'] = info_django.poliza_generada or 'Procesada por Django'
+            else:
+                doc_dict['contabilizado'] = False
+                doc_dict['origen_conta'] = None
+                doc_dict['poliza_info'] = None
+
+            if estado_conta == 'contabilizados' and not doc_dict['contabilizado']:
+                continue
+            if estado_conta == 'no_contabilizados' and doc_dict['contabilizado']:
+                continue
+
+            documentos_procesados.append(doc_dict)
+
+        paginated_data = paginate_list(documentos_procesados, request, page_size=12)
 
     props = {
-        'documentos': {
-            'data': list(page_obj),
-            'current_page': page_obj.number,
-            'has_next': page_obj.has_next(),
-            'has_previous': page_obj.has_previous(),
-            'num_pages': paginator.num_pages,
-            'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
-            'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
-        },
+        'data': paginated_data,
         'filters': {
-            'q': search_query,
-            'anio': anio,
-            'mes': mes,
-            'almacen': almacen,
+            'q': q, 'mes': mes, 'anio': anio, 'almacen': almacen,
+            'tipo_documento': tipo_documento, 'estado_conta': estado_conta
         },
         'options': {
-            'anios': anios_disponibles,
-            'meses': [
-                {'id': 1, 'nombre': 'Enero'},
-                {'id': 2, 'nombre': 'Febrero'},
-                {'id': 3, 'nombre': 'Marzo'},
-                {'id': 4, 'nombre': 'Abril'},
-                {'id': 5, 'nombre': 'Mayo'},
-                {'id': 6, 'nombre': 'Junio'},
-                {'id': 7, 'nombre': 'Julio'},
-                {'id': 8, 'nombre': 'Agosto'},
-                {'id': 9, 'nombre': 'Septiembre'},
-                {'id': 10, 'nombre': 'Octubre'},
-                {'id': 11, 'nombre': 'Noviembre'},
-                {'id': 12, 'nombre': 'Diciembre'},
+            'tipos_documentos': TIPOS_DOCUMENTOS,
+            'almacenes': almacenes,
+        },
+        'breadcrumbs': make_breadcrumbs(
+            [
+                ('Inicio', reverse('home')),
+                ('Interfaz SAE COI', None),
             ],
-            'almacenes': [{'id': alm[0], 'nombre': alm[1]} for alm in almacenes_disponibles],
-        }
+        )
     }
+
     return render(request, 'Interfaz_SAE_COI/Index', props)
 
 
-@permission_required('interfaz_sae_coi:agregar-poliza')
-def agregar_poliza(request, cve_doc):
-    try:
-        # 1. Obtener la información completa de la factura en SAE
-        factura = obtener_detalle_factura_sae(cve_doc)
+@login_required
+@permission_required('interfaz_sae_coi.view_documentos', raise_exception=True)
+def poliza_preview_api(request, folio):
+    """
+    Regresa la Vista Previa de la Póliza de Venta y Póliza de Costo
+    sin modificar la base de datos de COI.
+    """
+    with sae_session() as (db_sae, suffix):
+        m = get_sae_models(suffix)
+
+        # 1. Obtener la Factura
+        factura = db_sae.query(
+            m.Factura.folio,
+            m.Factura.fecha,
+            m.Cliente.nombre.label('cliente'),
+            m.Cliente.rfc.label('rfc'),
+            m.Cliente.clave.label('clave_cliente'),
+            m.Almacen.nombre.label('almacen'),
+            m.Factura.subtotal,
+            m.Factura.total_impuesto4,
+            m.Factura.total,
+            m.Factura.uuid,
+            m.Factura.status,
+        ).outerjoin(m.Cliente).outerjoin(m.Almacen).filter(m.Factura.folio == folio).first()
+
         if not factura:
-            messages.error(request, f"La factura {cve_doc} no fue encontrada en SAE.")
-            return redirect('interfaz_sae_coi:documentos_list')
+            return JsonResponse({'error': 'Factura no encontrada'}, status=404)
 
-        # 2. Generar las estructuras de Póliza (Venta e Ingreso)
-        simulacion = generar_simulacion_polizas(factura)
+        factura_dict = factura._asdict()
 
-        polizas_creadas = []
+        # 2. Obtener las Partidas para el Costo de Ventas
+        partidas_query = db_sae.query(
+            m.PartidaFactura.cantidad,
+            m.PartidaFactura.costo,
+            m.Producto.descripcion
+        ).join(m.Producto).filter(m.PartidaFactura.folio == folio).all()
 
-        # 3. Guardar ambas pólizas directamente en COI
-        for poliza_sim in simulacion:
-            num_poliz = guardar_poliza_en_coi(poliza_sim, alias_coi='COI_PRUEBAS')
-            tipo_pol = poliza_sim['encabezado']['TIPO_POLI']
-            polizas_creadas.append(f"{tipo_pol}-{num_poliz}")
+        partidas_list = [p._asdict() for p in partidas_query]
 
-        str_polizas = ", ".join(polizas_creadas)
+        # 3. Generar Pólizas en Memoria
+        poliza_venta = PolizaVentaGenerator.generate(factura_dict)
+        poliza_costo = PolizaCostoVentaGenerator.generate(factura_dict, partidas_list)
+
+        ya_contabilizado = DocumentoContabilizado.objects.filter(
+            folio_sae=folio,
+            empresa_suffix=suffix,
+            status='ENVIADO_COI'
+        ).exists()
+
+        can_contabilizar = (factura_dict.get('status') != 'C') and (not ya_contabilizado)
+
+        return JsonResponse({
+            'documento': factura_dict,
+            'can_contabilizar': can_contabilizar,
+            'ya_contabilizado': ya_contabilizado,
+            'poliza_venta': poliza_venta.to_dict(),
+            'poliza_costo': poliza_costo.to_dict(),
+        })
+
+
+@login_required
+@permission_required('interfaz_sae_coi.add_poliza', raise_exception=True)
+def contabilizar_coi_api(request):
+    """
+    Guarda las pólizas validadas en COI (POLIZASYY y AUXILIARYY),
+    actualiza el consecutivo en FOLIOS, registra la bitácora en DocumentoContabilizado
+    y envía mensaje Flash a Inertia.
+    """
+    if request.method != 'POST':
+        messages.error(request, 'Método no permitido.')
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+    try:
+        body = json.loads(request.body)
+        polizas_data = body.get('polizas', [])
+
+        referencia = str(polizas_data[0].get('referencia', '')) if polizas_data else ''
+
+        dominum_suffix = '23'
+
+        ya_enviado = DocumentoContabilizado.objects.filter(
+            folio_sae=referencia,
+            empresa_suffix=dominum_suffix,
+            status='ENVIADO_COI'
+        ).exists()
+
+        if ya_enviado:
+            messages.warning(request, f"El folio {referencia} ya fue enviado previamente a COI.")
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
+        if not polizas_data:
+            messages.error(request, 'No se enviaron pólizas para contabilizar.')
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
+        with coi_session() as (db_coi, suffix_empresa):
+            polizas_creadas = []
+
+            with transaction.atomic():
+                for p_dict in polizas_data:
+                    fecha_str = p_dict.get('fecha')
+                    fecha_dt = datetime.fromisoformat(fecha_str).date()
+
+                    ejercicio = fecha_dt.year
+                    periodo = fecha_dt.month
+                    anio_suffix = str(ejercicio)[-2:]
+
+                    m_coi = get_coi_models(anio_suffix)
+
+                    tipo_poliza = str(p_dict.get('tipo_poliza', 'Dr'))
+                    concepto = str(p_dict.get('concepto', ''))[:120]
+                    uuid_xml = str(p_dict.get('uuid_xml', ''))
+                    referencia = str(p_dict.get('referencia', ''))  # folio_sae
+                    movimientos = p_dict.get('movimientos', [])
+
+                    if not movimientos or not referencia:
+                        continue
+
+                    # =========================================================
+                    # 1. GESTIÓN DE FOLIOS (FOLIOS) Y CONSECUTIVO NUM_POLIZ
+                    # =========================================================
+                    col_folio_name = f"folio{periodo:02d}"  # ej. 'folio09'
+
+                    # A) Obtener el folio registrado en la tabla FOLIOS
+                    folio_record = db_coi.query(m_coi.Folio).filter(
+                        m_coi.Folio.tippol == tipo_poliza,
+                        m_coi.Folio.ejercicio == ejercicio
+                    ).first()
+
+                    # B) Obtener el max NUM_POLIZ registrado en POLIZASYY por protección
+                    max_num_db = db_coi.query(
+                        func.coalesce(func.max(cast(m_coi.Poliza.num_poliz, Integer)), 0)
+                    ).filter(
+                        m_coi.Poliza.tipo_poli == tipo_poliza,
+                        m_coi.Poliza.periodo == periodo,
+                        m_coi.Poliza.ejercicio == ejercicio
+                    ).scalar()
+
+                    # C) Determinar el nuevo consecutivo
+                    curr_folio_val = getattr(folio_record, col_folio_name, 0) if folio_record else 0
+                    nuevo_num = max(int(curr_folio_val or 0), int(max_num_db or 0)) + 1
+                    num_poliz_str = f"{nuevo_num:>5}"
+
+                    # D) Actualizar o Crear el registro en FOLIOS
+                    if folio_record:
+                        setattr(folio_record, col_folio_name, nuevo_num)
+                    else:
+                        folio_kwargs = {'tippol': tipo_poliza, 'ejercicio': ejercicio}
+                        for i in range(1, 15):
+                            folio_kwargs[f"folio{i:02d}"] = 0
+                            folio_kwargs[f"asig{i:02d}"] = 0
+                        folio_kwargs[col_folio_name] = nuevo_num
+
+                        nuevo_folio_rec = m_coi.Folio(**folio_kwargs)
+                        db_coi.add(nuevo_folio_rec)
+
+                    poliza_nombre = f"{tipo_poliza}-{num_poliz_str}"
+                    poliza_uuid = str(uuid.uuid4()).upper()
+
+                    # =========================================================
+                    # 2. ENCABEZADO COI (POLIZASYY)
+                    # =========================================================
+                    nueva_poliza = m_coi.Poliza(
+                        tipo_poli=tipo_poliza,
+                        num_poliz=num_poliz_str,
+                        periodo=periodo,
+                        ejercicio=ejercicio,
+                        fecha_pol=fecha_dt,
+                        concep_po=concepto,
+                        num_part=len(movimientos),
+                        logaudita='N',
+                        contabiliz='N',
+                        numparcua=0,
+                        tienedocumentos=0,
+                        proccontab=0,
+                        origen='INTRANET/SAE',
+                        uuid=poliza_uuid,
+                        espolizaprivada=0,
+                        sinc_ezaudita=0,
+                        uuidxml=uuid_xml,
+                        uuidsae=referencia
+                    )
+                    db_coi.add(nueva_poliza)
+
+                    # =========================================================
+                    # 3. DETALLE COI (AUXILIARYY)
+                    # =========================================================
+                    for idx, mov in enumerate(movimientos, start=1):
+                        debe = float(mov.get('debe') or 0.0)
+                        haber = float(mov.get('haber') or 0.0)
+
+                        debe_haber = 'D' if debe > 0 else 'H'
+                        monto = debe if debe > 0 else haber
+
+                        cuenta_raw = str(mov.get('cuenta', ''))
+                        cuenta_coi = obtener_cuenta_clave(cuenta_raw)
+
+                        auxiliar = m_coi.Auxiliar(
+                            tipo_poli=tipo_poliza,
+                            num_poliz=num_poliz_str,
+                            num_part=float(idx),
+                            periodo=periodo,
+                            ejercicio=ejercicio,
+                            num_cta=cuenta_coi,
+                            fecha_pol=fecha_dt,
+                            concep_po=str(mov.get('concepto', ''))[:120],
+                            debe_haber=debe_haber,
+                            montomov=monto,
+                            numdepto=int(mov.get('departamento', 0) or 0),
+                            tipcambio=1.0,
+                            contrapar=0,
+                            orden=idx,
+                            ccostos=0,
+                            cgrupos=0,
+                            idinfadipar=0,
+                            iduuid=0
+                        )
+                        db_coi.add(auxiliar)
+
+                    # =========================================================
+                    # 4. BITÁCORA DIARIOSAE EN COI
+                    # =========================================================
+                    diario_entry = m_coi.DiarioSAE(
+                        uuid_sinc=str(uuid.uuid4()).upper(),
+                        fecha_sinc=datetime.now(),
+                        origen='INTRANET',
+                        tipo_doc='F',
+                        fecha_docto=datetime.combine(fecha_dt, datetime.min.time()),
+                        estatus='A',
+                        referencia=referencia,
+                        contabiliz='S',
+                        fecha_conta=datetime.now(),
+                        poliza=f"{tipo_poliza}{num_poliz_str}",
+                        periodo=periodo,
+                        ejercicio=ejercicio,
+                        obs=f"Poliza {poliza_nombre} generada automáticamente",
+                        uuid_xml=uuid_xml
+                    )
+                    db_coi.add(diario_entry)
+
+                    # =========================================================
+                    # 5. REGISTRAR / ACTUALIZAR BITÁCORA DJANGO
+                    # =========================================================
+                    DocumentoContabilizado.objects.update_or_create(
+                        folio_sae=referencia,
+                        empresa_suffix=str(suffix_empresa),
+                        defaults={
+                            'uuid_xml': uuid_xml,
+                            'status': 'ENVIADO_COI',
+                            'poliza_generada': poliza_nombre,
+                            'ejercicio': ejercicio,
+                            'periodo': periodo,
+                            'mensaje_error': None,
+                            'creado_por': request.user,
+                        }
+                    )
+
+                    polizas_creadas.append(poliza_nombre)
+
+            # Confirmar cambios en Firebird
+            db_coi.commit()
+
         messages.success(
             request,
-            f"Pólizas ({str_polizas}) creadas exitosamente en COI para la factura {cve_doc} (Sin Contabilizar)."
+            f"Póliza(s) contabilizada(s) con éxito en COI: {', '.join(polizas_creadas)}"
         )
 
     except Exception as e:
-        messages.error(request, f"Error al generar pólizas en COI: {str(e)}")
+        error_msg = str(e)
 
-    return redirect('interfaz_sae_coi:documentos_list_inertia')
+        try:
+            for p_dict in polizas_data:
+                ref = p_dict.get('referencia')
+                if ref:
+                    DocumentoContabilizado.objects.update_or_create(
+                        folio_sae=ref,
+                        empresa_suffix=str(suffix_empresa) if 'suffix_empresa' in locals() else '',
+                        defaults={
+                            'uuid_xml': p_dict.get('uuid_xml', ''),
+                            'status': 'ERROR',
+                            'mensaje_error': error_msg[:500],
+                            'creado_por': request.user,
+                        }
+                    )
+        except Exception:
+            pass
 
+        messages.error(request, f"Error al contabilizar en COI: {error_msg}")
 
-@permission_required('interfaz_sae_coi.view_documentos')
-def documento_preview(request, cve_doc):
-    factura = obtener_detalle_factura_sae(cve_doc)
-
-    if not factura:
-        raise Http404(f"La factura {cve_doc} no fue encontrada en SAE.")
-
-    # Generar simulación de pólizas
-    polizas = generar_simulacion_polizas(factura)
-
-    props = {'factura': factura, 'polizas': polizas, 'cve_doc': cve_doc}
-
-    return render(request, 'Interfaz_SAE_COI/Preview', props)
+    return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
 @permission_required('interfaz_sae_coi.update_cuenta')
@@ -165,114 +481,3 @@ def asignar_cuentas(request):
     }
 
     return render(request, 'Interfaz_SAE_COI/Cuentas/Asignar', props)
-
-
-class DocumentoContabilizarSAE(
-    PermissionRequiredMixin,
-    PageTitleMixin,
-    BreadcrumbsMixin,
-    TemplateView,
-):
-    permission_required = ['interfaz_sae_coi.view_documentos']
-    template_name = "apps/interfaz_sae_coi/list.html"
-    page_title = "Documentos a Contabilizar SAE"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        q = self.request.GET.get('q', '')
-
-        # Capturar filtros del GET o usar el mes/año actual por defecto
-        anio_actual = datetime.now().year
-        mes_actual = datetime.now().month
-
-        anio = int(self.request.GET.get('anio', anio_actual))
-        mes = int(self.request.GET.get('mes', mes_actual))
-
-        # Consultar solo encabezados para el listado
-        documentos = obtener_facturas_sae(anio=anio, mes=mes, q=q)
-
-        # Opciones para los selectores de filtro en la plantilla
-        context['documentos'] = documentos
-        context['anio_seleccionado'] = anio
-        context['mes_seleccionado'] = mes
-        context['anios_disponibles'] = range(anio_actual - 2, anio_actual + 1)
-        context['meses_disponibles'] = [
-            {'numero': 1, 'nombre': 'Enero'},
-            {'numero': 2, 'nombre': 'Febrero'},
-            {'numero': 3, 'nombre': 'Marzo'},
-            {'numero': 4, 'nombre': 'Abril'},
-            {'numero': 5, 'nombre': 'Mayo'},
-            {'numero': 6, 'nombre': 'Junio'},
-            {'numero': 7, 'nombre': 'Julio'},
-            {'numero': 8, 'nombre': 'Agosto'},
-            {'numero': 9, 'nombre': 'Septiembre'},
-            {'numero': 10, 'nombre': 'Octubre'},
-            {'numero': 11, 'nombre': 'Noviembre'},
-            {'numero': 12, 'nombre': 'Diciembre'},
-        ]
-
-        return context
-
-
-class DocumentoPreviewView(
-    PermissionRequiredMixin,
-    PageTitleMixin,
-    BreadcrumbsMixin,
-    TemplateView,
-):
-    permission_required = ['interfaz_sae_coi.view_documentos']
-    template_name = "apps/interfaz_sae_coi/preview.html"
-    page_title = "Vista Previa de Pólizas COI"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        cve_doc = kwargs.get('cve_doc')
-        factura = obtener_detalle_factura_sae(cve_doc)
-
-        if not factura:
-            raise Http404(f"La factura {cve_doc} no fue encontrada en SAE.")
-
-        # Generar simulación de pólizas
-        polizas = generar_simulacion_polizas(factura)
-
-        context['factura'] = factura
-        context['polizas'] = polizas
-        context['cve_doc'] = cve_doc
-
-        return context
-
-
-class DocumentoContabilizarProcessView(PermissionRequiredMixin, View):
-    permission_required = ['interfaz_sae_coi.add_poliza']
-
-    def post(self, request, cve_doc):
-        try:
-            # 1. Obtener la información completa de la factura en SAE
-            factura = obtener_detalle_factura_sae(cve_doc)
-            if not factura:
-                messages.error(request, f"La factura {cve_doc} no fue encontrada en SAE.")
-                return redirect('interfaz_sae_coi:documentos_list')
-
-            # 2. Generar las estructuras de Póliza (Venta e Ingreso)
-            simulacion = generar_simulacion_polizas(factura)
-
-            polizas_creadas = []
-
-            # 3. Guardar ambas pólizas directamente en COI
-            for poliza_sim in simulacion:
-                num_poliz = guardar_poliza_en_coi(poliza_sim, alias_coi='COI_PRUEBAS')
-                tipo_pol = poliza_sim['encabezado']['TIPO_POLI']
-                polizas_creadas.append(f"{tipo_pol}-{num_poliz}")
-
-            str_polizas = ", ".join(polizas_creadas)
-            messages.success(
-                request,
-                f"Pólizas ({str_polizas}) creadas exitosamente en COI para la factura {cve_doc} (Sin Contabilizar)."
-            )
-
-        except Exception as e:
-            messages.error(request, f"Error al generar pólizas en COI: {str(e)}")
-
-        return redirect('interfaz_sae_coi:documentos_list')

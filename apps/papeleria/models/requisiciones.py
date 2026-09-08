@@ -1,6 +1,9 @@
+import zoneinfo
+
 from django.contrib.auth.models import User
 from django.db import models, transaction
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.timezone import now
 
 from apps.core.models import Empresa
@@ -139,6 +142,13 @@ class Requisicion(models.Model):
             return True
         return False
 
+    def puede_eliminar(self, user):
+        if user.is_superuser:
+            return True
+        if user == self.solicitante and self.estado == "borrador":
+            return True
+        return False
+
     def puede_confirmar(self, user):
         if user.is_superuser and self.estado == 'borrador':
             return True
@@ -159,6 +169,13 @@ class Requisicion(models.Model):
         if user == self.aprobador and self.estado == "enviada_aprobador":
             return True
         if user == self.compras and self.estado == "enviada_compras":
+            return True
+        return False
+
+    def puede_enviar_contraloria(self, user):
+        if user.is_superuser and self.estado == 'autorizada_compras':
+            return True
+        if user.has_perm('papeleria.enviar_requisicion_contraloria') and self.estado == 'aprobada_compras':
             return True
         return False
 
@@ -189,15 +206,24 @@ class Requisicion(models.Model):
             current_year = now().year
 
             with transaction.atomic():
-                folio_control, _ = FolioRequisicion.objects.select_for_update().get_or_create(
-                    empresa=self.empresa,
-                    year=current_year,
+                folio_control, _ = (
+                    FolioRequisicion.objects.select_for_update().get_or_create(
+                        empresa=self.empresa,
+                        year=current_year,
+                    )
                 )
 
-                folio_control.last_number += 1
-                self.folio_consecutivo = folio_control.last_number
+                while True:
+                    folio_control.last_number += 1
+                    consecutivo = str(folio_control.last_number).zfill(5)
+                    candidate_folio = f"REQ-PAPE-{self.empresa.codigo}-{current_year}-{consecutivo}"
 
-                self.folio = f"REQ-PAPE-{self.empresa.codigo}-{current_year}-{str(self.folio_consecutivo).zfill(5)}"
+                    if not Requisicion.objects.filter(
+                            folio=candidate_folio
+                    ).exists():
+                        self.folio_consecutivo = folio_control.last_number
+                        self.folio = candidate_folio
+                        break
 
                 folio_control.save()
 
@@ -225,6 +251,7 @@ class DetalleRequisicion(models.Model):
     articulo = models.ForeignKey(
         Articulo, on_delete=models.CASCADE, related_name="detalle_requisicion"
     )
+    precio_unitario = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     cantidad = models.PositiveIntegerField()
     cantidad_autorizada = models.PositiveIntegerField(default=0)
     notas = models.TextField(blank=True, null=True)
@@ -236,9 +263,9 @@ class DetalleRequisicion(models.Model):
     @property
     def subtotal(self):
         if self.cantidad_autorizada > 0:
-            return self.cantidad_autorizada * self.articulo.importe
+            return self.cantidad_autorizada * self.precio_unitario
         if self.cantidad:
-            return self.cantidad * self.articulo.importe
+            return self.cantidad * self.precio_unitario
         return 0
 
     def __str__(self):
@@ -249,10 +276,39 @@ class DetalleRequisicion(models.Model):
 
 
 class ActividadRequisicion(models.Model):
-    requisicion = models.ForeignKey(Requisicion, on_delete=models.CASCADE, related_name="actividad_requisicion")
-    usuario = models.ForeignKey(User, on_delete=models.PROTECT, related_name="actividad_requisicion")
+    TIPO_CHOICES = [
+        ("comment", "Comentario"),
+        ("system", "Acción de Sistema"),
+    ]
+
+    requisicion = models.ForeignKey(
+        Requisicion,
+        on_delete=models.CASCADE,
+        related_name="actividades",
+    )
+    usuario = models.ForeignKey(
+        User, on_delete=models.PROTECT,
+        related_name="actividades_requisicion"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
-    contenido = models.TextField(blank=True, null=True)
+    contenido = models.TextField()
+    tipo = models.CharField(
+        max_length=20, choices=TIPO_CHOICES, default="comment"
+    )
+
+    def to_dict(self):
+        tz_mexico = zoneinfo.ZoneInfo("America/Mexico_City")
+        fecha_mexico = timezone.localtime(self.created_at, tz_mexico)
+
+        return {
+            "id": self.id,
+            "usuario_nombre": (
+                    self.usuario.get_full_name() or self.usuario.username
+            ),
+            "created_at": fecha_mexico.strftime("%d/%m/%Y %I:%M %p"),
+            "contenido": self.contenido,
+            "tipo": self.tipo,
+        }
 
     def __str__(self):
         return f"Actividad {self.usuario} en {self.created_at}"

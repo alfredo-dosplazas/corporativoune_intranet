@@ -45,12 +45,12 @@ def build_default_menu():
 def build_compras_menu():
     """
     Menú específico para el módulo de Compras.
-    Alineado a tus URLs de Proveedores y Órdenes de Compra.
+    Alineado a URLs de Proveedores y Órdenes de Compra.
     """
     return [
         {
             'key': 'compras_proveedores',
-            'icon': 'icon-[tabler--users]',
+            'icon': 'icon-[tabler--building-store]',  # Representa mejor una entidad/empresa proveedora
             'title': 'Proveedores',
             'url_name': 'compras:proveedores__list',
             'perms': ['compras.view_proveedor'],
@@ -58,7 +58,7 @@ def build_compras_menu():
         },
         {
             'key': 'compras_ordenes',
-            'icon': 'icon-[tabler--file-invoice]',
+            'icon': 'icon-[tabler--clipboard-list]',  # O 'icon-[tabler--file-invoice]'
             'title': 'Órdenes de Compra',
             'url_name': 'compras:ordenes__list',
             'perms': ['compras.view_orden'],
@@ -124,7 +124,7 @@ def build_compras_dock():
         },
         {
             "nombre": "Órdenes",
-            "icon": "icon-[tabler--file-description]",
+            "icon": "icon-[tabler--clipboard-list]",
             "url_name": "compras:ordenes__list",
             "active_patterns": ["compras:ordenes__"],
             "perms": ["compras.view_orden"],

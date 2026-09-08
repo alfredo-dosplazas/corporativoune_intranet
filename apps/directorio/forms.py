@@ -2,12 +2,58 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column, HTML, Div
 from dal import autocomplete
 from django import forms
+from django.core.exceptions import ValidationError
 
 from apps.core.models import Empresa
 from apps.directorio.models import Contacto, Sede
 from apps.directorio.utils import es_frescopack
 from apps.rrhh.models.areas import Area
 from apps.rrhh.models.puestos import Puesto
+
+
+class ContactoCreateUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Contacto
+        fields = [
+            'abreviatura_titulo',
+            'numero_empleado',
+            'primer_nombre',
+            'segundo_nombre',
+            'primer_apellido',
+            'segundo_apellido',
+            'fecha_nacimiento',
+            'empresa',
+            'area',
+            'puesto',
+            'sede_administrativa',
+            'jefe_directo',
+            'fecha_ingreso',
+            'fecha_egreso',
+            'mostrar_en_directorio',
+            'mostrar_en_cumpleanios',
+            'es_jefe',
+        ]
+
+    def clean_numero_empleado(self):
+        numero = self.cleaned_data.get('numero_empleado')
+        if numero:
+            qs = Contacto.objects.filter(numero_empleado=numero)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise ValidationError("Este número de empleado ya se encuentra registrado.")
+        return numero
+
+    def clean(self):
+        cleaned_data = super().clean()
+        fecha_ingreso = cleaned_data.get('fecha_ingreso')
+        fecha_egreso = cleaned_data.get('fecha_egreso')
+
+        if fecha_ingreso and fecha_egreso and fecha_ingreso > fecha_egreso:
+            self.add_error('fecha_ingreso', "La fecha de ingreso no puede ser mayor a la fecha de egreso.")
+            self.add_error('fecha_egreso', "La fecha de egreso no puede ser menor a la fecha de ingreso.")
+
+        return cleaned_data
 
 
 class ContactoForm(forms.ModelForm):

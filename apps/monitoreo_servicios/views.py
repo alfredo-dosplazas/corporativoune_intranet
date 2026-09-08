@@ -1,15 +1,11 @@
-from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.http import JsonResponse
-from django.shortcuts import redirect
 from django.urls import reverse
 from django.views import View
 from django.views.generic import TemplateView
-from slack_sdk.models.messages.message import message
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.monitoreo_servicios.forms import ReporteServiciosForm
-from apps.monitoreo_servicios.models import ReporteServicios
 from apps.monitoreo_servicios.services.access_points import obtener_estado_access_points
 from apps.monitoreo_servicios.services.cctv import obtener_estado_cctv
 from apps.monitoreo_servicios.services.idrac import obtener_estado_idrac

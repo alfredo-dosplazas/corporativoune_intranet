@@ -65,6 +65,17 @@ class Empresa(models.Model):
         )
         return obj
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "nombre_corto": self.nombre_corto,
+            "abreviatura": self.abreviatura,
+            "codigo": self.codigo,
+            "theme": self.theme,
+            "logo_url": self.logo.url if self.logo else None,
+        }
+
     def __str__(self):
         return self.nombre
 

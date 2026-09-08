@@ -281,8 +281,8 @@
             <td class="text-center text-muted">{{ forloop.counter }}</td>
             <td class="text-center font-bold">{{ d.cantidad }}</td>
             <td>{{ d.descripcion|linebreaksbr }}</td>
-            <td class="text-right font-mono">{{ d.precio_unitario|money }}</td>
-            <td class="text-right font-mono font-bold">{{ d.subtotal|money }}</td>
+            <td class="text-right font-mono">{{ d.precio_unitario|money:4 }}</td>
+            <td class="text-right font-mono font-bold">{{ d.subtotal|money:4 }}</td>
         </tr>
     {% endfor %}
     </tbody>
@@ -306,11 +306,11 @@
             <table class="summary-table">
                 <tr>
                     <td class="label">Subtotal:</td>
-                    <td class="value">{{ orden.subtotal|money }}</td>
+                    <td class="value">{{ orden.subtotal|money:4 }}</td>
                 </tr>
                 <tr>
                     <td class="label">IVA (16%):</td>
-                    <td class="value">{{ orden.iva|money }}</td>
+                    <td class="value">{{ orden.iva|money:4 }}</td>
                 </tr>
 
                 {% if orden.total_retenciones > 0 %}
@@ -318,7 +318,7 @@
                         <tr>
                             <td class="label" style="color: #dc2626;">(-) Retención ISR ({{ orden.retencion_isr }}%):
                             </td>
-                            <td class="value" style="color: #dc2626;">-{{ orden.monto_retencion_isr|money }}</td>
+                            <td class="value" style="color: #dc2626;">-{{ orden.monto_retencion_isr|money:4 }}</td>
                         </tr>
                     {% endif %}
 
@@ -327,21 +327,21 @@
                             <td class="label" style="color: #dc2626;">(-) Retención Cedular
                                 ({{ orden.retencion_cedular }}%):
                             </td>
-                            <td class="value" style="color: #dc2626;">-{{ orden.monto_retencion_cedular|money }}</td>
+                            <td class="value" style="color: #dc2626;">-{{ orden.monto_retencion_cedular|money:4 }}</td>
                         </tr>
                     {% endif %}
 
                     {% if orden.retencion_3 > 0 %}
                         <tr>
                             <td class="label" style="color: #dc2626;">(-) Retención Fletes ({{ orden.retencion_3 }}%):</td>
-                            <td class="value" style="color: #dc2626;">-{{ orden.monto_retencion_3|money }}</td>
+                            <td class="value" style="color: #dc2626;">-{{ orden.monto_retencion_3|money:4 }}</td>
                         </tr>
                     {% endif %}
                 {% endif %}
 
                 <tr class="total-row">
                     <td class="label" style="color: #ffffff; font-weight: bold; font-size: 11px;">TOTAL:</td>
-                    <td class="value" style="color: #ffffff; font-size: 11px;">{{ orden.total|money }}</td>
+                    <td class="value" style="color: #ffffff; font-size: 11px;">{{ orden.total|money:4 }}</td>
                 </tr>
             </table>
         </td>

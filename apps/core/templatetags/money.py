@@ -5,9 +5,22 @@ register = template.Library()
 
 
 @register.filter
-def money(value, currency='MXN'):
+def money(value, decimales=4, currency='MXN'):
+    if value is None or value == '':
+        return '$0.0000'
+
     try:
-        return format_currency(value, currency, locale='es_MX')
+        # 1. Construimos el patrón numérico
+        fmt = f"¤#,##0.{'0' * int(decimales)}"
+
+        # 2. Agregamos currency_digits=False para que no reemplace tus decimales por los de MXN (2)
+        return format_currency(
+            value,
+            currency,
+            format=fmt,
+            locale='es_MX',
+            currency_digits=False
+        )
     except Exception:
         return value
 

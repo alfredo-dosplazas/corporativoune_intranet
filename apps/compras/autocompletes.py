@@ -1,5 +1,6 @@
 from dal import autocomplete
 from django.db.models import Q
+from django.http.response import JsonResponse
 
 from apps.compras.models import Proveedor, Orden
 from apps.directorio.models import Contacto

@@ -1,8 +1,10 @@
+import json
+
 from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.shortcuts import render
-from django.urls import reverse
-from django.views.generic import TemplateView
+from django.http import JsonResponse
+from django.views import View
+from inertia import render
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.vs_erp.helpers import obtener_desglose_obra, obtener_conceptos_materiales, obtener_totales_por_familia, \
@@ -23,30 +25,22 @@ EMPRESAS = {
 @permission_required("core.generar_reporte_presupuestos_vs")
 def recuperar_obras_por_empresa(request):
     empresa = request.GET.get("empresa")
-
     obras = []
 
     if empresa == "TODAS":
         aliases = EMPRESAS.items()
-    else:
-        if empresa not in EMPRESAS:
-            return render(
-                request,
-                "apps/vs_erp/reportes/partials/select_obras.html",
-                {"obras": []}
-            )
-
+    elif empresa in EMPRESAS:
         aliases = [(empresa, EMPRESAS[empresa])]
+    else:
+        return JsonResponse({"obras": []})
 
     for nombre_empresa, alias in aliases:
-
         queryset = (
             Obras.objects
             .using(alias)
             .all()
             .only("idobra", "descripcion")
         )
-
         for obra in queryset:
             obras.append({
                 "id": f"{nombre_empresa}|{obra.idobra}",
@@ -56,19 +50,18 @@ def recuperar_obras_por_empresa(request):
             })
 
     obras.sort(key=lambda x: x["descripcion"])
-
-    return render(
-        request,
-        "apps/vs_erp/reportes/partials/select_obras.html",
-        {
-            "obras": obras
-        }
-    )
+    return JsonResponse({"obras": obras})
 
 
-class ReportePresupuestosView(PermissionRequiredMixin, BreadcrumbsMixin, TemplateView):
-    template_name = 'apps/vs_erp/reportes/presupuestos.html'
+class ReportePresupuestosView(BreadcrumbsMixin, PermissionRequiredMixin, View):
     permission_required = ['core.generar_reporte_presupuestos_vs']
+
+    def _get_breadcrumbs(self):
+        return [
+            {'label': 'Inicio', 'url': '/', 'icon': 'icon-[lucide--home]'},
+            {'label': 'VS ERP'},
+            {'label': 'Reporte Estatus Financiero de Obras'},
+        ]
 
     def _generar_data_reporte(self, lista_obras_post):
         reporte = []
@@ -98,32 +91,64 @@ class ReportePresupuestosView(PermissionRequiredMixin, BreadcrumbsMixin, Templat
             })
         return reporte
 
-    def post(self, request, *args, **kwargs):
-        obras_seleccionadas = request.POST.getlist("obras")
-        reporte = self._generar_data_reporte(obras_seleccionadas)
+    def get(self, request, *args, **kwargs):
+        # Opciones fijas de empresas para el select
+        empresas_list = [
+            {"value": key, "label": label} for key, label in EMPRESAS.items()
+        ]
 
-        # Si el usuario hizo clic en "Exportar a Excel"
-        if "export_excel" in request.POST:
-            return generar_excel_reporte_completo(reporte)
-
-        # Respuesta HTML normal / HTMX parcial
         return render(
             request,
-            "apps/vs_erp/reportes/partials/reporte.html",
-            {
-                "reporte": reporte,
-                "obras_seleccionadas": obras_seleccionadas,
+            'VS_ERP/Reportes/EstatusFinancieroObra',
+            props={
+                'empresas': empresas_list,
+                'reporte': None,
+                'obras_seleccionadas': [],
+                'breadcrumbs': self._get_breadcrumbs(),
             }
         )
 
-    def get_breadcrumbs(self):
-        ruta = (self.kwargs.get("ruta") or "").strip("/")
+    def post(self, request, *args, **kwargs):
+        # 1. Detectar si el request viene de Inertia (Headers o JSON Content-Type)
+        is_inertia = request.headers.get('X-Inertia') or request.content_type == 'application/json'
 
-        crumbs = [
-            {"title": "Inicio", "url": reverse("home")},
-            {"title": "Reportes"},
-            {"title": "Estatus financiero de obras VS"},
-        ]
+        if is_inertia:
+            # Petición vía Inertia (JSON)
+            try:
+                data = json.loads(request.body)
+            except (json.JSONDecodeError, TypeError):
+                data = {}
+            obras_seleccionadas = data.get("obras", [])
+            export_excel = data.get("export_excel", False)
+        else:
+            # Petición vía Formulario HTML tradicional (Excel Download)
+            export_excel = request.POST.get("export_excel") == "1"
+            obras_raw = request.POST.get("obras", "[]")
 
-        if not ruta:
-            return crumbs
+            # Deserializar la cadena JSON enviada en el input hidden del form
+            try:
+                obras_seleccionadas = json.loads(obras_raw)
+            except (json.JSONDecodeError, TypeError):
+                # Fallback por si viniera como múltiples query params
+                obras_seleccionadas = request.POST.getlist("obras")
+
+        # 2. Generar los datos
+        reporte = self._generar_data_reporte(obras_seleccionadas)
+
+        # 3. Si solicitó exportar a Excel
+        if export_excel:
+            return generar_excel_reporte_completo(reporte)
+
+        # 4. Respuesta normal de Inertia
+        empresas_list = [{"value": key, "label": label} for key, label in EMPRESAS.items()]
+
+        return render(
+            request,
+            'VS_ERP/Reportes/EstatusFinancieroObra',
+            props={
+                'empresas': empresas_list,
+                'reporte': reporte,
+                'obras_seleccionadas': obras_seleccionadas,
+                'breadcrumbs': self._get_breadcrumbs(),
+            }
+        )

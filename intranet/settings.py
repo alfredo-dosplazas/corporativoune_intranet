@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'inertia',
     'django_vite',
     'django_js_reverse',
+    'debug_toolbar',
 
     'apps.ad',
     'apps.asistencias',
@@ -72,7 +73,7 @@ INSTALLED_APPS = [
     'apps.refacciones_servicios',
     'apps.evidencias_moldes',
 
-    'apps.listas_precios',
+    # 'apps.listas_precios',
     'apps.interfaz_sae_coi',
 
     'apps.vs_erp',
@@ -90,6 +91,7 @@ MIDDLEWARE = [
     'apps.auditoria.middleware.UserAccessLogMiddleware',
     'apps.auditoria.middleware.AuditMiddleware',
     'django_htmx.middleware.HtmxMiddleware',
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     'apps.core.middleware.inertia_share',
 ]
 
@@ -349,14 +351,14 @@ STORAGES = {
     },
 }
 
-SESSION_COOKIE_DOMAIN = env("SESSION_COOKIE_DOMAIN", default="localhost")
+SESSION_COOKIE_DOMAIN = env("SESSION_COOKIE_DOMAIN", default=None)
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_COOKIE_AGE = 60 * 24 * 60 * 60
 SESSION_SAVE_EVERY_REQUEST = True
 
 DOMINUM_HOST = env('DOMINUM_HOST')
-COI_HOST = env('COI_HOST')
+DPSERVER_HOST = env('DPSERVER_HOST')
 
 FIREBIRD_API_PATH = env('FIREBIRD_API_PATH')
 
@@ -430,3 +432,8 @@ DJANGO_VITE = {
         "dev_mode": DEBUG,
     }
 }
+
+INTERNAL_IPS = [
+    "127.0.0.1",
+    "localhost",
+]

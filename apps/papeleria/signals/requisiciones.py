@@ -13,8 +13,10 @@ def crear_actividad_requisicion(sender, instance, created, **kwargs):
     if created:
         logger.info(f"Creando actividad requisicion {instance}")
         usuario = instance.creada_por
+        actividad_owner = str(getattr(usuario, "contacto", usuario.username))
         ActividadRequisicion.objects.create(
             usuario=usuario,
             requisicion=instance,
-            contenido=f"{usuario.contacto} creó la requisición",
+            tipo="system",
+            contenido=f"{actividad_owner} creó la requisición",
         )

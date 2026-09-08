@@ -1,129 +1,478 @@
+import json
 from collections import defaultdict
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.timezone import now
 from django.views import View
-from django.views.generic import ListView, DeleteView, DetailView
-from django_tables2 import SingleTableMixin
-from extra_views import SearchableListMixin, UpdateWithInlinesView, NamedFormsetsMixin, CreateWithInlinesView
+from django.views.decorators.http import require_POST
+from django.views.generic import DeleteView, DetailView
+from extra_views import UpdateWithInlinesView, NamedFormsetsMixin
+from inertia import render
 
+from apps.core.decorators import remember_filter_state
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.models import Empresa
 from apps.core.tasks import enviar_correo_task
+from apps.core.utils.navigation import make_breadcrumbs, paginate_queryset
 from apps.papeleria.forms.requisiciones import RequisicionForm
 from apps.papeleria.inlines import DetalleRequisicionInline
 from apps.papeleria.models.requisiciones import Requisicion, DetalleRequisicion, ActividadRequisicion
+from apps.papeleria.notifications import notificar_solicitar_aprobacion, \
+    notificar_solicitar_aprobacion_compras, notificar_aprobacion_solicitante, notificar_nuevo_mensaje_requisicion
+from apps.papeleria.serializers import RequisicionSerializer
 from apps.papeleria.services.requisicion_excel import requisicion_excel
-from apps.papeleria.tables.requisiciones import RequisicionTable
+from apps.rrhh.models.areas import Area
 
 from apps.slack.tasks import enviar_slack_task
 
 
-class RequisicionListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMixin, SingleTableMixin, ListView):
-    permission_required = ['papeleria.view_requisicion']
-    template_name = "apps/papeleria/requisiciones/list.html"
-    model = Requisicion
-    table_class = RequisicionTable
-    search_fields = [
-        'folio',
-        'empresa__nombre',
-        'solicitante__contacto__primer_nombre',
-        'solicitante__contacto__segundo_nombre',
-        'solicitante__contacto__primer_apellido',
-        'solicitante__contacto__segundo_apellido',
-        'aprobador__contacto__primer_nombre',
-        'aprobador__contacto__segundo_nombre',
-        'aprobador__contacto__primer_apellido',
-        'aprobador__contacto__segundo_apellido',
-        'compras__contacto__primer_nombre',
-        'compras__contacto__segundo_nombre',
-        'compras__contacto__primer_apellido',
-        'compras__contacto__segundo_apellido',
-        'contraloria__contacto__primer_nombre',
-        'contraloria__contacto__segundo_nombre',
-        'contraloria__contacto__primer_apellido',
-        'contraloria__contacto__segundo_apellido',
-    ]
+@login_required()
+@permission_required('papeleria.view_requisicion', raise_exception=True)
+@remember_filter_state()
+def requisiciones_list(request):
+    search_query = request.GET.get('search', '').strip()
+    empresa_id = request.GET.get('empresa', '').strip()
+    area_id = request.GET.get('area', '').strip()
+    estado_val = request.GET.get('estado', '').strip()
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['requisiciones_listas_contraloria'] = Requisicion.objects.filter(estado='autorizada_compras')
-        return context
+    usuario = request.user
 
-    def get_queryset(self):
-        qs = super().get_queryset()
+    requisiciones = Requisicion.objects.select_related(
+        'solicitante',
+        'solicitante__contacto',
+        'solicitante__contacto__area',
+        'aprobador',
+        'compras',
+        'contraloria',
+        'empresa'
+    ).all()
 
-        usuario = self.request.user
-
-        if usuario.is_superuser:
-            return qs
-
-        qs = qs.filter(
+    if not usuario.is_superuser:
+        requisiciones = requisiciones.filter(
             Q(solicitante=usuario) |
             Q(aprobador=usuario) |
             Q(compras=usuario) |
             Q(contraloria=usuario)
         )
 
-        return qs
+    if search_query:
+        requisiciones = requisiciones.filter(
+            Q(folio__icontains=search_query) |
+            Q(solicitante__first_name__icontains=search_query) |
+            Q(solicitante__last_name__icontains=search_query)
+        )
 
-    def get_table(self, **kwargs):
-        table = super().get_table(**kwargs)
-        table.auto_height = True
-        return table
+    if empresa_id:
+        requisiciones = requisiciones.filter(empresa_id=empresa_id)
 
-    def get_breadcrumbs(self):
-        return [
-            {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'Papelería', 'url': reverse('papeleria:index')},
-            {'title': 'Requisiciones'},
-        ]
+    if area_id:
+        requisiciones = requisiciones.filter(solicitante__contacto__area_id=area_id)
+
+    if estado_val:
+        requisiciones = requisiciones.filter(estado=estado_val)
+
+    empresas_opts = list(Empresa.objects.values('id', 'nombre', 'codigo'))
+    areas_opts = list(Area.objects.values('id', 'nombre'))
+    estados_opts = [
+        {'id': key, 'nombre': str(label)}
+        for key, label in Requisicion.ESTADOS_CHOICES
+    ]
+
+    props = {
+        'breadcrumbs': make_breadcrumbs([
+            ('Inicio', 'home'),
+            ('Papelería', 'papeleria:index'),
+            ('Requisiciones', None),
+        ]),
+        'requisiciones': paginate_queryset(
+            requisiciones,
+            request,
+            page_size=12,
+            transform_fn=lambda r: RequisicionSerializer(
+                r,
+                context={'user': usuario, 'include_detalles': False}
+            ).data
+        ),
+        'filters': {
+            'search': search_query,
+            'empresa': empresa_id,
+            'area': area_id,
+            'estado': estado_val,
+            'options': {
+                'empresas': empresas_opts,
+                'areas': areas_opts,
+                'estados': estados_opts,
+            }
+        },
+        'can_create': usuario.has_perm('papeleria.add_requisicion'),
+    }
+    return render(request, 'Papeleria/Requisiciones/List', props)
 
 
-class RequisicionCreateView(
-    PermissionRequiredMixin,
-    BreadcrumbsMixin,
-    SuccessMessageMixin,
-    NamedFormsetsMixin,
-    CreateWithInlinesView
-):
-    permission_required = ['papeleria.add_requisicion']
-    template_name = "apps/papeleria/requisiciones/create.html"
-    model = Requisicion
-    form_class = RequisicionForm
-    success_message = 'Requisición creada correctamente.'
-    inlines = [DetalleRequisicionInline]
-    inlines_names = ['Detalle']
+@login_required()
+@permission_required('papeleria.view_requisicion', raise_exception=True)
+def requisicion_detail(request, pk):
+    requisicion = get_object_or_404(
+        Requisicion.objects.select_related(
+            'solicitante', 'solicitante__contacto', 'aprobador', 'compras', 'contraloria', 'empresa'
+        ).prefetch_related(
+            'detalle_requisicion__articulo',
+            'actividades'
+        ),
+        pk=pk
+    )
+    usuario = request.user
 
-    def dispatch(self, request, *args, **kwargs):
-        requisicion_id = request.GET.get('requisicion_id')
-        self.requisicion = None
-        if requisicion_id:
-            self.requisicion = get_object_or_404(Requisicion, pk=requisicion_id)
+    if not requisicion.puede_ver(usuario):
+        messages.error(request, 'No tienes permiso para ver esta requisicion')
+        return redirect('papeleria:requisiciones__list')
 
-        return super().dispatch(request, *args, **kwargs)
+    actividades = [a.to_dict() for a in requisicion.actividades.all()]
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs["user"] = self.request.user
-        return kwargs
+    props = {
+        'breadcrumbs': make_breadcrumbs([
+            ('Inicio', 'home'),
+            ('Papelería', 'papeleria:index'),
+            ('Requisiciones', 'papeleria:requisiciones__list'),
+            (requisicion.folio, None),
+        ]),
+        'requisicion': RequisicionSerializer(requisicion, context={'user': usuario}).data,
+        'actividades': actividades,
+    }
+    return render(request, 'Papeleria/Requisiciones/Detail', props)
 
-    def get_success_url(self):
-        return reverse('papeleria:requisiciones__update', args=(self.object.id,))
 
-    def get_breadcrumbs(self):
-        return [
-            {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'Papelería', 'url': reverse('papeleria:index')},
-            {'title': 'Requisiciones', 'url': reverse('papeleria:requisiciones__list')},
-            {'title': 'Crear'},
-        ]
+@login_required()
+@permission_required('papeleria.change_requisicion', raise_exception=True)
+def requisicion_update(request, pk):
+    requisicion = get_object_or_404(
+        Requisicion.objects.select_related(
+            'solicitante', 'aprobador', 'compras', 'contraloria', 'empresa'
+        ).prefetch_related(
+            'detalle_requisicion__articulo'
+        ),
+        pk=pk
+    )
+    usuario = request.user
+
+    if not requisicion.puede_editar(usuario):
+        messages.error(request, 'No tienes permisos para editar esta requisición o su estado actual no lo permite.')
+        return redirect('papeleria:requisiciones__list')
+
+    if request.method in ['POST']:
+        try:
+            payload = json.loads(request.body)
+        except json.JSONDecodeError:
+            payload = request.POST
+
+        # Extraer campos
+        es_papeleria_stock = payload.get('es_papeleria_stock', requisicion.es_papeleria_stock)
+        notas = payload.get('notas', requisicion.notas or '')
+        detalles_data = payload.get('detalles', [])
+
+        # Validaciones backend
+        errors = {}
+        if not detalles_data:
+            errors['detalles'] = 'La requisición debe contener al menos un artículo.'
+
+        items_a_actualizar = []
+        for idx, item in enumerate(detalles_data):
+            try:
+                cant = int(item.get('cantidad', 0))
+                if cant <= 0:
+                    errors[f'detalles.{idx}.cantidad'] = 'La cantidad debe ser mayor a 0.'
+                items_a_actualizar.append((item.get('id'), cant, item.get('notas', '')))
+            except (ValueError, TypeError):
+                errors[f'detalles.{idx}.cantidad'] = 'Cantidad no válida.'
+
+        if errors:
+            props = {
+                'breadcrumbs': make_breadcrumbs([
+                    ('Inicio', 'home'),
+                    ('Papelería', 'papeleria:index'),
+                    ('Requisiciones', 'papeleria:requisiciones__list'),
+                    (requisicion.folio, requisicion.get_absolute_url()),
+                    ('Editar', None),
+                ]),
+                'requisicion': RequisicionSerializer(requisicion, context={'user': usuario}).data,
+                'errors': errors,
+            }
+            return render(request, 'Papeleria/Requisiciones/Update', props)
+
+        with transaction.atomic():
+            requisicion.es_papeleria_stock = es_papeleria_stock
+            requisicion.notas = notas
+            requisicion.save()
+
+            # IDs recibidos en el payload para saber cuáles se conservan
+            detalles_ids_recibidos = [item_id for item_id, _, _ in items_a_actualizar if item_id]
+
+            # Eliminar detalles quitados del frontend
+            requisicion.detalle_requisicion.exclude(id__in=detalles_ids_recibidos).delete()
+
+            # Actualizar cantidades e impresiones
+            for detalle_id, cantidad, nota_item in items_a_actualizar:
+                if detalle_id:
+                    DetalleRequisicion.objects.filter(id=detalle_id, requisicion=requisicion).update(
+                        cantidad=cantidad,
+                        notas=nota_item
+                    )
+
+        messages.success(request, f'Requisición {requisicion.folio} actualizada exitosamente.')
+        return redirect('papeleria:requisiciones__update', pk=requisicion.pk)
+
+    props = {
+        'breadcrumbs': make_breadcrumbs([
+            ('Inicio', 'home'),
+            ('Papelería', 'papeleria:index'),
+            ('Requisiciones', 'papeleria:requisiciones__list'),
+            (requisicion.folio, requisicion.get_absolute_url()),
+            ('Editar', None),
+        ]),
+        'requisicion': RequisicionSerializer(requisicion, context={'user': usuario}).data,
+        'errors': {},
+    }
+
+    return render(request, 'Papeleria/Requisiciones/Update', props)
+
+
+@login_required()
+@permission_required('papeleria.delete_requisicion')
+def requisicion_delete(request, pk):
+    requisicion: Requisicion = get_object_or_404(Requisicion, pk=pk)
+    if requisicion.puede_eliminar(request.user):
+        requisicion.delete()
+        messages.success(request, 'Requisición Eliminada con exito')
+    else:
+        messages.error(request, 'No puedes eliminar esta requisición')
+    return redirect('papeleria:requisiciones__list')
+
+
+@login_required()
+@permission_required('papeleria.change_requisicion')
+@require_POST
+def confirmar_requisicion(request, pk):
+    requisicion: Requisicion = get_object_or_404(Requisicion, pk=pk)
+    usuario = request.user
+    contacto = getattr(request.user, 'contacto', usuario)
+
+    if not requisicion.puede_confirmar(request.user):
+        messages.error(request, "No tienes permiso para confirmar esta requisición.")
+        return redirect("papeleria:requisiciones__detail", pk=pk)
+
+    try:
+        with transaction.atomic():
+            requisicion.aprobo_solicitante = True
+            requisicion.estado = 'confirmada'
+
+            requisicion.save(update_fields=['aprobo_solicitante', 'estado'])
+
+            ActividadRequisicion.objects.create(
+                requisicion=requisicion,
+                usuario=usuario,
+                tipo="system",
+                contenido=f"{usuario.contacto} paso la requisición de borrador a confirmada"
+            )
+        messages.success(request, f'{contacto} Confirmó la requisición')
+    except Exception as e:
+        messages.error(request, 'Ocurrió un error al confirmar la requisición')
+
+    return redirect('papeleria:requisiciones__detail', requisicion.id)
+
+
+@login_required()
+@permission_required('papeleria.change_requisicion')
+@require_POST
+def solicita_aprobacion_requisicion(request, pk):
+    requisicion = get_object_or_404(Requisicion, pk=pk)
+    usuario = request.user
+    aprobador = requisicion.aprobador
+
+    if not requisicion.puede_enviar_al_aprobador(request.user):
+        messages.error(request, "No tienes permiso para solicitar aprobación esta requisición.")
+        return redirect("papeleria:requisiciones__detail", pk=pk)
+
+    requisicion.estado = 'enviada_aprobador'
+    requisicion.save(update_fields=['estado'])
+
+    notificar_solicitar_aprobacion(request, requisicion, aprobador)
+
+    ActividadRequisicion.objects.create(
+        requisicion=requisicion,
+        usuario=usuario,
+        tipo="system",
+        contenido=f"{usuario.contacto} solicitó a {aprobador.contacto} revisar la requisición"
+    )
+
+    messages.success(
+        request,
+        f'{usuario.contacto} solicitó aprobar la requisición, se enviará una notificación a {aprobador.contacto}'
+    )
+
+    return redirect('papeleria:requisiciones__detail', requisicion.id)
+
+
+@login_required()
+@permission_required('papeleria.aprobar_requisicion')
+@require_POST
+def aprobar_requisicion(request, pk):
+    requisicion = get_object_or_404(Requisicion, pk=pk)
+    usuario = request.user
+
+    solicitante = requisicion.solicitante
+    aprobador = requisicion.aprobador
+    compras = requisicion.compras
+
+    if not requisicion.puede_aprobar(request.user):
+        messages.error(request, "No tienes permiso para aprobar esta requisición.")
+        return redirect("papeleria:requisiciones__detail", pk=pk)
+
+    if aprobador == usuario:
+        requisicion.aprobo_aprobador = True
+        requisicion.estado = 'autorizada_aprobador'
+
+    ActividadRequisicion.objects.create(
+        requisicion=requisicion,
+        usuario=usuario,
+        tipo="system",
+        contenido=f"{usuario.contacto} aprobó la requisición"
+    )
+
+    if compras == usuario:
+        requisicion.aprobo_compras = True
+        requisicion.estado = 'autorizada_compras'
+
+    if compras != aprobador and requisicion.estado == 'autorizada_aprobador':
+        ActividadRequisicion.objects.create(
+            requisicion=requisicion,
+            usuario=usuario,
+            tipo="system",
+            contenido=f"{usuario.contacto} solitó a {compras.contacto} revisar la requisición"
+        )
+
+        requisicion.estado = 'enviada_compras'
+        messages.info(request, f'Se le notificará a compras')
+
+        notificar_solicitar_aprobacion_compras(request, requisicion, compras)
+
+    notificar_aprobacion_solicitante(request, requisicion, solicitante, usuario)
+
+    requisicion.save(update_fields=['aprobo_compras', 'aprobo_aprobador', 'estado'])
+    messages.success(request, f'{usuario.contacto} aprobó la requisición')
+
+    return redirect('papeleria:requisiciones__detail', requisicion.id)
+
+
+@login_required()
+@permission_required('papeleria.enviar_requisicion_contraloria')
+@require_POST
+def solicitar_autorizacion_contraloria(request):
+    data = json.loads(request.body)
+    ids = data.get("requisiciones[]", [])
+
+    usuario = request.user
+
+    if not ids:
+        messages.warning(
+            request,
+            "No se seleccionaron requisiciones para enviar a Contraloría."
+        )
+        return redirect("papeleria:requisiciones__list")
+
+    requisiciones = Requisicion.objects.filter(
+        pk__in=ids,
+        estado='autorizada_compras',
+    )
+
+    if not requisiciones.exists():
+        messages.error(
+            request,
+            "Las requisiciones seleccionadas no son válidas o ya fueron procesadas."
+        )
+        return redirect("papeleria:requisiciones__list")
+
+    req_procesadas = []
+
+    for req in requisiciones:
+        ActividadRequisicion.objects.create(
+            requisicion=req,
+            usuario=usuario,
+            tipo="system",
+            contenido=f"{usuario.contacto} envío la requisición a contraloría"
+        )
+
+        req.estado = 'enviada_contraloria'
+        req.save(update_fields=["estado"])
+        req_procesadas.append(req)
+
+    requisiciones_por_contraloria = defaultdict(list)
+
+    for req in req_procesadas:
+        if req.contraloria:
+            requisiciones_por_contraloria[req.contraloria].append(req)
+
+    for contraloria, reqs in requisiciones_por_contraloria.items():
+        lineas = []
+
+        for req in reqs:
+            url = request.build_absolute_uri(req.get_absolute_url())
+            lineas.append(
+                f"• Requisición #{req.folio} "
+                f"(${req.total:,.2f}) "
+                f"<{url}|Ver>"
+            )
+
+        mensaje = (
+                "📌 *Requisiciones pendientes de aprobación*\n\n"
+                "Las siguientes requisiciones requieren tu revisión:\n\n"
+                + "\n".join(lineas)
+        )
+
+        if contraloria.contacto.slack_id:
+            enviar_slack_task.delay(
+                user_id=contraloria.contacto.slack_id,
+                mensaje=mensaje,
+            )
+
+        if contraloria.contacto.email_principal:
+            enviar_correo_task.delay(
+                subject=f"Requisiciones pendientes de aprobación",
+                to=[contraloria.contacto.email_principal.email],
+                template_name="apps/papeleria/emails/requisicion/solicitudes_aprobacion_contraloria.html",
+                context={
+                    "aprobador": contraloria.contacto.nombre_completo,
+                    "requisiciones": [
+                        {
+                            "folio": r.folio,
+                            "solicitante": r.solicitante.contacto.nombre_completo,
+                            "area": r.solicitante.contacto.area.nombre if r.solicitante.contacto.area else None,
+                            "empresa": r.empresa.nombre,
+                            "fecha_solicitud": r.created_at,
+                            "total": r.total,
+                            "absolute_url": request.build_absolute_uri(r.get_absolute_url()),
+                            "requisiciones_url": request.build_absolute_uri(
+                                reverse('papeleria:requisiciones__list')),
+                        }
+                        for r in reqs
+                    ],
+                }
+            )
+
+    messages.success(
+        request,
+        f"{len(req_procesadas)} requisición(es) enviadas correctamente a Contraloría."
+    )
+
+    return redirect('papeleria:requisiciones__list')
 
 
 class RequisicionUpdateView(
@@ -192,224 +541,6 @@ class RequisicionDetailView(PermissionRequiredMixin, BreadcrumbsMixin, DetailVie
             {'title': 'Requisiciones', 'url': reverse('papeleria:requisiciones__list')},
             {'title': self.get_object()},
         ]
-
-
-class RequisicionDeleteView(PermissionRequiredMixin, SuccessMessageMixin, DeleteView):
-    permission_required = ['papeleria.delete_requisicion']
-    model = Requisicion
-    success_message = "Requisición eliminada correctamente."
-
-    def get_success_url(self):
-        return reverse("papeleria:requisiciones__list")
-
-
-class RequisicionConfirmView(PermissionRequiredMixin, View):
-    permission_required = ['papeleria.change_requisicion']
-
-    def post(self, request, *args, pk=None, **kwargs):
-        requisicion = get_object_or_404(Requisicion, pk=pk)
-        usuario = self.request.user
-        contacto = getattr(self.request.user, 'contacto', usuario)
-
-        if not requisicion.puede_confirmar(self.request.user):
-            messages.error(request, "No tienes permiso para confirmar esta requisición.")
-            return redirect("papeleria:requisiciones__detail", pk=pk)
-
-        requisicion.aprobo_solicitante = True
-        requisicion.estado = 'confirmada'
-
-        requisicion.save(update_fields=['aprobo_solicitante', 'estado'])
-
-        ActividadRequisicion.objects.create(
-            requisicion=requisicion,
-            usuario=usuario,
-            contenido=f"{usuario.contacto} paso la requisición de borrador a confirmada"
-        )
-
-        messages.success(request, f'{contacto} Confirmó la requisición')
-
-        return redirect('papeleria:requisiciones__detail', requisicion.id)
-
-
-class RequisicionRequestConfirmView(PermissionRequiredMixin, View):
-    permission_required = ['papeleria.change_requisicion']
-
-    def post(self, request, *args, pk=None, **kwargs):
-        requisicion = get_object_or_404(Requisicion, pk=pk)
-        usuario = self.request.user
-        aprobador = requisicion.aprobador
-
-        if not requisicion.puede_enviar_al_aprobador(self.request.user):
-            messages.error(request, "No tienes permiso para solicitar aprobación esta requisición.")
-            return redirect("papeleria:requisiciones__detail", pk=pk)
-
-        requisicion.estado = 'enviada_aprobador'
-        requisicion.save(update_fields=['estado'])
-
-        if aprobador.contacto.slack_id:
-            mensaje = (
-                "*Tienes una requisición pendiente de aprobación*\n"
-                f"Requisición: #{requisicion.folio}\n"
-                f"Solicitante: {requisicion.solicitante}\n"
-                f"Monto: ${requisicion.total:,.2f}\n"
-                f"<{request.build_absolute_uri(requisicion.get_absolute_url())}|👉 Aprobar requisición>"
-            )
-
-            enviar_slack_task.delay(
-                user_id=aprobador.contacto.slack_id,
-                mensaje=mensaje,
-            )
-
-        if aprobador.contacto.email_principal:
-            enviar_correo_task.delay(
-                subject=f"Aprobación de requisición de papelería - {requisicion.folio}",
-                to=[aprobador.contacto.email_principal.email],
-                template_name="apps/papeleria/emails/requisicion/solicitud_aprobacion.html",
-                context={
-                    "aprobador": aprobador.contacto.nombre_completo,
-                    "folio": requisicion.folio,
-                    "solicitante": requisicion.solicitante.contacto.nombre_completo,
-                    "empresa": requisicion.empresa.nombre,
-                    "fecha_solicitud": requisicion.created_at,
-                    "estado": requisicion.get_estado_display(),
-                    "total": requisicion.total,
-                    "detalles": [
-                        {
-                            "articulo": d.articulo.nombre,
-                            "cantidad": d.cantidad,
-                            "subtotal": d.subtotal,
-                        }
-                        for d in requisicion.detalle_requisicion.all()
-                    ],
-                    "requisicion_url": request.build_absolute_uri(requisicion.get_absolute_url()),
-                }
-            )
-
-        ActividadRequisicion.objects.create(
-            requisicion=requisicion,
-            usuario=usuario,
-            contenido=f"{usuario.contacto} solicitó a {aprobador.contacto} revisar la requisición"
-        )
-
-        messages.success(request,
-                         f'{usuario.contacto} solicitó aprobar la requisición, se enviará una notificación a {aprobador.contacto}')
-
-        return redirect('papeleria:requisiciones__detail', requisicion.id)
-
-
-class RequisicionAprobarView(PermissionRequiredMixin, View):
-    permission_required = ['papeleria.aprobar_requisicion']
-
-    def post(self, request, *args, pk=None, **kwargs):
-        requisicion = get_object_or_404(Requisicion, pk=pk)
-        usuario = self.request.user
-
-        solicitante = requisicion.solicitante
-        aprobador = requisicion.aprobador
-        compras = requisicion.compras
-
-        if not requisicion.puede_aprobar(self.request.user):
-            messages.error(request, "No tienes permiso para aprobar esta requisición.")
-            return redirect("papeleria:requisiciones__detail", pk=pk)
-
-        if aprobador == usuario:
-            requisicion.aprobo_aprobador = True
-            requisicion.estado = 'autorizada_aprobador'
-
-        ActividadRequisicion.objects.create(
-            requisicion=requisicion,
-            usuario=usuario,
-            contenido=f"{usuario.contacto} aprobó la requisición"
-        )
-
-        if compras == usuario:
-            requisicion.aprobo_compras = True
-            requisicion.estado = 'autorizada_compras'
-
-        if compras != aprobador and requisicion.estado == 'autorizada_aprobador':
-            ActividadRequisicion.objects.create(
-                requisicion=requisicion,
-                usuario=usuario,
-                contenido=f"{usuario.contacto} solitó a {compras.contacto} revisar la requisición"
-            )
-
-            requisicion.estado = 'enviada_compras'
-            messages.info(request, f'Se le notificará a compras')
-
-            if compras.contacto.slack_id:
-                mensaje = (
-                    "*Tienes una requisición pendiente de aprobación*\n"
-                    f"Requisición: #{requisicion.folio}\n"
-                    f"Solicitante: {requisicion.solicitante.contacto}\n"
-                    f"Monto: ${requisicion.total:,.2f}\n"
-                    f"<{request.build_absolute_uri(requisicion.get_absolute_url())}|👉 Aprobar requisición>"
-                )
-
-                enviar_slack_task.delay(
-                    user_id=solicitante.contacto.slack_id,
-                    mensaje=mensaje,
-                )
-
-            if compras.contacto.email_principal:
-                enviar_correo_task.delay(
-                    subject=f"Aprobación de requisición de papelería - {requisicion.folio}",
-                    to=[compras.contacto.email_principal.email],
-                    template_name="apps/papeleria/emails/requisicion/solicitud_aprobacion.html",
-                    context={
-                        "aprobador": compras.contacto.nombre_completo,
-                        "folio": requisicion.folio,
-                        "solicitante": requisicion.solicitante.contacto.nombre_completo,
-                        "empresa": requisicion.empresa.nombre,
-                        "fecha_solicitud": requisicion.created_at,
-                        "estado": requisicion.get_estado_display(),
-                        "total": requisicion.total,
-                        "detalles": [
-                            {
-                                "articulo": d.articulo.nombre,
-                                "cantidad": d.cantidad,
-                                "subtotal": d.subtotal,
-                            }
-                            for d in requisicion.detalle_requisicion.all()
-                        ],
-                        "requisicion_url": request.build_absolute_uri(requisicion.get_absolute_url()),
-                    }
-                )
-
-        if solicitante.contacto.slack_id:
-            mensaje = (
-                "✅ *Tu requisición fue aprobada*\n\n"
-                f"*Requisición:* #{requisicion.folio}\n"
-                f"*Aprobó:* {usuario.contacto}\n"
-                f"*Monto:* ${requisicion.total:,.2f}\n\n"
-                f"<{request.build_absolute_uri(requisicion.get_absolute_url())}|🔎 Ver requisición>"
-            )
-
-            enviar_slack_task.delay(
-                user_id=solicitante.contacto.slack_id,
-                mensaje=mensaje,
-            )
-
-        if solicitante.contacto.email_principal:
-            enviar_correo_task.delay(
-                subject=f"Requisición de papelería aprobada - {requisicion.folio}",
-                to=[solicitante.contacto.email_principal.email],
-                template_name="apps/papeleria/emails/requisicion/solicitud_aprobada.html",
-                context={
-                    "aprobador": usuario.contacto.nombre_completo,
-                    "folio": requisicion.folio,
-                    "solicitante": requisicion.solicitante.contacto.nombre_completo,
-                    "empresa": requisicion.empresa.nombre,
-                    "fecha_solicitud": requisicion.created_at,
-                    "estado": requisicion.get_estado_display(),
-                    "total": requisicion.total,
-                    "requisicion_url": request.build_absolute_uri(requisicion.get_absolute_url()),
-                }
-            )
-
-        requisicion.save(update_fields=['aprobo_compras', 'aprobo_aprobador', 'estado'])
-        messages.success(request, f'{usuario.contacto} aprobó la requisición')
-
-        return redirect('papeleria:requisiciones__detail', requisicion.id)
 
 
 class RequisicionRechazarView(PermissionRequiredMixin, View):
@@ -801,23 +932,38 @@ class RequisicionExcelView(PermissionRequiredMixin, View):
         return response
 
 
-class ActividadRequisicionCreateView(PermissionRequiredMixin, View):
-    permission_required = ["papeleria.add_actividadrequisicion"]
+@login_required()
+@permission_required('papeleria.add_actividadrequisicion', raise_exception=True)
+@require_POST
+def enviar_mensaje_requisicion(request, pk):
+    data = json.loads(request.body)
+    contenido = data.get('contenido')
 
-    def post(self, request, *args, pk=None, **kwargs):
-        contenido = request.POST.get('contenido')
-
-        requisicion = get_object_or_404(Requisicion, pk=pk)
-
-        ActividadRequisicion.objects.create(
-            requisicion=requisicion,
-            usuario=request.user,
-            contenido=contenido,
-        )
-
-        messages.success(request, "Comentario agregado exitosamente.")
-
+    if not contenido:
+        messages.error(request, "Es necesario agregar contenido al mensaje")
         return redirect('papeleria:requisiciones__detail', pk)
+
+    requisicion = get_object_or_404(Requisicion, pk=pk)
+
+    ActividadRequisicion.objects.create(
+        requisicion=requisicion,
+        usuario=request.user,
+        contenido=contenido,
+    )
+
+    actores = {
+        requisicion.solicitante,
+        requisicion.aprobador,
+        requisicion.compras,
+    }
+
+    destinatarios = [u for u in actores if u is not None]
+
+    notificar_nuevo_mensaje_requisicion(request, requisicion, destinatarios)
+
+    messages.success(request, "Comentario agregado exitosamente.")
+
+    return redirect('papeleria:requisiciones__detail', pk)
 
 
 class ActividadRequisicionDeleteView(PermissionRequiredMixin, SuccessMessageMixin, DeleteView):

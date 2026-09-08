@@ -1,30 +1,25 @@
 from django.urls import path
 
-from apps.interfaz_sae_coi.views import DocumentoContabilizarSAE, DocumentoPreviewView, \
-    DocumentoContabilizarProcessView, documentos_contabilizar_sae, documento_preview, agregar_poliza, asignar_cuentas
+from apps.interfaz_sae_coi.views import documentos_contabilizar_sae, asignar_cuentas, poliza_preview_api, \
+    contabilizar_coi_api
 
 app_name = 'interfaz_sae_coi'
 
 urlpatterns = [
     path(
-        'documentos/inertia/',
-        documentos_contabilizar_sae,
-        name='documentos_list_inertia'
-    ),
-    path(
         'documentos/',
-        DocumentoContabilizarSAE.as_view(),
+        documentos_contabilizar_sae,
         name='documentos_list'
     ),
     path(
-        'documentos/<str:cve_doc>/preview/',
-        documento_preview,
-        name='documento_preview'
+        'preview/<str:folio>/',
+        poliza_preview_api,
+        name='documento_preview',
     ),
     path(
-        'documentos/<str:cve_doc>/contabilizar/',
-        agregar_poliza,
-        name='documento_contabilizar'
+        'contabilizar/',
+        contabilizar_coi_api,
+        name='contabilizar',
     ),
     path(
         'cuentas/asignar/',

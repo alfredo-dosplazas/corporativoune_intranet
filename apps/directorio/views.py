@@ -1,19 +1,24 @@
+import json
+
+from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpResponse
 from django.shortcuts import redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.views import View
-from django.views.generic import DetailView, DeleteView, UpdateView
+from django.views.generic import DetailView, UpdateView
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin
 from extra_views import SearchableListMixin, CreateWithInlinesView, NamedFormsetsMixin, UpdateWithInlinesView
 from inertia import render
 from playwright.sync_api import sync_playwright
 
+from apps.core.decorators import remember_filter_state
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.mixins.modulo_required import ModuloRequiredMixin
 from apps.core.mixins.session_filter_state import SessionFilterStateMixin
@@ -23,18 +28,22 @@ from apps.core.services.notificaciones import notificar_soporte
 from apps.core.utils.network import get_client_ip, ip_in_allowed_range, get_empresas_from_ip, \
     get_sede_from_ip
 from apps.directorio.filters import ContactoFilter
-from apps.directorio.forms import ContactoForm
+from apps.directorio.forms import ContactoForm, ContactoCreateUpdateForm
 from apps.directorio.helpers import puede_editar_contacto, puede_eliminar_contacto, puede_ver_contacto
 from apps.directorio.inlines import EmailContactoInline, TelefonoContactoInline
-from apps.directorio.models import Contacto
+from apps.directorio.models import Contacto, TelefonoContacto, EmailContacto
 from apps.directorio.tables import ContactoTable
+from apps.rrhh.models.areas import Area
+from apps.rrhh.models.puestos import Puesto
 from apps.rrhh.models.sedes import Sede
 
 
+@remember_filter_state()
 def directorio(request):
     search_query = request.GET.get('search', '')
     empresa_id = request.GET.get('empresa', '')
     page_number = request.GET.get('page', 1)
+    view_mode = request.GET.get('view_mode', 'grid')
 
     contactos = (
         Contacto.objects.filter(esta_archivado=False)
@@ -43,21 +52,36 @@ def directorio(request):
     )
 
     if search_query:
-        contactos = contactos.filter(
-            Q(primer_nombre__icontains=search_query) |
-            Q(segundo_nombre__icontains=search_query) |
-            Q(primer_apellido__icontains=search_query) |
-            Q(segundo_apellido__icontains=search_query) |
-            Q(numero_empleado__icontains=search_query)
-        )
+        terms = search_query.split()
+
+        query_conditions = Q()
+        for term in terms:
+            term_condition = (
+                    Q(primer_nombre__icontains=term) |
+                    Q(segundo_nombre__icontains=term) |
+                    Q(primer_apellido__icontains=term) |
+                    Q(segundo_apellido__icontains=term) |
+                    Q(numero_empleado__icontains=term)
+            )
+            query_conditions &= term_condition
+            query_conditions |= Q(emails__email__icontains=search_query)
+            query_conditions |= Q(telefonos__telefono__icontains=search_query)
+
+        contactos = contactos.filter(query_conditions)
 
     if empresa_id:
         contactos = contactos.filter(empresa_id=empresa_id)
 
-    paginator = Paginator(contactos, 10)
+    contactos = contactos.distinct()
+
+    paginator = Paginator(contactos, 12)
     page_obj = paginator.get_page(page_number)
 
     props = {
+        'breadcrumbs': [
+            {'label': 'Inicio', 'url': '/', 'icon': 'icon-[lucide--home]'},
+            {'label': 'Directorio', 'icon': 'icon-[lucide--users]'},
+        ],
         'contactos': {
             'data': [c.to_dict() for c in page_obj],
             'current_page': page_obj.number,
@@ -71,8 +95,9 @@ def directorio(request):
             'search': search_query,
             'empresa': empresa_id,
         },
-        # Añadimos las empresas para iterarlas en el select del frontend
-        'empresas': list(Empresa.objects.values('id', 'nombre'))
+        'empresas_options': list(Empresa.objects.values('id', 'nombre')),
+        'can_create': request.user.has_perm('directorio.add_contacto'),
+        'view_mode': view_mode,
     }
     return render(request, 'Directorio/Index', props)
 
@@ -82,8 +107,203 @@ def contacto_detail(request, pk):
 
     props = {
         'contacto': contacto.to_dict(),
+        'breadcrumbs': [
+            {'label': 'Inicio', 'url': '/', 'icon': 'icon-[lucide--home]'},
+            {'label': 'Directorio', 'icon': 'icon-[lucide--users]', 'url': reverse('directorio:list')},
+            {'label': 'Detalle Del Contacto', 'icon': 'icon-[lucide--users]'},
+        ],
     }
     return render(request, 'Directorio/Contacto/Detail', props)
+
+
+def contacto_create(request):
+    if request.method == "GET":
+        return render(request, "Directorio/Contacto/Form", props=get_contacto_form_props(request))
+
+    if request.method == "POST":
+        try:
+            payload = json.loads(request.body)
+        except json.JSONDecodeError:
+            payload = request.POST
+
+        # Mapear IDs de los selects del form a los campos correspondientes del modelo
+        data_to_form = {
+            'abreviatura_titulo': payload.get('abreviatura_titulo'),
+            'numero_empleado': payload.get('numero_empleado') or None,
+            'primer_nombre': payload.get('primer_nombre'),
+            'segundo_nombre': payload.get('segundo_nombre') or None,
+            'primer_apellido': payload.get('primer_apellido'),
+            'segundo_apellido': payload.get('segundo_apellido') or None,
+            'fecha_nacimiento': payload.get('fecha_nacimiento') or None,
+            'empresa': payload.get('empresa_id') or None,
+            'area': payload.get('area_id') or None,
+            'puesto': payload.get('puesto_id') or None,
+            'sede_administrativa': payload.get('sede_administrativa_id') or None,
+            'jefe_directo': payload.get('jefe_directo_id') or None,
+            'fecha_ingreso': payload.get('fecha_ingreso') or None,
+            'fecha_egreso': payload.get('fecha_egreso') or None,
+            'mostrar_en_directorio': payload.get('mostrar_en_directorio', True),
+            'mostrar_en_cumpleanios': payload.get('mostrar_en_cumpleanios', True),
+            'es_jefe': payload.get('es_jefe', False),
+        }
+
+        form = ContactoCreateUpdateForm(data_to_form)
+
+        # Validación extra de correos en el payload
+        emails_data = payload.get("emails", [])
+        email_errors = {}
+        for idx, item in enumerate(emails_data):
+            email_val = item.get("email", "").strip()
+            if email_val and EmailContacto.objects.filter(email=email_val).exists():
+                email_errors[f"emails.{idx}.email"] = f"El correo {email_val} ya existe."
+
+        if not form.is_valid() or email_errors:
+            errors = {**form.errors, **email_errors}
+            messages.error(request, "Por favor corrige los errores en el formulario.")
+            return render(
+                request,
+                "Directorio/Contacto/Form",
+                props={**get_contacto_form_props(request), "errors": errors},
+            )
+
+        try:
+            with transaction.atomic():
+                contacto = form.save()
+
+                if payload.get("empresas_relacionadas"):
+                    contacto.empresas_relacionadas.set(payload.get("empresas_relacionadas"))
+
+                if payload.get("sedes_visibles"):
+                    contacto.sedes_visibles.set(payload.get("sedes_visibles"))
+
+                # Crear Emails
+                for item in emails_data:
+                    email_str = item.get("email", "").strip()
+                    if email_str:
+                        EmailContacto.objects.create(
+                            contacto=contacto,
+                            email=email_str,
+                            es_principal=item.get("es_principal", False),
+                            esta_activo=True,
+                            es_slack=item.get("es_slack", False),
+                        )
+
+                # Crear Teléfonos
+                for item in payload.get("telefonos", []):
+                    tel_str = item.get("telefono", "").strip()
+                    if tel_str:
+                        TelefonoContacto.objects.create(
+                            contacto=contacto,
+                            telefono=tel_str,
+                            extension=item.get("extension") or None,
+                            es_principal=item.get("es_principal", False),
+                            esta_activo=True,
+                            es_celular=item.get("es_celular", False),
+                        )
+
+            messages.success(request, f"El contacto {contacto.nombre_completo} se ha creado correctamente.")
+            return redirect(reverse("directorio:list"))
+
+        except Exception as e:
+            messages.error(request, f"Ocurrió un error inesperado: {str(e)}")
+            return render(
+                request,
+                "Directorio/Contacto/Form",
+                props=get_contacto_form_props(request),
+            )
+
+
+def contacto_update(request, pk):
+    contacto = get_object_or_404(Contacto, pk=pk)
+
+    if request.method == "POST":
+        try:
+            payload = json.loads(request.body)
+        except json.JSONDecodeError:
+            payload = request.POST
+
+        data_to_form = {
+            'abreviatura_titulo': payload.get('abreviatura_titulo'),
+            'numero_empleado': payload.get('numero_empleado') or None,
+            'primer_nombre': payload.get('primer_nombre'),
+            'segundo_nombre': payload.get('segundo_nombre') or None,
+            'primer_apellido': payload.get('primer_apellido'),
+            'segundo_apellido': payload.get('segundo_apellido') or None,
+            'fecha_nacimiento': payload.get('fecha_nacimiento') or None,
+            'empresa': payload.get('empresa_id') or None,
+            'area': payload.get('area_id') or None,
+            'puesto': payload.get('puesto_id') or None,
+            'sede_administrativa': payload.get('sede_administrativa_id') or None,
+            'jefe_directo': payload.get('jefe_directo_id') or None,
+            'fecha_ingreso': payload.get('fecha_ingreso') or None,
+            'fecha_egreso': payload.get('fecha_egreso') or None,
+            'mostrar_en_directorio': payload.get('mostrar_en_directorio', True),
+            'mostrar_en_cumpleanios': payload.get('mostrar_en_cumpleanios', True),
+            'es_jefe': payload.get('es_jefe', False),
+        }
+
+        form = ContactoCreateUpdateForm(data_to_form, instance=contacto)
+
+        if not form.is_valid():
+            messages.error(request, "Por favor corrige los errores en el formulario.")
+            return render(
+                request,
+                "Directorio/Contacto/Form",
+                props={**get_contacto_form_props(request, contacto), "errors": form.errors},
+            )
+
+        try:
+            with transaction.atomic():
+                contacto = form.save()
+
+                if payload.get("empresas_relacionadas") is not None:
+                    contacto.empresas_relacionadas.set(payload.get("empresas_relacionadas"))
+
+                if payload.get("sedes_visibles") is not None:
+                    contacto.sedes_visibles.set(payload.get("sedes_visibles"))
+
+            messages.success(request, f"El contacto {contacto.nombre_completo} se ha actualizado correctamente.")
+            return redirect(reverse("directorio:list"))
+
+        except Exception as e:
+            messages.error(request, f"Ocurrió un error: {str(e)}")
+            return render(
+                request,
+                "Directorio/Contacto/Form",
+                props=get_contacto_form_props(request, contacto),
+            )
+
+    return render(request, "Directorio/Contacto/Form", props=get_contacto_form_props(request, contacto))
+
+
+def contacto_delete(request, pk):
+    contacto = get_object_or_404(Contacto, pk=pk)
+    if request.method == "POST":
+        contacto.delete()
+        messages.success(request, 'Contacto eliminado correctamente.')
+    return redirect(reverse("directorio:list"))
+
+
+def get_contacto_form_props(request, contacto=None):
+    """Helper para construir las props iniciales compartidas para el formulario."""
+    return {
+        "contacto": contacto.to_dict() if contacto else None,
+        "empresas": list(Empresa.objects.values("id", "nombre")),
+        "areas": list(Area.objects.values("id", "nombre", "empresa_id")),
+        "puestos": list(Puesto.objects.values("id", "nombre", "empresa_id")),
+        "sedes": list(Sede.objects.values("id", "nombre")),
+        "contactosJefes": [
+            {"id": c.id, "nombre_completo": c.nombre_completo}
+            for c in
+            Contacto.objects.filter(esta_archivado=False, es_jefe=True).exclude(pk=contacto.pk if contacto else None)
+        ],
+        "cancelUrl": reverse("directorio:list"),
+        "breadcrumbs": [
+            {"label": "Inicio", "url": "/", "icon": "icon-[lucide--home]"},
+            {"label": "Directorio", "icon": "icon-[lucide--users]", "url": reverse("directorio:list")},
+            {"label": "Editar Contacto" if contacto else "Crear Contacto", "icon": "icon-[lucide--users]"},
+        ],
+    }
 
 
 class DirectorioListView(

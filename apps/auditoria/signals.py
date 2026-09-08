@@ -3,6 +3,7 @@ import logging
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth.signals import user_logged_in
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.sessions.models import Session
 from django.db.models.signals import pre_save, post_save, pre_delete
 from django.dispatch import receiver
 
@@ -36,6 +37,7 @@ EXCLUDED_MODELS = [
     UserAccessLog,
     LogEntry,
     ContentType,
+    Session,
 ]
 
 

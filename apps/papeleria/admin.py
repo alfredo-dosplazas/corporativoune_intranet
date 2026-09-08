@@ -1,7 +1,12 @@
 from django.contrib import admin
 
 from apps.papeleria.models.articulos import Articulo
-from apps.papeleria.models.requisiciones import Requisicion, DetalleRequisicion
+from apps.papeleria.models.requisiciones import Requisicion, DetalleRequisicion, FolioRequisicion, ActividadRequisicion
+
+
+@admin.register(FolioRequisicion)
+class FolioRequisicionAdmin(admin.ModelAdmin):
+    pass
 
 
 @admin.register(Articulo)
@@ -16,10 +21,15 @@ class DetalleRequisicionInline(admin.TabularInline):
     extra = 1
 
 
+class ActividadInline(admin.TabularInline):
+    model = ActividadRequisicion
+    extra = 1
+
+
 @admin.register(Requisicion)
 class RequisicionAdmin(admin.ModelAdmin):
     search_fields = ['folio']
-    inlines = [DetalleRequisicionInline]
+    inlines = [DetalleRequisicionInline, ActividadInline]
     autocomplete_fields = ['requisicion_relacionada', 'solicitante', 'aprobador', 'compras', 'contraloria',
                            'rechazador', 'autorizado_por', 'empresa']
     list_display = ['folio', 'solicitante', 'aprobador', 'compras', 'contraloria', 'created_at', 'updated_at']

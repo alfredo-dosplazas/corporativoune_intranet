@@ -8,11 +8,72 @@ from django.forms import Textarea, TextInput, NumberInput
 from apps.papeleria.models.requisiciones import Requisicion, DetalleRequisicion
 
 
+class RequisicionForm(forms.ModelForm):
+    class Meta:
+        model = Requisicion
+        fields = ['notas', 'es_papeleria_stock']
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        if not self.user:
+            raise ValidationError("Usuario no autenticado.")
+
+        contacto = getattr(self.user, 'contacto', None)
+        area = getattr(contacto, 'area', None)
+        empresa = getattr(contacto, 'empresa', None) if contacto else None
+        configuracion = getattr(empresa, 'configuracion_papeleria', None) if empresa else None
+        compras = getattr(configuracion, 'compras', None) if configuracion else None
+        contraloria = getattr(configuracion, 'contraloria', None) if configuracion else None
+
+        if not empresa:
+            raise ValidationError("Tu usuario no tiene una empresa asociada para crear requisiciones.")
+
+        if not area:
+            raise ValidationError("Tu usuario no tiene un área asociada para crear requisiciones.")
+
+        aprobador = getattr(area, 'aprobador_papeleria', None) if configuracion else None
+
+        if not aprobador:
+            raise ValidationError("Tu área no tiene un aprobador.")
+
+        if not compras:
+            raise  ValidationError("Tu empresa no tiene un administrador de compras definido.")
+
+        if not contraloria:
+            raise  ValidationError("Tu empresa no tiene un contraloria definido.")
+
+        self.empresa = empresa
+        self.aprobador = aprobador
+        self.compras = compras
+        self.contraloria = contraloria
+        return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        instance.solicitante = self.user
+        instance.creada_por = self.user
+        instance.empresa = self.empresa
+        instance.aprobador = self.aprobador
+        instance.compras = self.compras
+        instance.contraloria = self.contraloria
+
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
+
+
 def es_admin_papeleria(user):
     return user.groups.filter(name="ADMINISTRADOR PAPELERÍA").exists()
 
 
-class RequisicionForm(forms.ModelForm):
+class RequisicionOldForm(forms.ModelForm):
     class Meta:
         model = Requisicion
         fields = "__all__"

@@ -1,6 +1,8 @@
+from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.urls import reverse
 from django.views.generic import TemplateView
+from inertia import render
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 
@@ -36,6 +38,31 @@ PAPELERIA_MODULOS = [
         "descripcion": "Reportes y estadísticas de papelería",
     },
 ]
+
+
+@login_required()
+@permission_required('papeleria.view_reportes', raise_exception=True)
+def papeleria(request):
+    user = request.user
+    modulos_disponibles = []
+
+    for modulo in PAPELERIA_MODULOS:
+        permisos = modulo.get("permisos", [])
+
+        if all(user.has_perm(p) for p in permisos):
+            modulos_disponibles.append({
+                **modulo,
+                "url": reverse(modulo["url_name"]),
+            })
+
+    props = {
+        'breadcrumbs': [
+            {'label': 'Inicio', 'url': reverse('home')},
+            {'label': 'Papelería'},
+        ],
+        'modulos': modulos_disponibles,
+    }
+    return render(request, 'Papeleria/Index', props)
 
 
 class PapeleriaView(PermissionRequiredMixin, BreadcrumbsMixin, TemplateView):
