@@ -28,4 +28,15 @@ export default defineConfig({
             '@': resolve(__dirname, './src'),
         },
     },
+    server: {
+        host: '0.0.0.0',
+        port: 5173,
+        cors: true,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+        },
+        hmr: {
+            host: '172.17.4.168',
+        },
+    }
 })

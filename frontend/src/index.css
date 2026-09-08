@@ -1,9 +1,123 @@
 @import "tailwindcss";
+
 @plugin "daisyui";
 @plugin "@iconify/tailwind4";
 
+@import "icon_safelist.css";
+
+@plugin "daisyui" {
+    themes: dos_plazas --default,
+    dos_plazas_dark --prefersdark,
+    abocosa,
+    abocosa_dark,
+    bbh,
+    bbh_dark,
+    frescopack,
+    frescopack_dark,
+    vpa,
+    vpa_dark;
+}
+
+/* ==========================================================================
+   ABOCOSA (Naranja / Azul Marino)
+   ========================================================================== */
 @plugin "daisyui/theme" {
-    name: "dos_plazas";
+    name: "abocosa";
+    default: false;
+    prefersdark: false;
+    color-scheme: "light";
+
+    --color-base-100: #F9FAFB;
+    --color-base-200: #F3F4F6;
+    --color-base-300: #E5E7EB;
+    --color-base-content: #1F2937;
+
+    --color-primary: #CE5C09;
+    --color-primary-content: #FFFFFF;
+
+    --color-secondary: #224A97;
+    --color-secondary-content: #FFFFFF;
+
+    --color-accent: #F59E0B;
+    --color-accent-content: #1F2937;
+
+    --color-neutral: #374151;
+    --color-neutral-content: #F9FAFB;
+
+    --color-info: #3B82F6;
+    --color-info-content: #FFFFFF;
+
+    --color-success: #16A34A;
+    --color-success-content: #FFFFFF;
+
+    --color-warning: #FACC15;
+    --color-warning-content: #1F2937;
+
+    --color-error: #DC2626;
+    --color-error-content: #FFFFFF;
+
+    --radius-selector: 0.25rem;
+    --radius-field: 0.25rem;
+    --radius-box: 0.375rem;
+    --size-selector: 0.20rem;
+    --size-field: 0.20rem;
+    --border: 1px;
+    --depth: 1;
+    --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+    name: "abocosa_dark";
+    default: false;
+    prefersdark: false;
+    color-scheme: "dark";
+
+    /* Jerarquía de fondo corregida */
+    --color-base-100: #111827;
+    --color-base-200: #1F2937;
+    --color-base-300: #374151;
+    --color-base-content: #F9FAFB;
+
+    /* Primario más vibrante para contraste en modo oscuro */
+    --color-primary: #E07C3B;
+    --color-primary-content: #FFFFFF;
+
+    --color-secondary: #3B82F6;
+    --color-secondary-content: #FFFFFF;
+
+    --color-accent: #F59E0B;
+    --color-accent-content: #1F2937;
+
+    --color-neutral: #374151;
+    --color-neutral-content: #F9FAFB;
+
+    --color-info: #3B82F6;
+    --color-info-content: #FFFFFF;
+
+    --color-success: #16A34A;
+    --color-success-content: #FFFFFF;
+
+    --color-warning: #FACC15;
+    --color-warning-content: #1F2937;
+
+    --color-error: #DC2626;
+    --color-error-content: #FFFFFF;
+
+    --radius-selector: 0.25rem;
+    --radius-field: 0.25rem;
+    --radius-box: 0.375rem;
+    --size-selector: 0.20rem;
+    --size-field: 0.20rem;
+    --border: 1px;
+    --depth: 1;
+    --noise: 0;
+}
+
+/* ==========================================================================
+   BBH (Verde Esmeralda / Muted)
+   ========================================================================== */
+@plugin "daisyui/theme" {
+    name: "bbh";
     default: false;
     prefersdark: false;
     color-scheme: "light";
@@ -13,12 +127,10 @@
     --color-base-300: #D1D5DB;
     --color-base-content: #1F2937;
 
-    --color-primary: #375CF3;
+    --color-primary: #43B38A;
     --color-primary-content: #FFFFFF;
-    --color-primary-light: #6B8BFF;
-    --color-primary-dark: #0F3AC6;
 
-    --color-secondary: #E1A021;
+    --color-secondary: #E5E7EB;
     --color-secondary-content: #1F2937;
 
     --color-accent: #5CC8FF;
@@ -39,7 +151,7 @@
     --color-error: #DC2626;
     --color-error-content: #F9FAFB;
 
-    ---radius-selector: 0.25rem;
+    --radius-selector: 0.25rem;
     --radius-field: 0.25rem;
     --radius-box: 0.375rem;
     --size-selector: 0.20rem;
@@ -47,4 +159,334 @@
     --border: 1px;
     --depth: 1;
     --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+    name: "bbh_dark";
+    default: false;
+    prefersdark: false;
+    color-scheme: "dark";
+
+    --color-base-100: #111827;
+    --color-base-200: #1F2937;
+    --color-base-300: #374151;
+    --color-base-content: #F9FAFB;
+
+    --color-primary: #43B38A;
+    --color-primary-content: #FFFFFF;
+
+    --color-secondary: #374151;
+    --color-secondary-content: #F9FAFB;
+
+    --color-accent: #5CC8FF;
+    --color-accent-content: #0F172A;
+
+    --color-neutral: #374151;
+    --color-neutral-content: #F9FAFB;
+
+    --color-info: #3ABFF8;
+    --color-info-content: #0F172A;
+
+    --color-success: #16A34A;
+    --color-success-content: #F9FAFB;
+
+    --color-warning: #FACC15;
+    --color-warning-content: #1F2937;
+
+    --color-error: #DC2626;
+    --color-error-content: #F9FAFB;
+
+    --radius-selector: 0.25rem;
+    --radius-field: 0.25rem;
+    --radius-box: 0.375rem;
+    --size-selector: 0.20rem;
+    --size-field: 0.20rem;
+    --border: 1px;
+    --depth: 1;
+    --noise: 0;
+}
+
+/* ==========================================================================
+   DOS PLAZAS (Azul Eléctrico / Dorado)
+   ========================================================================== */
+@plugin "daisyui/theme" {
+    name: "dos_plazas";
+    default: false;
+    prefersdark: false;
+    color-scheme: "light";
+
+    --color-base-100: #F9FAFB;
+    --color-base-200: #E5E7EB;
+    --color-base-300: #D1D5DB;
+    --color-base-content: #1F2937;
+
+    --color-primary: #375CF3;
+    --color-primary-content: #FFFFFF;
+
+    --color-secondary: #E1A021;
+    --color-secondary-content: #FFFFFF;
+
+    --color-accent: #5CC8FF;
+    --color-accent-content: #0F172A;
+
+    --color-neutral: #374151;
+    --color-neutral-content: #F9FAFB;
+
+    --color-info: #3ABFF8;
+    --color-info-content: #0F172A;
+
+    --color-success: #16A34A;
+    --color-success-content: #F9FAFB;
+
+    --color-warning: #FACC15;
+    --color-warning-content: #1F2937;
+
+    --color-error: #DC2626;
+    --color-error-content: #F9FAFB;
+
+    /* Corregido el typo ---radius-selector */
+    --radius-selector: 0.25rem;
+    --radius-field: 0.25rem;
+    --radius-box: 0.375rem;
+    --size-selector: 0.20rem;
+    --size-field: 0.20rem;
+    --border: 1px;
+    --depth: 1;
+    --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+    name: "dos_plazas_dark";
+    default: false;
+    prefersdark: false;
+    color-scheme: "dark";
+
+    --color-base-100: #0F172A;
+    --color-base-200: #1E293B;
+    --color-base-300: #334155;
+    --color-base-content: #F8FAFC;
+
+    --color-primary: #4F70F4;
+    --color-primary-content: #FFFFFF;
+
+    --color-secondary: #E1A021;
+    --color-secondary-content: #1F2937;
+
+    --color-accent: #5CC8FF;
+    --color-accent-content: #0F172A;
+
+    --color-neutral: #1E293B;
+    --color-neutral-content: #F8FAFC;
+
+    --color-info: #3ABFF8;
+    --color-info-content: #0F172A;
+
+    --color-success: #16A34A;
+    --color-success-content: #F9FAFB;
+
+    --color-warning: #FACC15;
+    --color-warning-content: #1F2937;
+
+    --color-error: #DC2626;
+    --color-error-content: #F9FAFB;
+
+    --radius-selector: 0.25rem;
+    --radius-field: 0.25rem;
+    --radius-box: 0.375rem;
+    --size-selector: 0.20rem;
+    --size-field: 0.20rem;
+    --border: 1px;
+    --depth: 1;
+    --noise: 0;
+}
+
+/* ==========================================================================
+   FRESCOPACK (Azul Marino / Rojo)
+   ========================================================================== */
+@plugin "daisyui/theme" {
+    name: "frescopack";
+    default: false;
+    prefersdark: false;
+    color-scheme: "light";
+
+    --color-base-100: #F9FAFB;
+    --color-base-200: #E5E7EB;
+    --color-base-300: #D1D5DB;
+    --color-base-content: #1F2937;
+
+    --color-primary: #16469A;
+    --color-primary-content: #FFFFFF;
+
+    --color-secondary: #C42026;
+    --color-secondary-content: #FFFFFF;
+
+    --color-accent: #5CC8FF;
+    --color-accent-content: #0F172A;
+
+    --color-neutral: #374151;
+    --color-neutral-content: #F9FAFB;
+
+    --color-info: #3ABFF8;
+    --color-info-content: #0F172A;
+
+    --color-success: #16A34A;
+    --color-success-content: #F9FAFB;
+
+    --color-warning: #FACC15;
+    --color-warning-content: #1F2937;
+
+    --color-error: #DC2626;
+    --color-error-content: #F9FAFB;
+
+    --radius-selector: 0.25rem;
+    --radius-field: 0.25rem;
+    --radius-box: 0.375rem;
+    --size-selector: 0.20rem;
+    --size-field: 0.20rem;
+    --border: 1px;
+    --depth: 1;
+    --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+    name: "frescopack_dark";
+    default: false;
+    prefersdark: false;
+    color-scheme: "dark";
+
+    --color-base-100: #0F172A;
+    --color-base-200: #1E293B;
+    --color-base-300: #334155;
+    --color-base-content: #F8FAFC;
+
+    /* Azul aclarado para contraste WCAG en fondo oscuro */
+    --color-primary: #3B82F6;
+    --color-primary-content: #FFFFFF;
+
+    --color-secondary: #EF4444;
+    --color-secondary-content: #FFFFFF;
+
+    --color-accent: #5CC8FF;
+    --color-accent-content: #0F172A;
+
+    --color-neutral: #1E293B;
+    --color-neutral-content: #F8FAFC;
+
+    --color-info: #3ABFF8;
+    --color-info-content: #0F172A;
+
+    --color-success: #16A34A;
+    --color-success-content: #F9FAFB;
+
+    --color-warning: #FACC15;
+    --color-warning-content: #1F2937;
+
+    --color-error: #DC2626;
+    --color-error-content: #F9FAFB;
+
+    --radius-selector: 0.25rem;
+    --radius-field: 0.25rem;
+    --radius-box: 0.375rem;
+    --size-selector: 0.20rem;
+    --size-field: 0.20rem;
+    --border: 1px;
+    --depth: 1;
+    --noise: 0;
+}
+
+/* ==========================================================================
+   VPA (Azul Pizarra / Gris)
+   ========================================================================== */
+@plugin "daisyui/theme" {
+    name: "vpa";
+    default: false;
+    prefersdark: false;
+    color-scheme: "light";
+
+    --color-base-100: #F9FAFB;
+    --color-base-200: #F3F4F6;
+    --color-base-300: #E5E7EB;
+    --color-base-content: #1F2937;
+
+    --color-primary: #283E60;
+    --color-primary-content: #FFFFFF;
+
+    --color-secondary: #B1B2B2;
+    --color-secondary-content: #1F2937;
+
+    --color-accent: #4F9CF9;
+    --color-accent-content: #FFFFFF;
+
+    --color-neutral: #374151;
+    --color-neutral-content: #F9FAFB;
+
+    --color-info: #38BDF8;
+    --color-info-content: #0F172A;
+
+    --color-success: #22C55E;
+    --color-success-content: #052E16;
+
+    --color-warning: #FACC15;
+    --color-warning-content: #422006;
+
+    --color-error: #EF4444;
+    --color-error-content: #450A0A;
+
+    --radius-selector: 0.25rem;
+    --radius-field: 0.25rem;
+    --radius-box: 0.375rem;
+    --size-selector: 0.20rem;
+    --size-field: 0.20rem;
+    --border: 1px;
+    --depth: 1;
+    --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+    name: "vpa_dark";
+    default: false;
+    prefersdark: false;
+    color-scheme: "dark";
+
+    --color-base-100: #0F172A;
+    --color-base-200: #1E293B;
+    --color-base-300: #334155;
+    --color-base-content: #E5E7EB;
+
+    --color-primary: #3B82F6;
+    --color-primary-content: #FFFFFF;
+
+    --color-secondary: #475569;
+    --color-secondary-content: #F8FAFC;
+
+    --color-accent: #60A5FA;
+    --color-accent-content: #020617;
+
+    --color-neutral: #1E293B;
+    --color-neutral-content: #E5E7EB;
+
+    --color-info: #38BDF8;
+    --color-info-content: #020617;
+
+    --color-success: #22C55E;
+    --color-success-content: #052E16;
+
+    --color-warning: #FACC15;
+    --color-warning-content: #422006;
+
+    --color-error: #EF4444;
+    --color-error-content: #450A0A;
+
+    --radius-selector: 0.25rem;
+    --radius-field: 0.25rem;
+    --radius-box: 0.375rem;
+    --size-selector: 0.20rem;
+    --size-field: 0.20rem;
+    --border: 1px;
+    --depth: 1;
+    --noise: 0;
+}
+
+html {
+    scrollbar-gutter: auto !important;
 }

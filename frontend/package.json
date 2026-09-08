@@ -6,16 +6,20 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build-force": "cmd /c \"tsc -b --force & vite build\"",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@embedpdf/react-pdf-viewer": "^2.15.0",
     "@inertiajs/react": "^3.7.0",
     "@inertiajs/vite": "^3.7.0",
     "@tailwindcss/vite": "^4.3.3",
     "django-js-reverse": "^0.10.1-a.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-hot-toast": "^2.6.0",
+    "react-select": "^5.10.2",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {

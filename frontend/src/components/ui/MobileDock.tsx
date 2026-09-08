@@ -12,49 +12,17 @@ type Props = {
 };
 
 export const MobileDock: React.FC<Props> = ({menu}) => {
-    const {props, url} = usePage<SharedProps>();
+    const {props} = usePage<SharedProps>();
 
     // Usar la prop `menu` si se proporciona; de lo contrario, caer en `props.mobile_dock`
     const items = menu ?? props.mobile_dock ?? [];
 
     if (!items || items.length === 0) return null;
 
-    /**
-     * Determina si el elemento actual está activo evaluando la URL de Inertia
-     * contra los `active_patterns` o el `url_name`.
-     */
-    const isItemActive = (item: DockItem): boolean => {
-        let itemUrl = "#";
-        try {
-            itemUrl = getUrl(item.url_name, ...(item.args || []));
-        } catch {
-            return false;
-        }
-
-        // 1. Si se define `exact`, se compara la ruta exacta
-        if (item.exact) {
-            return url === itemUrl;
-        }
-
-        // 2. Si hay patrones activos definidos (ej: "directorio:")
-        if (item.active_patterns && item.active_patterns.length > 0) {
-            return item.active_patterns.some((pattern) => {
-                if (pattern.endsWith(":")) {
-                    const prefix = pattern.replace(":", "");
-                    return url.includes(prefix);
-                }
-                return url.includes(pattern);
-            });
-        }
-
-        // 3. Fallback por defecto: verificar si la URL actual empieza con la URL del item
-        return url.startsWith(itemUrl);
-    };
-
     return (
         <div className="dock md:hidden z-40 bg-base-100 border-t border-base-200">
             {items.map((item, index) => {
-                const active = isItemActive(item);
+                const active = item.active;
                 const targetUrl = getUrl(item.url_name, ...(item.args || []));
 
                 return (
