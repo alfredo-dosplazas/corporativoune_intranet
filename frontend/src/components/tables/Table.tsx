@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type {ReactNode} from "react";
 
 export interface Column<T> {
     header: string;
@@ -6,7 +6,7 @@ export interface Column<T> {
     cell?: (item: T) => ReactNode;
     className?: string;
     headerClassName?: string;
-    ignoreRowClick?: boolean; // 👈 1. Nueva propiedad para bloquear la celda completa
+    ignoreRowClick?: boolean;
 }
 
 interface TableProps<T> {
@@ -18,25 +18,31 @@ interface TableProps<T> {
 }
 
 export function Table<T>({
-    columns,
-    data,
-    keyExtractor,
-    emptyMessage = 'No se encontraron registros.',
-    onRowClick,
-}: TableProps<T>) {
+                             columns,
+                             data,
+                             keyExtractor,
+                             emptyMessage = 'No se encontraron registros.',
+                             onRowClick,
+                         }: TableProps<T>) {
     return (
-        <div className="overflow-auto flex-1 min-h-0 w-full relative">
-            <table className="table table-pin-rows table-sm w-full">
-                <thead>
-                    <tr className="bg-base-200 text-base-content/80 z-10">
+        /* 1. Contenedor principal con flex col y overflow oculto para no desplazar el thead */
+        <div className="flex flex-col h-full w-full min-h-0">
+            {/* 2. Este div con overflow-y-auto envuelve la tabla y maneja el scroll únicamente para las filas */}
+            <div className="overflow-y-auto flex-1 min-h-0 w-full relative">
+                <table className="table table-pin-rows table-sm w-full">
+                    <thead>
+                    <tr>
                         {columns.map((col, index) => (
-                            <th key={index} className={col.headerClassName || col.className || ''}>
+                            <th
+                                key={index}
+                                className={`bg-base-200 text-base-content/80 shadow-sm ${col.headerClassName || col.className || ''}`}
+                            >
                                 {col.header}
                             </th>
                         ))}
                     </tr>
-                </thead>
-                <tbody>
+                    </thead>
+                    <tbody>
                     {data.length > 0 ? (
                         data.map((item) => (
                             <tr
@@ -53,7 +59,6 @@ export function Table<T>({
                                         key={colIndex}
                                         className={col.className || ''}
                                         onClick={(e) => {
-                                            // 👈 2. Si la columna ignora la fila, detiene el evento antes de llegar al <tr>
                                             if (col.ignoreRowClick) {
                                                 e.stopPropagation();
                                             }
@@ -75,8 +80,9 @@ export function Table<T>({
                             </td>
                         </tr>
                     )}
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }

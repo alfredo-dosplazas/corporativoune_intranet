@@ -51,7 +51,7 @@ export const AppLayout = ({
                 {/* CABECERA GLOBAL */}
                 <header className="flex-none z-30 bg-base-100 border-b border-base-200 shadow-2xs">
                     {/* 0. Navbar Principal */}
-                    <Navbar menu={menu} title={title}/>
+                    <Navbar menu={menu} title="Intranet"/>
 
                     {/* 1. BARRA SUPERIOR: Breadcrumbs (Contexto de navegación) */}
                     {breadcrumbs && breadcrumbs.length > 0 && (

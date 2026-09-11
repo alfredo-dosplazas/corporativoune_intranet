@@ -4,6 +4,7 @@ from typing import Optional, List
 
 @dataclass
 class MovimientoPolizaDTO:
+    nombre_cuenta: str
     cuenta: str
     concepto: str
     debe: float = 0.0
@@ -15,6 +16,7 @@ class PolizaDTO:
     tipo_poliza: str  # 'Dr', 'Ig', 'Eg'
     fecha: str  # 'YYYY-MM-DD'
     concepto: str
+    uuid_sae: Optional[str] = ''
     uuid_xml: Optional[str] = ''
     referencia: Optional[str] = ''
     movimientos: List[MovimientoPolizaDTO] = field(default_factory=list)

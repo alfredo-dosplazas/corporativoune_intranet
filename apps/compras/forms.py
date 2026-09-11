@@ -124,6 +124,15 @@ class ProveedorForm(forms.ModelForm):
             'domicilio': forms.Textarea(attrs={'rows': 2}),
         }
 
+    def clean_rfc(self):
+        rfc = self.cleaned_data.get('rfc', '').strip().upper()
+        if rfc and len(rfc) not in [12, 13]:
+            raise forms.ValidationError('El RFC debe tener 12 (moral) o 13 (física) caracteres.')
+        return rfc
+
+    def clean_nombre_completo(self):
+        return self.cleaned_data.get('nombre_completo', '').strip()
+
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)

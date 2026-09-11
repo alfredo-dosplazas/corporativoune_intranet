@@ -1,7 +1,7 @@
 import React, {useState, useMemo, useEffect} from 'react';
 import {useForm, Link} from '@inertiajs/react';
 import {getUrl} from "@/utils/routes";
-import type {ContactoType} from "@/types/directorio.ts";
+import type {Contacto} from "@/types/directorio.ts";
 
 type EmpresaOption = { id: number; nombre: string; };
 type AreaOption = { id: number; nombre: string; empresa_id: number; };
@@ -10,7 +10,7 @@ type SedeOption = { id: number; nombre: string; };
 type ContactoOption = { id: number; nombre_completo: string; };
 
 type Props = {
-    contacto?: ContactoType;
+    contacto?: Contacto;
     empresas: EmpresaOption[];
     areas: AreaOption[];
     puestos: PuestoOption[];

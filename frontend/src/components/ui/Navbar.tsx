@@ -3,7 +3,7 @@ import {Link, usePage} from "@inertiajs/react";
 import type {MenuItem} from "@/types/navigation.ts";
 import {NavbarMenu} from "@/components/ui/NavbarMenu.tsx";
 import type {Usuario} from "@/types/usuario.ts";
-import type {ContactoType} from "@/types/directorio.ts";
+import type {Contacto} from "@/types/directorio.ts";
 
 type Props = {
     menu?: MenuItem[];
@@ -13,7 +13,7 @@ type Props = {
 export const Navbar = ({title, menu}: Props) => {
     const {usuario, contacto} = usePage().props as unknown as {
         usuario?: Usuario;
-        contacto?: ContactoType;
+        contacto?: Contacto;
     };
 
     // Obtener iniciales seguras (máximo 2 caracteres)

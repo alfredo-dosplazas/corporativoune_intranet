@@ -1,119 +1,18 @@
-import React, {useState, useEffect, useRef} from 'react';
-import {Link, router} from '@inertiajs/react';
-import {type Column, Table} from '@/components/tables/Table.tsx';
-import Pagination from '@/components/navigation/Pagination.tsx';
-import {getUrl} from '@/utils/routes.ts';
+import React, { useState } from 'react';
+import { router } from '@inertiajs/react';
+import { type Column } from '@/components/tables/Table.tsx';
+import { DataTable } from '@/components/tables/DataTable.tsx';
 import PdfViewerModal from '@/components/pdf/PdfViewerModal.tsx';
 import OrdenActions from '@/components/compras/ordenes/OrdenActions.tsx';
-
-export type OrdenItem = {
-    id: number;
-    folio: string;
-    fecha_orden: string;
-    fecha_entrega: string;
-    entrega_texto: string;
-    estado: 'BORRADOR' | 'APROBADA' | 'CANCELADA';
-    total: number;
-    proveedor: {
-        id: number;
-        nombre_completo: string;
-        rfc: string;
-    };
-    solicitante: {
-        id: number;
-        full_name: string;
-        email?: string;
-    };
-    autoriza: {
-        id: number;
-        full_name: string;
-    };
-    razon_social: {
-        id: number;
-        codigo?: string;
-        nombre: string;
-    };
-    url: string;
-    can?: {
-        editar?: boolean;
-        eliminar?: boolean;
-        cancelar?: boolean;
-        aprobar?: boolean;
-    };
-};
-
-export type PaginatedOrdenes = {
-    data: OrdenItem[];
-    current_page: number;
-    has_next: boolean;
-    has_previous: boolean;
-    num_pages: number;
-    next_page_number: number | null;
-    previous_page_number: number | null;
-};
+import type { Orden } from '@/types/compras.tsx';
+import type { PaginatedResponse } from '@/types/pagination.ts';
 
 interface OrdenesTableProps {
-    paginatedData: PaginatedOrdenes;
-    canCreate?: boolean;
+    paginatedData: PaginatedResponse<Orden>;
 }
 
-export const OrdenesTable: React.FC<OrdenesTableProps> = ({
-                                                              paginatedData,
-                                                              canCreate = false,
-                                                          }) => {
-    const {
-        data: ordenes,
-        current_page,
-        has_next,
-        has_previous,
-        num_pages,
-        next_page_number,
-        previous_page_number,
-    } = paginatedData;
-
-    const getInitialParams = () => new URLSearchParams(window.location.search);
-    const [search, setSearch] = useState(() => getInitialParams().get('search') || '');
+export const OrdenesTable: React.FC<OrdenesTableProps> = ({ paginatedData }) => {
     const [selectedPdf, setSelectedPdf] = useState<{ url: string; title: string } | null>(null);
-
-    const prevSearch = useRef(search);
-    const isFirstRender = useRef(true);
-
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const currentUrlSearch = params.get('search') || '';
-
-        if (currentUrlSearch !== search) {
-            setSearch(currentUrlSearch);
-            prevSearch.current = currentUrlSearch;
-        }
-    }, [current_page]);
-
-    useEffect(() => {
-        if (isFirstRender.current) {
-            isFirstRender.current = false;
-            return;
-        }
-
-        if (prevSearch.current === search) return;
-
-        const timer = setTimeout(() => {
-            const url = new URL(window.location.href);
-
-            if (search) url.searchParams.set('search', search);
-            else url.searchParams.delete('search');
-
-            url.searchParams.set('page', '1');
-            prevSearch.current = search;
-
-            router.get(
-                url.pathname + url.search,
-                {},
-                {preserveState: true, replace: true}
-            );
-        }, 300);
-
-        return () => clearTimeout(timer);
-    }, [search]);
 
     const formatDate = (dateString: string) => {
         if (!dateString) return 'N/A';
@@ -142,18 +41,17 @@ export const OrdenesTable: React.FC<OrdenesTableProps> = ({
         }
     };
 
-    // NAVEGACIÓN DE FILA COMPLETA
-    const handleRowClick = (orden: OrdenItem) => {
+    const handleRowClick = (orden: Orden) => {
         router.visit(orden.url);
     };
 
-    const columns: Column<OrdenItem>[] = [
+    const columns: Column<Orden>[] = [
         {
             header: 'Folio',
             cell: (orden) => (
                 <span className="font-mono font-bold text-xs text-primary hover:underline">
-          {orden.folio || 'S/F'}
-        </span>
+                    {orden.folio || 'S/F'}
+                </span>
             ),
         },
         {
@@ -176,8 +74,8 @@ export const OrdenesTable: React.FC<OrdenesTableProps> = ({
                     <span>{formatDate(orden.fecha_orden)}</span>
                     <span className="mx-1 text-base-content/30">·</span>
                     <span className="text-base-content/50" title={orden.entrega_texto}>
-            {formatDate(orden.fecha_entrega)}
-          </span>
+                        {formatDate(orden.fecha_entrega)}
+                    </span>
                 </div>
             ),
         },
@@ -185,9 +83,9 @@ export const OrdenesTable: React.FC<OrdenesTableProps> = ({
             header: 'Solicitante → Autoriza',
             cell: (orden) => (
                 <div className="text-xs text-base-content/80 whitespace-nowrap max-w-[180px] truncate">
-                    <span className="font-medium">{orden.solicitante?.full_name?.split(' ')[0] || 'N/A'}</span>
+                    <span className="font-medium">{orden.solicitante?.nombre_completo || 'N/A'}</span>
                     <span className="mx-1 text-base-content/40">→</span>
-                    <span className="text-base-content/60">{orden.autoriza?.full_name?.split(' ')[0] || 'S/A'}</span>
+                    <span className="text-base-content/60">{orden.autoriza?.nombre_completo || 'S/A'}</span>
                 </div>
             ),
         },
@@ -198,8 +96,8 @@ export const OrdenesTable: React.FC<OrdenesTableProps> = ({
             cell: (orden) =>
                 orden.razon_social ? (
                     <span className="badge badge-ghost badge-xs text-[10px] font-mono font-semibold">
-            {orden.razon_social.codigo || orden.razon_social.nombre}
-          </span>
+                        {orden.razon_social.codigo || orden.razon_social.nombre}
+                    </span>
                 ) : (
                     <span className="text-[10px] text-base-content/40">-</span>
                 ),
@@ -210,8 +108,8 @@ export const OrdenesTable: React.FC<OrdenesTableProps> = ({
             headerClassName: 'text-center',
             cell: (orden) => (
                 <span className={`badge badge-xs border ${getEstadoBadge(orden.estado)} font-medium py-1 px-2`}>
-          {orden.estado}
-        </span>
+                    {orden.estado}
+                </span>
             ),
         },
         {
@@ -232,71 +130,30 @@ export const OrdenesTable: React.FC<OrdenesTableProps> = ({
             cell: (orden) => (
                 <OrdenActions
                     orden={orden}
-                    onOpenPdf={(url, title) => setSelectedPdf({url, title})}
+                    onOpenPdf={(url, title) => setSelectedPdf({ url, title })}
                 />
             ),
         },
     ];
 
     return (
-        <div
-            className="flex flex-col h-full w-full bg-base-100 rounded-2xl border border-base-200 shadow-sm overflow-hidden">
-            {/* BARRA SUPERIOR FIJA */}
-            <div
-                className="p-3 border-b border-base-200 bg-base-100/80 backdrop-blur flex flex-col sm:flex-row items-center justify-between gap-3 flex-none">
-                <div className="relative w-full sm:w-80">
-                    <span className="icon-[mdi--magnify] size-4 absolute left-2.5 top-2.5 text-base-content/40"/>
-                    <input
-                        type="text"
-                        placeholder="Buscar folio, proveedor..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="input input-sm input-bordered w-full pl-9 bg-base-200/50 focus:bg-base-100"
-                    />
-                </div>
+        <>
+            <DataTable
+                paginatedData={paginatedData}
+                columns={columns}
+                keyExtractor={(item) => item.folio || String(item.id)}
+                onRowClick={handleRowClick}
+                searchPlaceholder="Buscar folio, proveedor, RFC..."
+                emptyMessage="No se encontraron órdenes de compra."
+            />
 
-                {canCreate && (
-                    <Link
-                        href={getUrl('compras:ordenes__create')}
-                        className="btn btn-primary btn-sm w-full sm:w-auto gap-1"
-                    >
-                        <span className="icon-[heroicons--plus-20-solid] text-lg"/>
-                        Nueva Orden
-                    </Link>
-                )}
-            </div>
-
-            {/* TABLA PRINCIPAL CON FILAS INTERACTIVAS */}
-            <div className="flex-1 overflow-auto">
-                <Table
-                    data={ordenes}
-                    columns={columns}
-                    keyExtractor={(item) => item.folio || String(item.id)}
-                    onRowClick={handleRowClick}
-                    emptyMessage="No se encontraron órdenes de compra."
-                />
-            </div>
-
-            {/* BARRA INFERIOR DE PAGINACIÓN */}
-            <div className="p-2.5 border-t border-base-200 bg-base-100 flex-none">
-                <Pagination
-                    currentPage={current_page}
-                    totalPages={num_pages}
-                    hasNext={has_next}
-                    hasPrevious={has_previous}
-                    nextPageNumber={next_page_number}
-                    previousPageNumber={previous_page_number}
-                />
-            </div>
-
-            {/* MODAL DEL VISOR DE PDF */}
             <PdfViewerModal
                 isOpen={Boolean(selectedPdf)}
                 onClose={() => setSelectedPdf(null)}
                 pdfUrl={selectedPdf?.url || null}
                 title={selectedPdf?.title}
             />
-        </div>
+        </>
     );
 };
 

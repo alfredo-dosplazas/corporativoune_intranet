@@ -18,17 +18,8 @@ class Proveedor(models.Model):
     rfc = models.CharField(max_length=13, verbose_name="RFC")
     condicion_pago = models.CharField(max_length=100, verbose_name="Condición de pago")
 
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'nombre_completo': self.nombre_completo,
-            'telefono': self.telefono,
-            'contacto': self.contacto,
-            'email': self.email,
-            'domicilio': self.domicilio,
-            'rfc': self.rfc,
-            'condicion_pago': self.condicion_pago,
-        }
+    def get_absolute_url(self):
+        return reverse('compras:proveedores__detail', args=[self.pk])
 
     def __str__(self):
         return self.nombre_completo
@@ -242,71 +233,8 @@ class Orden(models.Model):
         else:
             return f"en {dias} días"
 
-    def to_dict(self, user=None, include_details=False):
-        try:
-            url = reverse('compras:ordenes__detail', kwargs={'pk': self.id})
-        except Exception:
-            url = f"/compras/ordenes/{self.id}/"
-
-        data = {
-            'id': self.id,
-            'folio': self.folio or '',
-            'estado': self.estado,
-            'uso_cfdi': self.uso_cfdi,
-            'metodo_pago': self.metodo_pago,
-            'forma_pago': self.forma_pago,
-            'utilizado_en': self.utilizado_en,
-            'lugar_entrega': self.lugar_entrega,
-            'fecha_orden': self.fecha_orden.strftime('%Y-%m-%d') if self.fecha_orden else None,
-            'fecha_entrega': self.fecha_entrega.strftime('%Y-%m-%d') if self.fecha_entrega else None,
-            'entrega_texto': self.entrega_texto,
-
-            'retencion_isr': float(self.retencion_isr),
-            'retencion_cedular': float(self.retencion_cedular),
-            'retencion_3': float(self.retencion_3),
-
-            'subtotal': float(self.subtotal),
-            'iva': float(self.iva),
-            'total_retenciones': float(self.total_retenciones),
-            'monto_retencion_isr': float(self.monto_retencion_isr),
-            'monto_retencion_cedular': float(self.monto_retencion_cedular),
-            'monto_retencion_3': float(self.monto_retencion_3),
-            'total': float(self.total),
-            'total_letra': self.total_letra,
-
-            'proveedor': self.proveedor.to_dict() if self.proveedor else None,
-            'solicitante': {
-                'id': self.solicitante.id,
-                'full_name': getattr(self.solicitante, 'nombre_completo',
-                                     getattr(self.solicitante, 'full_name', str(self.solicitante))),
-                'email': getattr(self.solicitante, 'email', None),
-            } if self.solicitante else None,
-            'autoriza': {
-                'id': self.autoriza.id,
-                'full_name': getattr(self.autoriza, 'nombre_completo',
-                                     getattr(self.autoriza, 'full_name', str(self.autoriza))),
-            } if self.autoriza else None,
-            'razon_social': {
-                'id': self.razon_social.id,
-                'codigo': getattr(self.razon_social, 'codigo', None),
-                'nombre': getattr(self.razon_social, 'nombre', str(self.razon_social)),
-            } if self.razon_social else None,
-
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-
-            'url': url,
-            'can': {
-                'editar': self.estado == 'BORRADOR',
-                'cancelar': self.estado != 'CANCELADA',
-                'eliminar': self.estado == 'BORRADOR',
-            }
-        }
-
-        if include_details:
-            data['detalles'] = [detalle.to_dict() for detalle in self.detalle_orden.all()]
-
-        return data
+    def get_absolute_url(self):
+        return reverse('compras:ordenes__detail', args=[self.pk]),
 
     def save(self, *args, **kwargs):
         if not self.folio:

@@ -1,12 +1,13 @@
 import {AppLayout} from "@/layouts/AppLayout.tsx";
 import type {PaginatedResponse} from "@/types/pagination.ts";
-import DocumentosSaeTable from "@/components/interfaz_sae_coi/documentos/DocumentosTable.tsx";
+import DocumentosSAETable from "@/components/interfaz_sae_coi/documentos/DocumentosTable.tsx";
 import type {DocumentoSAE} from "@/types/sae.ts";
 
 type Props = {
     data: PaginatedResponse<DocumentoSAE>;
     filters: {
         q: string;
+        dia: string;
         mes: string;
         anio: string;
         almacen: string;
@@ -22,7 +23,7 @@ type Props = {
 export default function Interfaz_SAE_COI({data, filters, options}: Props) {
     return (
         <AppLayout title="Documentos SAE" scrollable={false}>
-            <DocumentosSaeTable
+            <DocumentosSAETable
                 paginatedData={data}
                 filters={filters}
                 options={options}

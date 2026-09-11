@@ -25,7 +25,7 @@ class DocumentoContabilizado(models.Model):
         ('ERROR', 'Error en integración'),
     ]
 
-    folio_sae = models.CharField(max_length=20, db_index=True)
+    folio_sae = models.CharField(max_length=50, db_index=True)
     uuid_xml = models.CharField(max_length=36, db_index=True, blank=True, null=True)
     empresa_suffix = models.CharField(max_length=10)
 

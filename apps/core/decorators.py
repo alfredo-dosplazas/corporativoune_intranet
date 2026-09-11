@@ -25,23 +25,17 @@ def modulo_required(nombre_modulo):
 
 
 def remember_filter_state(key=None, clear_param="clear_filters"):
-    """
-    Decorador para funciones de vista en Django.
-    Persiste y restaura los parametros GET en la sesion.
-    """
-
     def decorator(view_func):
         @wraps(view_func)
         def _wrapped_view(request, *args, **kwargs):
             if request.method == "GET":
-                # Definir la llave de sesión usando 'key' explícito o la ruta limpia
                 if key:
                     session_key = f"saved_params_{key}"
                 else:
                     path_clean = request.path.strip("/").replace("/", "_")
                     session_key = f"saved_params_{view_func.__name__}_{path_clean}"
 
-                # 1. Limpieza explícita (?clear_filters=1)
+                # 1. Limpieza explícita
                 if request.GET.get(clear_param) == "1":
                     if session_key in request.session:
                         del request.session[session_key]
@@ -49,11 +43,11 @@ def remember_filter_state(key=None, clear_param="clear_filters"):
                     mutable_get.pop(clear_param, None)
                     request.GET = mutable_get
 
-                # 2. Guardar estado si vienen parámetros
+                # 2. Guardar estado si la URL trae parámetros
                 elif request.GET:
                     request.session[session_key] = request.GET.urlencode()
 
-                # 3. Restaurar estado desde sesión si la URL viene vacía
+                # 3. Restaurar estado desde sesión en request.GET (sin redirección)
                 else:
                     saved_query = request.session.get(session_key)
                     if saved_query:

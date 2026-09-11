@@ -1,18 +1,21 @@
 import React, {useState} from 'react';
-import {Link, router} from '@inertiajs/react';
+import {Link, router, usePage} from '@inertiajs/react';
 import {getUrl} from '@/utils/routes';
-import type {OrdenItem} from './OrdenesTable';
+import type {Orden} from "@/types/compras.tsx";
 
 interface OrdenActionsProps {
-    orden: OrdenItem;
+    orden: Orden;
     onOpenPdf: (url: string, title: string) => void;
 }
 
 export const OrdenActions: React.FC<OrdenActionsProps> = ({orden, onOpenPdf}) => {
+    const {permissions} = usePage().props as unknown as {
+        permissions: string[];
+    }
+
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // ID único por fila para el Anchor/Popover
     const popoverId = `popover-orden-${orden.id}`;
     const anchorName = `--anchor-orden-${orden.id}`;
 
@@ -56,26 +59,27 @@ export const OrdenActions: React.FC<OrdenActionsProps> = ({orden, onOpenPdf}) =>
                 style={{positionAnchor: anchorName} as React.CSSProperties}
                 className="dropdown menu menu-sm bg-base-100 border border-base-200 rounded-box shadow-xl w-48 p-1.5 space-y-0.5 m-0"
             >
-                {/* VER PDF */}
-                <li>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            closePopover();
-                            onOpenPdf(
-                                getUrl('compras:ordenes__pdf', orden.id),
-                                `Orden de Compra: ${orden.folio || 'S/F'}`
-                            );
-                        }}
-                        className="flex items-center gap-2 text-base-content hover:bg-base-200 rounded-lg"
-                    >
-                        <span className="icon-[tabler--file-type-pdf] size-4 text-error shrink-0"/>
-                        <span>Ver PDF</span>
-                    </button>
-                </li>
+                {permissions.includes('compras.view_orden') && (
+                    <li>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                closePopover();
+                                onOpenPdf(
+                                    getUrl('compras:ordenes__pdf', orden.id),
+                                    `Orden de Compra: ${orden.folio || 'S/F'}`
+                                );
+                            }}
+                            className="flex items-center gap-2 text-base-content hover:bg-base-200 rounded-lg"
+                        >
+                            <span className="icon-[tabler--file-type-pdf] size-4 text-error shrink-0"/>
+                            <span>Ver PDF</span>
+                        </button>
+                    </li>
+                )}
 
                 {/* EDITAR */}
-                {orden.can?.editar && (
+                {permissions.includes('compras.change_orden') && (
                     <li>
                         <Link
                             href={getUrl('compras:ordenes__update', orden.id)}
@@ -89,7 +93,7 @@ export const OrdenActions: React.FC<OrdenActionsProps> = ({orden, onOpenPdf}) =>
                 )}
 
                 {/* ELIMINAR */}
-                {orden.can?.eliminar && (
+                {permissions.includes('compras.delete_orden') && (
                     <>
                         <li>
                             <hr className="opacity-20 my-1 border-base-content"/>

@@ -1,8 +1,7 @@
 from django.contrib.auth.models import User
 from django.db import models
+from django.urls import reverse
 from django.utils import timezone
-
-from apps.core.models import RazonSocial
 
 
 class Equipo(models.Model):
@@ -19,7 +18,6 @@ class Equipo(models.Model):
     identificador_interno = models.CharField(max_length=50, unique=True, help_text="Tag de activo fijo o ID interno")
     estado_actual = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='USADO')
 
-    # Control de ubicación / custodia física
     ubicacion_fisica_actual = models.CharField(
         max_length=150,
         blank=True,
@@ -39,19 +37,16 @@ class Resguardo(models.Model):
 
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='resguardos')
 
-    # Datos de entrega
     fecha_entrega = models.DateField(default=timezone.now)
     recibe_nombre = models.CharField(max_length=150, verbose_name="Nombre de quien recibe")
     recibe_puesto_area = models.CharField(max_length=150, verbose_name="Puesto y área")
 
-    # Estado inicial al entregar
     estado_equipo_entrega = models.CharField(
         max_length=10,
         choices=[('NUEVO', 'Nuevo'), ('USADO', 'Usado')],
         default='USADO'
     )
 
-    # Accesorios incluidos (Booleanos y campo libre)
     incluye_mouse = models.BooleanField(default=False)
     incluye_cargador = models.BooleanField(default=False)
     incluye_bateria = models.BooleanField(default=False)
@@ -59,9 +54,11 @@ class Resguardo(models.Model):
 
     observaciones_entrega = models.TextField(blank=True)
 
-    # Firmas y control digital
-    firmado_digital = models.BooleanField(default=False,
-                                          help_text="Indica si el resguardo ya fue firmado y devuelto escaneado")
+    firmado_digital = models.BooleanField(
+        default=False,
+        help_text="Indica si el resguardo ya fue firmado y devuelto escaneado"
+    )
+
     archivo_resguardo_firmado = models.FileField(
         upload_to='resguardos_firmados/%Y/%m/',
         blank=True,
@@ -76,8 +73,7 @@ class Resguardo(models.Model):
                                                 verbose_name="Estado del equipo al devolver")
     observaciones_devolucion = models.TextField(blank=True)
 
-    # Personal que elabora/revisa/aprueba (liga con usuarios del sistema Django)
-    elaboro = models.ForeignKey(User, on_delete=models.PROTECT, related_name='resguardos_elaborados')
+    elaboro_nombre = models.CharField(max_length=100, default="Generalista RH")
     reviso_nombre = models.CharField(max_length=100, default="Especialista en DO")
     aprobo_nombre = models.CharField(max_length=100, default="Contralor")
 
@@ -87,8 +83,13 @@ class Resguardo(models.Model):
         help_text="Persona o área que lo tiene resguardado físicamente en almacén/TI"
     )
 
+    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='resguardos_created_by')
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def get_absolute_url(self):
+        return reverse('resguardos:update', args=[self.pk])
 
     def __str__(self):
         return f"Resguardo #{self.id} - {self.equipo.nombre} ({self.recibe_nombre})"

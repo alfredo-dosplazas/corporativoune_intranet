@@ -2,10 +2,10 @@ import React from 'react';
 import { Link } from '@inertiajs/react';
 import { AppLayout } from "@/layouts/AppLayout.tsx";
 import { getUrl } from "@/utils/routes.ts";
-import type {ContactoType} from "@/types/directorio.ts";
+import type {Contacto} from "@/types/directorio.ts";
 
 type Props = {
-    contacto: ContactoType;
+    contacto: Contacto;
 };
 
 export default function Detail({ contacto }: Props) {

@@ -2,21 +2,23 @@ from django.urls import path
 
 from apps.compras.autocompletes import SolicitanteAutocomplete, ProveedorAutocomplete, AutorizadorAutocomplete, \
     UsoCFDIAutocomplete, MetodoPagoAutocomplete, FormaPagoAutocomplete
-from apps.compras.views import OrdenListView, OrdenCreateView, ProveedorListView, ProveedorCreateView, \
-    ProveedorDeleteView, ProveedorUpdateView, OrdenUpdateView, OrdenDeleteView, OrdenPdfView, ordenes_list, \
-    orden_update, orden_delete
+from apps.compras.views.ordenes import OrdenPdfView, ordenes_list, \
+    orden_update, orden_delete, orden_create
+from apps.compras.views.proveedores import proveedores_list, proveedor_create, proveedor_update, proveedor_delete
 
 app_name = 'compras'
 
 urlpatterns = [
-    path('proveedores/', ProveedorListView.as_view(), name='proveedores__list'),
-    path('proveedores/crear/', ProveedorCreateView.as_view(), name='proveedores__create'),
-    path('proveedores/editar/<int:pk>/', ProveedorUpdateView.as_view(), name='proveedores__update'),
-    path('proveedores/eliminar/<int:pk>/', ProveedorDeleteView.as_view(), name='proveedores__delete'),
+    path('proveedores/', proveedores_list, name='proveedores__list'),
+    path('proveedores/crear/', proveedor_create, name='proveedores__create'),
+    path('proveedores/editar/<int:pk>/', proveedor_update, name='proveedores__update'),
+    path('proveedores/<int:pk>/', proveedor_update, name='proveedores__detail'),
+    path('proveedores/eliminar/<int:pk>/', proveedor_delete, name='proveedores__delete'),
 
     path('', ordenes_list, name='ordenes__list'),
-    path('crear/', OrdenCreateView.as_view(), name='ordenes__create'),
-    path('editar/<int:pk>/', orden_update, name='ordenes__update'),
+    path('crear/', orden_create, name='ordenes__create'),
+    path('editar/<int:pk>/', orden_update, name='ordenes__detail'),
+    path('<int:pk>/', orden_update, name='ordenes__update'),
     path('eliminar/<int:pk>/', orden_delete, name='ordenes__delete'),
     path('pdf/<int:pk>/', OrdenPdfView.as_view(), name='ordenes__pdf'),
 

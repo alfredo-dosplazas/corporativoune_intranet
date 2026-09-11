@@ -1,3 +1,8 @@
 from django.contrib import admin
 
-# Register your models here.
+from apps.resguardos.models import Resguardo
+
+
+@admin.register(Resguardo)
+class ResguardoAdmin(admin.ModelAdmin):
+    pass

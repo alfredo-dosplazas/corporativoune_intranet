@@ -3,20 +3,11 @@ import {useState} from 'react';
 import {AppLayout} from "@/layouts/AppLayout.tsx";
 import {getUrl} from "@/utils/routes.ts";
 import {ContactoCard} from '@/components/directorio/ContactoCard';
-import type {AreaSimple, ContactoType, EmpresaSimple} from "@/types/directorio.ts";
-
-type PaginatedContactos = {
-    data: ContactoType[];
-    current_page: number;
-    has_next: boolean;
-    has_previous: boolean;
-    num_pages: number;
-    next_page_number: number | null;
-    previous_page_number: number | null;
-};
+import type {AreaSimple, Contacto, EmpresaSimple} from "@/types/directorio.ts";
+import type {PaginatedResponse} from "@/types/pagination.ts";
 
 type Props = {
-    contactos: PaginatedContactos;
+    contactos: PaginatedResponse<Contacto>;
     filters: {
         search: string;
         empresa: string;
@@ -115,55 +106,43 @@ export default function Directorio({
         }
     }
 
+    const HeaderActions = () => (
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+            <div className="join border border-base-300">
+                <button
+                    onClick={() => handleViewModeChange('grid')}
+                    className={`btn btn-xs sm:btn-sm join-item gap-1.5 ${viewMode === 'grid' ? 'btn-primary' : 'bg-base-100 text-base-content/70'}`}
+                >
+                    <span className="icon-[lucide--layout-grid] text-sm"></span>
+                    <span className="hidden sm:inline">Tarjetas</span>
+                </button>
+                <button
+                    onClick={() => handleViewModeChange('table')}
+                    className={`btn btn-xs sm:btn-sm join-item gap-1.5 ${viewMode === 'table' ? 'btn-primary' : 'bg-base-100 text-base-content/70'}`}
+                >
+                    <span className="icon-[lucide--list] text-sm"></span>
+                    <span className="hidden sm:inline">Tabla</span>
+                </button>
+            </div>
+
+            {can_create && (
+                <Link href={getUrl('directorio:create')}>
+                    <button className="btn btn-xs sm:btn-sm btn-primary gap-1.5">
+                        <span className="icon-[lucide--plus] text-sm"></span> Nuevo
+                    </button>
+                </Link>
+            )}
+        </div>
+    )
+
     return (
-        <AppLayout scrollable={false} title="Directorio">
+        <AppLayout
+            scrollable={false}
+            title="Directorio"
+            headerActions={<HeaderActions />}
+        >
             {/* Contenedor principal que llena exactamente el espacio de la app sin desbordarse */}
             <div className="flex flex-col h-full gap-3">
-
-                {/* --- HEADER SUPERIOR (Fijo) --- */}
-                <div
-                    className="flex-none flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-base-100 p-4 rounded-xl border border-base-200 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-primary/10 text-primary rounded-xl">
-                            <span className="icon-[lucide--users] text-xl"></span>
-                        </div>
-                        <div>
-                            <h1 className="text-lg font-bold text-base-content leading-tight">
-                                Directorio de Contactos
-                            </h1>
-                            <p className="text-xs text-base-content/60">
-                                Gestión de colaboradores y extensiones internas.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
-                        <div className="join border border-base-300">
-                            <button
-                                onClick={() => handleViewModeChange('grid')}
-                                className={`btn btn-xs sm:btn-sm join-item gap-1.5 ${viewMode === 'grid' ? 'btn-primary' : 'bg-base-100 text-base-content/70'}`}
-                            >
-                                <span className="icon-[lucide--layout-grid] text-sm"></span>
-                                <span className="hidden sm:inline">Tarjetas</span>
-                            </button>
-                            <button
-                                onClick={() => handleViewModeChange('table')}
-                                className={`btn btn-xs sm:btn-sm join-item gap-1.5 ${viewMode === 'table' ? 'btn-primary' : 'bg-base-100 text-base-content/70'}`}
-                            >
-                                <span className="icon-[lucide--list] text-sm"></span>
-                                <span className="hidden sm:inline">Tabla</span>
-                            </button>
-                        </div>
-
-                        {can_create && (
-                            <Link href={getUrl('directorio:create')}>
-                                <button className="btn btn-xs sm:btn-sm btn-primary gap-1.5">
-                                    <span className="icon-[lucide--plus] text-sm"></span> Nuevo
-                                </button>
-                            </Link>
-                        )}
-                    </div>
-                </div>
 
                 {/* --- BARRA DE FILTROS & PAGINACIÓN SUPERIOR (Fija) --- */}
                 <div

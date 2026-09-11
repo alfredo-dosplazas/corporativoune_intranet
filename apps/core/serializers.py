@@ -1,11 +1,25 @@
 from rest_framework import serializers
 
-from apps.core.models import Empresa
+from apps.ad.models import User
+from apps.core.models import Empresa, RazonSocial
+from apps.directorio.serializers import ContactoSerializer
+
+
+class UserSerializer(serializers.ModelSerializer):
+    contacto = ContactoSerializer(read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'contacto']
 
 
 class EmpresaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Empresa
-        fields = [
-            'id', 'nombre', 'nombre_corto', 'abreviatura', 'codigo', 'theme', 'logo'
-        ]
+        fields = '__all__'
+
+
+class RazonSocialSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RazonSocial
+        fields = '__all__'

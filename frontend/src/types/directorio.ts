@@ -27,7 +27,7 @@ export type Telefono = {
     es_celular: boolean;
 }
 
-export type ContactoType = {
+export type Contacto = {
     id: number;
     nombre_completo: string;
     titulo_nombre_completo?: string | null;

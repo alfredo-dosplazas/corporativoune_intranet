@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Resguardo de Equipo #{{ object.id }}</title>
+    <style>
+        @page {
+            size: letter portrait;
+            margin: 12mm 15mm 15mm 15mm;
+            @bottom-right {
+                content: "Página " counter(page) " de " counter(pages);
+                font-family: Helvetica, Arial, sans-serif;
+                font-size: 8pt;
+                color: #666;
+            }
+            @bottom-left {
+                content: "Documento Controlado - Resguardo de Activos";
+                font-family: Helvetica, Arial, sans-serif;
+                font-size: 8pt;
+                color: #666;
+            }
+        }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 9.5pt;
+            line-height: 1.3;
+            color: #1a1a1a;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ENCABEZADO */
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 6px;
+        }
+
+        .header-table td {
+            vertical-align: middle;
+        }
+
+        .empresa-title {
+            font-size: 14pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #111827;
+            margin: 0;
+        }
+
+        .doc-title {
+            font-size: 11pt;
+            font-weight: bold;
+            text-align: right;
+            text-transform: uppercase;
+            color: #374151;
+        }
+
+        .folio-badge {
+            font-size: 10pt;
+            font-weight: bold;
+            color: #dc2626;
+            text-align: right;
+        }
+
+        /* REGLAMENTO */
+        .rules-box {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+        }
+
+        .rules-title {
+            font-size: 9pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            color: #1f2937;
+        }
+
+        .rules-list {
+            margin: 0;
+            padding-left: 15px;
+            font-size: 8.5pt;
+            color: #374151;
+        }
+
+        .rules-list li {
+            margin-bottom: 2px;
+        }
+
+        /* TABLA DE DETALLES */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+        }
+
+        .data-table th, .data-table td {
+            border: 1px solid #9ca3af;
+            padding: 5px 8px;
+            font-size: 9pt;
+        }
+
+        .data-table th {
+            background-color: #f3f4f6;
+            font-weight: bold;
+            text-align: left;
+            text-transform: uppercase;
+            font-size: 8pt;
+        }
+
+        .label-cell {
+            background-color: #f9fafb;
+            font-weight: bold;
+            width: 25%;
+            color: #374151;
+        }
+
+        .value-cell {
+            width: 25%;
+        }
+
+        .section-header-cell {
+            background-color: #e5e7eb;
+            font-weight: bold;
+            text-align: center;
+            text-transform: uppercase;
+            font-size: 8.5pt;
+            letter-spacing: 0.5px;
+        }
+
+        /* CHECKBOXES */
+        .check-box {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border: 1px solid #000;
+            text-align: center;
+            line-height: 9px;
+            font-size: 8pt;
+            font-weight: bold;
+            margin-right: 4px;
+        }
+
+        /* FIRMAS */
+        .signatures-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            margin-bottom: 15px;
+        }
+
+        .signatures-table td {
+            width: 33.33%;
+            text-align: center;
+            vertical-align: bottom;
+            padding: 0 10px;
+        }
+
+        .signature-line {
+            border-top: 1px solid #000;
+            margin-top: 40px;
+            padding-top: 4px;
+            font-size: 8.5pt;
+            font-weight: bold;
+        }
+
+        .signature-subtext {
+            font-size: 7.5pt;
+            color: #4b5563;
+        }
+
+        /* DEVOLUCIÓN */
+        .devolucion-box {
+            border: 1px dashed #6b7280;
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin-top: 15px;
+            background-color: #fafafa;
+        }
+
+        .devolucion-title {
+            font-size: 9pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #1f2937;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 3px;
+        }
+
+        .line-fill {
+            border-bottom: 1px solid #9ca3af;
+            display: inline-block;
+            min-height: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ENCABEZADO -->
+<table class="header-table">
+    <tr>
+        <td style="width: 50%;">
+            <h1 class="empresa-title">{{ object.equipo.empresa }}</h1>
+        </td>
+        <td style="width: 50%;">
+            <div class="doc-title">RESGUARDO DE EQUIPO DE CÓMPUTO</div>
+            <div class="folio-badge">FOLIO NO. #{{ object.id }}</div>
+        </td>
+    </tr>
+</table>
+
+<!-- REGLAMENTO -->
+<div class="rules-box">
+    <div class="rules-title">Reglamento y Condición de Uso:</div>
+    <ol class="rules-list">
+        <li>El uso del equipo es únicamente para realizar las funciones encomendadas por la empresa.</li>
+        <li>El usuario se hará responsable de cualquier daño, robo o pérdida acatando los lineamientos que se establecen
+            en la Política de Resguardo de Bienes Muebles.
+        </li>
+        <li>Los servicios de mantenimiento al equipo se deberán realizar únicamente por el departamento de
+            Sistemas/TI.
+        </li>
+        <li>Periódicamente se presentará el equipo para la revisión física y auditoría del mismo.</li>
+    </ol>
+</div>
+
+<!-- CARACTERÍSTICAS Y DATOS DEL RESGUARDO -->
+<table class="data-table">
+    <tr>
+        <td class="label-cell">Empresa:</td>
+        <td class="value-cell" colspan="3"><strong>{{ object.equipo.empresa }}</strong></td>
+    </tr>
+    <tr>
+        <td class="label-cell">Equipo / Modelo:</td>
+        <td class="value-cell" colspan="3"><strong>{{ object.equipo.nombre }}</strong></td>
+    </tr>
+    <tr>
+        <td class="label-cell">Número de Serie:</td>
+        <td class="value-cell"><strong>{{ object.equipo.numero_serie }}</strong></td>
+        <td class="label-cell">Identificador Interno (Tag):</td>
+        <td class="value-cell"><strong>{{ object.equipo.identificador_interno|default:"N/A" }}</strong></td>
+    </tr>
+    <tr>
+        <td class="label-cell">Fecha de Entrega:</td>
+        <td class="value-cell">{{ object.fecha_entrega|date:"d/m/Y" }}</td>
+        <td class="label-cell">Estado del Equipo (Entrega):</td>
+        <td class="value-cell"><strong>{{ object.get_estado_equipo_entrega_display }}</strong></td>
+    </tr>
+    <tr>
+        <td class="label-cell">Recibe (Resguardante):</td>
+        <td class="value-cell" colspan="3"><strong>{{ object.recibe_nombre }}</strong></td>
+    </tr>
+    <tr>
+        <td class="label-cell">Puesto y Área:</td>
+        <td class="value-cell" colspan="3">{{ object.recibe_puesto_area }}</td>
+    </tr>
+    <tr>
+        <td class="label-cell">Observaciones de Entrega:</td>
+        <td class="value-cell" colspan="3">
+            {% if object.observaciones_entrega %}
+                {{ object.observaciones_entrega }}
+            {% else %}
+                Sin observaciones particulares.
+            {% endif %}
+        </td>
+    </tr>
+
+    <!-- ACCESORIOS INCLUIDOS -->
+    <tr>
+        <td colspan="4" class="section-header-cell">Accesorios Incluidos del Equipo</td>
+    </tr>
+    <tr>
+        <td class="label-cell">Cargador:</td>
+        <td class="value-cell">
+            <span class="check-box">{% if object.incluye_cargador %}X{% endif %}</span>
+            {% if object.incluye_cargador %}Sí{% else %}No{% endif %}
+        </td>
+        <td class="label-cell">Batería:</td>
+        <td class="value-cell">
+            <span class="check-box">{% if object.incluye_bateria %}X{% endif %}</span>
+            {% if object.incluye_bateria %}Sí{% else %}No{% endif %}
+        </td>
+    </tr>
+    <tr>
+        <td class="label-cell">Mouse:</td>
+        <td class="value-cell">
+            <span class="check-box">{% if object.incluye_mouse %}X{% endif %}</span>
+            {% if object.incluye_mouse %}Sí{% else %}No{% endif %}
+        </td>
+        <td class="label-cell">Otros Accesorios:</td>
+        <td class="value-cell">{{ object.otros_accesorios|default:"Ninguno" }}</td>
+    </tr>
+</table>
+
+<!-- SECCIÓN DE FIRMAS DE ENTREGA -->
+<table class="signatures-table">
+    <tr>
+        <td>
+            <div class="signature-line">{{ object.recibe_nombre }}</div>
+            <div class="signature-subtext">Nombre y Firma<br>Acepto el resguardo del equipo</div>
+        </td>
+        <td>
+            <div class="signature-line">{{ object.elaboro_nombre }}</div>
+            <div class="signature-subtext">Elaboró / Entrega<br>Recursos Humanos / TI</div>
+        </td>
+        <td>
+            <div class="signature-line">{{ object.aprobo_nombre }}</div>
+            <div class="signature-subtext">Aprobó<br>Contraloría / Gerencia</div>
+        </td>
+    </tr>
+</table>
+
+<!-- SECCIÓN DE DEVOLUCIÓN DEL EQUIPO -->
+<div class="devolucion-box">
+    <div class="devolucion-title">* Devolución del Equipo (Uso exclusivo al concluir el resguardo)</div>
+    <table style="width: 100%; font-size: 8.5pt; border-collapse: collapse;">
+        <tr>
+            <td style="width: 20%; font-weight: bold; padding: 2px 0;">Fecha Devolución:</td>
+            <td style="width: 30%; border-bottom: 1px solid #9ca3af; padding: 2px 0;">
+                {% if object.fecha_devolucion %}{{ object.fecha_devolucion|date:"d/m/Y" }}{% endif %}
+            </td>
+            <td style="width: 20%; font-weight: bold; padding: 2px 0; text-align: right;">Estado al Devolver:&nbsp;</td>
+            <td style="width: 30%; border-bottom: 1px solid #9ca3af; padding: 2px 0;">
+                {{ object.estado_equipo_devolucion }}
+            </td>
+        </tr>
+        <tr>
+            <td style="font-weight: bold; padding: 6px 0 2px 0;" vertical-align="top">Observaciones:</td>
+            <td colspan="3" style="border-bottom: 1px solid #9ca3af; padding: 6px 0 2px 0;">
+                {{ object.observaciones_devolucion }}
+            </td>
+        </tr>
+    </table>
+
+    <table style="width: 100%; margin-top: 25px;">
+        <tr>
+            <td style="width: 35%; text-align: center;">
+                <div style="border-top: 1px solid #000; padding-top: 3px; font-weight: bold; font-size: 8pt;">
+                    Nombre y Firma
+                </div>
+                <div style="font-size: 7.5pt; color: #4b5563;">Devolvió Equipo</div>
+            </td>
+            <td style="width: 30%;"></td>
+            <td style="width: 35%; text-align: center;">
+                <div style="border-top: 1px solid #000; padding-top: 3px; font-weight: bold; font-size: 8pt;">
+                    Nombre y Firma
+                </div>
+                <div style="font-size: 7.5pt; color: #4b5563;">Recibió Conforme (Sistemas/RH)</div>
+            </td>
+        </tr>
+    </table>
+</div>
+
+</body>
+</html>

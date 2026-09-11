@@ -19,6 +19,7 @@ urlpatterns = [
                   path('vs-erp/', include('apps.vs_erp.urls')),
                   path('evidencias-moldes/', include('apps.evidencias_moldes.urls')),
                   path('interfaz-sae-coi/', include('apps.interfaz_sae_coi.urls')),
+                  path('resguardos/', include('apps.resguardos.urls')),
                   path('', include('pwa.urls')),
                   path("jsreverse.json", urls_json, name="js_reverse"),
               ] + debug_toolbar_urls()
