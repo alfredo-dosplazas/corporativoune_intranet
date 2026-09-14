@@ -1,7 +1,9 @@
 import json
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.contrib.auth.models import User
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -46,7 +48,7 @@ def directorio(request):
     view_mode = request.GET.get('view_mode', 'grid')
 
     contactos = (
-        Contacto.objects.filter(esta_archivado=False)
+        Contacto.objects.filter(esta_archivado=False, usuario__is_active=True)
         .select_related('empresa', 'sede_administrativa', 'area', 'puesto')
         .prefetch_related('emails', 'telefonos')
     )
@@ -116,164 +118,264 @@ def contacto_detail(request, pk):
     return render(request, 'Directorio/Contacto/Detail', props)
 
 
+# Mapeo de campos de Django a cada Step del frontend
+STEP_FIELDS_MAP = {
+    1: ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido', 'numero_empleado', 'fecha_nacimiento',
+        'abreviatura_titulo', 'foto'],
+    2: ['empresa', 'area', 'puesto', 'sede_administrativa', 'jefe_directo', 'empresas_relacionadas', 'sedes_visibles'],
+    3: ['emails', 'telefonos'],
+    4: ['fecha_ingreso', 'fecha_egreso', 'mostrar_en_directorio', 'mostrar_en_cumpleanios', 'es_jefe', 'esta_archivado',
+        'crear_usuario_sistema', 'usuario_username']
+}
+
+
+def mapear_errores_por_paso(errors_dict):
+    """Identifica el primer paso que contiene un error para enfocar al usuario dinámicamente."""
+    for paso, fields in STEP_FIELDS_MAP.items():
+        for field in fields:
+            if field in errors_dict or any(k.startswith(f"{field}.") for k in errors_dict.keys()):
+                return paso
+    return 1
+
+
+def crear_o_actualizar_usuario(contacto, payload, email_principal):
+    """Crea o vincula el usuario de Django al Contacto."""
+    if not payload.get('crear_usuario_sistema'):
+        return
+
+    if contacto.usuario:
+        return  # Ya existe usuario asignado
+
+    username = payload.get('usuario_username') or email_principal or f"user_{contacto.numero_empleado}"
+    if User.objects.filter(username=username).exists():
+        username = f"{username}_{contacto.pk}"
+
+    user = User.objects.create_user(
+        username=username,
+        email=email_principal or '',
+        first_name=contacto.primer_nombre,
+        last_name=contacto.primer_apellido
+    )
+    user.set_unusable_password()  # O enviar correo de activación
+    user.save()
+
+    contacto.usuario = user
+    contacto.save(update_fields=['usuario'])
+
+
+@login_required
+@permission_required("directorio.add_contacto", raise_exception=True)
 def contacto_create(request):
     if request.method == "GET":
         return render(request, "Directorio/Contacto/Form", props=get_contacto_form_props(request))
 
-    if request.method == "POST":
-        try:
-            payload = json.loads(request.body)
-        except json.JSONDecodeError:
-            payload = request.POST
+    payload = json.loads(request.body) if request.content_type == 'application/json' else request.POST
 
-        # Mapear IDs de los selects del form a los campos correspondientes del modelo
-        data_to_form = {
-            'abreviatura_titulo': payload.get('abreviatura_titulo'),
-            'numero_empleado': payload.get('numero_empleado') or None,
-            'primer_nombre': payload.get('primer_nombre'),
-            'segundo_nombre': payload.get('segundo_nombre') or None,
-            'primer_apellido': payload.get('primer_apellido'),
-            'segundo_apellido': payload.get('segundo_apellido') or None,
-            'fecha_nacimiento': payload.get('fecha_nacimiento') or None,
-            'empresa': payload.get('empresa_id') or None,
-            'area': payload.get('area_id') or None,
-            'puesto': payload.get('puesto_id') or None,
-            'sede_administrativa': payload.get('sede_administrativa_id') or None,
-            'jefe_directo': payload.get('jefe_directo_id') or None,
-            'fecha_ingreso': payload.get('fecha_ingreso') or None,
-            'fecha_egreso': payload.get('fecha_egreso') or None,
-            'mostrar_en_directorio': payload.get('mostrar_en_directorio', True),
-            'mostrar_en_cumpleanios': payload.get('mostrar_en_cumpleanios', True),
-            'es_jefe': payload.get('es_jefe', False),
-        }
+    data_to_form = {
+        'abreviatura_titulo': payload.get('abreviatura_titulo'),
+        'numero_empleado': payload.get('numero_empleado') or None,
+        'primer_nombre': payload.get('primer_nombre'),
+        'segundo_nombre': payload.get('segundo_nombre') or None,
+        'primer_apellido': payload.get('primer_apellido'),
+        'segundo_apellido': payload.get('segundo_apellido') or None,
+        'fecha_nacimiento': payload.get('fecha_nacimiento') or None,
+        'empresa': payload.get('empresa_id') or None,
+        'area': payload.get('area_id') or None,
+        'puesto': payload.get('puesto_id') or None,
+        'sede_administrativa': payload.get('sede_administrativa_id') or None,
+        'jefe_directo': payload.get('jefe_directo_id') or None,
+        'fecha_ingreso': payload.get('fecha_ingreso') or None,
+        'fecha_egreso': payload.get('fecha_egreso') or None,
+        'mostrar_en_directorio': payload.get('mostrar_en_directorio', True),
+        'mostrar_en_cumpleanios': payload.get('mostrar_en_cumpleanios', True),
+        'es_jefe': payload.get('es_jefe', False),
+        'esta_archivado': payload.get('esta_archivado', False),
+    }
 
-        form = ContactoCreateUpdateForm(data_to_form)
+    form = ContactoCreateUpdateForm(data_to_form)
 
-        # Validación extra de correos en el payload
-        emails_data = payload.get("emails", [])
-        email_errors = {}
-        for idx, item in enumerate(emails_data):
-            email_val = item.get("email", "").strip()
-            if email_val and EmailContacto.objects.filter(email=email_val).exists():
-                email_errors[f"emails.{idx}.email"] = f"El correo {email_val} ya existe."
+    # Validación de sub-recursos (Emails y Teléfonos)
+    emails_data = payload.get("emails", [])
+    telefonos_data = payload.get("telefonos", [])
+    custom_errors = {}
 
-        if not form.is_valid() or email_errors:
-            errors = {**form.errors, **email_errors}
-            messages.error(request, "Por favor corrige los errores en el formulario.")
-            return render(
-                request,
-                "Directorio/Contacto/Form",
-                props={**get_contacto_form_props(request), "errors": errors},
-            )
+    if not emails_data:
+        custom_errors["emails"] = "Debes registrar al menos un correo electrónico."
 
+    for idx, item in enumerate(emails_data):
+        email_val = item.get("email", "").strip()
+        if not email_val:
+            custom_errors[f"emails.{idx}.email"] = "El correo no puede estar vacío."
+        elif EmailContacto.objects.filter(email=email_val).exists():
+            custom_errors[f"emails.{idx}.email"] = f"El correo '{email_val}' ya existe."
+
+    if form.is_valid() and not custom_errors:
         try:
             with transaction.atomic():
                 contacto = form.save()
 
                 if payload.get("empresas_relacionadas"):
                     contacto.empresas_relacionadas.set(payload.get("empresas_relacionadas"))
-
                 if payload.get("sedes_visibles"):
                     contacto.sedes_visibles.set(payload.get("sedes_visibles"))
 
-                # Crear Emails
+                email_principal_str = None
                 for item in emails_data:
-                    email_str = item.get("email", "").strip()
-                    if email_str:
+                    e_str = item.get("email", "").strip()
+                    if e_str:
+                        is_main = item.get("es_principal", False)
+                        if is_main:
+                            email_principal_str = e_str
                         EmailContacto.objects.create(
                             contacto=contacto,
-                            email=email_str,
-                            es_principal=item.get("es_principal", False),
+                            email=e_str,
+                            es_principal=is_main,
                             esta_activo=True,
                             es_slack=item.get("es_slack", False),
                         )
 
-                # Crear Teléfonos
-                for item in payload.get("telefonos", []):
-                    tel_str = item.get("telefono", "").strip()
-                    if tel_str:
+                for item in telefonos_data:
+                    t_str = item.get("telefono", "").strip()
+                    if t_str:
                         TelefonoContacto.objects.create(
                             contacto=contacto,
-                            telefono=tel_str,
+                            telefono=t_str,
                             extension=item.get("extension") or None,
                             es_principal=item.get("es_principal", False),
                             esta_activo=True,
                             es_celular=item.get("es_celular", False),
                         )
 
-            messages.success(request, f"El contacto {contacto.nombre_completo} se ha creado correctamente.")
+                # Gestión opcional de usuario
+                crear_o_actualizar_usuario(contacto, payload, email_principal_str)
+
+            messages.success(request, f"Contacto {contacto.nombre_completo} creado correctamente.")
             return redirect(reverse("directorio:list"))
 
         except Exception as e:
-            messages.error(request, f"Ocurrió un error inesperado: {str(e)}")
-            return render(
-                request,
-                "Directorio/Contacto/Form",
-                props=get_contacto_form_props(request),
-            )
+            messages.error(request, f"Error al guardar: {str(e)}")
+
+    all_errors = {**form.errors.get_json_data(), **{k: [{'message': v}] for k, v in custom_errors.items()}}
+    error_step = mapear_errores_por_paso(all_errors)
+
+    return render(
+        request,
+        "Directorio/Contacto/Form",
+        props={
+            **get_contacto_form_props(request),
+            "errors": all_errors,
+            "errorStep": error_step,
+            "formData": payload
+        },
+    )
 
 
+@login_required
+@permission_required("directorio.change_contacto", raise_exception=True)
 def contacto_update(request, pk):
     contacto = get_object_or_404(Contacto, pk=pk)
 
-    if request.method == "POST":
-        try:
-            payload = json.loads(request.body)
-        except json.JSONDecodeError:
-            payload = request.POST
+    if request.method == "GET":
+        return render(request, "Directorio/Contacto/Form", props=get_contacto_form_props(request, contacto))
 
-        data_to_form = {
-            'abreviatura_titulo': payload.get('abreviatura_titulo'),
-            'numero_empleado': payload.get('numero_empleado') or None,
-            'primer_nombre': payload.get('primer_nombre'),
-            'segundo_nombre': payload.get('segundo_nombre') or None,
-            'primer_apellido': payload.get('primer_apellido'),
-            'segundo_apellido': payload.get('segundo_apellido') or None,
-            'fecha_nacimiento': payload.get('fecha_nacimiento') or None,
-            'empresa': payload.get('empresa_id') or None,
-            'area': payload.get('area_id') or None,
-            'puesto': payload.get('puesto_id') or None,
-            'sede_administrativa': payload.get('sede_administrativa_id') or None,
-            'jefe_directo': payload.get('jefe_directo_id') or None,
-            'fecha_ingreso': payload.get('fecha_ingreso') or None,
-            'fecha_egreso': payload.get('fecha_egreso') or None,
-            'mostrar_en_directorio': payload.get('mostrar_en_directorio', True),
-            'mostrar_en_cumpleanios': payload.get('mostrar_en_cumpleanios', True),
-            'es_jefe': payload.get('es_jefe', False),
-        }
+    payload = json.loads(request.body) if request.content_type == 'application/json' else request.POST
 
-        form = ContactoCreateUpdateForm(data_to_form, instance=contacto)
+    data_to_form = {
+        'abreviatura_titulo': payload.get('abreviatura_titulo'),
+        'numero_empleado': payload.get('numero_empleado') or None,
+        'primer_nombre': payload.get('primer_nombre'),
+        'segundo_nombre': payload.get('segundo_nombre') or None,
+        'primer_apellido': payload.get('primer_apellido'),
+        'segundo_apellido': payload.get('segundo_apellido') or None,
+        'fecha_nacimiento': payload.get('fecha_nacimiento') or None,
+        'empresa': payload.get('empresa_id') or None,
+        'area': payload.get('area_id') or None,
+        'puesto': payload.get('puesto_id') or None,
+        'sede_administrativa': payload.get('sede_administrativa_id') or None,
+        'jefe_directo': payload.get('jefe_directo_id') or None,
+        'fecha_ingreso': payload.get('fecha_ingreso') or None,
+        'fecha_egreso': payload.get('fecha_egreso') or None,
+        'mostrar_en_directorio': payload.get('mostrar_en_directorio', True),
+        'mostrar_en_cumpleanios': payload.get('mostrar_en_cumpleanios', True),
+        'es_jefe': payload.get('es_jefe', False),
+        'esta_archivado': payload.get('esta_archivado', False),
+    }
 
-        if not form.is_valid():
-            messages.error(request, "Por favor corrige los errores en el formulario.")
-            return render(
-                request,
-                "Directorio/Contacto/Form",
-                props={**get_contacto_form_props(request, contacto), "errors": form.errors},
-            )
+    form = ContactoCreateUpdateForm(data_to_form, instance=contacto)
+    emails_data = payload.get("emails", [])
+    telefonos_data = payload.get("telefonos", [])
+    custom_errors = {}
 
+    # Validar duplicidad de correos excluyendo los ya asignados a este contacto
+    existing_ids = list(contacto.emails.values_list('id', flat=True))
+    for idx, item in enumerate(emails_data):
+        email_val = item.get("email", "").strip()
+        if not email_val:
+            custom_errors[f"emails.{idx}.email"] = "El correo no puede estar vacío."
+        elif EmailContacto.objects.filter(email=email_val).exclude(contacto=contacto).exists():
+            custom_errors[f"emails.{idx}.email"] = f"El correo '{email_val}' pertenece a otro contacto."
+
+    if form.is_valid() and not custom_errors:
         try:
             with transaction.atomic():
                 contacto = form.save()
 
                 if payload.get("empresas_relacionadas") is not None:
                     contacto.empresas_relacionadas.set(payload.get("empresas_relacionadas"))
-
                 if payload.get("sedes_visibles") is not None:
                     contacto.sedes_visibles.set(payload.get("sedes_visibles"))
 
-            messages.success(request, f"El contacto {contacto.nombre_completo} se ha actualizado correctamente.")
-            return redirect(reverse("directorio:list"))
+                # Reemplazo / actualización de Emails y Teléfonos
+                contacto.emails.all().delete()
+                email_principal_str = None
+                for item in emails_data:
+                    e_str = item.get("email", "").strip()
+                    if e_str:
+                        is_main = item.get("es_principal", False)
+                        if is_main:
+                            email_principal_str = e_str
+                        EmailContacto.objects.create(
+                            contacto=contacto,
+                            email=e_str,
+                            es_principal=is_main,
+                            esta_activo=True,
+                            es_slack=item.get("es_slack", False),
+                        )
+
+                contacto.telefonos.all().delete()
+                for item in telefonos_data:
+                    t_str = item.get("telefono", "").strip()
+                    if t_str:
+                        TelefonoContacto.objects.create(
+                            contacto=contacto,
+                            telefono=t_str,
+                            extension=item.get("extension") or None,
+                            es_principal=item.get("es_principal", False),
+                            esta_activo=True,
+                            es_celular=item.get("es_celular", False),
+                        )
+
+                crear_o_actualizar_usuario(contacto, payload, email_principal_str)
+
+            messages.success(request, f"Contacto {contacto.nombre_completo} actualizado correctamente.")
+            return redirect("directorio:list")
 
         except Exception as e:
-            messages.error(request, f"Ocurrió un error: {str(e)}")
-            return render(
-                request,
-                "Directorio/Contacto/Form",
-                props=get_contacto_form_props(request, contacto),
-            )
+            messages.error(request, f"Error al actualizar: {str(e)}")
 
-    return render(request, "Directorio/Contacto/Form", props=get_contacto_form_props(request, contacto))
+    all_errors = {**form.errors.get_json_data(), **{k: [{'message': v}] for k, v in custom_errors.items()}}
+    error_step = mapear_errores_por_paso(all_errors)
+
+    return render(
+        request,
+        "Directorio/Contacto/Form",
+        props={
+            **get_contacto_form_props(request, contacto),
+            "errors": all_errors,
+            "errorStep": error_step,
+            "formData": payload
+        },
+    )
 
 
 def contacto_delete(request, pk):

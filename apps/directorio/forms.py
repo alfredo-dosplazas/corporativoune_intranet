@@ -12,6 +12,9 @@ from apps.rrhh.models.puestos import Puesto
 
 
 class ContactoCreateUpdateForm(forms.ModelForm):
+    crear_usuario_sistema = forms.BooleanField(required=False)
+    usuario_username = forms.CharField(required=False)
+
     class Meta:
         model = Contacto
         fields = [
@@ -32,6 +35,7 @@ class ContactoCreateUpdateForm(forms.ModelForm):
             'mostrar_en_directorio',
             'mostrar_en_cumpleanios',
             'es_jefe',
+            'esta_archivado',
         ]
 
     def clean_numero_empleado(self):
@@ -41,7 +45,7 @@ class ContactoCreateUpdateForm(forms.ModelForm):
             if self.instance.pk:
                 qs = qs.exclude(pk=self.instance.pk)
             if qs.exists():
-                raise ValidationError("Este número de empleado ya se encuentra registrado.")
+                raise ValidationError("Este número de empleado ya está registrado.")
         return numero
 
     def clean(self):
@@ -50,8 +54,8 @@ class ContactoCreateUpdateForm(forms.ModelForm):
         fecha_egreso = cleaned_data.get('fecha_egreso')
 
         if fecha_ingreso and fecha_egreso and fecha_ingreso > fecha_egreso:
-            self.add_error('fecha_ingreso', "La fecha de ingreso no puede ser mayor a la fecha de egreso.")
-            self.add_error('fecha_egreso', "La fecha de egreso no puede ser menor a la fecha de ingreso.")
+            self.add_error('fecha_ingreso', "La fecha de ingreso no puede ser mayor a la de egreso.")
+            self.add_error('fecha_egreso', "La fecha de egreso no puede ser menor a la de ingreso.")
 
         return cleaned_data
 

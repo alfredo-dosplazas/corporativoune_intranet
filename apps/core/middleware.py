@@ -21,12 +21,7 @@ def get_user_permissions(user):
                 full_perm=Concat('content_type__app_label', Value('.'), 'codename')
             ).values_list('full_perm', flat=True)
         )
-
-    full_permissions = user.get_all_permissions()
-
-    codenames = [perm.split('.')[1] for perm in full_permissions]
-
-    return list(codenames)
+    return list(user.get_all_permissions())
 
 
 def inertia_share(get_response):

@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     'apps.resguardos',
 
     # 'apps.listas_precios',
+    'apps.sae',
     'apps.interfaz_sae_coi',
 
     'apps.vs_erp',

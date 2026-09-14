@@ -7,6 +7,27 @@ from apps.sae.db import Base
 _MODEL_CACHE = {}
 
 
+class ProveedorMixin:
+    clave = Column('CLAVE', String(10), primary_key=True)
+    nombre = Column('NOMBRE', String(254))
+    rfc = Column('RFC', String(254))
+
+
+class CompraMixin:
+    folio = Column('CVE_DOC', String(20), primary_key=True)
+    fecha = Column('FECHA_DOC', Date)
+    subtotal = Column('CAN_TOT', Float)
+    total = Column('IMPORTE', Float)
+    status = Column('STATUS', String(1))  # 'E' emitida, 'C' cancelada
+
+
+class PartidaCompraMixin:
+    num_partida = Column('NUM_PAR', Integer, primary_key=True)
+    cantidad = Column('CANT', Float)
+    costo = Column('COST', Float)
+    impmon = Column('TOT_PARTIDA', Float)
+
+
 class ClienteMixin:
     clave = Column('CLAVE', String(10), primary_key=True)
     nombre = Column('NOMBRE', String(254))
@@ -95,6 +116,17 @@ def get_sae_models(suffix="01"):
     if suffix in _MODEL_CACHE:
         return _MODEL_CACHE[suffix]
 
+    class Proveedor(ProveedorMixin, Base):
+        __tablename__ = f'PROV{suffix}'
+        __table_args__ = {'extend_existing': True}
+
+    class Compra(CompraMixin, Base):
+        __tablename__ = f'COMPC{suffix}'
+        __table_args__ = {'extend_existing': True}
+
+        clave_proveedor = Column('CVE_CLPV', ForeignKey(f'PROV{suffix}.CLAVE'))
+        proveedor = relationship(Proveedor, backref=f"compras_{suffix}")
+
     class Almacen(AlmacenMixin, Base):
         __tablename__ = f'ALMACENES{suffix}'
         __table_args__ = {'extend_existing': True}
@@ -158,6 +190,16 @@ def get_sae_models(suffix="01"):
         __tablename__ = f'INVE{suffix}'
         __table_args__ = {'extend_existing': True}
 
+    class PartidaCompra(PartidaCompraMixin, Base):
+        __tablename__ = f'PAR_COMPC{suffix}'
+        __table_args__ = {'extend_existing': True}
+
+        folio = Column('CVE_DOC', ForeignKey(f'COMPC{suffix}.CVE_DOC'), primary_key=True)
+        compra = relationship(Compra, backref=f"partidas_{suffix}")
+
+        cve_art = Column('CVE_ART', ForeignKey(f'INVE{suffix}.CVE_ART'))
+        producto = relationship(Producto, backref=f"partidas_compra_{suffix}")
+
     class PartidaFactura(PartidaFacturaMixin, Base):
         __tablename__ = f'PAR_FACTF{suffix}'
         __table_args__ = {'extend_existing': True}
@@ -192,16 +234,19 @@ def get_sae_models(suffix="01"):
     AlmacenNota = aliased(Almacen, name=f'AlmacenNota_{suffix}')
 
     models = SimpleNamespace(
+        Proveedor=Proveedor,
         Cliente=Cliente,
         Almacen=Almacen,
         AlmacenFactura=AlmacenFactura,
         AlmacenNota=AlmacenNota,
+        Compra=Compra,
         Factura=Factura,
         NotaVenta=NotaVenta,
         NotaCredito=NotaCredito,
         NotaDevolucion=NotaDevolucion,
         CFDI=CFDI,
         CoiXml=CoiXml,
+        PartidaCompra=PartidaCompra,
         PartidaFactura=PartidaFactura,
         PartidaNotaDevolucion=PartidaNotaDevolucion,
         Producto=Producto,

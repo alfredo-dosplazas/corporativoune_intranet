@@ -139,7 +139,7 @@ export default function Directorio({
         <AppLayout
             scrollable={false}
             title="Directorio"
-            headerActions={<HeaderActions />}
+            headerActions={<HeaderActions/>}
         >
             {/* Contenedor principal que llena exactamente el espacio de la app sin desbordarse */}
             <div className="flex flex-col h-full gap-3">
@@ -275,18 +275,19 @@ export default function Directorio({
                         )
                     )}
 
+                    {/* --- ÁREA DE TABLA CON THEME POR FILA --- */}
                     {view_mode === 'table' && (
                         <div className="bg-base-100 shadow-sm rounded-xl border border-base-200 overflow-hidden mb-2">
                             <div className="overflow-x-auto">
-                                <table className="table table-sm w-full">
+                                <table className="table table-xs sm:table-sm w-full">
                                     <thead>
-                                    <tr className="bg-base-200/60 text-base-content/70 text-[11px] uppercase tracking-wider sticky top-0 z-10 bg-base-200">
-                                        <th className="py-2.5">Contacto</th>
-                                        <th className="py-2.5">Empresa / Área</th>
-                                        <th className="py-2.5">No. Empleado</th>
-                                        <th className="py-2.5">Correo</th>
-                                        <th className="py-2.5">Teléfono</th>
-                                        <th className="py-2.5 text-right">Acción</th>
+                                    <tr className="bg-base-200/80 text-base-content/70 text-[11px] uppercase tracking-wider sticky top-0 z-10">
+                                        <th className="py-2">Contacto</th>
+                                        <th className="py-2">Empresa / Área</th>
+                                        <th className="py-2">No. Empleado</th>
+                                        <th className="py-2">Correo</th>
+                                        <th className="py-2">Teléfono</th>
+                                        <th className="py-2 text-right">Acción</th>
                                     </tr>
                                     </thead>
                                     <tbody className="divide-y divide-base-200/60">
@@ -294,21 +295,22 @@ export default function Directorio({
                                         contactos.data.map((contacto) => (
                                             <tr
                                                 key={contacto.id}
+                                                data-theme={contacto.theme} // <-- Aplica el tema específico del usuario a la fila
                                                 onClick={() => handleRowClick(contacto.id)}
-                                                className="hover:bg-primary/5 transition-colors cursor-pointer group"
+                                                className="bg-base-100 text-base-content hover:bg-primary/10 transition-colors cursor-pointer group"
                                             >
-                                                <td className="py-2">
-                                                    <div className="flex items-center gap-2.5">
+                                                <td className="py-1.5">
+                                                    <div className="flex items-center gap-2">
                                                         <div className="avatar placeholder">
                                                             {contacto.foto ? (
                                                                 <div
-                                                                    className="w-8 h-8 rounded-full ring-1 ring-base-300">
+                                                                    className="w-7 h-7 rounded-full ring-1 ring-base-300">
                                                                     <img src={contacto.foto}
                                                                          alt={contacto.nombre_completo}/>
                                                                 </div>
                                                             ) : (
                                                                 <div
-                                                                    className="bg-primary/10 text-primary rounded-full w-8 h-8 text-[10px] font-bold flex items-center justify-center border border-primary/20">
+                                                                    className="bg-primary text-primary-content rounded-full w-7 h-7 text-[10px] font-bold flex items-center justify-center">
                                                                     {contacto.iniciales}
                                                                 </div>
                                                             )}
@@ -318,48 +320,50 @@ export default function Directorio({
                                                                 className="font-semibold text-xs text-base-content group-hover:text-primary transition-colors">
                                                                 {contacto.titulo_nombre_completo || contacto.nombre_completo}
                                                             </div>
-                                                            <div className="text-[11px] text-base-content/60">
+                                                            <div className="text-[10px] text-base-content/60">
                                                                 {contacto.puesto || 'Sin Puesto'}
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="py-2">
+                                                <td className="py-1.5">
                                                     <div className="text-xs font-medium text-base-content">
                                                         {contacto.empresa?.nombre || 'N/A'}
                                                     </div>
-                                                    <div className="text-[11px] text-base-content/60">
+                                                    <div className="text-[10px] text-base-content/60">
                                                         {contacto.area || 'Sin área'}
                                                     </div>
                                                 </td>
-                                                <td className="py-2 text-xs font-mono text-base-content/70">
+                                                <td className="py-1.5 text-xs font-mono text-base-content/70">
                                                     {contacto.numero_empleado || 'N/A'}
                                                 </td>
-                                                <td className="py-2 text-xs text-base-content/70">
+                                                <td className="py-1.5 text-xs text-base-content/70">
                                                     {contacto.email_principal || 'N/A'}
                                                 </td>
-                                                <td className="py-2 text-xs text-base-content/70">
+                                                <td className="py-1.5 text-xs text-base-content/70">
                                                     {contacto.telefono_principal || 'N/A'}
                                                 </td>
-                                                <td className="py-2 text-right" onClick={(e) => e.stopPropagation()}>
-                                                    <button
-                                                        onClick={() => handleRowClick(contacto.id)}
-                                                        className="btn btn-xs btn-ghost text-primary hover:bg-primary/10"
-                                                    >
-                                                        Ver
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleUpdate(contacto.id)}
-                                                        className="btn btn-xs btn-ghost text-primary hover:bg-primary/10"
-                                                    >
-                                                        Editar
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(contacto.id)}
-                                                        className="btn btn-xs btn-ghost text-error hover:bg-error/10"
-                                                    >
-                                                        Eliminar
-                                                    </button>
+                                                <td className="py-1.5 text-right" onClick={(e) => e.stopPropagation()}>
+                                                    <div className="join">
+                                                        <button
+                                                            onClick={() => handleRowClick(contacto.id)}
+                                                            className="btn btn-xs btn-ghost text-primary"
+                                                        >
+                                                            Ver
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleUpdate(contacto.id)}
+                                                            className="btn btn-xs btn-ghost text-primary"
+                                                        >
+                                                            Editar
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(contacto.id)}
+                                                            className="btn btn-xs btn-ghost text-error"
+                                                        >
+                                                            Eliminar
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))
