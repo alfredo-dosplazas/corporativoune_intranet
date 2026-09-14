@@ -19,18 +19,6 @@ class Sede(models.Model):
         related_name="sedes",
     )
 
-    @classmethod
-    def get_default(cls):
-        obj, _ = cls.objects.get_or_create(
-            nombre='Corporativo UNE Celaya',
-            defaults={
-                'codigo': 'UNE-CELAYA',
-                'ciudad': 'Celaya'
-            }
-        )
-
-        return obj
-
     def __str__(self):
         return self.nombre
 
@@ -46,5 +34,8 @@ class SedeIPRange(models.Model):
 
     activa = models.BooleanField(default=True)
 
-    def contiene_ip(self, ip):
-        return ipaddress.ip_address(ip) in ipaddress.ip_network(self.cidr)
+    def contiene_ip(self, ip_str):
+        try:
+            return ipaddress.ip_address(ip_str) in ipaddress.ip_network(self.cidr)
+        except ValueError:
+            return False

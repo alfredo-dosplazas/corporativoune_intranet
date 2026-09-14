@@ -34,7 +34,9 @@ from apps.directorio.forms import ContactoForm, ContactoCreateUpdateForm
 from apps.directorio.helpers import puede_editar_contacto, puede_eliminar_contacto, puede_ver_contacto
 from apps.directorio.inlines import EmailContactoInline, TelefonoContactoInline
 from apps.directorio.models import Contacto, TelefonoContacto, EmailContacto
+from apps.directorio.serializers import ContactoSerializer
 from apps.directorio.tables import ContactoTable
+from apps.directorio.utils import obtener_sedes_permitidas
 from apps.rrhh.models.areas import Area
 from apps.rrhh.models.puestos import Puesto
 from apps.rrhh.models.sedes import Sede
@@ -44,26 +46,35 @@ from apps.rrhh.models.sedes import Sede
 def directorio(request):
     search_query = request.GET.get('search', '')
     empresa_id = request.GET.get('empresa', '')
+    sede_id = request.GET.get('sede', '')  # Opcional si agregas filtro por sede en UI
     page_number = request.GET.get('page', 1)
     view_mode = request.GET.get('view_mode', 'grid')
 
+    # 1. Obtener los IDs de las sedes autorizadas para la petición actual
+    sedes_permitidas = obtener_sedes_permitidas(request)
+
+    # 2. Filtrar contactos según su sede_administrativa
     contactos = (
-        Contacto.objects.filter(esta_archivado=False, usuario__is_active=True)
+        Contacto.objects.filter(
+            esta_archivado=False,
+            usuario__is_active=True,
+            mostrar_en_directorio=True,
+            sede_administrativa_id__in=sedes_permitidas  # <--- Filtro por Sede
+        )
         .select_related('empresa', 'sede_administrativa', 'area', 'puesto')
         .prefetch_related('emails', 'telefonos')
     )
 
     if search_query:
         terms = search_query.split()
-
         query_conditions = Q()
         for term in terms:
             term_condition = (
-                    Q(primer_nombre__icontains=term) |
-                    Q(segundo_nombre__icontains=term) |
-                    Q(primer_apellido__icontains=term) |
-                    Q(segundo_apellido__icontains=term) |
-                    Q(numero_empleado__icontains=term)
+                Q(primer_nombre__icontains=term) |
+                Q(segundo_nombre__icontains=term) |
+                Q(primer_apellido__icontains=term) |
+                Q(segundo_apellido__icontains=term) |
+                Q(numero_empleado__icontains=term)
             )
             query_conditions &= term_condition
             query_conditions |= Q(emails__email__icontains=search_query)
@@ -74,10 +85,18 @@ def directorio(request):
     if empresa_id:
         contactos = contactos.filter(empresa_id=empresa_id)
 
+    if sede_id and int(sede_id) in sedes_permitidas:
+        contactos = contactos.filter(sede_administrativa_id=sede_id)
+
     contactos = contactos.distinct()
 
     paginator = Paginator(contactos, 12)
     page_obj = paginator.get_page(page_number)
+
+    # Opciones de sedes visibles para poblar filtros en el frontend
+    sedes_options = list(
+        Sede.objects.filter(id__in=sedes_permitidas).values('id', 'nombre')
+    )
 
     props = {
         'breadcrumbs': [
@@ -85,7 +104,7 @@ def directorio(request):
             {'label': 'Directorio', 'icon': 'icon-[lucide--users]'},
         ],
         'contactos': {
-            'data': [c.to_dict() for c in page_obj],
+            'data': [ContactoSerializer(c).data for c in page_obj],
             'current_page': page_obj.number,
             'has_next': page_obj.has_next(),
             'has_previous': page_obj.has_previous(),
@@ -96,9 +115,10 @@ def directorio(request):
         'filters': {
             'search': search_query,
             'empresa': empresa_id,
+            'sede': sede_id,
         },
         'empresas_options': list(Empresa.objects.values('id', 'nombre')),
-        'can_create': request.user.has_perm('directorio.add_contacto'),
+        'sedes_options': sedes_options,
         'view_mode': view_mode,
     }
     return render(request, 'Directorio/Index', props)
@@ -108,7 +128,7 @@ def contacto_detail(request, pk):
     contacto = get_object_or_404(Contacto, pk=pk)
 
     props = {
-        'contacto': contacto.to_dict(),
+        'contacto': ContactoSerializer(contacto).data,
         'breadcrumbs': [
             {'label': 'Inicio', 'url': '/', 'icon': 'icon-[lucide--home]'},
             {'label': 'Directorio', 'icon': 'icon-[lucide--users]', 'url': reverse('directorio:list')},

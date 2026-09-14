@@ -140,13 +140,6 @@ export const PolizaPreviewModal: React.FC<Props> = ({
 
     if (!isOpen || !documento) return null;
 
-    // Validación de cuadre dinámico por tipo de documento
-    const isFormValid = tipoDocumento === 'corte_caja'
-        ? Boolean((!polizaMostrador || polizaMostrador.esta_cuadrada) && (!polizaCp || polizaCp.esta_cuadrada))
-        : isNotaCredito
-            ? Boolean(polizaNC?.esta_cuadrada)
-            : Boolean(polizaVenta?.esta_cuadrada && polizaCosto?.esta_cuadrada);
-
     return (
         <div className="modal modal-open">
             <div className="modal-box max-w-4xl bg-base-100">
@@ -214,7 +207,7 @@ export const PolizaPreviewModal: React.FC<Props> = ({
                     <button
                         className="btn btn-primary"
                         onClick={handleEnviarCOI}
-                        disabled={!canContabilizar || submitting || !isFormValid || loading}
+                        disabled={!canContabilizar || submitting || loading}
                     >
                         {submitting && <span className="loading loading-spinner loading-xs"></span>}
                         Contabilizar en COI
@@ -236,9 +229,6 @@ const PolizaCard: React.FC<{ title: string; poliza: Poliza }> = ({ title, poliza
     <div className="border border-base-200 rounded-xl p-4 bg-base-50 shadow-sm">
         <div className="flex justify-between items-center mb-2">
             <h4 className="font-semibold text-sm text-primary">{title}</h4>
-            <span className={`badge ${poliza.esta_cuadrada ? 'badge-success' : 'badge-error'} badge-sm`}>
-                {poliza.esta_cuadrada ? 'Cuadrada' : 'Descuadrada'}
-            </span>
         </div>
 
         <div className="text-xs text-base-content/70 mb-3 space-y-1">

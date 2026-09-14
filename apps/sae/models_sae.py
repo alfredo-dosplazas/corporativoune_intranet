@@ -16,6 +16,7 @@ class ProveedorMixin:
 class CompraMixin:
     folio = Column('CVE_DOC', String(20), primary_key=True)
     fecha = Column('FECHA_DOC', Date)
+    num_alma = Column('NUM_ALMA', Integer)
     subtotal = Column('CAN_TOT', Float)
     total = Column('IMPORTE', Float)
     status = Column('STATUS', String(1))  # 'E' emitida, 'C' cancelada
@@ -47,6 +48,7 @@ class FacturaMixin:
     total_impuesto2 = Column('IMP_TOT2', Float)
     total_impuesto3 = Column('IMP_TOT3', Float)
     total_impuesto4 = Column('IMP_TOT4', Float)
+    total_descuento = Column('DES_TOT', Float)
     subtotal = Column('CAN_TOT', Float)
     total = Column('IMPORTE', Float)
     status = Column('STATUS', String(1))

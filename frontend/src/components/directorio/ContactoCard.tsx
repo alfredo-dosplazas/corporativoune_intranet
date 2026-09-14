@@ -69,7 +69,7 @@ export const ContactoCard: React.FC<ContactoCardProps> = ({contacto}) => {
     return (
         <div
             onClick={handleCardClick}
-            data-theme={contacto.theme}
+            data-theme={contacto.empresa?.theme}
             className={`card bg-base-100 border border-base-200 shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-150 overflow-hidden group flex flex-col justify-between ${
                 canView ? 'cursor-pointer' : ''
             }`}
@@ -109,7 +109,7 @@ export const ContactoCard: React.FC<ContactoCardProps> = ({contacto}) => {
                                 )}
                             </div>
                             <p className="text-[10px] text-primary-content/80 truncate leading-tight">
-                                {contacto.puesto || 'Sin puesto'} {contacto.empresa ? `• ${contacto.empresa.nombre}` : ''}
+                                {contacto.puesto?.nombre || 'Sin puesto'} {contacto.empresa ? `• ${contacto.empresa.nombre}` : ''}
                             </p>
                         </div>
                     </div>
@@ -123,13 +123,13 @@ export const ContactoCard: React.FC<ContactoCardProps> = ({contacto}) => {
                             {contacto.area && (
                                 <span className="truncate flex items-center gap-1">
                                     <span className="icon-[lucide--briefcase] text-primary text-xs"></span>
-                                    {contacto.area}
+                                    {contacto.area?.nombre}
                                 </span>
                             )}
                             {contacto.sede_administrativa && (
                                 <span className="truncate flex items-center gap-1 shrink-0">
                                     <span className="icon-[lucide--map-pin] text-primary text-xs"></span>
-                                    {contacto.sede_administrativa}
+                                    {contacto.sede_administrativa?.nombre}
                                 </span>
                             )}
                         </div>

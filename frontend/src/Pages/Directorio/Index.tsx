@@ -16,7 +16,6 @@ type Props = {
     empresas_options: EmpresaSimple[];
     areas?: AreaSimple[];
     view_mode: 'grid' | 'table';
-    can_create: boolean;
 };
 
 export default function Directorio({

@@ -5,6 +5,7 @@ export interface DocumentoSAE {
     almacen: string;
     subtotal: number;
     total_impuesto4: number;
+    total_descuento: number;
     total: number;
     status: string;
     uuid_sae: string | null;

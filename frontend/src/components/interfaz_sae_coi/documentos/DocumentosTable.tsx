@@ -191,6 +191,12 @@ export const DocumentosSaeTable: React.FC<DocumentosSaeTableProps> = ({
                 cell: (doc) => formatCurrency(doc.total_impuesto4)
             },
             {
+                header: 'Descuento',
+                className: 'text-right font-medium text-xs text-base-content/70',
+                headerClassName: 'text-right',
+                cell: (doc) => formatCurrency(doc.total_descuento)
+            },
+            {
                 header: 'Total',
                 className: 'text-right font-bold text-primary text-xs',
                 headerClassName: 'text-right',

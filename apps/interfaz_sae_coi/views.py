@@ -22,7 +22,7 @@ from apps.interfaz_sae_coi.generators import PolizaVentaGenerator, PolizaCostoVe
 from apps.interfaz_sae_coi.models import DocumentoContabilizado
 from apps.interfaz_sae_coi.services import obtener_cobros_del_dia
 from apps.sae.db import sae_session
-from apps.sae.models_sae import get_sae_models
+from apps.sae.models_sae import get_sae_models, FacturaMixin
 
 TIPOS_DOCUMENTOS = [
     {'value': 'ventas', 'label': 'Ventas (Facturas)'},
@@ -251,6 +251,7 @@ def documentos_contabilizar_sae(request):
                 m.Almacen.nombre.label('almacen'),
                 m.Factura.subtotal,
                 m.Factura.total_impuesto4,
+                m.Factura.total_descuento,
                 m.Factura.total,
                 m.Factura.status,
                 m.CFDI.uuid_sat.label('uuid_xml'),
@@ -437,6 +438,7 @@ def poliza_preview_api(request, folio):
             m.Almacen.nombre.label('almacen'),
             m.Factura.subtotal,
             m.Factura.total_impuesto4,
+            m.Factura.total_descuento,
             m.Factura.total,
             m.CFDI.uuid_sat.label('uuid_xml'),
             m.CoiXml.uuid_cfdi_sae.label('uuid_sae'),

@@ -1,0 +1,1 @@
+import{n as e,t}from"./jsx-runtime-Cfa8M6uw.js";import{t as n}from"./AppLayout-CL1fsJ9O.js";import{t as r}from"./ModulosGrid-4D9wc23d.js";var i=e(),a=t();function o(e){let t=(0,i.c)(2),{modulos:o}=e,s;return t[0]===o?s=t[1]:(s=(0,a.jsx)(n,{title:`Papelería`,children:(0,a.jsx)(r,{modulos:o})}),t[0]=o,t[1]=s),s}export{o as default};

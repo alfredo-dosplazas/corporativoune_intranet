@@ -1,16 +1,27 @@
 import type {Empresa} from "@/types/empresas.ts";
+import type {Usuario} from "@/types/usuario.ts";
 
-export type EmpresaSimple = {
+export type Area = {
     id: number;
     nombre: string;
-    slug?: string;
-    logo?: string | null;
-};
+    empresa: Empresa;
+}
 
-export type AreaSimple = {
+export type Puesto = {
+    id: number;
+    area: Area;
+    nombre: string;
+    empresa: Empresa;
+}
+
+export type Sede = {
     id: number;
     nombre: string;
-};
+    codigo: string;
+    ciudad: string;
+    activa: boolean;
+    empresa?: Empresa | null;
+}
 
 export type Email = {
     id: number;
@@ -41,12 +52,9 @@ export type Contacto = {
     fecha_nacimiento: string | null;
     foto?: string | null;
     empresa?: Empresa;
-    area?: string | null;
-    area_id: number | null;
-    puesto?: string | null;
-    puesto_id: number | null;
-    sede_administrativa?: string | null;
-    sede_administrativa_id?: number | null;
+    area?: Area;
+    puesto?: Puesto;
+    sede_administrativa?: Sede;
     email_principal?: string | null;
     telefono_principal?: string | null;
     whatsapp?: string | null;
@@ -54,13 +62,10 @@ export type Contacto = {
     fecha_egreso?: string | null;
     mostrar_en_directorio: boolean;
     slack_url?: string | null;
-    empresas_relacionadas: Array<{
-        id: number;
-        nombre: string;
-    }>;
+    empresas_relacionadas: Empresa[];
     theme?: string | null;
-    jefe_directo_id?: number | null;
-    sedes_visibles: any[];
+    jefe_directo: Usuario;
+    sedes_visibles: Sede[];
     emails: Email[];
     telefonos: Telefono[];
     mostrar_en_cumpleanios: boolean;

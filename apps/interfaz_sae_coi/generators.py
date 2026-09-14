@@ -3,6 +3,7 @@ from typing import Generator, List, Dict, Optional, Tuple
 from apps.interfaz_sae_coi.config import get_cuenta_cliente, get_cuenta_ventas, CUENTAS_CONFIG, get_cuenta_caja_banco, \
     get_nombre_cuenta
 from apps.interfaz_sae_coi.dtos import PolizaDTO, MovimientoPolizaDTO
+from apps.interfaz_sae_coi.utils import es_parte_relacionada
 
 
 class PolizaVentaGenerator:
@@ -20,6 +21,7 @@ class PolizaVentaGenerator:
 
         subtotal = float(factura_data.get('subtotal') or 0.0)
         iva = float(factura_data.get('total_impuesto4') or 0.0)
+        descuento = float(factura_data.get('total_descuento') or 0.0)
         total = float(factura_data.get('total') or 0.0)
 
         concepto_head = f"POLIZA DE Venta / Factura / {folio} / {cliente_nombre} / {almacen}"[:100]
@@ -43,12 +45,15 @@ class PolizaVentaGenerator:
             haber=0.0
         ))
 
+        cliente_es_parte_relacionada = es_parte_relacionada(cliente_nombre)
+        descr_parte_relacionada = f" | PARTE RELACIONADA" if cliente_es_parte_relacionada else ""
+
         # Partida 2: Ventas por Almacén (HABER)
-        cuenta_ventas = get_cuenta_ventas(almacen)
+        cuenta_ventas = get_cuenta_ventas(almacen, cliente_es_parte_relacionada)
         poliza.movimientos.append(MovimientoPolizaDTO(
             nombre_cuenta=get_nombre_cuenta(cuenta_ventas),
             cuenta=cuenta_ventas,
-            concepto=f"VENTAS | ALMACEN {almacen} | FACTURA {folio}",
+            concepto=f"VENTAS | ALMACEN {almacen} | FACTURA {folio} {descr_parte_relacionada}"[:100],
             debe=0.0,
             haber=subtotal
         ))
@@ -62,6 +67,16 @@ class PolizaVentaGenerator:
                 concepto=f"IVA | FACTURA {folio}",
                 debe=0.0,
                 haber=iva
+            ))
+
+        if descuento > 0:
+            cuenta_descuento = CUENTAS_CONFIG['DESCUENTOS']
+            poliza.movimientos.append(MovimientoPolizaDTO(
+                nombre_cuenta=get_nombre_cuenta(cuenta_descuento),
+                cuenta=cuenta_descuento,
+                concepto=f"DESCUENTO | FACTURA {folio}",
+                debe=descuento,
+                haber=0.0,
             ))
 
         return poliza
@@ -176,7 +191,7 @@ class PolizaCorteCajaGenerator:
             iva_pago = round(monto_pago - base_pago, 2)
 
             complemento_str = f" | CP: {doc_complemento_pago}" if doc_complemento_pago else ""
-            concepto_partida = f"COBRO {concepto_pago} | {doc_referencia} | {cliente_nombre}{complemento_str}"[:100]
+            concepto_partida = f"COBRO {concepto_pago} | {doc_referencia}{complemento_str} | {cliente_nombre}"[:100]
 
             # 1. DEBE: Caja / Banco
             cuenta_caja_banco = get_cuenta_caja_banco(almacen=almacen_nombre, num_cpto=num_cpto)
@@ -285,7 +300,7 @@ class PolizaNotaCreditoGenerator:
         concepto_head = f"POLIZA DE Nota de Credito / {folio} / {cliente_nombre} / {almacen}"[:100]
 
         poliza = PolizaDTO(
-            tipo_poliza="Eg",
+            tipo_poliza="Dr",
             fecha=fecha,
             concepto=concepto_head,
             uuid_sae=uuid_sae,
@@ -363,7 +378,7 @@ class PolizaNotaDevolucionGenerator:
         concepto_head = f"POLIZA DEVOLUCION / NC {folio} / {cliente_nombre} / {almacen}"[:100]
 
         poliza = PolizaDTO(
-            tipo_poliza="Eg",
+            tipo_poliza="Dr",
             fecha=fecha,
             concepto=concepto_head,
             uuid_sae=uuid_sae,
