@@ -20,12 +20,13 @@ export const Pagination: React.FC<PaginationProps> = ({
                                                       }) => {
     const getPageUrl = (page: number | string | null) => {
         if (!page || page === '...') return '#';
+        // Crear la URL basada en el estado actual del navegador
         const url = new URL(window.location.href);
+        // Preservar todos los query params existentes y solo actualizar 'page'
         url.searchParams.set('page', page.toString());
         return url.pathname + url.search;
     };
 
-    // Helper para generar el rango numérico (ej: 1 ... 4 5 6 ... 12)
     const getPageNumbers = () => {
         const delta = 1;
         const range: number[] = [];
@@ -59,19 +60,18 @@ export const Pagination: React.FC<PaginationProps> = ({
 
     return (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-1 py-0.5">
-            {/* Resumen de texto */}
             <div className="text-xs font-medium text-base-content/70 text-center sm:text-left">
                 Página <span className="font-bold text-base-content">{currentPage}</span> de{' '}
                 <span className="font-bold text-base-content">{totalPages}</span>
             </div>
 
-            {/* Controles de navegación */}
             <div className="flex items-center gap-1.5">
                 {/* Botón Anterior */}
                 {hasPrevious && previousPageNumber ? (
                     <Link
                         href={getPageUrl(previousPageNumber)}
                         preserveScroll
+                        preserveState
                         className="btn btn-xs sm:btn-sm btn-ghost rounded-xl gap-1 text-xs font-semibold hover:bg-base-200"
                     >
                         <span className="icon-[heroicons--chevron-left-20-solid] size-4"/>
@@ -87,7 +87,7 @@ export const Pagination: React.FC<PaginationProps> = ({
                     </button>
                 )}
 
-                {/* Lista de números de página (Oculto en móvil muy pequeño) */}
+                {/* Números de página */}
                 <div className="hidden sm:flex items-center gap-1">
                     {pageNumbers.map((page, idx) => {
                         if (page === '...') {
@@ -112,6 +112,7 @@ export const Pagination: React.FC<PaginationProps> = ({
                                 key={page}
                                 href={getPageUrl(page)}
                                 preserveScroll
+                                preserveState
                                 className="btn btn-xs sm:btn-sm btn-ghost rounded-xl font-medium min-w-[32px] text-base-content/70 hover:text-base-content hover:bg-base-200"
                             >
                                 {page}
@@ -125,6 +126,7 @@ export const Pagination: React.FC<PaginationProps> = ({
                     <Link
                         href={getPageUrl(nextPageNumber)}
                         preserveScroll
+                        preserveState
                         className="btn btn-xs sm:btn-sm btn-ghost rounded-xl gap-1 text-xs font-semibold hover:bg-base-200"
                     >
                         <span className="hidden sm:inline">Siguiente</span>

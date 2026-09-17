@@ -72,11 +72,13 @@ export const DocumentosSaeTable: React.FC<DocumentosSaeTableProps> = ({
     };
 
     const applyFilters = (newFilters: FilterState, targetPage: string = '1') => {
-        const params = new URLSearchParams();
+        const params = new URLSearchParams(window.location.search);
 
         Object.entries(newFilters).forEach(([key, value]) => {
             if (value && value !== 'todos') {
                 params.set(key, value);
+            } else {
+                params.delete(key);
             }
         });
 
@@ -146,6 +148,7 @@ export const DocumentosSaeTable: React.FC<DocumentosSaeTableProps> = ({
         const baseCols: Column<DocumentoSAE>[] = [
             {
                 header: 'Folio / Identificación',
+                sortKey: 'folio',
                 cell: (doc) => {
                     const uuidDisplay = doc.uuid_xml || doc.uuid_sae;
                     return (
@@ -164,10 +167,12 @@ export const DocumentosSaeTable: React.FC<DocumentosSaeTableProps> = ({
             },
             {
                 header: 'Fecha',
+                sortKey: 'fecha',
                 cell: (doc) => <span className="text-xs whitespace-nowrap">{formatDate(doc.fecha)}</span>
             },
             {
                 header: 'Concepto / Cliente',
+                sortKey: 'cliente',
                 cell: (doc) => (
                     <div className="max-w-[220px] truncate" title={doc.cliente}>
                         <div className="font-medium text-xs text-base-content truncate">{doc.cliente}</div>
@@ -176,34 +181,40 @@ export const DocumentosSaeTable: React.FC<DocumentosSaeTableProps> = ({
             },
             {
                 header: 'Almacén',
+                sortKey: 'almacen',
                 cell: (doc) => <span className="badge badge-ghost badge-sm whitespace-nowrap">{doc.almacen}</span>
             },
             {
                 header: 'Subtotal',
+                sortKey: 'subtotal',
                 className: 'text-right font-medium text-xs',
                 headerClassName: 'text-right',
                 cell: (doc) => formatCurrency(doc.subtotal)
             },
             {
                 header: 'Impuesto',
+                sortKey: 'total_impuesto4',
                 className: 'text-right font-medium text-xs text-base-content/70',
                 headerClassName: 'text-right',
                 cell: (doc) => formatCurrency(doc.total_impuesto4)
             },
             {
                 header: 'Descuento',
+                sortKey: 'total_descuento',
                 className: 'text-right font-medium text-xs text-base-content/70',
                 headerClassName: 'text-right',
                 cell: (doc) => formatCurrency(doc.total_descuento)
             },
             {
                 header: 'Total',
+                sortKey: 'total',
                 className: 'text-right font-bold text-primary text-xs',
                 headerClassName: 'text-right',
                 cell: (doc) => formatCurrency(doc.total)
             },
             {
                 header: 'Contabilizado',
+                sortKey: 'contabilizado',
                 className: 'text-center',
                 headerClassName: 'text-center',
                 cell: (doc) => (
@@ -236,6 +247,7 @@ export const DocumentosSaeTable: React.FC<DocumentosSaeTableProps> = ({
         if (!isCorte) {
             baseCols.push({
                 header: 'Estatus SAE',
+                sortKey: 'status',
                 className: 'text-center',
                 headerClassName: 'text-center',
                 cell: (doc) => renderStatusBadge(doc.status)

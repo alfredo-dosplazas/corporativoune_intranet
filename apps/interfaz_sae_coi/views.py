@@ -20,7 +20,9 @@ from apps.core.utils.navigation import paginate_list, make_breadcrumbs
 from apps.interfaz_sae_coi.generators import PolizaVentaGenerator, PolizaCostoVentaGenerator, PolizaCorteCajaGenerator, \
     PolizaNotaCreditoGenerator, PolizaNotaDevolucionGenerator
 from apps.interfaz_sae_coi.models import DocumentoContabilizado
-from apps.interfaz_sae_coi.services import obtener_cobros_del_dia
+from apps.interfaz_sae_coi.services.corte_caja import obtener_cobros_del_dia
+from apps.interfaz_sae_coi.services.documentos_helpers import enrich_and_filter_contabilidad, sort_documentos
+from apps.interfaz_sae_coi.services.documentos_strategies import DOCUMENTO_STRATEGIES
 from apps.sae.db import sae_session
 from apps.sae.models_sae import get_sae_models, FacturaMixin
 
@@ -37,371 +39,58 @@ TIPOS_DOCUMENTOS = [
 def documentos_contabilizar_sae(request):
     today = now().date()
 
-    q = request.GET.get('q', '').strip()
-    dia = request.GET.get('dia', str(today.day))
-    mes = request.GET.get('mes', str(today.month))
-    anio = request.GET.get('anio', str(today.year))
-    almacen = request.GET.get('almacen', '')
-    tipo_documento = request.GET.get('tipo_documento', 'ventas')
-    estado_conta = request.GET.get('estado_conta', 'todos')
+    filters = {
+        'q': request.GET.get('q', '').strip(),
+        'dia': request.GET.get('dia', None),
+        'mes': request.GET.get('mes', str(today.month)),
+        'anio': request.GET.get('anio', str(today.year)),
+        'almacen': request.GET.get('almacen', ''),
+        'tipo_documento': request.GET.get('tipo_documento', 'ventas'),
+        'estado_conta': request.GET.get('estado_conta', 'todos'),
+    }
+
+    # Ordenamiento enviado desde los query parameters
+    order_by = request.GET.get('order_by', 'fecha')
+    order_dir = request.GET.get('order_dir', 'desc')
 
     with sae_session() as (db_sae, suffix):
         m = get_sae_models(suffix)
 
-        # 1. LISTA DE ALMACENES PARA LOS FILTROS
+        # 1. Almacenes para filtros
         almacenes_db = [a.nombre for a in db_sae.query(m.Almacen.nombre).all() if a.nombre]
-        almacenes = almacenes_db + ['Sin Almacén / GENERAL']  # Opción fallback en los selectores
+        almacenes = almacenes_db + ['Sin Almacén / GENERAL']
 
-        documentos_raw = []
+        # 2. Selección de la Estrategia según el tipo de documento
+        strategy = DOCUMENTO_STRATEGIES.get(
+            filters['tipo_documento'],
+            DOCUMENTO_STRATEGIES['ventas']
+        )
 
-        if tipo_documento == 'corte_caja':
-            folio_clean = func.trim(m.CuenDet.no_factura)
+        # 3. Obtener consulta base de SAE
+        documentos_raw = strategy.fetch_documentos(db_sae, m, filters)
 
-            almacen_expr = func.coalesce(
-                m.AlmacenFactura.nombre,
-                m.AlmacenNota.nombre,
-                'GENERAL'
-            ).label('almacen_nombre')
+        # 4. Cruzar información con COI y Django
+        documentos_procesados = enrich_and_filter_contabilidad(
+            documentos_raw,
+            suffix,
+            filters['estado_conta'],
+            coi_session,
+            get_coi_models,
+            DocumentoContabilizado
+        )
 
-            subquery = db_sae.query(
-                m.CuenDet.id_mov,
-                m.CuenDet.fecha_apli.label('fecha'),
-                m.CuenDet.importe,
-                almacen_expr
-            ).join(
-                m.Concepto, m.CuenDet.num_cpto == m.Concepto.num_cpto
-            ).outerjoin(
-                m.Cliente, m.CuenDet.cve_clie == m.Cliente.clave
-            ).outerjoin(
-                m.Factura, folio_clean == func.trim(m.Factura.folio)
-            ).outerjoin(
-                m.AlmacenFactura, m.Factura.num_alma == m.AlmacenFactura.clave
-            ).outerjoin(
-                m.NotaVenta, folio_clean == func.trim(m.NotaVenta.folio)
-            ).outerjoin(
-                m.AlmacenNota, m.NotaVenta.num_alma == m.AlmacenNota.clave
-            ).filter(
-                m.CuenDet.tipo_mov == 'A',  # Solo Abonos
-                m.Concepto.es_forma_pago == 'S'
-            )
+        # 5. Ordenar resultados en memoria
+        documentos_ordenados = sort_documentos(documentos_procesados, order_by, order_dir)
 
-            if dia and dia.isdigit():
-                subquery = subquery.filter(extract('day', m.CuenDet.fecha_apli) == int(dia))
-            if mes and mes.isdigit():
-                subquery = subquery.filter(extract('month', m.CuenDet.fecha_apli) == int(mes))
-            if anio and anio.isdigit():
-                subquery = subquery.filter(extract('year', m.CuenDet.fecha_apli) == int(anio))
-
-            subq = subquery.subquery()
-
-            query = db_sae.query(
-                subq.c.fecha,
-                subq.c.almacen_nombre.label('almacen'),
-                func.sum(subq.c.importe).label('total'),
-                func.count(subq.c.id_mov).label('total_movimientos')
-            ).group_by(
-                subq.c.fecha,
-                subq.c.almacen_nombre
-            ).order_by(
-                subq.c.fecha.desc()
-            )
-
-            if almacen:
-                if almacen == 'Sin Almacén / GENERAL':
-                    query = query.filter(subq.c.almacen_nombre == 'GENERAL')
-                else:
-                    query = query.filter(subq.c.almacen_nombre == almacen)
-
-            res = query.all()
-            for r in res:
-                dict_res = r._asdict()
-                fecha_str = dict_res['fecha'].strftime('%Y%m%d') if dict_res['fecha'] else 'S_F'
-                alm_nombre = dict_res['almacen'] or 'GEN'
-                alm_code = alm_nombre[:3].upper().replace(' ', '')
-
-                folio_corte = f"C-M-{alm_code}-{fecha_str}"[:20]
-                folio_corte_cp = f"C-CP-{alm_code}-{fecha_str}"[:20]
-
-                dict_res['folio'] = folio_corte
-                dict_res['folio_cp'] = folio_corte_cp
-                dict_res['cliente'] = f"CORTE DE CAJA ({dict_res['total_movimientos']} PAGOS)"
-                dict_res['subtotal'] = round(float(dict_res['total'] or 0) / 1.16, 2)
-                dict_res['total_impuesto4'] = round(float(dict_res['total'] or 0) - dict_res['subtotal'], 2)
-                dict_res['uuid_xml'] = ''
-                dict_res['uuid_sae'] = ''
-                dict_res['status'] = 'A'
-                documentos_raw.append(dict_res)
-
-        elif tipo_documento == 'notas_credito':
-            ModeloNC = m.NotaCredito
-
-            query = db_sae.query(
-                ModeloNC.folio,
-                ModeloNC.fecha,
-                m.Cliente.nombre.label('cliente'),
-                m.Almacen.nombre.label('almacen'),
-                ModeloNC.subtotal,
-                ModeloNC.total_impuesto4,
-                ModeloNC.total,
-                ModeloNC.status,
-                m.CFDI.uuid_sat.label('uuid_xml'),
-                m.CoiXml.uuid_cfdi_sae.label('uuid_sae'),
-            ).join(
-                m.Cliente
-            ).outerjoin(
-                m.Almacen, ModeloNC.num_alma == m.Almacen.clave
-            ).outerjoin(
-                m.CFDI, func.trim(ModeloNC.folio) == func.trim(m.CFDI.folio)
-            ).outerjoin(
-                m.CoiXml, m.CFDI.uuid_sat == m.CoiXml.id_xml_sat
-            )
-
-            # Si se usó m.Factura como fallback, filtramos por tipo de documento 'D' (Devoluciones/NC)
-            if hasattr(ModeloNC, 'tip_doc'):
-                query = query.filter(ModeloNC.tip_doc == 'D')
-
-            query = query.order_by(ModeloNC.fecha.desc(), ModeloNC.folio.desc())
-
-            if q:
-                sp = f"%{q}%"
-                query = query.filter(
-                    or_(
-                        ModeloNC.folio.ilike(sp),
-                        m.Cliente.nombre.ilike(sp),
-                        m.CFDI.uuid_sat.ilike(sp),
-                        m.CoiXml.id_xml_sat.ilike(sp),
-                    )
-                )
-            if almacen:
-                if almacen == 'Sin Almacén / GENERAL':
-                    query = query.filter(m.Almacen.nombre.is_(None))
-                else:
-                    query = query.filter(m.Almacen.nombre == almacen)
-
-            if dia and dia.isdigit():
-                query = query.filter(extract('day', ModeloNC.fecha) == int(dia))
-            if mes and mes.isdigit():
-                query = query.filter(extract('month', ModeloNC.fecha) == int(mes))
-            if anio and anio.isdigit():
-                query = query.filter(extract('year', ModeloNC.fecha) == int(anio))
-
-            documentos_raw = [f._asdict() for f in query.all()]
-
-        elif tipo_documento == 'notas_devolucion':
-            ModeloNC = m.NotaDevolucion
-
-            query = db_sae.query(
-                ModeloNC.folio,
-                ModeloNC.fecha,
-                m.Cliente.nombre.label('cliente'),
-                m.Almacen.nombre.label('almacen'),
-                ModeloNC.subtotal,
-                ModeloNC.total_impuesto4,
-                ModeloNC.total,
-                ModeloNC.status,
-                m.CFDI.uuid_sat.label('uuid_xml'),
-                m.CoiXml.uuid_cfdi_sae.label('uuid_sae'),
-            ).join(
-                m.Cliente
-            ).outerjoin(
-                m.Almacen, ModeloNC.num_alma == m.Almacen.clave
-            ).outerjoin(
-                m.CFDI, func.trim(ModeloNC.folio) == func.trim(m.CFDI.folio)
-            ).outerjoin(
-                m.CoiXml, m.CFDI.uuid_sat == m.CoiXml.id_xml_sat
-            )
-
-            # Si se usó m.Factura como fallback, filtramos por tipo de documento 'D' (Devoluciones/NC)
-            if hasattr(ModeloNC, 'tip_doc'):
-                query = query.filter(ModeloNC.tip_doc == 'D')
-
-            query = query.order_by(ModeloNC.fecha.desc(), ModeloNC.folio.desc())
-
-            if q:
-                sp = f"%{q}%"
-                query = query.filter(
-                    or_(
-                        ModeloNC.folio.ilike(sp),
-                        m.Cliente.nombre.ilike(sp),
-                        m.CFDI.uuid_sat.ilike(sp),
-                        m.CoiXml.id_xml_sat.ilike(sp),
-                    )
-                )
-            if almacen:
-                if almacen == 'Sin Almacén / GENERAL':
-                    query = query.filter(m.Almacen.nombre.is_(None))
-                else:
-                    query = query.filter(m.Almacen.nombre == almacen)
-
-            if dia and dia.isdigit():
-                query = query.filter(extract('day', ModeloNC.fecha) == int(dia))
-            if mes and mes.isdigit():
-                query = query.filter(extract('month', ModeloNC.fecha) == int(mes))
-            if anio and anio.isdigit():
-                query = query.filter(extract('year', ModeloNC.fecha) == int(anio))
-
-            documentos_raw = [f._asdict() for f in query.all()]
-
-        else:
-            # --- CONSULTA FACTURACIÓN (VENTAS) ---
-            query = db_sae.query(
-                m.Factura.folio,
-                m.Factura.fecha,
-                m.Cliente.nombre.label('cliente'),
-                m.Almacen.nombre.label('almacen'),
-                m.Factura.subtotal,
-                m.Factura.total_impuesto4,
-                m.Factura.total_descuento,
-                m.Factura.total,
-                m.Factura.status,
-                m.CFDI.uuid_sat.label('uuid_xml'),
-                m.CoiXml.uuid_cfdi_sae.label('uuid_sae'),
-            ).join(
-                m.Cliente
-            ).outerjoin(
-                m.Almacen, m.Factura.num_alma == m.Almacen.clave
-            ).outerjoin(
-                m.CFDI, func.trim(m.Factura.folio) == func.trim(m.CFDI.folio)
-            ).outerjoin(
-                m.CoiXml, m.CFDI.uuid_sat == m.CoiXml.id_xml_sat
-            )
-
-            if hasattr(m.Factura, 'tip_doc'):
-                query = query.filter(m.Factura.tip_doc == 'F')
-
-            query = query.order_by(m.Factura.fecha.desc(), m.Factura.folio.desc())
-
-            if q:
-                sp = f"%{q}%"
-                query = query.filter(
-                    or_(
-                        m.Factura.folio.ilike(sp),
-                        m.Cliente.nombre.ilike(sp),
-                        m.CFDI.uuid_sat.ilike(sp),
-                        m.CoiXml.id_xml_sat.ilike(sp),
-                    )
-                )
-            if almacen:
-                if almacen == 'Sin Almacén / GENERAL':
-                    query = query.filter(m.Almacen.nombre.is_(None))
-                else:
-                    query = query.filter(m.Almacen.nombre == almacen)
-
-            if dia and dia.isdigit():
-                query = query.filter(extract('day', m.Factura.fecha) == int(dia))
-            if mes and mes.isdigit():
-                query = query.filter(extract('month', m.Factura.fecha) == int(mes))
-            if anio and anio.isdigit():
-                query = query.filter(extract('year', m.Factura.fecha) == int(anio))
-
-            documentos_raw = [f._asdict() for f in query.all()]
-
-        # --- VALIDACIÓN DE ESTADO EN COI Y DJANGO ---
-        folios_raw = []
-        for f in documentos_raw:
-            if f.get('folio'):
-                folios_raw.append(f['folio'])
-            if f.get('folio_cp'):
-                folios_raw.append(f['folio_cp'])
-
-        folios_clean = [f.strip() for f in folios_raw]
-        folios_busqueda = list(set(folios_raw + folios_clean))
-
-        coi_map = {}
-        with coi_session() as (db_coi, suffix_coi):
-            m_coi = get_coi_models(suffix_coi)
-
-            if folios_busqueda:
-                CHUNK_SIZE = 1000
-                registros_coi = []
-
-                for i in range(0, len(folios_busqueda), CHUNK_SIZE):
-                    chunk = folios_busqueda[i:i + CHUNK_SIZE]
-                    sub_registros = db_coi.query(m_coi.DiarioSAE).filter(
-                        m_coi.DiarioSAE.referencia.in_(chunk)
-                    ).all()
-                    registros_coi.extend(sub_registros)
-
-                for reg in registros_coi:
-                    contabilizado_flag = str(reg.contabiliz or '').strip().upper() == 'S'
-                    info = {
-                        'contabiliz': contabilizado_flag,
-                        'poliza': reg.poliza,
-                        'ejercicio': reg.ejercicio,
-                        'periodo': reg.periodo,
-                        'fecha_conta': reg.fecha_conta.isoformat() if reg.fecha_conta else None
-                    }
-                    if reg.referencia:
-                        coi_map[reg.referencia] = info
-                        coi_map[reg.referencia.strip()] = info
-
-        django_docs = {
-            doc.folio_sae: doc
-            for doc in DocumentoContabilizado.objects.filter(
-                empresa_suffix=suffix,
-                folio_sae__in=folios_busqueda
-            )
-        }
-
-        documentos_procesados = []
-        for doc_dict in documentos_raw:
-            folio_db = doc_dict.get('folio') or ''
-            folio_cp_db = doc_dict.get('folio_cp') or ''
-
-            folio_clean_key = folio_db.strip()
-            folio_cp_clean_key = folio_cp_db.strip()
-
-            info_coi_main = coi_map.get(folio_db) or coi_map.get(folio_clean_key)
-            info_django_main = django_docs.get(folio_db) or django_docs.get(folio_clean_key)
-
-            info_coi_cp = coi_map.get(folio_cp_db) or coi_map.get(folio_cp_clean_key) if folio_cp_db else None
-            info_django_cp = django_docs.get(folio_cp_db) or django_docs.get(
-                folio_cp_clean_key) if folio_cp_db else None
-
-            is_main_contabilizado = bool((info_coi_main and info_coi_main['contabiliz']) or (
-                    info_django_main and info_django_main.status == 'ENVIADO_COI'))
-            is_cp_contabilizado = bool((info_coi_cp and info_coi_cp['contabiliz']) or (
-                    info_django_cp and info_django_cp.status == 'ENVIADO_COI'))
-
-            doc_dict['contabilizado'] = is_main_contabilizado or is_cp_contabilizado
-
-            if doc_dict['contabilizado']:
-                polizas_info_list = []
-
-                if is_main_contabilizado:
-                    if info_coi_main and info_coi_main['contabiliz']:
-                        polizas_info_list.append(
-                            f"Póliza {info_coi_main['poliza']} ({info_coi_main['periodo']}/{info_coi_main['ejercicio']})")
-                    elif info_django_main:
-                        polizas_info_list.append(f"{info_django_main.poliza_generada or 'Procesada por Django'}")
-
-                if is_cp_contabilizado:
-                    if info_coi_cp and info_coi_cp['contabiliz']:
-                        polizas_info_list.append(
-                            f"CP: Póliza {info_coi_cp['poliza']} ({info_coi_cp['periodo']}/{info_coi_cp['ejercicio']})")
-                    elif info_django_cp:
-                        polizas_info_list.append(f"CP: {info_django_cp.poliza_generada or 'Procesada por Django'}")
-
-                doc_dict['origen_conta'] = 'COI' if (info_coi_main or info_coi_cp) else 'DJANGO'
-                doc_dict['poliza_info'] = " | ".join(polizas_info_list)
-            else:
-                doc_dict['origen_conta'] = None
-                doc_dict['poliza_info'] = None
-
-            if estado_conta == 'contabilizados' and not doc_dict['contabilizado']:
-                continue
-            if estado_conta == 'no_contabilizados' and doc_dict['contabilizado']:
-                continue
-
-            documentos_procesados.append(doc_dict)
-
-        paginated_data = paginate_list(documentos_procesados, request, page_size=12)
+        # 6. Paginación
+        paginated_data = paginate_list(documentos_ordenados, request, page_size=12)
 
     props = {
         'data': paginated_data,
         'filters': {
-            'q': q, 'dia': dia, 'mes': mes, 'anio': anio, 'almacen': almacen,
-            'tipo_documento': tipo_documento, 'estado_conta': estado_conta
+            **filters,
+            'order_by': order_by,
+            'order_dir': order_dir
         },
         'options': {
             'tipos_documentos': TIPOS_DOCUMENTOS,

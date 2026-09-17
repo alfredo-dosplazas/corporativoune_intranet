@@ -25,7 +25,7 @@ export function DataTable<T>({
                                  onRowClick,
                                  emptyMessage = 'No se encontraron registros.',
                                  searchPlaceholder = 'Buscar...',
-                                 searchParamName = 'search',
+                                 searchParamName = 'q',
                                  filters,
                                  extraFilters,
                              }: DataTableProps<T>) {
@@ -39,7 +39,6 @@ export function DataTable<T>({
         previous_page_number,
     } = paginatedData;
 
-    // Obtener la búsqueda inicial priorizando la prop enviada por el servidor
     const getInitialSearch = () => {
         if (filters?.search !== undefined) {
             return filters.search;
@@ -51,7 +50,11 @@ export function DataTable<T>({
     const prevSearch = useRef(search);
     const isFirstRender = useRef(true);
 
-    // Sincronizar el input si cambia la prop o el usuario navega (back/forward)
+    // Obtener valores de ordenamiento actual de la URL
+    const currentUrlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+    const sortColumn = currentUrlParams.get('order_by') || '';
+    const sortDirection = (currentUrlParams.get('order_dir') || currentUrlParams.get('direction') || 'asc') as 'asc' | 'desc';
+
     useEffect(() => {
         const serverSearch = filters?.search ?? (new URLSearchParams(window.location.search).get(searchParamName) || '');
         if (serverSearch !== search) {
@@ -60,7 +63,7 @@ export function DataTable<T>({
         }
     }, [current_page, filters?.search, searchParamName]);
 
-    // Debounce para peticiones con Inertia
+    // Manejar debounce en la búsqueda conservando los parámetros existentes
     useEffect(() => {
         if (isFirstRender.current) {
             isFirstRender.current = false;
@@ -72,8 +75,11 @@ export function DataTable<T>({
         const timer = setTimeout(() => {
             const url = new URL(window.location.href);
 
-            if (search) url.searchParams.set(searchParamName, search);
-            else url.searchParams.delete(searchParamName);
+            if (search) {
+                url.searchParams.set(searchParamName, search);
+            } else {
+                url.searchParams.delete(searchParamName);
+            }
 
             url.searchParams.set('page', '1');
             prevSearch.current = search;
@@ -88,14 +94,34 @@ export function DataTable<T>({
         return () => clearTimeout(timer);
     }, [search, searchParamName]);
 
-    const handleClearSearch = () => {
-        setSearch('');
+    // Handler para ordenar por columna
+    const handleSort = (sortKey: string) => {
+        const url = new URL(window.location.href);
+        const currentSort = url.searchParams.get('order_by');
+        const currentDir = url.searchParams.get('order_dir') || 'asc';
+
+        let newDir = 'asc';
+        // Si ya está ordenado por esta columna en 'asc', cambiamos a 'desc'
+        if (currentSort === sortKey && currentDir === 'asc') {
+            newDir = 'desc';
+        }
+
+        url.searchParams.set('order_by', sortKey);
+        url.searchParams.set('order_dir', newDir);
+        url.searchParams.delete('direction');
+        url.searchParams.set('page', '1');
+
+        router.get(
+            url.pathname + url.search,
+            {},
+            {preserveState: false, replace: true} // Utiliza preserveState: false o actualiza por completo el estado para reflejar los params de la URL
+        );
     };
 
     return (
         <div
             className="flex flex-col h-full w-full bg-base-100 rounded-2xl border border-base-200 shadow-sm overflow-hidden">
-            {/* BARRA SUPERIOR CON BÚSQUEDA Y FILTROS EXTRA */}
+            {/* BARRA SUPERIOR DE BÚSQUEDA Y FILTROS */}
             <div
                 className="p-3 border-b border-base-200 bg-base-100/80 backdrop-blur flex flex-col md:flex-row md:items-center justify-between gap-3 flex-none">
                 <div className="w-full md:w-80">
@@ -112,7 +138,7 @@ export function DataTable<T>({
                         {search && (
                             <button
                                 type="button"
-                                onClick={handleClearSearch}
+                                onClick={() => setSearch('')}
                                 className="btn btn-ghost btn-xs btn-circle text-base-content/50 hover:text-base-content"
                                 title="Limpiar búsqueda"
                             >
@@ -137,6 +163,9 @@ export function DataTable<T>({
                     keyExtractor={keyExtractor}
                     onRowClick={onRowClick}
                     emptyMessage={emptyMessage}
+                    sortColumn={sortColumn}
+                    sortDirection={sortDirection}
+                    onSort={handleSort}
                 />
             </div>
 

@@ -19,10 +19,10 @@ class PolizaVentaGenerator:
         uuid_sat = factura_data.get('uuid_xml', '') or ''
         uuid_sae = factura_data.get('uuid_sae', '') or ''
 
-        subtotal = float(factura_data.get('subtotal') or 0.0)
-        iva = float(factura_data.get('total_impuesto4') or 0.0)
-        descuento = float(factura_data.get('total_descuento') or 0.0)
-        total = float(factura_data.get('total') or 0.0)
+        subtotal = round(float(factura_data.get('subtotal') or 0.0), 2)
+        iva = round(float(factura_data.get('total_impuesto4') or 0.0), 2)
+        descuento = round(float(factura_data.get('total_descuento') or 0.0), 2)
+        total = round(float(factura_data.get('total') or 0.0), 2)
 
         concepto_head = f"POLIZA DE Venta / Factura / {folio} / {cliente_nombre} / {almacen}"[:100]
 
