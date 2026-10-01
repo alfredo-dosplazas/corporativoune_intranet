@@ -6,6 +6,8 @@ from apps.compras.views.ordenes import OrdenPdfView, ordenes_list, \
     orden_update, orden_delete, orden_create
 from apps.compras.views.proveedores import proveedores_list, proveedor_create, proveedor_update, proveedor_delete
 
+from . import views
+
 app_name = 'compras'
 
 urlpatterns = [
@@ -15,7 +17,7 @@ urlpatterns = [
     path('proveedores/<int:pk>/', proveedor_update, name='proveedores__detail'),
     path('proveedores/eliminar/<int:pk>/', proveedor_delete, name='proveedores__delete'),
 
-    path('', ordenes_list, name='ordenes__list'),
+    path('', views.ordenes.OrdenListView.as_view(), name='ordenes__list'),
     path('crear/', orden_create, name='ordenes__create'),
     path('editar/<int:pk>/', orden_update, name='ordenes__detail'),
     path('<int:pk>/', orden_update, name='ordenes__update'),

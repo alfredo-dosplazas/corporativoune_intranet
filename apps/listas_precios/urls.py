@@ -1,11 +1,12 @@
 from django.urls import path
 from . import views
+from .autocompletes import LineaAutocompleteView
+
 app_name = 'listas_precios'
 
 urlpatterns = [
-    path('', views.listas_precios, name='index'),
+    path('', views.ListaPrecioView.as_view(), name='index'),
 
-    path('guardar/', views.guardar_listas_precios, name='guardar_listas_precios'),
-
-    path('exportar-excel/', views.exportar_excel_precios, name='exportar_excel_precios'),
+    path('exportar-excel/', views.ExportarListasExcelView.as_view(), name='exportar_excel'),
+    path('lineas-autocomplete/', LineaAutocompleteView.as_view(), name='lineas_autocomplete'),
 ]

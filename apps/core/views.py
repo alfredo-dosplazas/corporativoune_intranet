@@ -6,54 +6,19 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView as BaseLoginView, LogoutView as BaseLogoutView
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import TemplateView
-from inertia import render
 
 from apps.core.forms import LoginForm
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.querysets import modulos_visibles
 
 
-def login_view(request):
-    if request.user.is_authenticated:
-        return redirect('home')
-
-    if request.method == 'GET':
-        return render(request, 'Auth/Login')
-
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-        except json.JSONDecodeError:
-            data = request.POST
-
-        username = data.get('username', '').strip()
-        password = data.get('password', '')
-
-        errors = {}
-
-        if not username:
-            errors['username'] = 'El usuario o correo es obligatorio.'
-        if not password:
-            errors['password'] = 'La contraseña es obligatoria.'
-
-        if not errors:
-            user = authenticate(request, username=username, password=password)
-            if user is not None:
-                login(request, user)
-                next_url = request.GET.get('next', 'home')
-                return redirect(next_url)
-            else:
-                errors['username'] = 'Las credenciales ingresadas son incorrectas.'
-
-        return render(
-            request,
-            'Auth/Login',
-            props={'errors': errors},
-        )
+class LoginView(BaseLoginView):
+    template_name = 'login.html'
+    form_class = LoginForm
 
 
 class LogoutView(BaseLogoutView):
@@ -77,10 +42,10 @@ def home(request):
                 "url": url,
             })
 
-    props = {
+    context = {
         'modulos': modulos_disponibles,
     }
-    return render(request, 'Home', props)
+    return render(request, 'home.html', context)
 
 
 class PerfilView(LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
@@ -142,33 +107,3 @@ class PerfilView(LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
             {'title': 'Inicio', 'url': reverse('home')},
             {'title': 'Perfil'},
         ]
-
-
-def handler_404(request, exception=None):
-    is_inertia = request.headers.get('x-inertia')
-
-    description = str(exception) if exception else 'La página que buscas no existe o fue movida.'
-
-    return render(
-        request,
-        'Error',
-        props={
-            'status': 404,
-            'title': 'Página no encontrada',
-            'description': description,
-        },
-    )
-
-
-def handler_403(request, exception=None):
-    description = str(exception) if exception else 'No tienes permisos para acceder a este recurso.'
-
-    return render(
-        request,
-        'Error',
-        props={
-            'status': 403,
-            'title': 'Acceso Denegado',
-            'description': description,
-        },
-    )

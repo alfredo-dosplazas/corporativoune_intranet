@@ -1,4 +1,4 @@
-<footer id="footer" class="footer footer-center bg-primary text-primary-content py-3 px-4 border-t border-primary/30">
+<footer id="footer" class="hidden md:block footer footer-center bg-primary text-primary-content px-4 border-t border-primary/30">
     <div class="flex flex-col sm:flex-row items-center justify-between w-full max-w-6xl mx-auto gap-3">
 
         <div class="text-xs md:text-sm opacity-90 font-medium tracking-wide">
@@ -8,8 +8,11 @@
         <!-- Logos de empresas -->
         <div class="flex flex-wrap justify-center sm:justify-end items-center gap-5 sm:gap-6">
             {% for empresa in empresas %}
-                <c-component is="apps.empresas.logos.{{ empresa.abreviatura }}"
-                             class="size-8 sm:size-12 opacity-90 hover:opacity-100 transition-opacity"/>
+                {% if empresa.logo %}
+                    <img src="{{ empresa.logo.url }}"
+                         alt="{{ empresa.nombre }}"
+                         class="size-6 brightness-0 invert opacity-90 hover:opacity-100 transition-opacity">
+                {% endif %}
             {% endfor %}
         </div>
 

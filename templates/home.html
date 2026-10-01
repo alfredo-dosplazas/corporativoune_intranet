@@ -1,109 +1,200 @@
 <c-layouts.app>
-    <!-- Card de Bienvenida -->
-    <div class="card bg-base-100 shadow-sm mb-6">
-        <div class="card-body">
-            <div class="flex gap-6 items-center">
-                {% if user.contacto.empresa %}
-                    <c-component is="apps.empresas.logos.{{ user.contacto.empresa.abreviatura }}"
-                                 class="size-20 md:size-24 text-primary"/>
-                {% endif %}
+    <div class="space-y-6 max-w-7xl mx-auto w-full pb-10">
 
-                <div>
-                    <h2 class="card-title">
-                        <div class="flex flex-col md:flex-row gap-1 md:gap-2 items-start md:items-center">
-                            <span class="text-sm md:text-base font-normal">Bienvenido de vuelta,</span>
-                            <span class="font-bold text-primary">{{ user.contacto|default:user }}</span>
+        <!-- Hero / Header Banner -->
+        <div class="card bg-base-100 border border-base-200/80 shadow-sm overflow-hidden">
+            <div class="card-body p-6 md:p-8 relative bg-linear-to-r from-base-100 via-base-100 to-primary/5">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+                    <div class="flex items-center gap-5">
+                        {% if user.contacto.empresa %}
+                            {% if user.contacto.empresa.logo %}
+                                <div class="size-12 md:size-14 flex items-center justify-center">
+                                    <img src="{{ user.contacto.empresa.logo.url }}"
+                                         alt="{{ user.contacto.empresa.nombre }}"
+                                         class="max-h-full max-w-full object-contain filter"
+                                         style="filter: drop-shadow(0px 0px 0px var(--p));">
+                                </div>
+                            {% endif %}
+                        {% endif %}
+
+                        <div class="space-y-1">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
+                                <span class="size-1.5 rounded-full bg-primary animate-pulse"></span>
+                                Sesión Activa
+                            </span>
+                            <h1 class="text-2xl md:text-3xl font-extrabold text-base-content tracking-tight">
+                                Hola, <span class="text-primary">{{ user.contacto|default:user }}</span> 👋
+                            </h1>
+                            <p class="text-xs md:text-sm text-base-content/70">
+                                Selecciona una aplicación para comenzar tus tareas diarias.
+                            </p>
                         </div>
-                    </h2>
-                    <p class="text-xs md:text-sm text-base-content/80">
-                        Accede a los módulos y reportes de la intranet
-                    </p>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    {% if modulos|length %}
-        <div class="card bg-base-100 shadow-sm">
-            <div class="card-body gap-4">
+        {% if modulos|length %}
+            <!-- Contenedor Principal de Módulos -->
+            <div class="space-y-4">
+                <!-- Barra de Herramientas (Título + Búsqueda) -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-base-100 p-4 rounded-2xl border border-base-200/80 shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <h2 class="text-lg font-bold text-base-content">
+                            Módulos Disponibles
+                        </h2>
+                        <span id="contador-modulos" class="badge badge-primary badge-sm font-semibold">
+                            {{ modulos|length }}
+                        </span>
+                    </div>
 
-                <!-- Header con Búsqueda y Filtro -->
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <h2 class="card-title text-xl">Aplicaciones y Accesos Rápidos</h2>
+                    <!-- Input de Búsqueda -->
+                    <div class="relative w-full sm:w-80">
+                        <input type="text"
+                               id="buscar-modulo"
+                               placeholder="Buscar módulo o servicio..."
+                               class="input input-bordered input-sm w-full pl-9 pr-8 transition-all focus:border-primary focus:ring-1 focus:ring-primary"
+                               oninput="filtrarModulos()"/>
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="size-4 absolute left-3 top-2.5 text-base-content/40"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <button id="btn-limpiar-busqueda"
+                                onclick="limpiarBusqueda()"
+                                class="hidden absolute right-2.5 top-2.5 text-base-content/40 hover:text-base-content">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none" viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
 
-                    <!-- Búsqueda en Vivo en el Cliente -->
-                    <div class="form-control w-full sm:w-auto">
-                        <div class="relative w-full sm:w-72">
-                            <input type="text"
-                                   id="buscar-modulo"
-                                   placeholder="Buscar módulo o reporte..."
-                                   class="input input-sm input-bordered w-full pl-9"
-                                   onkeyup="filtrarModulos()"/>
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 class="h-4 w-4 absolute left-3 top-2.5 text-base-content/50" fill="none"
-                                 viewBox="0 0 24 24" stroke="currentColor">
+                <!-- Grid de Módulos -->
+                <div id="contenedor-modulos"
+                     class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {% for modulo in modulos %}
+                        <a href="{{ modulo.url }}"
+                           class="modulo-card group bg-base-100 hover:bg-base-100 p-5 rounded-2xl border border-base-200/80 shadow-sm hover:shadow-md hover:border-primary/40 transition-all duration-200 flex flex-col justify-between relative overflow-hidden">
+
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="p-2 size-11 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-content flex items-center justify-center transition-colors duration-200">
+                                        {% if modulo.icono %}
+                                            <span class="{{ modulo.icono }} text-xl"></span>
+                                        {% else %}
+                                            <span class="icon-[akar-icons--box] text-xl"></span>
+                                        {% endif %}
+                                    </div>
+                                    <span class="text-base-content/30 group-hover:text-primary group-hover:translate-x-1 transition-all duration-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none"
+                                             viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </span>
+                                </div>
+
+                                <div>
+                                    <h3 class="font-bold text-base text-base-content group-hover:text-primary transition-colors line-clamp-1">
+                                        {{ modulo.nombre }}
+                                    </h3>
+                                    <p class="text-xs text-base-content/70 mt-1 line-clamp-2 leading-relaxed">
+                                        {{ modulo.descripcion|default:"Acceso al sistema y herramientas de gestión." }}
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+
+                <!-- Empty state de Búsqueda -->
+                <div id="no-resultados"
+                     class="hidden card bg-base-100 border border-base-200/80 shadow-sm p-12 text-center">
+                    <div class="flex flex-col items-center justify-center space-y-3 max-w-sm mx-auto">
+                        <div class="size-12 rounded-full bg-base-200 flex items-center justify-center text-base-content/50">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="size-6" fill="none" viewBox="0 0 24 24"
+                                 stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                             </svg>
                         </div>
+                        <h3 class="font-bold text-base text-base-content">No se encontraron resultados</h3>
+                        <p class="text-xs text-base-content/60">
+                            No encontramos ningún módulo que coincida con la búsqueda realizada.
+                        </p>
+                        <button onclick="limpiarBusqueda()" class="btn btn-ghost btn-xs text-primary mt-2">
+                            Restablecer filtro
+                        </button>
                     </div>
                 </div>
-
-                <!-- Cards de Módulos (Filtrables) -->
-                <div id="contenedor-modulos">
-                    <c-shared.modulos.cards :modulos="modulos"/>
-                </div>
-
-                <!-- Mensaje sin resultados al buscar -->
-                <div id="no-resultados" class="hidden text-center py-8 text-base-content/60">
-                    No se encontraron módulos o reportes que coincidan con la búsqueda.
-                </div>
-
             </div>
-        </div>
 
-        <!-- Script simple de Filtrado en JS -->
-        <script>
-            function filtrarModulos() {
-                const query = document.getElementById('buscar-modulo').value.toLowerCase();
-                const cards = document.querySelectorAll('#contenedor-modulos .card, #contenedor-modulos a');
-                let visibles = 0;
+            <!-- Script de Filtrado Eficiente -->
+            <script>
+                function filtrarModulos() {
+                    const input = document.getElementById('buscar-modulo');
+                    const query = input.value.toLowerCase().trim();
+                    const cards = document.querySelectorAll('.modulo-card');
+                    const btnLimpiar = document.getElementById('btn-limpiar-busqueda');
+                    let visibles = 0;
 
-                cards.forEach(card => {
-                    const texto = card.innerText.toLowerCase();
-                    if (texto.includes(query)) {
-                        card.style.display = "";
-                        visibles++;
-                    } else {
-                        card.style.display = "none";
-                    }
-                });
+                    cards.forEach(card => {
+                        const texto = card.textContent.toLowerCase();
+                        if (texto.includes(query)) {
+                            card.classList.remove('hidden');
+                            visibles++;
+                        } else {
+                            card.classList.add('hidden');
+                        }
+                    });
 
-                const noRes = document.getElementById('no-resultados');
-                if (visibles === 0 && query !== '') {
-                    noRes.classList.remove('hidden');
-                } else {
-                    noRes.classList.add('hidden');
+                    document.getElementById('contador-modulos').innerText = visibles;
+                    document.getElementById('no-resultados').classList.toggle('hidden', visibles > 0);
+                    btnLimpiar.classList.toggle('hidden', query === '');
                 }
-            }
-        </script>
 
-    {% else %}
-        <div class="card bg-base-100 shadow-md rounded-xl p-8">
-            <div class="flex flex-col justify-center items-center text-center space-y-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-300" fill="none" viewBox="0 0 24 24"
-                     stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M9 17v-6h6v6m2 0h-10a2 2 0 01-2-2V7a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2z"/>
-                </svg>
-                <h2 class="font-extrabold text-2xl text-gray-700">Aplicaciones</h2>
-                <p class="text-gray-500 max-w-xs">
-                    Cuando el área de sistemas habilite módulos, aparecerán aquí.
-                </p>
-                <button class="btn btn-primary btn-sm mt-2">
-                    Contactar a Sistemas
-                </button>
+                function limpiarBusqueda() {
+                    const input = document.getElementById('buscar-modulo');
+                    input.value = '';
+                    filtrarModulos();
+                    input.focus();
+                }
+            </script>
+
+        {% else %}
+            <!-- Empty state Sin Módulos Asignados -->
+            <div class="card bg-base-100 border border-base-200/80 shadow-sm p-8 md:p-12 text-center">
+                <div class="flex flex-col items-center justify-center space-y-4 max-w-sm mx-auto">
+                    <div class="size-16 rounded-2xl bg-base-200/70 flex items-center justify-center text-base-content/40">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="size-8" fill="none" viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                        </svg>
+                    </div>
+                    <div class="space-y-1">
+                        <h2 class="font-bold text-xl text-base-content">Sin Módulos Asignados</h2>
+                        <p class="text-xs md:text-sm text-base-content/60">
+                            Aún no cuentas con permisos para acceder a las aplicaciones del sistema.
+                        </p>
+                    </div>
+                    <a href="mailto:sistemas@corporativoune.com" class="btn btn-primary btn-sm gap-2 mt-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none" viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 002-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        Contactar a Soporte
+                    </a>
+                </div>
             </div>
-        </div>
-    {% endif %}
+        {% endif %}
+
+    </div>
 </c-layouts.app>

@@ -1,0 +1,276 @@
+{% load money %}
+<c-layouts.dashboard>
+    <!-- Contenedor flex-1 con min-h-0 para restringirse a la pantalla disponible -->
+    <div class="flex-1 flex flex-col gap-4 min-h-0">
+
+        <!-- Header y Acciones Principales (shrink-0) -->
+        <div class="shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-100 p-4 rounded-2xl border border-base-200 shadow-sm">
+            <div>
+                <h1 class="text-xl font-bold text-base-content">Listas de Precios y Reglas</h1>
+                <p class="text-xs text-base-content/70 mt-0.5">
+                    Ajusta reglas por línea o sobreescribe precios base por producto directamente.
+                </p>
+            </div>
+            <div class="flex gap-2 shrink-0">
+                <button type="button" onclick="exportarExcel()" class="btn btn-outline btn-success btn-sm gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Exportar Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- Panel de Filtros y Selección Múltiple (shrink-0) -->
+        <div class="shrink-0 card bg-base-100 border border-base-200 shadow-sm">
+            <div class="card-body p-3">
+                <form method="GET" id="filter-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+
+                    <!-- Búsqueda y Autocomplete -->
+                    {{ form }}
+
+                    <!-- Selector Preview -->
+                    <div class="form-control">
+                        <label class="label label-text font-semibold text-xs py-1">Visualizar Preview de Lista</label>
+                        <select id="select-lista-preview" class="select select-bordered select-sm w-full text-primary font-bold" onchange="recalcularPreview()">
+                            {% for precio in precios %}
+                                <option value="{{ precio.clave }}">{{ precio.descripcion }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Acciones de Filtro -->
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm flex-1">Filtrar</button>
+                        <a href="{% url 'listas_precios:index' %}" class="btn btn-ghost btn-sm">Limpiar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Panel de Reglas por Línea (shrink-0) -->
+        {% if filtros_actuales.linea %}
+            <div class="shrink-0 card bg-primary/5 border border-primary/20 shadow-sm">
+                <div class="card-body p-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div>
+                        <h3 class="font-bold text-xs text-primary">
+                            Reglas para Líneas Seleccionadas: {{ filtros_actuales.linea|join:", " }}
+                        </h3>
+                        <p class="text-[11px] text-base-content/70">Ajusta el % de descuento y utilidad para la lista seleccionada.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="form-control">
+                            <span class="text-[10px] font-semibold">% Descuento</span>
+                            <input type="number" step="0.1" id="input-desc" class="input input-bordered input-xs w-20 text-center" value="0"/>
+                        </div>
+                        <div class="form-control">
+                            <span class="text-[10px] font-semibold">% Utilidad</span>
+                            <input type="number" step="0.1" id="input-util" class="input input-bordered input-xs w-20 text-center" value="0"/>
+                        </div>
+                        <button onclick="guardarReglaLinea()" class="btn btn-primary btn-xs mt-3">Guardar Regla</button>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Tabla con Scroll Interno (flex-1 + min-h-0 + overflow-hidden) -->
+        <div class="flex-1 card bg-base-100 border border-base-200 shadow-sm min-h-0 flex flex-col overflow-hidden">
+
+            <!-- Contenedor con scroll vertical propio -->
+            <div class="flex-1 overflow-y-auto">
+                <table class="table table-sm w-full">
+                    <thead class="bg-base-200/80 sticky top-0 z-10 backdrop-blur-sm">
+                    <tr>
+                        <th>Clave</th>
+                        <th>Descripción</th>
+                        <th>Línea</th>
+                        <th class="text-center">Precio SAE (Base 3)</th>
+                        <th class="text-center w-36">Precio Base Custom</th>
+                        <th class="text-center">Regla Aplicada</th>
+                        <th class="text-right text-primary">Preview Precio Final</th>
+                    </tr>
+                    </thead>
+                    <tbody id="tabla-productos">
+                    {% for p in productos %}
+                        <tr class="hover:bg-base-200/30 transition-colors"
+                            data-cve="{{ p.clave }}"
+                            data-linea="{{ p.linea }}"
+                            data-precio-sae="{{ p.precio_base_sae }}">
+
+                            <td class="font-mono text-xs font-bold">{{ p.clave }}</td>
+                            <td class="text-xs">{{ p.descripcion }}</td>
+                            <td><span class="badge badge-ghost badge-xs">{{ p.linea }}</span></td>
+
+                            <td class="text-center text-xs text-base-content/60">
+                                {{ p.precio_base_sae|money }}
+                            </td>
+
+                            <td class="text-center">
+                                <div class="flex items-center justify-center gap-1">
+                                    <input type="number" step="0.01"
+                                           class="input input-bordered input-xs w-24 text-right input-override font-mono"
+                                           value="{{ p.precio_base_custom|default:'' }}"
+                                           placeholder="{{ p.precio_base_sae|money }}"
+                                           onchange="guardarPrecioOverride('{{ p.clave }}', this)"/>
+                                </div>
+                            </td>
+
+                            <td class="text-center font-mono text-xs text-base-content/70 col-regla">-0.0% / +0.0%</td>
+                            <td class="text-right font-bold text-primary text-sm col-precio-preview">$0.00</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-8 text-base-content/60">
+                                No se encontraron productos coincidentes.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Controles de Paginación Fijos al pie de la tabla (shrink-0) -->
+            {% if productos.has_other_pages %}
+                <div class="shrink-0 p-3 bg-base-100 border-t border-base-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                    <span class="text-base-content/70">
+                        Mostrando productos <span class="font-bold">{{ productos.start_index }}</span> a <span class="font-bold">{{ productos.end_index }}</span> de <span class="font-bold">{{ productos.paginator.count }}</span>
+                    </span>
+
+                    <div class="join">
+                        {% if productos.has_previous %}
+                            <a href="?page={{ productos.previous_page_number }}&q={{ filtros_actuales.q }}{% for l in filtros_actuales.linea %}&linea={{ l }}{% endfor %}"
+                               class="join-item btn btn-xs btn-outline">« Ant</a>
+                        {% else %}
+                            <button class="join-item btn btn-xs btn-disabled">« Ant</button>
+                        {% endif %}
+
+                        {% for i in productos.paginator.page_range %}
+                            {% if productos.number == i %}
+                                <button class="join-item btn btn-xs btn-primary active">{{ i }}</button>
+                            {% elif i > productos.number|add:"-3" and i < productos.number|add:"3" %}
+                                <a href="?page={{ i }}&q={{ filtros_actuales.q }}{% for l in filtros_actuales.linea %}&linea={{ l }}{% endfor %}"
+                                   class="join-item btn btn-xs btn-outline">{{ i }}</a>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if productos.has_next %}
+                            <a href="?page={{ productos.next_page_number }}&q={{ filtros_actuales.q }}{% for l in filtros_actuales.linea %}&linea={{ l }}{% endfor %}"
+                               class="join-item btn btn-xs btn-outline">Sig »</a>
+                        {% else %}
+                            <button class="join-item btn btn-xs btn-disabled">Sig »</button>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <!-- JavaScript Ajustado para Soportar Múltiples Líneas -->
+    <script>
+        const reglasBD = {{ reglas_json|safe }};
+        const lineasSeleccionadas = {{ filtros_actuales.linea|safe }};
+
+        function recalcularPreview() {
+            const numLista = document.getElementById('select-lista-preview').value;
+            const filas = document.querySelectorAll('#tabla-productos tr[data-linea]');
+
+            // Actualiza los inputs del banner de reglas si hay solo 1 línea activa
+            if (lineasSeleccionadas.length === 1) {
+                const key = `${lineasSeleccionadas[0]}_${numLista}`;
+                const regla = reglasBD[key] || {desc: 0, util: 0};
+                const inputDesc = document.getElementById('input-desc');
+                const inputUtil = document.getElementById('input-util');
+                if (inputDesc) inputDesc.value = regla.desc;
+                if (inputUtil) inputUtil.value = regla.util;
+            }
+
+            filas.forEach(fila => {
+                const linea = fila.getAttribute('data-linea');
+                const precioSae = parseFloat(fila.getAttribute('data-precio-sae')) || 0;
+                const inputCustom = fila.querySelector('.input-override').value.trim();
+
+                const precioBaseFinal = (inputCustom !== '') ? parseFloat(inputCustom) : precioSae;
+                const key = `${linea}_${numLista}`;
+                const regla = reglasBD[key] || {desc: 0, util: 0};
+
+                const precioFinal = (precioBaseFinal * (1 - (regla.desc / 100))) / (1 - (regla.util / 100));
+
+                fila.querySelector('.col-regla').innerText = `-${regla.desc}% / +${regla.util}%`;
+                fila.querySelector('.col-precio-preview').innerText = `$${precioFinal.toFixed(2)}`;
+            });
+        }
+
+        async function guardarPrecioOverride(claveArt, inputElem) {
+            const valor = inputElem.value.trim();
+            inputElem.classList.add('input-primary');
+
+            const payload = {
+                action: 'guardar_override',
+                cve_art: claveArt,
+                precio_lista_custom: valor
+            };
+
+            try {
+                const response = await fetch("{{ request.path }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    recalcularPreview();
+                    setTimeout(() => inputElem.classList.remove('input-primary'), 500);
+                }
+            } catch (err) {
+                console.error("Error al guardar override:", err);
+            }
+        }
+
+        async function guardarReglaLinea() {
+            if (!lineasSeleccionadas || lineasSeleccionadas.length === 0) return;
+
+            const numLista = document.getElementById('select-lista-preview').value;
+            const desc = parseFloat(document.getElementById('input-desc').value) || 0;
+            const util = parseFloat(document.getElementById('input-util').value) || 0;
+
+            // Se aplica la regla a cada una de las líneas filtradas
+            for (const cveLin of lineasSeleccionadas) {
+                const payload = {
+                    action: 'guardar_reglas',
+                    cve_lin: cveLin,
+                    num_lista: numLista,
+                    porcentaje_descuento: desc,
+                    porcentaje_utilidad: util
+                };
+
+                const response = await fetch("{{ request.path }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    reglasBD[`${cveLin}_${numLista}`] = {desc: desc, util: util};
+                }
+            }
+            recalcularPreview();
+        }
+
+        function exportarExcel() {
+            const form = document.getElementById('filter-form');
+            const formData = new FormData(form);
+            const params = new URLSearchParams(formData);
+
+            window.location.href = "{% url 'listas_precios:exportar_excel' %}?" + params.toString();
+        }
+
+        document.addEventListener('DOMContentLoaded', recalcularPreview);
+    </script>
+</c-layouts.dashboard>

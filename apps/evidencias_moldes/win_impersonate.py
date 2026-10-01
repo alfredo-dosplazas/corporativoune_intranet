@@ -1,13 +1,13 @@
-import ctypes
 import contextlib
 import logging
+import ctypes
+from django.conf import settings
 from django.core.exceptions import PermissionDenied
 import win32security
 import pywintypes
 
 logger = logging.getLogger(__name__)
 
-# Valor 9: Permite impersonar credenciales salientes hacia recursos SMB/Red
 LOGON32_LOGON_NEW_CREDENTIALS = 9
 LOGON32_PROVIDER_WINNT50 = 3
 
@@ -16,27 +16,33 @@ kernel32 = ctypes.windll.kernel32
 
 
 def validar_credenciales_ad(username, password, domain="."):
-    """
-    Realiza una prueba rápida de autenticación contra el AD.
-    Lanza PermissionDenied con mensaje amigable si falla la contraseña o la cuenta.
-    """
-    if "\\" in username:
-        domain, username = username.split("\\", 1)
+    # 1. Bypass para entorno local de desarrollo
+    if settings.DEBUG:
+        logger.info(f"[DEV] Omitiendo validación AD para {domain}\\{username} (DEBUG=True)")
+        return
+
+    # Normalizar formato UPN (usuario@dominio.com)
+    if domain and domain != "." and "@" not in username and "\\" not in username:
+        user_or_upn = f"{username}@{domain}"
+        domain_param = ""
+    elif "\\" in username:
+        domain_param, user_or_upn = username.split("\\", 1)
+    else:
+        user_or_upn = username
+        domain_param = domain
 
     try:
-        # Intenta autenticar la credencial en la red
         handle = win32security.LogonUser(
-            username,
-            domain,
+            user_or_upn,
+            domain_param,
             password,
             win32security.LOGON32_LOGON_NETWORK,
             win32security.LOGON32_PROVIDER_DEFAULT
         )
         handle.Close()
     except pywintypes.error as e:
-        # e.winerror contiene el código numérico de Windows
         error_code = e.winerror
-        logger.error(f"Fallo de autenticación AD para {domain}\\{username}. Código: {error_code}")
+        logger.error(f"Fallo de autenticación AD para {user_or_upn}. Código: {error_code}")
 
         if error_code == 1326:
             raise PermissionDenied(
@@ -50,18 +56,29 @@ def validar_credenciales_ad(username, password, domain="."):
 
 @contextlib.contextmanager
 def impersonate_user(username, password, domain="."):
-    # 1. Validar credenciales primero. Si falla, lanzará PermissionDenied y detendrá la ejecución aquí.
+    # 1. Bypass en entorno de desarrollo local
+    if settings.DEBUG:
+        logger.info(f"[DEV] Omitiendo impersonación AD para {username} (DEBUG=True)")
+        yield
+        return
+
+    # 2. En producción ejecuta la impersonación real
     validar_credenciales_ad(username, password, domain)
 
     token = ctypes.c_void_p()
 
-    if "\\" in username:
-        domain, username = username.split("\\", 1)
+    if domain and domain != "." and "@" not in username and "\\" not in username:
+        user_or_upn = f"{username}@{domain}"
+        domain_param = ""
+    elif "\\" in username:
+        domain_param, user_or_upn = username.split("\\", 1)
+    else:
+        user_or_upn = username
+        domain_param = domain
 
-    # 2. Como ya sabemos que la contraseña es correcta, ejecutamos la impersonación con la constante 9
     success = advapi32.LogonUserW(
-        username,
-        domain,
+        user_or_upn,
+        domain_param,
         password,
         LOGON32_LOGON_NEW_CREDENTIALS,
         LOGON32_PROVIDER_WINNT50,

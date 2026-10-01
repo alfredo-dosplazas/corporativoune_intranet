@@ -11,17 +11,29 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
+from django_filters.views import FilterView
+from django_tables2 import SingleTableMixin
 from django_weasyprint import WeasyTemplateResponseMixin
 from inertia import render
 
 from apps.compras.forms import OrdenForm
 from apps.compras.models import Orden, DetalleOrden, Proveedor
 from apps.compras.serializers import OrdenSerializer
+from apps.compras.tables import OrdenTable
 from apps.core.decorators import remember_filter_state
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.mixins.title import PageTitleMixin
 from apps.core.models import RazonSocial
 from apps.core.utils.navigation import make_breadcrumbs, paginate_queryset
+
+
+class OrdenListView(PermissionRequiredMixin, PageTitleMixin, BreadcrumbsMixin, SingleTableMixin, FilterView):
+    permission_required = 'compras.view_orden'
+    template_name = 'apps/compras/ordenes/list.html'
+    page_title = 'Ordenes de Compra'
+    model = Orden
+    table_class = OrdenTable
+    paginate_by = 12
 
 
 @login_required()

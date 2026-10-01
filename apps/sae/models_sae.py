@@ -93,6 +93,7 @@ class ArticuloMixin:
     clave = Column('CVE_ART', String(10), primary_key=True)
     descripcion = Column('DESCR', String(254))
     linea = Column('LIN_PROD', String(5))
+    status = Column('STATUS', String(1))
 
 
 class PartidaFacturaMixin:

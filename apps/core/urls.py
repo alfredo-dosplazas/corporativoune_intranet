@@ -1,11 +1,11 @@
 from django.urls import path
 
 from apps.core.autocompletes import UsuarioAutocomplete, EmpresaAutocomplete, RazonSocialAutocomplete
-from apps.core.views import LogoutView, PerfilView, home, login_view
+from apps.core.views import LogoutView, PerfilView, home, LoginView
 
 urlpatterns = [
     path('', home, name='home'),
-    path('login/', login_view, name='login'),
+    path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('perfil/', PerfilView.as_view(), name='perfil'),
 

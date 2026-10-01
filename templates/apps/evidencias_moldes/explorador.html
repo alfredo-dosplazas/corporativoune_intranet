@@ -1,486 +1,455 @@
-{% load dict_extras %}
+{% load static %}
 
 <c-layouts.app>
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/css/lightgallery-bundle.min.css">
+    <!-- LightGallery CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/css/lightgallery-bundle.min.css">
 
     <style>
-        .lg-backdrop, .lg-outer {
-            z-index: 99999 !important;
-        }
+        .lg-backdrop, .lg-outer { z-index: 99999 !important; }
 
-        .join .btn-disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
+        /* Transiciones suaves estilo Google UI */
+        .drive-card {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
-        /* VISTA DE LISTA PARA FOTOS */
-        [data-vista="list"] #galeria-fotos {
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 0.5rem !important;
-        }
-
-        [data-vista="list"] .item-foto {
-            display: flex !important;
-            flex-direction: row !important;
-            align-items: center !important;
-            padding: 0.5rem !important;
-            gap: 0.75rem !important;
-            min-width: 0 !important;
-        }
-
-        [data-vista="list"] .item-foto .contenedor-imagen {
-            width: 3.5rem !important;
-            height: 3.5rem !important;
-            aspect-ratio: 1 / 1 !important;
-            flex-shrink: 0 !important;
-            border-radius: 0.5rem !important;
-        }
-
-        [data-vista="list"] .item-foto .overlay-hover {
-            display: none !important;
-        }
-
-        [data-vista="list"] .item-foto .info-lista {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: space-between !important;
-            width: 100% !important;
-            min-width: 0 !important;
-            padding: 0 !important;
-        }
-
-        /* VISTA DE LISTA PARA CARPETAS */
-        [data-vista="list"] #contenedor-carpetas {
-            display: grid !important;
-            grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
-            gap: 0.5rem !important;
-        }
-
-        @media (min-width: 640px) {
-            [data-vista="list"] #contenedor-carpetas {
-                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            }
-        }
-
-        [data-vista="list"] .item-carpeta {
-            flex-direction: row !important;
-            justify-content: flex-start !important;
-            text-align: left !important;
-            padding: 0.75rem 1rem !important;
-            min-width: 0 !important;
-        }
-
-        [data-vista="list"] .item-carpeta .icon-folder {
-            width: 1.75rem !important;
-            height: 1.75rem !important;
-            flex-shrink: 0 !important;
+        .drive-card:hover {
+            box-shadow: 0 1px 3px 0 rgba(60,64,67,0.3), 0 4px 8px 3px rgba(60,64,67,0.15);
         }
     </style>
 
     <c-slot name="breadcrumbs"></c-slot>
 
+    <!-- Header Estilo Google Drive -->
     <c-slot name="header">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 w-full">
-            <div>
-                <h1 class="font-black text-2xl text-base-content tracking-tight flex items-center gap-2">
-                    <span class="icon-[mingcute--pic-fill] text-primary"></span>
-                    Evidencias de Moldes
-                </h1>
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 w-full">
+            <!-- Título y Ruta tipo Chips Drive -->
+            <div class="flex flex-col gap-1.5">
+                <div class="flex items-center gap-2">
+                    <div class="p-2 bg-primary/10 rounded-xl text-primary">
+                        <span class="icon-[ph--folder-notched-bold] size-6"></span>
+                    </div>
+                    <h1 class="font-bold text-xl text-base-content tracking-tight">
+                        Explorador de Evidencias
+                    </h1>
+                </div>
 
-                <nav class="text-xs breadcrumbs text-base-content/60 mt-1">
-                    <ul>
-                        {% for crumb in breadcrumbs %}
-                            {% if forloop.last %}
-                                <li class="font-bold text-base-content">{{ crumb.title }}</li>
-                            {% else %}
-                                <li><a href="{{ crumb.url }}"
-                                       class="hover:text-primary transition-colors">{{ crumb.title }}</a></li>
-                            {% endif %}
-                        {% endfor %}
-                    </ul>
+                <!-- Breadcrumbs Estilo Drive Chips -->
+                <nav class="flex items-center gap-1 overflow-x-auto py-1 text-xs no-scrollbar">
+                    {% for crumb in breadcrumbs %}
+                        {% if not forloop.first %}
+                            <span class="icon-[ph--caret-right-bold] text-base-content/30 size-3 shrink-0"></span>
+                        {% endif %}
+
+                        {% if forloop.last %}
+                            <span class="px-2.5 py-1 rounded-lg bg-base-200 text-base-content font-semibold shrink-0 flex items-center gap-1">
+                                <span class="icon-[ph--folder-open-fill] text-warning size-3.5"></span>
+                                {{ crumb.title }}
+                            </span>
+                        {% else %}
+                            <a href="{{ crumb.url }}{% if query_string_preserved %}?{{ query_string_preserved }}{% endif %}"
+                               class="px-2.5 py-1 rounded-lg hover:bg-base-200 text-base-content/70 hover:text-base-content font-medium transition-colors shrink-0 flex items-center gap-1">
+                                {% if forloop.first %}
+                                    <span class="icon-[ph--hard-drives-fill] text-primary size-3.5"></span>
+                                {% endif %}
+                                {{ crumb.title }}
+                            </a>
+                        {% endif %}
+                    {% endfor %}
                 </nav>
             </div>
 
-            {% if page_obj.paginator.num_pages > 1 %}
-                <div class="join justify-center md:justify-end shadow-sm border border-base-300 rounded-xl bg-base-100 overflow-hidden">
-                    {% if page_obj.has_previous %}
-                        <a href="?page=
-                                {{ page_obj.previous_page_number }}{% if query_busqueda %}&q={{ query_busqueda }}{% endif %}"
-                           class="join-item btn btn-sm btn-ghost font-bold">
-                            <span class="icon-[ph--arrow-left-bold]"></span>
-                        </a>
-                    {% else %}
-                        <button class="join-item btn btn-sm btn-ghost btn-disabled text-base-content/30">
-                            <span class="icon-[ph--arrow-left-bold]"></span>
-                        </button>
-                    {% endif %}
-
-                    <span class="join-item btn btn-sm btn-ghost pointer-events-none font-mono font-bold text-xs px-4 border-x border-base-300">
-                        {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
-                    </span>
-
-                    {% if page_obj.has_next %}
-                        <a href="?page=
-                                {{ page_obj.next_page_number }}{% if query_busqueda %}&q={{ query_busqueda }}{% endif %}"
-                           class="join-item btn btn-sm btn-ghost font-bold">
-                            <span class="icon-[ph--arrow-right-bold]"></span>
-                        </a>
-                    {% else %}
-                        <button class="join-item btn btn-sm btn-ghost btn-disabled text-base-content/30">
-                            <span class="icon-[ph--arrow-right-bold]"></span>
-                        </button>
-                    {% endif %}
-                </div>
-            {% endif %}
+            <!-- AD Badge & Acciones -->
+            <div class="flex items-center gap-2 shrink-0 self-start md:self-auto">
+                {% if smb_info %}
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-base-100 border border-base-200 rounded-full text-xs shadow-2xs">
+                        <span class="size-2 rounded-full bg-success animate-pulse"></span>
+                        <span class="text-base-content/60 hidden sm:inline">Servidor:</span>
+                        <code class="font-mono text-primary font-bold text-[11px]">{{ smb_info.dominio }}\{{ smb_info.usuario }}</code>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </c-slot>
 
-    <!-- BANNER AD OPTIMIZADO PARA MÓVIL (SIN DESBORDAMIENTO) -->
-    {% if smb_info %}
-        <div class="mb-4 p-3 bg-base-200/80 border border-base-300 rounded-xl flex flex-row items-center justify-between gap-2 text-xs text-base-content/80 min-w-0">
-            <div class="flex items-center gap-2 min-w-0 flex-1">
-                <!-- Icono de usuario de red -->
-                <div class="p-1.5 bg-primary/10 rounded-lg text-primary shrink-0">
-                    <span class="icon-[tabler--user-check] size-4"></span>
-                </div>
+    <!-- Barra de Herramientas Principal (Google Search Bar Style) -->
+    <div class="sticky top-2 z-20 mb-6 bg-base-100/90 backdrop-blur-md p-2.5 rounded-2xl border border-base-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+        <!-- Búsqueda Central tipo Google Workspace -->
+        <form method="GET" class="relative w-full md:w-96" id="filter-form">
+            <input type="hidden" name="view" value="{{ modo_vista }}">
+            <input type="hidden" name="sort" value="{{ sort_by }}">
 
-                <div class="flex items-center gap-1.5 min-w-0 flex-1">
-                    <span class="text-base-content/60 hidden sm:inline shrink-0">Sesión AD:</span>
-                    <code class="font-mono text-primary font-bold bg-base-300/50 px-1.5 py-0.5 rounded text-[11px] truncate min-w-0">
-                        {{ smb_info.dominio }}\{{ smb_info.usuario }}
-                    </code>
-                </div>
+            <div class="relative flex items-center">
+                <span class="icon-[ph--magnifying-glass-bold] absolute left-3.5 text-base-content/40 size-4"></span>
+                <input type="text"
+                       name="q"
+                       value="{{ query_busqueda }}"
+                       placeholder="Buscar en Evidencias..."
+                       class="input input-sm w-full pl-10 pr-9 bg-base-200/60 focus:bg-base-100 border-none rounded-full focus:ring-2 focus:ring-primary/20 text-xs transition-all">
+                {% if query_busqueda %}
+                    <a href="?view={{ modo_vista }}&sort={{ sort_by }}" class="absolute right-3 text-base-content/40 hover:text-error">
+                        <span class="icon-[ph--x-circle-fill] size-4"></span>
+                    </a>
+                {% endif %}
             </div>
-
-            <div class="flex items-center gap-1.5 shrink-0">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-success/10 text-success border border-success/20">
-                    <span class="size-1.5 rounded-full bg-success animate-pulse"></span>
-                    <span class="hidden xs:inline">Autenticado</span>
-                </span>
-            </div>
-        </div>
-    {% endif %}
-
-    {% if error %}
-        <div class="alert alert-error shadow-sm mb-6 rounded-xl text-sm font-medium">
-            <span class="icon-[tabler--alert-circle] size-5 shrink-0"></span>
-            <span class="truncate">{{ error }}</span>
-        </div>
-    {% endif %}
-
-    <!-- BARRA DE HERRAMIENTAS: Búsqueda y Selector de Vista -->
-    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 mb-6 bg-base-100 p-3 rounded-2xl border border-base-200 shadow-sm">
-        <!-- Buscador -->
-        <form method="GET" class="relative w-full sm:w-80">
-            <input type="text"
-                   name="q"
-                   value="{{ query_busqueda }}"
-                   placeholder="Buscar carpeta o foto..."
-                   class="input input-sm input-bordered w-full pl-9 rounded-xl focus:input-primary text-xs">
-            <span class="icon-[ph--magnifying-glass-bold] absolute left-3 top-1.5 text-base-content/40 size-4"></span>
-            {% if query_busqueda %}
-                <a href="?" class="absolute right-2 top-1.5 text-base-content/40 hover:text-error">
-                    <span class="icon-[ph--x-circle-bold] size-4"></span>
-                </a>
-            {% endif %}
         </form>
 
-        <!-- Selector Lista / Cuadrícula -->
-        <div class="flex items-center gap-1 bg-base-200 p-1 rounded-xl shrink-0 self-end sm:self-auto">
-            <button type="button"
-                    onclick="cambiarModoVista('grid')"
-                    id="btn-vista-grid"
-                    class="btn btn-xs rounded-lg gap-1 font-medium transition-all">
-                <span class="icon-[ph--squares-four-bold] size-4"></span>
-                Cuadrícula
-            </button>
-            <button type="button"
-                    onclick="cambiarModoVista('list')"
-                    id="btn-vista-list"
-                    class="btn btn-xs rounded-lg gap-1 font-medium transition-all">
-                <span class="icon-[fe--list-bullet] size-4"></span>
-                Lista
-            </button>
+        <!-- Controles de Vista y Ordenamiento -->
+        <div class="flex items-center justify-between md:justify-end gap-2 w-full md:w-auto shrink-0 border-t md:border-t-0 pt-2 md:pt-0 border-base-200">
+            <!-- Botón Ordenar -->
+            <div class="dropdown dropdown-end">
+                <label tabindex="0" class="btn btn-xs sm:btn-sm btn-ghost gap-1.5 rounded-lg text-xs font-medium text-base-content/70 hover:bg-base-200">
+                    <span class="icon-[ph--arrows-down-up-bold] size-4"></span>
+                    <span class="hidden sm:inline">Orden:</span>
+                    <span class="font-semibold text-base-content">
+                        {% if sort_by == 'name_desc' %}Z-A{% else %}A-Z{% endif %}
+                    </span>
+                </label>
+                <ul tabindex="0" class="dropdown-content z-30 menu p-1 shadow-xl bg-base-100 rounded-xl border border-base-200 w-44 text-xs mt-1">
+                    <li>
+                        <a href="?q={{ query_busqueda }}&sort=name_asc&view={{ modo_vista }}" class="{% if sort_by == 'name_asc' %}active font-semibold{% endif %}">
+                            <span class="icon-[ph--sort-ascending-bold] size-4"></span> Nombre (A-Z)
+                        </a>
+                    </li>
+                    <li>
+                        <a href="?q={{ query_busqueda }}&sort=name_desc&view={{ modo_vista }}" class="{% if sort_by == 'name_desc' %}active font-semibold{% endif %}">
+                            <span class="icon-[ph--sort-descending-bold] size-4"></span> Nombre (Z-A)
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="h-4 w-px bg-base-300 mx-0.5"></div>
+
+            <!-- Selector de Vista Grid / List -->
+            <div class="flex items-center bg-base-200/80 p-0.5 rounded-lg">
+                <a href="?q={{ query_busqueda }}&sort={{ sort_by }}&view=grid"
+                   title="Vista Cuadrícula"
+                   class="p-1.5 rounded-md transition-all {% if modo_vista == 'grid' %}bg-base-100 shadow-2xs text-primary font-bold{% else %}text-base-content/60 hover:text-base-content{% endif %}">
+                    <span class="icon-[ph--squares-four-fill] size-4 block"></span>
+                </a>
+                <a href="?q={{ query_busqueda }}&sort={{ sort_by }}&view=list"
+                   title="Vista Lista"
+                   class="p-1.5 rounded-md transition-all {% if modo_vista == 'list' %}bg-base-100 shadow-2xs text-primary font-bold{% else %}text-base-content/60 hover:text-base-content{% endif %}">
+                    <span class="icon-[ph--list-bullet-bold] size-4 block"></span>
+                </a>
+            </div>
         </div>
     </div>
 
-    <!-- CONTENEDOR PRINCIPAL CON SOPORTE DE VISTA (grid / list) -->
-    <div id="vista-explorer-container" data-vista="grid">
-
-        <!-- VALIDACIÓN DE PERMISO Y NIVEL DE OBRA PARA SUBIR EVIDENCIAS -->
-        {% if perms.evidencias_moldes.subir_evidencia and es_nivel_obra %}
-            <div class="mb-8 p-5 bg-base-100 border-2 border-dashed border-primary/40 rounded-2xl shadow-sm">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <!-- Cargar Evidencias (Dropzone estilo Drive "Nuevo +") -->
+    {% if perms.evidencias_moldes.subir_evidencia and es_nivel_obra %}
+        <div class="mb-6 p-4 bg-base-100 border border-base-200 rounded-2xl shadow-2xs">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 bg-primary/10 text-primary rounded-xl shrink-0">
+                        <span class="icon-[ph--cloud-arrow-up-bold] size-6"></span>
+                    </div>
                     <div>
-                        <h3 class="font-bold text-base text-base-content flex items-center gap-2">
-                            <span class="icon-[mingcute--camera-line] text-success size-5 shrink-0"></span>
-                            Capturar Evidencias
-                        </h3>
-                        <p class="text-xs text-base-content/60 mt-0.5">
-                            Las fotos se guardarán automáticamente en <code
-                                class="bg-base-200 px-1.5 py-0.5 rounded text-primary font-mono">{{ nombre_carpeta_evidencias }}/YYYY-MM-DD/</code>
+                        <h3 class="font-bold text-xs sm:text-sm text-base-content">Subir nuevas evidencias a esta ubicación</h3>
+                        <p class="text-[11px] text-base-content/50 mt-0.5">
+                            Destino: <code class="bg-base-200 px-1.5 py-0.5 rounded text-primary font-mono text-[10px]">{{ nombre_carpeta_evidencias }}/YYYY-MM-DD/</code>
                         </p>
                     </div>
-
-                    <form method="POST" enctype="multipart/form-data" id="form-foto" class="shrink-0">
-                        {% csrf_token %}
-
-                        <input type="file"
-                               id="camera-input"
-                               name="foto_evidencia"
-                               accept="image/*"
-                               capture="environment"
-                               class="hidden"
-                               onchange="mostrarPrevisualizacion(this)">
-
-                        <input type="file"
-                               id="gallery-input"
-                               name="foto_evidencia"
-                               accept="image/*"
-                               multiple
-                               class="hidden"
-                               onchange="mostrarPrevisualizacion(this)">
-
-                        <div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-                            <button type="button"
-                                    onclick="document.getElementById('camera-input').click();"
-                                    class="btn btn-primary gap-2 rounded-xl shadow-sm">
-                                <span class="icon-[ph--camera-bold] size-5"></span>
-                                Tomar Foto
-                            </button>
-
-                            <button type="button"
-                                    onclick="document.getElementById('gallery-input').click();"
-                                    class="btn btn-outline border-base-300 gap-2 rounded-xl shadow-sm">
-                                <span class="icon-[ph--image-bold] size-5"></span>
-                                Elegir de Galería
-                            </button>
-                        </div>
-                    </form>
                 </div>
 
-                <!-- Previsualización -->
-                <div id="preview-container" class="hidden mt-4 pt-4 border-t border-base-200">
-                    <div class="flex items-center justify-between mb-3">
-                        <p class="text-xs font-semibold text-base-content/60 uppercase tracking-wider">
-                            Confirmar Fotografías (<span id="preview-count">0</span>)
-                        </p>
-                    </div>
+                <form method="POST" enctype="multipart/form-data" id="form-subida" class="shrink-0">
+                    {% csrf_token %}
+                    <input type="file" id="camera-input" name="foto_evidencia" accept="image/*" capture="environment" class="hidden" onchange="procesarArchivos(this.files)">
+                    <input type="file" id="gallery-input" name="foto_evidencia" accept="image/*" multiple class="hidden" onchange="procesarArchivos(this.files)">
 
-                    <div id="preview-grid"
-                         class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-4"></div>
-
-                    <div class="flex flex-wrap gap-2">
-                        <button type="submit" id="btn-subir" form="form-foto"
-                                class="btn btn-success text-white rounded-xl gap-2">
-                            <span class="icon-[ph--check-circle-bold] size-5" id="btn-icon"></span>
-                            <span id="btn-text">Confirmar y Subir</span>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="document.getElementById('camera-input').click();" class="btn btn-primary btn-sm rounded-full gap-1.5 font-medium px-4 shadow-2xs">
+                            <span class="icon-[ph--camera-bold] size-4"></span>
+                            Tomar foto
                         </button>
-                        <button type="button" id="btn-cancelar" onclick="cancelarCaptura()"
-                                class="btn btn-ghost rounded-xl">
-                            Cancelar
+                        <button type="button" onclick="document.getElementById('gallery-input').click();" class="btn btn-outline btn-sm rounded-full gap-1.5 font-medium px-4">
+                            <span class="icon-[ph--upload-simple-bold] size-4"></span>
+                            Subir archivos
                         </button>
                     </div>
+                </form>
+            </div>
+
+            <!-- Preview flotante de subida -->
+            <div id="preview-container" class="hidden mt-4 pt-3 border-t border-base-200">
+                <p class="text-xs font-bold text-base-content/70 mb-2">Archivos listos para subir:</p>
+                <div id="preview-grid" class="flex flex-wrap gap-2 mb-3"></div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="cancelarSubida()" class="btn btn-ghost btn-xs text-error">Cancelar</button>
+                    <button type="button" onclick="confirmarSubida()" class="btn btn-success btn-xs text-white gap-1 rounded-lg">
+                        <span class="icon-[ph--check-bold] size-3.5"></span> Confirmar subida
+                    </button>
                 </div>
             </div>
-        {% endif %}
+        </div>
+    {% endif %}
 
-        <!-- Sección de Carpetas -->
-        {% if carpetas %}
-            <div class="mb-8">
-                <h3 class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-3">Carpetas</h3>
-                <div id="contenedor-carpetas"
-                     class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-                    {% for carpeta in carpetas %}
-                        <a href="{% url 'evidencias_moldes:path' ruta=ruta_actual|default:''|add:'/'|add:carpeta|stringformat:'s'|cut:'^/' %}"
-                           class="item-carpeta group border border-base-200 bg-base-100 hover:border-primary/40 rounded-xl p-3 transition-all duration-200 hover:shadow-md flex flex-col items-center justify-center text-center gap-2 min-w-0">
-                            <span class="icon-[material-symbols--folder] text-warning size-12 group-hover:scale-105 transition-transform icon-folder shrink-0"></span>
-                            <span class="text-sm font-medium text-base-content/80 group-hover:text-primary truncate w-full px-1 min-w-0">
-                                {{ carpeta }}
-                            </span>
-                        </a>
-                    {% endfor %}
-                </div>
-            </div>
-        {% endif %}
+    <!-- Navegación "Carpeta Superior" -->
+    {% if ruta_padre is not None %}
+        <div class="mb-4">
+            <a href="{% if ruta_padre %}{% url 'evidencias_moldes:path' ruta=ruta_padre %}{% else %}{% url 'evidencias_moldes:root' %}{% endif %}{% if query_string_preserved %}?{{ query_string_preserved }}{% endif %}"
+               class="inline-flex items-center gap-1.5 text-xs font-medium text-base-content/60 hover:text-primary transition-colors py-1">
+                <span class="icon-[ph--arrow-left-bold] size-3.5"></span>
+                <span>Subir un nivel</span>
+            </a>
+        </div>
+    {% endif %}
 
-        <!-- Galería de Imágenes -->
-        {% if fotos %}
-            <div>
-                <h3 class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-3">Fotografías</h3>
+    <!-- CONTENIDO DEL EXPLORADOR -->
+    <div id="vista-explorer-container">
 
-                <div id="galeria-fotos"
-                     class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                    {% for foto in fotos %}
-                        <a href="{% url 'evidencias_moldes:show' ruta=ruta_actual|default:''|add:'/'|add:foto %}"
-                           data-sub-html="<h4>{{ foto }}</h4>"
-                           class="item-foto group card bg-base-100 border border-base-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-base-300 transition-all duration-200 cursor-zoom-in min-w-0">
+        {% if modo_vista == "grid" %}
+            <!-- ================= VISTA CUADRÍCULA (GRID) ================= -->
 
-                            <div class="contenedor-imagen relative aspect-square w-full overflow-hidden bg-base-200 shrink-0">
-                                <img src="{% url 'evidencias_moldes:show' ruta=ruta_actual|default:''|add:'/'|add:foto %}?thumb=1"
-                                     class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-                                     loading="lazy"
-                                     alt="{{ foto }}">
-                                <div class="overlay-hover absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                                    <span class="text-white text-xs bg-black/60 backdrop-blur-sm px-2 py-1 rounded-md truncate w-full font-medium min-w-0">
-                                        {{ foto }}
-                                    </span>
+            <!-- Sección Carpetas -->
+            {% if carpetas %}
+                <div class="mb-6">
+                    <h2 class="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-3">Carpetas</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                        {% for carpeta in carpetas %}
+                            {% if ruta_actual %}
+                                {% url 'evidencias_moldes:path' ruta=ruta_actual|add:"/"|add:carpeta as folder_url %}
+                            {% else %}
+                                {% url 'evidencias_moldes:path' ruta=carpeta as folder_url %}
+                            {% endif %}
+                            <a href="{{ folder_url }}{% if query_string_preserved %}?{{ query_string_preserved }}{% endif %}"
+                               class="drive-card group flex items-center justify-between p-3 bg-base-100 hover:bg-base-200/50 border border-base-200 rounded-xl transition-all">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <span class="icon-[ph--folder-fill] text-amber-500 size-6 shrink-0"></span>
+                                    <span class="text-xs font-semibold text-base-content truncate group-hover:text-primary">{{ carpeta }}</span>
                                 </div>
-                            </div>
-                            <div class="info-lista hidden p-3 min-w-0 flex-1">
-                                <span class="text-sm font-medium text-base-content truncate min-w-0 flex-1 pr-2">{{ foto }}</span>
-                                <span class="icon-[ph--magnifying-glass-plus-bold] text-primary size-5 shrink-0"></span>
-                            </div>
-                        </a>
-                    {% endfor %}
-                </div>
-            </div>
-        {% else %}
-            {% if not carpetas %}
-                <div class="text-center py-16 border-2 border-dashed border-base-300 rounded-2xl bg-base-100/50 px-4">
-                    <span class="icon-[tabler--photo-off] size-12 text-base-content/30 mb-2"></span>
-                    <p class="text-sm font-medium text-base-content/50 max-w-sm mx-auto truncate">
-                        {% if query_busqueda %}
-                            No se encontraron resultados para "{{ query_busqueda }}".
-                        {% else %}
-                            Esta carpeta no contiene imágenes ni evidencias aún.
-                        {% endif %}
-                    </p>
+                                <span class="icon-[ph--caret-right-bold] text-base-content/20 group-hover:text-base-content/60 size-4 shrink-0"></span>
+                            </a>
+                        {% endfor %}
+                    </div>
                 </div>
             {% endif %}
+
+            <!-- Sección Archivos de Imagen -->
+            {% if fotos %}
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-xs font-bold text-base-content/50 uppercase tracking-wider">Archivos de Evidencia</h2>
+                        <span class="text-[11px] text-base-content/40 font-mono">{{ page_obj.paginator.count }} archivos</span>
+                    </div>
+
+                    <div id="galeria-lightgallery" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                        {% for foto in fotos %}
+                            {% if ruta_actual %}
+                                {% url 'evidencias_moldes:show' ruta=ruta_actual|add:"/"|add:foto as img_full_url %}
+                            {% else %}
+                                {% url 'evidencias_moldes:show' ruta=foto as img_full_url %}
+                            {% endif %}
+
+                            <a href="{{ img_full_url }}"
+                               data-src="{{ img_full_url }}"
+                               data-sub-html="<h4>{{ foto }}</h4>"
+                               class="card-foto drive-card group flex flex-col bg-base-100 border border-base-200 rounded-xl overflow-hidden">
+
+                                <!-- Thumbnail Preview -->
+                                <div class="aspect-4/3 bg-base-200/60 relative overflow-hidden flex items-center justify-center">
+                                    <img src="{{ img_full_url }}?thumb=1"
+                                         alt="{{ foto }}"
+                                         loading="lazy"
+                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200">
+
+                                    <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <div class="p-2 bg-base-100/90 rounded-full text-base-content shadow-sm">
+                                            <span class="icon-[ph--arrows-out-cardinal-bold] size-4"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Card Footer Estilo Drive -->
+                                <div class="p-2.5 flex items-center gap-2 border-t border-base-200 bg-base-100 min-w-0">
+                                    <span class="icon-[ph--image-square-fill] text-red-500 size-4 shrink-0"></span>
+                                    <span class="text-[11px] font-medium text-base-content truncate" title="{{ foto }}">{{ foto }}</span>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+        {% else %}
+            <!-- ================= VISTA LISTA / TABLA ESTILO GOOGLE DRIVE ================= -->
+            <div class="bg-base-100 border border-base-200 rounded-2xl overflow-hidden shadow-2xs mb-6">
+                <div class="overflow-x-auto">
+                    <table class="table table-sm w-full text-left">
+                        <thead>
+                            <tr class="border-b border-base-200 bg-base-200/40 text-[11px] font-bold text-base-content/50 uppercase">
+                                <th class="py-2.5 pl-4">Nombre</th>
+                                <th class="py-2.5 hidden sm:table-cell">Tipo</th>
+                                <th class="py-2.5 text-right pr-4">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-base-200 text-xs">
+                            <!-- Carpetas -->
+                            {% for carpeta in carpetas %}
+                                {% if ruta_actual %}
+                                    {% url 'evidencias_moldes:path' ruta=ruta_actual|add:"/"|add:carpeta as folder_url %}
+                                {% else %}
+                                    {% url 'evidencias_moldes:path' ruta=carpeta as folder_url %}
+                                {% endif %}
+                                <tr class="hover:bg-base-200/40 transition-colors group">
+                                    <td class="py-2.5 pl-4 font-semibold text-base-content">
+                                        <a href="{{ folder_url }}{% if query_string_preserved %}?{{ query_string_preserved }}{% endif %}" class="flex items-center gap-3">
+                                            <span class="icon-[ph--folder-fill] text-amber-500 size-5 shrink-0"></span>
+                                            <span class="truncate group-hover:text-primary transition-colors">{{ carpeta }}</span>
+                                        </a>
+                                    </td>
+                                    <td class="py-2.5 hidden sm:table-cell text-base-content/50">Carpeta de archivos</td>
+                                    <td class="py-2.5 text-right pr-4">
+                                        <a href="{{ folder_url }}{% if query_string_preserved %}?{{ query_string_preserved }}{% endif %}" class="btn btn-ghost btn-xs text-base-content/60">
+                                            Abrir
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+
+                            <!-- Fotos en Galería -->
+                            <tbody id="galeria-lightgallery-list">
+                                {% for foto in fotos %}
+                                    {% if ruta_actual %}
+                                        {% url 'evidencias_moldes:show' ruta=ruta_actual|add:"/"|add:foto as img_full_url %}
+                                    {% else %}
+                                        {% url 'evidencias_moldes:show' ruta=foto as img_full_url %}
+                                    {% endif %}
+                                    <tr class="hover:bg-base-200/40 transition-colors group">
+                                        <td class="py-2 pl-4">
+                                            <a href="{{ img_full_url }}"
+                                               data-src="{{ img_full_url }}"
+                                               data-sub-html="<h4>{{ foto }}</h4>"
+                                               class="card-foto flex items-center gap-3 font-medium text-base-content">
+                                                <span class="icon-[ph--image-square-fill] text-red-500 size-5 shrink-0"></span>
+                                                <span class="truncate group-hover:text-primary transition-colors">{{ foto }}</span>
+                                            </a>
+                                        </td>
+                                        <td class="py-2 hidden sm:table-cell text-base-content/50 uppercase text-[10px] font-mono">Imagen</td>
+                                        <td class="py-2 text-right pr-4">
+                                            <a href="{{ img_full_url }}"
+                                               data-src="{{ img_full_url }}"
+                                               data-sub-html="<h4>{{ foto }}</h4>"
+                                               class="card-foto btn btn-ghost btn-xs text-primary gap-1">
+                                                <span class="icon-[ph--eye-bold] size-3.5"></span> Ver
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         {% endif %}
 
+        <!-- Paginación -->
+        {% if fotos and page_obj.paginator.num_pages > 1 %}
+            <div class="flex justify-center mt-6">
+                <div class="join border border-base-200 rounded-full bg-base-100 shadow-2xs overflow-hidden">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}&q={{ query_busqueda }}&sort={{ sort_by }}&view={{ modo_vista }}"
+                           class="join-item btn btn-xs sm:btn-sm btn-ghost font-medium">
+                            <span class="icon-[ph--caret-left-bold]"></span>
+                        </a>
+                    {% else %}
+                        <button class="join-item btn btn-xs sm:btn-sm btn-ghost text-base-content/20" disabled>
+                            <span class="icon-[ph--caret-left-bold]"></span>
+                        </button>
+                    {% endif %}
+
+                    <span class="join-item btn btn-xs sm:btn-sm btn-ghost pointer-events-none font-mono text-xs px-4 border-x border-base-200">
+                        {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}&q={{ query_busqueda }}&sort={{ sort_by }}&view={{ modo_vista }}"
+                           class="join-item btn btn-xs sm:btn-sm btn-ghost font-medium">
+                            <span class="icon-[ph--caret-right-bold]"></span>
+                        </a>
+                    {% else %}
+                        <button class="join-item btn btn-xs sm:btn-sm btn-ghost text-base-content/20" disabled>
+                            <span class="icon-[ph--caret-right-bold]"></span>
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Empty State estilo Google Drive -->
+        {% if not carpetas and not fotos %}
+            <div class="py-16 text-center bg-base-100 border border-base-200 rounded-2xl">
+                <div class="inline-flex p-4 bg-base-200/50 rounded-full text-base-content/30 mb-3">
+                    <span class="icon-[ph--folder-open-duotone] size-12"></span>
+                </div>
+                <h3 class="text-sm font-bold text-base-content">No hay elementos en esta ubicación</h3>
+                <p class="text-xs text-base-content/50 mt-1 max-w-xs mx-auto">
+                    {% if query_busqueda %}
+                        No se encontraron resultados para "{{ query_busqueda }}".
+                    {% else %}
+                        Suba imágenes o navegue a otra carpeta.
+                    {% endif %}
+                </p>
+                {% if query_busqueda %}
+                    <a href="?view={{ modo_vista }}&sort={{ sort_by }}" class="btn btn-xs btn-ghost text-primary mt-3">Limpiar búsqueda</a>
+                {% endif %}
+            </div>
+        {% endif %}
     </div>
 
+    <!-- LightGallery JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/lightgallery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/plugins/zoom/lg-zoom.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/plugins/thumbnail/lg-thumbnail.min.js"></script>
 
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const contenedor = document.getElementById("galeria-fotos");
+        document.addEventListener("DOMContentLoaded", function () {
+            const galeriaGrid = document.getElementById('galeria-lightgallery');
+            const galeriaList = document.getElementById('galeria-lightgallery-list');
 
-            if (contenedor) {
-                lightGallery(contenedor, {
-                    selector: 'a',
+            const targetGaleria = galeriaGrid || galeriaList;
+            if (targetGaleria) {
+                lightGallery(targetGaleria, {
+                    selector: '.card-foto',
                     plugins: [lgZoom, lgThumbnail],
-                    speed: 300,
+                    speed: 250,
                     download: true,
-                    counter: true,
                 });
             }
-
-            // Recuperar preferencia de vista o usar 'grid' por defecto
-            const modoGuardado = localStorage.getItem('vista_evidencias_modo') || 'grid';
-            cambiarModoVista(modoGuardado);
         });
 
-        const formFoto = document.getElementById('form-foto');
-        if (formFoto) {
-            formFoto.addEventListener('submit', function (e) {
-                const btnSubir = document.getElementById('btn-subir');
-                const btnIcon = document.getElementById('btn-icon');
-                const btnText = document.getElementById('btn-text');
-                const btnCancelar = document.getElementById('btn-cancelar');
+        let archivosSeleccionados = [];
 
-                if (btnSubir) {
-                    btnSubir.disabled = true;
-                    btnSubir.classList.add('btn-disabled');
-                    if (btnCancelar) btnCancelar.classList.add('hidden');
+        function procesarArchivos(files) {
+            if (!files.length) return;
 
-                    if (btnIcon) {
-                        btnIcon.className = "loading loading-spinner loading-xs";
-                    }
+            archivosSeleccionados = Array.from(files);
+            const previewContainer = document.getElementById('preview-container');
+            const previewGrid = document.getElementById('preview-grid');
+            previewGrid.innerHTML = '';
 
-                    if (btnText) {
-                        btnText.textContent = "Subiendo fotografías...";
-                    }
-                }
+            archivosSeleccionados.forEach((file) => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const div = document.createElement('div');
+                    div.className = "relative size-12 rounded-lg overflow-hidden border border-base-300 bg-base-200 shadow-2xs";
+                    div.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
+                    previewGrid.appendChild(div);
+                };
+                reader.readAsDataURL(file);
             });
+
+            previewContainer.classList.remove('hidden');
         }
 
-        function cambiarModoVista(modo) {
-            localStorage.setItem('vista_evidencias_modo', modo);
-
-            const container = document.getElementById('vista-explorer-container');
-            const btnGrid = document.getElementById('btn-vista-grid');
-            const btnList = document.getElementById('btn-vista-list');
-
-            if (!container) return;
-
-            container.setAttribute('data-vista', modo);
-
-            if (modo === 'list') {
-                btnList.classList.add('btn-primary', 'text-white');
-                btnList.classList.remove('btn-ghost');
-                btnGrid.classList.remove('btn-primary', 'text-white');
-                btnGrid.classList.add('btn-ghost');
-            } else {
-                btnGrid.classList.add('btn-primary', 'text-white');
-                btnGrid.classList.remove('btn-ghost');
-                btnList.classList.remove('btn-primary', 'text-white');
-                btnList.classList.add('btn-ghost');
-            }
-        }
-
-        function mostrarPrevisualizacion(input) {
-            const grid = document.getElementById('preview-grid');
-            const container = document.getElementById('preview-container');
-            const countLabel = document.getElementById('preview-count');
-
-            grid.innerHTML = "";
-
-            if (input.files && input.files.length > 0) {
-                if (input.id === 'camera-input') {
-                    document.getElementById('gallery-input').disabled = true;
-                } else {
-                    document.getElementById('camera-input').disabled = true;
-                }
-
-                countLabel.textContent = input.files.length;
-
-                Array.from(input.files).forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
-                        const card = document.createElement('div');
-                        card.className = "relative aspect-square rounded-xl overflow-hidden border border-base-300 shadow-sm bg-base-200";
-                        card.innerHTML = `<img src="${e.target.result}" class="object-cover w-full h-full" alt="Previsualización">`;
-                        grid.appendChild(card);
-                    }
-                    reader.readAsDataURL(file);
-                });
-
-                container.classList.remove('hidden');
-            }
-        }
-
-        function cancelarCaptura() {
-            const cameraInput = document.getElementById('camera-input');
-            const galleryInput = document.getElementById('gallery-input');
-            const btnSubir = document.getElementById('btn-subir');
-            const btnIcon = document.getElementById('btn-icon');
-            const btnText = document.getElementById('btn-text');
-
-            if (cameraInput) cameraInput.value = "";
-            if (galleryInput) galleryInput.value = "";
-            if (cameraInput) cameraInput.disabled = false;
-            if (galleryInput) galleryInput.disabled = false;
-
-            if (btnSubir) {
-                btnSubir.disabled = false;
-                btnSubir.classList.remove('btn-disabled');
-            }
-            if (btnIcon) {
-                btnIcon.className = "icon-[ph--check-circle-bold] size-5";
-            }
-            if (btnText) {
-                btnText.textContent = "Confirmar y Subir";
-            }
-
-            document.getElementById('preview-grid').innerHTML = "";
+        function cancelarSubida() {
+            archivosSeleccionados = [];
             document.getElementById('preview-container').classList.add('hidden');
+            document.getElementById('form-subida').reset();
+        }
+
+        function confirmarSubida() {
+            if (!archivosSeleccionados.length) return;
+            document.getElementById('form-subida').submit();
         }
     </script>
 </c-layouts.app>
