@@ -1,14 +1,14 @@
 import React from 'react';
-import { Link } from '@inertiajs/react';
-import { AppLayout } from "@/layouts/AppLayout.tsx";
-import { getUrl } from "@/utils/routes.ts";
+import {Link} from '@inertiajs/react';
+import {AppLayout} from "@/layouts/AppLayout.tsx";
+import {getUrl} from "@/utils/routes.ts";
 import type {Contacto} from "@/types/directorio.ts";
 
 type Props = {
     contacto: Contacto;
 };
 
-export default function Detail({ contacto }: Props) {
+export default function Detail({contacto}: Props) {
     const formatDate = (isoString?: string | null) => {
         if (!isoString) return 'N/A';
         const date = new Date(isoString);
@@ -20,8 +20,12 @@ export default function Detail({ contacto }: Props) {
     };
 
     return (
-        <AppLayout>
-            <div className="space-y-6">
+        <AppLayout title={contacto.titulo_nombre_completo || contacto.nombre_completo}>
+            {/* Contenedor principal con data-theme dinámico de la empresa */}
+            <div
+                data-theme={contacto.empresa?.theme}
+                className="bg-base-200/50 -m-4 p-4 sm:-m-6 sm:p-6 rounded-xl space-y-6 min-h-full transition-colors duration-300"
+            >
 
                 {/* Botón de Regresar */}
                 <div>
@@ -35,18 +39,22 @@ export default function Detail({ contacto }: Props) {
                 </div>
 
                 {/* TARJETA HERO PRINCIPAL */}
-                <div className="bg-base-100 rounded-2xl border border-base-200 shadow-sm p-6 sm:p-8 flex flex-col md:flex-row items-center md:items-start gap-6 relative overflow-hidden">
-                    {/* Borde decorativo superior con el color primario */}
+                <div
+                    className="bg-base-100 rounded-2xl border border-base-200 shadow-sm p-6 sm:p-8 flex flex-col md:flex-row items-center md:items-start gap-6 relative overflow-hidden">
+                    {/* Borde decorativo superior con el color primario de la empresa */}
                     <div className="absolute top-0 left-0 right-0 h-1.5 bg-primary"></div>
 
                     {/* Avatar / Foto */}
                     <div className="avatar placeholder shrink-0">
                         {contacto.foto ? (
-                            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl ring-2 ring-primary/20 shadow-md overflow-hidden">
-                                <img src={contacto.foto} alt={contacto.nombre_completo} className="object-cover w-full h-full" />
+                            <div
+                                className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl ring-2 ring-primary/20 shadow-md overflow-hidden">
+                                <img src={contacto.foto} alt={contacto.nombre_completo}
+                                     className="object-cover w-full h-full"/>
                             </div>
                         ) : (
-                            <div className="bg-primary/10 text-primary font-bold rounded-2xl w-24 h-24 sm:w-28 sm:h-28 text-2xl sm:text-3xl flex items-center justify-center border border-primary/20 shadow-inner">
+                            <div
+                                className="bg-primary/10 text-primary font-bold rounded-2xl w-24 h-24 sm:w-28 sm:h-28 text-2xl sm:text-3xl flex items-center justify-center border border-primary/20 shadow-inner">
                                 {contacto.iniciales}
                             </div>
                         )}
@@ -66,10 +74,11 @@ export default function Detail({ contacto }: Props) {
                         </div>
 
                         <p className="text-base text-primary font-semibold">
-                            {contacto.puesto || 'Puesto no asignado'}
+                            {contacto.puesto?.nombre || 'Puesto no asignado'}
                         </p>
 
-                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-base-content/70 pt-1">
+                        <div
+                            className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-base-content/70 pt-1">
                             {contacto.empresa && (
                                 <span className="flex items-center gap-1.5">
                                     <span className="icon-[lucide--building-2] text-primary text-sm"></span>
@@ -79,20 +88,21 @@ export default function Detail({ contacto }: Props) {
                             {contacto.area && (
                                 <span className="flex items-center gap-1.5">
                                     <span className="icon-[lucide--network] text-primary text-sm"></span>
-                                    {contacto.area}
+                                    {contacto.area.nombre}
                                 </span>
                             )}
                             {contacto.sede_administrativa && (
                                 <span className="flex items-center gap-1.5">
                                     <span className="icon-[lucide--map-pin] text-primary text-sm"></span>
-                                    {contacto.sede_administrativa}
+                                    {contacto.sede_administrativa.nombre}
                                 </span>
                             )}
                         </div>
                     </div>
 
                     {/* Botones de Acción Rápida */}
-                    <div className="flex flex-wrap justify-center md:flex-col gap-2 w-full md:w-auto shrink-0 border-t md:border-t-0 md:border-l border-base-200 pt-4 md:pt-0 md:pl-6">
+                    <div
+                        className="flex flex-wrap justify-center md:flex-col gap-2 w-full md:w-auto shrink-0 border-t md:border-t-0 md:border-l border-base-200 pt-4 md:pt-0 md:pl-6">
                         {contacto.email_principal && (
                             <a
                                 href={`mailto:${contacto.email_principal}`}
@@ -154,7 +164,8 @@ export default function Detail({ contacto }: Props) {
                                 icon="icon-[lucide--mail]"
                                 label="Correo Electrónico"
                                 value={contacto.email_principal ? (
-                                    <a href={`mailto:${contacto.email_principal}`} className="text-primary hover:underline">
+                                    <a href={`mailto:${contacto.email_principal}`}
+                                       className="text-primary hover:underline">
                                         {contacto.email_principal}
                                     </a>
                                 ) : null}
@@ -164,7 +175,8 @@ export default function Detail({ contacto }: Props) {
                                 icon="icon-[lucide--phone]"
                                 label="Teléfono Directo"
                                 value={contacto.telefono_principal ? (
-                                    <a href={`tel:${contacto.telefono_principal}`} className="text-base-content hover:text-primary">
+                                    <a href={`tel:${contacto.telefono_principal}`}
+                                       className="text-base-content hover:text-primary">
                                         {contacto.telefono_principal}
                                     </a>
                                 ) : null}
@@ -180,7 +192,8 @@ export default function Detail({ contacto }: Props) {
                                 icon="icon-[lucide--slack]"
                                 label="Slack Directo"
                                 value={contacto.slack_url ? (
-                                    <a href={contacto.slack_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                    <a href={contacto.slack_url} target="_blank" rel="noopener noreferrer"
+                                       className="text-primary hover:underline">
                                         Abrir conversación en Slack
                                     </a>
                                 ) : null}
@@ -205,19 +218,19 @@ export default function Detail({ contacto }: Props) {
                             <InfoRow
                                 icon="icon-[lucide--layers]"
                                 label="Área / Departamento"
-                                value={contacto.area}
+                                value={contacto.area?.nombre}
                             />
 
                             <InfoRow
                                 icon="icon-[lucide--user-check]"
                                 label="Puesto Asignado"
-                                value={contacto.puesto}
+                                value={contacto.puesto?.nombre}
                             />
 
                             <InfoRow
                                 icon="icon-[lucide--map-pin]"
                                 label="Sede Administrativa"
-                                value={contacto.sede_administrativa}
+                                value={contacto.sede_administrativa?.nombre}
                             />
 
                             <InfoRow
@@ -230,7 +243,7 @@ export default function Detail({ contacto }: Props) {
 
                 </div>
 
-                {/* SECCIÓN 3: EMPRESAS RELACIONADAS (Si las hay) */}
+                {/* SECCIÓN 3: EMPRESAS RELACIONADAS */}
                 {contacto.empresas_relacionadas && contacto.empresas_relacionadas.length > 0 && (
                     <div className="bg-base-100 rounded-2xl border border-base-200 shadow-sm p-6 space-y-4">
                         <h2 className="text-lg font-bold text-base-content flex items-center gap-2 border-b border-base-200 pb-3">
@@ -240,7 +253,8 @@ export default function Detail({ contacto }: Props) {
 
                         <div className="flex flex-wrap gap-2 pt-1">
                             {contacto.empresas_relacionadas.map((emp) => (
-                                <div key={emp.id} className="badge badge-lg bg-base-200 text-base-content border-base-300 gap-2 py-3 px-4 font-medium">
+                                <div key={emp.id}
+                                     className="badge badge-lg bg-base-200 text-base-content border-base-300 gap-2 py-3 px-4 font-medium">
                                     <span className="icon-[lucide--check-circle-2] text-primary text-sm"></span>
                                     {emp.nombre}
                                 </div>
@@ -254,8 +268,7 @@ export default function Detail({ contacto }: Props) {
     );
 }
 
-{/* Helper component para mostrar filas de datos estructurados */}
-function InfoRow({ icon, label, value }: { icon: string; label: string; value: React.ReactNode }) {
+function InfoRow({icon, label, value}: { icon: string; label: string; value: React.ReactNode }) {
     return (
         <div className="flex items-start gap-3 text-sm">
             <span className={`${icon} text-base-content/50 text-base mt-0.5 shrink-0`}></span>

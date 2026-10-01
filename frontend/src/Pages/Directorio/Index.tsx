@@ -1,20 +1,30 @@
-import {Link, router} from '@inertiajs/react';
-import {useState} from 'react';
+import {Link, router, usePage} from '@inertiajs/react';
+import React, {useState} from 'react';
 import {AppLayout} from "@/layouts/AppLayout.tsx";
 import {getUrl} from "@/utils/routes.ts";
 import {ContactoCard} from '@/components/directorio/ContactoCard';
-import type {AreaSimple, Contacto, EmpresaSimple} from "@/types/directorio.ts";
+import type {Contacto} from "@/types/directorio.ts";
 import type {PaginatedResponse} from "@/types/pagination.ts";
+import {SelectWithSearch} from "@/components/forms/FormSelectWithSearch.tsx";
+
+export interface Option {
+    id: number | string;
+    nombre: string;
+}
 
 type Props = {
     contactos: PaginatedResponse<Contacto>;
     filters: {
         search: string;
         empresa: string;
+        sede?: string;
         area?: string;
+        puesto?: string;
     };
-    empresas_options: EmpresaSimple[];
-    areas?: AreaSimple[];
+    empresas_options: Option[];
+    sedes_options: Option[];
+    areas_options: Option[];
+    puestos_options: Option[];
     view_mode: 'grid' | 'table';
 };
 
@@ -22,51 +32,77 @@ export default function Directorio({
                                        contactos,
                                        filters,
                                        empresas_options,
-                                       areas = [],
-                                       can_create,
+                                       sedes_options = [],
+                                       areas_options = [],
+                                       puestos_options = [],
                                        view_mode = 'grid'
                                    }: Props) {
     const [search, setSearch] = useState(filters.search || '');
     const [viewMode, setViewMode] = useState(view_mode || 'grid');
     const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
-    const activeFiltersCount = (filters.empresa ? 1 : 0) + (filters.area ? 1 : 0);
+    const activeFiltersCount =
+        (filters.empresa ? 1 : 0) +
+        (filters.sede ? 1 : 0) +
+        (filters.area ? 1 : 0) +
+        (filters.puesto ? 1 : 0);
 
-    const handleFilter = (newSearch: string, newEmpresa?: string, newArea?: string, newViewMode?: 'grid' | 'table') => {
+    const handleFilter = (params: {
+        search?: string;
+        empresa?: string;
+        sede?: string;
+        area?: string;
+        puesto?: string;
+        view_mode?: 'grid' | 'table';
+    }) => {
         router.get(
             getUrl('directorio:list'),
             {
-                search: newSearch,
-                empresa: newEmpresa !== undefined ? newEmpresa : filters.empresa,
-                area: newArea !== undefined ? newArea : (filters.area || ''),
-                view_mode: newViewMode !== undefined ? newViewMode : viewMode,
+                search: params.search !== undefined ? params.search : search,
+                empresa: params.empresa !== undefined ? params.empresa : filters.empresa,
+                sede: params.sede !== undefined ? params.sede : (filters.sede || ''),
+                area: params.area !== undefined ? params.area : (filters.area || ''),
+                puesto: params.puesto !== undefined ? params.puesto : (filters.puesto || ''),
+                view_mode: params.view_mode !== undefined ? params.view_mode : viewMode,
             },
             {preserveState: true, replace: true}
         );
     };
 
+    const {permissions} = usePage().props as unknown as { permissions: string[] };
+
     const handleViewModeChange = (mode: 'grid' | 'table') => {
         setViewMode(mode);
-        handleFilter(search, filters.empresa, filters.area, mode);
+        handleFilter({view_mode: mode});
     };
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setSearch(value);
-        handleFilter(value);
+        handleFilter({search: value});
     };
 
-    const handleEmpresaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        handleFilter(search, e.target.value);
+    const handleEmpresaChange = (val: string) => {
+        // Al cambiar de empresa, reseteamos área y puesto
+        handleFilter({empresa: val, area: '', puesto: ''});
     };
 
-    const handleAreaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        handleFilter(search, undefined, e.target.value);
+    const handleSedeChange = (val: string) => {
+        handleFilter({sede: val});
+    };
+
+    const handleAreaChange = (val: string) => {
+        // Al cambiar de área, reseteamos puesto
+        handleFilter({area: val, puesto: ''});
+    };
+
+    const handlePuestoChange = (val: string) => {
+        handleFilter({puesto: val});
     };
 
     const clearFilters = () => {
         setSearch('');
-        handleFilter('', '', '');
+        handleFilter({search: '', empresa: '', sede: '', area: '', puesto: ''});
     };
 
     const changePage = (pageNumber: number | null) => {
@@ -76,7 +112,9 @@ export default function Directorio({
             {
                 search: filters.search,
                 empresa: filters.empresa,
+                sede: filters.sede,
                 area: filters.area,
+                puesto: filters.puesto,
                 view_mode: viewMode,
                 page: pageNumber,
             },
@@ -96,14 +134,14 @@ export default function Directorio({
         if (url !== '#') {
             router.post(url);
         }
-    }
+    };
 
     const handleDelete = (contactoId: number) => {
         const url = getUrl('directorio:delete', contactoId);
         if (url !== '#') {
             router.post(url);
         }
-    }
+    };
 
     const HeaderActions = () => (
         <div className="flex items-center gap-2 self-end sm:self-auto">
@@ -124,7 +162,7 @@ export default function Directorio({
                 </button>
             </div>
 
-            {can_create && (
+            {permissions.includes('directorio.add_contacto') && (
                 <Link href={getUrl('directorio:create')}>
                     <button className="btn btn-xs sm:btn-sm btn-primary gap-1.5">
                         <span className="icon-[lucide--plus] text-sm"></span> Nuevo
@@ -132,7 +170,7 @@ export default function Directorio({
                 </Link>
             )}
         </div>
-    )
+    );
 
     return (
         <AppLayout
@@ -140,16 +178,15 @@ export default function Directorio({
             title="Directorio"
             headerActions={<HeaderActions/>}
         >
-            {/* Contenedor principal que llena exactamente el espacio de la app sin desbordarse */}
             <div className="flex flex-col h-full gap-3">
 
-                {/* --- BARRA DE FILTROS & PAGINACIÓN SUPERIOR (Fija) --- */}
+                {/* --- BARRA DE FILTROS SUPERIOR --- */}
                 <div
                     className="flex-none bg-base-100 px-4 py-2.5 rounded-xl border border-base-200 shadow-sm flex flex-col md:flex-row gap-2.5 items-center justify-between">
 
                     {/* Filtros Desktop */}
-                    <div className="hidden md:flex items-center gap-2.5 flex-1 max-w-2xl w-full">
-                        <div className="relative flex-1">
+                    <div className="hidden md:flex items-center gap-2 flex-1 max-w-5xl w-full">
+                        <div className="relative flex-1 min-w-[160px]">
                             <input
                                 type="text"
                                 value={search}
@@ -162,7 +199,7 @@ export default function Directorio({
                                     type="button"
                                     onClick={() => {
                                         setSearch('');
-                                        handleFilter('');
+                                        handleFilter({search: ''});
                                     }}
                                     className="absolute right-2.5 top-2 text-base-content/40 hover:text-error transition-colors"
                                 >
@@ -174,32 +211,48 @@ export default function Directorio({
                             )}
                         </div>
 
-                        <select
+                        {/* Select con Buscador: Empresa */}
+                        <SelectWithSearch
+                            options={empresas_options}
                             value={filters.empresa}
                             onChange={handleEmpresaChange}
-                            className="select select-bordered select-sm w-40 text-xs focus:border-primary focus:outline-none"
-                        >
-                            <option value="">Todas las empresas</option>
-                            {empresas_options.map((empresa) => (
-                                <option key={empresa.id} value={empresa.id}>{empresa.nombre}</option>
-                            ))}
-                        </select>
+                            placeholder="Todas las empresas"
+                            className="w-36"
+                        />
 
-                        {areas.length > 0 && (
-                            <select
-                                value={filters.area || ''}
-                                onChange={handleAreaChange}
-                                className="select select-bordered select-sm w-40 text-xs focus:border-primary focus:outline-none"
-                            >
-                                <option value="">Todas las áreas</option>
-                                {areas.map((area) => (
-                                    <option key={area.id} value={area.id}>{area.nombre}</option>
-                                ))}
-                            </select>
+                        {/* Select con Buscador: Sede */}
+                        {sedes_options.length > 0 && (
+                            <SelectWithSearch
+                                options={sedes_options}
+                                value={filters.sede || ''}
+                                onChange={handleSedeChange}
+                                placeholder="Todas las sedes"
+                                className="w-36"
+                            />
                         )}
+
+                        {/* Select con Buscador: Área */}
+                        <SelectWithSearch
+                            options={areas_options}
+                            value={filters.area || ''}
+                            onChange={handleAreaChange}
+                            placeholder="Todas las áreas"
+                            disabled={areas_options.length === 0}
+                            className="w-36"
+                        />
+
+                        {/* Select con Buscador: Puesto */}
+                        <SelectWithSearch
+                            options={puestos_options}
+                            value={filters.puesto || ''}
+                            onChange={handlePuestoChange}
+                            placeholder="Todos los puestos"
+                            disabled={puestos_options.length === 0}
+                            className="w-36"
+                        />
                     </div>
 
-                    {/* Filtros Mobile (Búsqueda + Botón de Drawer) */}
+                    {/* Filtros Mobile (Búsqueda + Drawer) */}
                     <div className="flex md:hidden gap-2 w-full">
                         <div className="relative flex-1">
                             <input
@@ -214,7 +267,7 @@ export default function Directorio({
                                     type="button"
                                     onClick={() => {
                                         setSearch('');
-                                        handleFilter('');
+                                        handleFilter({search: ''});
                                     }}
                                     className="absolute right-2.5 top-2 text-base-content/40"
                                 >
@@ -233,7 +286,7 @@ export default function Directorio({
                         </button>
                     </div>
 
-                    {/* Controles de Paginación fijos */}
+                    {/* Controles de Paginación */}
                     <div
                         className="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto border-t md:border-t-0 pt-2 md:pt-0 border-base-200">
                         <span className="text-[11px] text-base-content/60">
@@ -260,7 +313,7 @@ export default function Directorio({
                     </div>
                 </div>
 
-                {/* --- ÁREA DE CONTENIDO (Único lugar con scroll) --- */}
+                {/* --- ÁREA DE CONTENIDO (Scrollable) --- */}
                 <div className="flex-1 overflow-y-auto pr-1 min-h-0">
                     {view_mode === 'grid' && (
                         contactos.data.length > 0 ? (
@@ -274,7 +327,6 @@ export default function Directorio({
                         )
                     )}
 
-                    {/* --- ÁREA DE TABLA CON THEME POR FILA --- */}
                     {view_mode === 'table' && (
                         <div className="bg-base-100 shadow-sm rounded-xl border border-base-200 overflow-hidden mb-2">
                             <div className="overflow-x-auto">
@@ -294,7 +346,7 @@ export default function Directorio({
                                         contactos.data.map((contacto) => (
                                             <tr
                                                 key={contacto.id}
-                                                data-theme={contacto.theme} // <-- Aplica el tema específico del usuario a la fila
+                                                data-theme={contacto.empresa?.theme}
                                                 onClick={() => handleRowClick(contacto.id)}
                                                 className="bg-base-100 text-base-content hover:bg-primary/10 transition-colors cursor-pointer group"
                                             >
@@ -320,7 +372,7 @@ export default function Directorio({
                                                                 {contacto.titulo_nombre_completo || contacto.nombre_completo}
                                                             </div>
                                                             <div className="text-[10px] text-base-content/60">
-                                                                {contacto.puesto || 'Sin Puesto'}
+                                                                {contacto.puesto?.nombre || 'Sin Puesto'}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -330,7 +382,7 @@ export default function Directorio({
                                                         {contacto.empresa?.nombre || 'N/A'}
                                                     </div>
                                                     <div className="text-[10px] text-base-content/60">
-                                                        {contacto.area || 'Sin área'}
+                                                        {contacto.area?.nombre || 'Sin área'}
                                                     </div>
                                                 </td>
                                                 <td className="py-1.5 text-xs font-mono text-base-content/70">
@@ -387,7 +439,7 @@ export default function Directorio({
                 <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm md:hidden">
                     <div
                         className="w-4/5 max-w-xs bg-base-100 h-full p-4 flex flex-col justify-between shadow-2xl animate-in slide-in-from-right duration-200">
-                        <div className="space-y-4">
+                        <div className="space-y-3 overflow-y-auto pr-1">
                             <div className="flex items-center justify-between border-b border-base-200 pb-3">
                                 <h3 className="font-bold text-sm flex items-center gap-2">
                                     <span className="icon-[lucide--filter] text-primary"></span>
@@ -401,40 +453,56 @@ export default function Directorio({
                                 </button>
                             </div>
 
-                            {/* Filtro Empresa */}
-                            <div className="space-y-1.5">
+                            {/* Empresa */}
+                            <div className="space-y-1">
                                 <label className="text-xs font-semibold text-base-content/70">Empresa</label>
-                                <select
+                                <SelectWithSearch
+                                    options={empresas_options}
                                     value={filters.empresa}
                                     onChange={handleEmpresaChange}
-                                    className="select select-bordered select-sm w-full text-xs"
-                                >
-                                    <option value="">Todas las empresas</option>
-                                    {empresas_options.map((empresa) => (
-                                        <option key={empresa.id} value={empresa.id}>{empresa.nombre}</option>
-                                    ))}
-                                </select>
+                                    placeholder="Todas las empresas"
+                                />
                             </div>
 
-                            {/* Filtro Área */}
-                            {areas.length > 0 && (
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-base-content/70">Área</label>
-                                    <select
-                                        value={filters.area || ''}
-                                        onChange={handleAreaChange}
-                                        className="select select-bordered select-sm w-full text-xs"
-                                    >
-                                        <option value="">Todas las áreas</option>
-                                        {areas.map((area) => (
-                                            <option key={area.id} value={area.id}>{area.nombre}</option>
-                                        ))}
-                                    </select>
+                            {/* Sede */}
+                            {sedes_options.length > 0 && (
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-base-content/70">Sede</label>
+                                    <SelectWithSearch
+                                        options={sedes_options}
+                                        value={filters.sede || ''}
+                                        onChange={handleSedeChange}
+                                        placeholder="Todas las sedes"
+                                    />
                                 </div>
                             )}
+
+                            {/* Área */}
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-base-content/70">Área</label>
+                                <SelectWithSearch
+                                    options={areas_options}
+                                    value={filters.area || ''}
+                                    onChange={handleAreaChange}
+                                    placeholder="Todas las áreas"
+                                    disabled={areas_options.length === 0}
+                                />
+                            </div>
+
+                            {/* Puesto */}
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-base-content/70">Puesto</label>
+                                <SelectWithSearch
+                                    options={puestos_options}
+                                    value={filters.puesto || ''}
+                                    onChange={handlePuestoChange}
+                                    placeholder="Todos los puestos"
+                                    disabled={puestos_options.length === 0}
+                                />
+                            </div>
                         </div>
 
-                        <div className="space-y-2 pt-3 border-t border-base-200">
+                        <div className="space-y-2 pt-3 border-t border-base-200 mt-2">
                             {activeFiltersCount > 0 && (
                                 <button
                                     onClick={clearFilters}

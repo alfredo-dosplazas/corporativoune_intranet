@@ -7,6 +7,22 @@ from apps.sae.db import Base
 _MODEL_CACHE = {}
 
 
+class PrecioMixin:
+    clave = Column('CVE_PRECIO', Integer, primary_key=True)
+    descripcion = Column('DESCRIPCION', String(25))
+    status = Column('STATUS', String(1))
+
+class PrecioPorProductoMixin:
+    cve_art = Column('CVE_ART', String(10), primary_key=True)
+    cve_precio = Column('CVE_PRECIO', Integer, primary_key=True)
+    precio = Column('PRECIO', Float)
+
+class LineaMixin:
+    clave = Column('CVE_LIN', String(5), primary_key=True)
+    descripcion = Column('DESC_LIN', String(20))
+    status = Column('STATUS', String(1))
+
+
 class ProveedorMixin:
     clave = Column('CLAVE', String(10), primary_key=True)
     nombre = Column('NOMBRE', String(254))
@@ -76,6 +92,7 @@ class CoiXmlMixin:
 class ArticuloMixin:
     clave = Column('CVE_ART', String(10), primary_key=True)
     descripcion = Column('DESCR', String(254))
+    linea = Column('LIN_PROD', String(5))
 
 
 class PartidaFacturaMixin:
@@ -117,6 +134,14 @@ class ConceptoPorCobrarMixin:
 def get_sae_models(suffix="01"):
     if suffix in _MODEL_CACHE:
         return _MODEL_CACHE[suffix]
+
+    class Precio(PrecioMixin, Base):
+        __tablename__ = f'PRECIOS{suffix}'
+        __table_args__ = {'extend_existing': True}
+
+    class Linea(LineaMixin, Base):
+        __tablename__ = f'CLIN{suffix}'
+        __table_args__ = {'extend_existing': True}
 
     class Proveedor(ProveedorMixin, Base):
         __tablename__ = f'PROV{suffix}'
@@ -192,6 +217,13 @@ def get_sae_models(suffix="01"):
         __tablename__ = f'INVE{suffix}'
         __table_args__ = {'extend_existing': True}
 
+        linea_rel = relationship(
+            Linea,
+            primaryjoin=f'foreign(Producto.linea) == Linea.clave',
+            uselist=False,
+            backref=f"productos_{suffix}"
+        )
+
     class PartidaCompra(PartidaCompraMixin, Base):
         __tablename__ = f'PAR_COMPC{suffix}'
         __table_args__ = {'extend_existing': True}
@@ -206,7 +238,6 @@ def get_sae_models(suffix="01"):
         __tablename__ = f'PAR_FACTF{suffix}'
         __table_args__ = {'extend_existing': True}
 
-        # Llave compuesta: folio + num_partida
         folio = Column('CVE_DOC', ForeignKey(f'FACTF{suffix}.CVE_DOC'), primary_key=True)
         factura = relationship(Factura, backref=f"partidas_{suffix}")
 
@@ -217,7 +248,6 @@ def get_sae_models(suffix="01"):
         __tablename__ = f'PAR_FACTD{suffix}'
         __table_args__ = {'extend_existing': True}
 
-        # Llave compuesta: folio + num_partida
         folio = Column('CVE_DOC', ForeignKey(f'FACTD{suffix}.CVE_DOC'), primary_key=True)
         nota_devolucion = relationship(NotaDevolucion, backref=f"partidas_devolucion_{suffix}")
 
@@ -232,10 +262,17 @@ def get_sae_models(suffix="01"):
         __tablename__ = f'CONC{suffix}'
         __table_args__ = {'extend_existing': True}
 
+    class PrecioPorProducto(PrecioPorProductoMixin, Base):
+        __tablename__ = f'PRECIO_X_PROD{suffix}'
+        __table_args__ = {'extend_existing': True}
+
     AlmacenFactura = aliased(Almacen, name=f'AlmacenFactura_{suffix}')
     AlmacenNota = aliased(Almacen, name=f'AlmacenNota_{suffix}')
 
     models = SimpleNamespace(
+        Precio=Precio,
+        PrecioPorProducto=PrecioPorProducto,
+        Linea=Linea,
         Proveedor=Proveedor,
         Cliente=Cliente,
         Almacen=Almacen,

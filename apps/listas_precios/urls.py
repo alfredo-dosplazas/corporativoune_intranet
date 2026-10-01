@@ -1,9 +1,11 @@
-# from django.urls import path
-#
-# from apps.listas_precios.views import listas_precios, generar_listas_zip, cargar_productos_linea
-#
-# urlpatterns = [
-#     path('', listas_precios, name='listas_precio'),
-#     path('cargar-productos-linea/', cargar_productos_linea, name='cargar_productos_linea'),
-#     path('generar-listas-zip/', generar_listas_zip, name='generar_listas_zip'),
-# ]
+from django.urls import path
+from . import views
+app_name = 'listas_precios'
+
+urlpatterns = [
+    path('', views.listas_precios, name='index'),
+
+    path('guardar/', views.guardar_listas_precios, name='guardar_listas_precios'),
+
+    path('exportar-excel/', views.exportar_excel_precios, name='exportar_excel_precios'),
+]

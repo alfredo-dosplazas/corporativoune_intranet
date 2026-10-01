@@ -44,13 +44,16 @@ export default function Form({
                         </p>
                     </div>
 
-                    <Link href={cancelUrl} className="inline-flex items-center gap-2 px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                    <Link
+                        href={cancelUrl}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                    >
                         <span className="icon-[lucide--arrow-left] text-base" />
                         Volver al directorio
                     </Link>
                 </div>
 
-                {/* Formulario */}
+                {/* Formulario Wizard */}
                 <ContactoForm
                     contacto={contacto}
                     empresas={empresas}
