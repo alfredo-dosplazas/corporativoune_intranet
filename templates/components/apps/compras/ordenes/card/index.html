@@ -1,3 +1,4 @@
+{% load money %}
 <div class="card bg-base-100 border border-base-200 shadow-2xs hover:shadow-md hover:border-base-300 transition-all rounded-lg overflow-visible">
     <div class="card-body p-3 gap-2.5 text-xs">
 
@@ -53,7 +54,7 @@
             <div>
                 <span class="text-[10px] text-base-content/50 uppercase tracking-wider block font-medium">Total (+IVA)</span>
                 <span class="font-mono font-bold text-sm text-base-content tracking-tight">
-                    ${{ orden.total|floatformat:2 }}
+                    {{ orden.total|money }}
                 </span>
             </div>
 

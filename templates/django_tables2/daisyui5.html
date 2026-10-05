@@ -3,11 +3,11 @@
 {% load i18n l10n %}
 
 {% block table-wrapper %}
-    <!-- Contenedor Unificado Densidad ERP -->
-    <div class="flex-1 relative w-full rounded-md border border-base-200 bg-base-100 shadow-2xs flex flex-col overflow-hidden">
+    <!-- Contenedor Principal: Flex Columna ocupando el alto disponible -->
+    <div class="flex flex-col h-full min-h-0 w-full rounded-md border border-base-200 bg-base-100 shadow-2xs overflow-hidden">
 
-        <!-- TABLA SCROLLABLE -->
-        <div class="flex-1 overflow-x-auto">
+        <!-- TABLA SCROLLABLE (flex-1 expande la tabla para ocupar todo el espacio restante) -->
+        <div class="flex-1 overflow-auto min-h-0 relative">
             {% block table %}
                 <table {% render_attrs table.attrs class="table table-xs table-pin-rows table-zebra w-full border-separate border-spacing-0" %}>
 
@@ -17,7 +17,7 @@
                             <tr>
                                 {% for column in table.columns %}
                                     <th {{ column.attrs.th.as_html }}
-                                            class="bg-base-200/90 backdrop-blur-xs font-semibold text-[11px] text-base-content/80 uppercase tracking-tight py-2 px-2.5 border-b border-base-300 select-none whitespace-nowrap">
+                                            class="bg-base-200/90 backdrop-blur-xs font-semibold text-[11px] text-base-content/80 uppercase tracking-tight py-2 px-2.5 border-b border-base-300 select-none whitespace-nowrap sticky top-0 z-20">
                                         {% if column.orderable %}
                                             <a href="{% querystring table.prefixed_page_field=table.page.number table.prefixed_order_by_field=column.order_by_alias.next %}"
                                                class="flex items-center justify-between gap-1.5 hover:text-primary transition-colors group {% if column.is_ordered %}text-primary font-bold{% endif %}">
@@ -53,7 +53,8 @@
                                             {% if column.localize == None %}
                                                 {{ cell }}
                                             {% else %}
-                                                {% if column.localize %}{{ cell|localize }}{% else %}{{ cell|unlocalize }}{% endif %}
+                                                {% if column.localize %}{{ cell|localize }}{% else %}
+                                                    {{ cell|unlocalize }}{% endif %}
                                             {% endif %}
                                         </td>
                                     {% endfor %}
@@ -63,7 +64,8 @@
                             {% if table.empty_text %}
                                 {% block table.tbody.empty_text %}
                                     <tr>
-                                        <td colspan="{{ table.columns|length }}" class="text-center py-10 px-4 text-base-content/50">
+                                        <td colspan="{{ table.columns|length }}"
+                                            class="text-center py-10 px-4 text-base-content/50">
                                             <div class="flex flex-col items-center justify-center gap-2 max-w-xs mx-auto">
                                                 <div class="p-2.5 bg-base-200 rounded-full text-base-content/40">
                                                     <span class="icon-[tabler--database-off] size-6 block"></span>
@@ -95,7 +97,7 @@
             {% endblock table %}
         </div>
 
-        <!-- PAGINADOR COMPACTO ERP -->
+        <!-- PAGINADOR FIJO EN EL FONDO -->
         <div class="pagination-container shrink-0 border-t border-base-200 bg-base-100 px-3 py-1.5 z-20">
             <div class="flex flex-col sm:flex-row justify-between items-center gap-2">
 
@@ -116,7 +118,8 @@
                             <!-- Primera página / Anterior -->
                             {% if table.page.has_previous %}
                                 <a class="join-item btn btn-xs btn-ghost h-6 min-h-0 px-1.5 text-base-content/80"
-                                   href="{% querystring table.prefixed_page_field=1 %}" title="{% trans 'Primera página' %}">
+                                   href="{% querystring table.prefixed_page_field=1 %}"
+                                   title="{% trans 'Primera página' %}">
                                     <span class="icon-[tabler--chevrons-left] size-3.5"></span>
                                 </a>
                                 <a class="join-item btn btn-xs btn-ghost h-6 min-h-0 px-2 text-base-content/80 gap-1 text-[11px]"
@@ -137,7 +140,9 @@
                             <!-- Números de Página -->
                             {% for p in table.page|table_page_range:table.paginator %}
                                 {% if p == '...' %}
-                                    <button class="join-item btn btn-xs btn-ghost h-6 min-h-0 px-1.5 btn-disabled text-[11px]">...</button>
+                                    <button class="join-item btn btn-xs btn-ghost h-6 min-h-0 px-1.5 btn-disabled text-[11px]">
+                                        ...
+                                    </button>
                                 {% elif p == table.page.number %}
                                     <button class="join-item btn btn-xs btn-primary h-6 min-h-0 px-2 text-[11px] font-bold no-animation">{{ p }}</button>
                                 {% else %}
@@ -154,7 +159,8 @@
                                     <span class="icon-[tabler--chevron-right] size-3.5"></span>
                                 </a>
                                 <a class="join-item btn btn-xs btn-ghost h-6 min-h-0 px-1.5 text-base-content/80"
-                                   href="{% querystring table.prefixed_page_field=table.paginator.num_pages %}" title="{% trans 'Última página' %}">
+                                   href="{% querystring table.prefixed_page_field=table.paginator.num_pages %}"
+                                   title="{% trans 'Última página' %}">
                                     <span class="icon-[tabler--chevrons-right] size-3.5"></span>
                                 </a>
                             {% else %}
@@ -172,6 +178,5 @@
 
             </div>
         </div>
-
     </div>
 {% endblock table-wrapper %}

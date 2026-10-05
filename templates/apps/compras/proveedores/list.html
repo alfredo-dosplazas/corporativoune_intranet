@@ -143,6 +143,18 @@
                 </div>
             {% endfor %}
         </div>
+
+        <!-- Paginación dedicada solo para el modo Cards / Kanban -->
+        {% if table.page %}
+            <div class="flex items-center justify-between p-3 border-t border-base-200 bg-base-100 rounded-b-lg mt-2"><span
+                    class="text-[11px] text-base-content/60"> Página {{ table.page.number }} de {{ table.paginator.num_pages }} </span>
+                <div class="join"> {% if table.page.has_previous %}
+                    <a href="?page={{ table.page.previous_page_number }}" class="join-item btn btn-xs border-base-300">Anterior</a> {% endif %}
+                    {% if table.page.has_next %}
+                        <a href="?page={{ table.page.next_page_number }}" class="join-item btn btn-xs border-base-300">Siguiente</a> {% endif %}
+                </div>
+            </div>
+        {% endif %}
     </div>
 
     <!-- MODAL DE FILTROS (MOBILE BOTTOM SHEET / DESKTOP MODAL) -->

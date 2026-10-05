@@ -1,0 +1,122 @@
+{% load humanize %}
+
+<div class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+    <div class="card-body p-4 gap-3">
+
+        <!-- Encabezado de la Tarjeta: Folio + Estado COI -->
+        <div class="flex items-center justify-between border-b border-base-200 pb-2">
+            <div class="flex items-center gap-2">
+                <span class="icon-[tabler--file-invoice] text-primary text-base"></span>
+                <span class="font-bold text-sm text-base-content font-mono">
+                    {{ documento.folio|default:"Sin Folio" }}
+                </span>
+            </div>
+
+            <!-- Estado COI -->
+            <div>
+                {% if documento.contabilizado == 'ENVIADO_COI' %}
+                    <span class="badge badge-success badge-xs gap-1 text-[10px] font-medium">
+                        <span class="icon-[tabler--check] text-xs"></span> Enviado
+                    </span>
+                {% else %}
+                    <span class="badge badge-ghost badge-xs gap-1 text-[10px] font-medium text-base-content/60">
+                        <span class="icon-[tabler--clock] text-xs"></span> Pendiente
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Información Principal (Cliente / Proveedor y Fecha) -->
+        <div class="space-y-1">
+            <div class="text-xs font-semibold text-base-content truncate" title="{{ documento.cliente }}">
+                {{ documento.cliente|default:"Cliente General / Publico en General" }}
+            </div>
+            <div class="flex items-center gap-3 text-[11px] text-base-content/60">
+                <span class="flex items-center gap-1">
+                    <span class="icon-[tabler--calendar] text-xs"></span>
+                    {{ documento.fecha|date:"d/m/Y"|default:documento.fecha }}
+                </span>
+                {% if documento.almacen %}
+                <span class="flex items-center gap-1">
+                    <span class="icon-[tabler--building-warehouse] text-xs"></span>
+                    {{ documento.almacen }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Desglose de Montos en Grid -->
+        <div class="grid grid-cols-3 gap-1 p-2 bg-base-200/50 rounded-md text-center text-xs my-1">
+            <div>
+                <span class="block text-[10px] text-base-content/60 font-medium">Subtotal</span>
+                <span class="font-mono text-xs text-base-content font-medium">
+                    ${{ documento.subtotal|default:0|floatformat:2|intcomma }}
+                </span>
+            </div>
+            <div>
+                <span class="block text-[10px] text-base-content/60 font-medium">Impuesto</span>
+                <span class="font-mono text-xs text-base-content/80">
+                    ${{ documento.total_impuesto4|default:0|floatformat:2|intcomma }}
+                </span>
+            </div>
+            <div>
+                <span class="block text-[10px] text-base-content/60 font-medium">Total</span>
+                <span class="font-mono text-xs font-bold text-primary">
+                    ${{ documento.total|default:0|floatformat:2|intcomma }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Botón de Acción HTMX (Ver Póliza) -->
+        <div class="card-actions justify-end pt-1">
+            {% with tipo_doc=request.GET.tipo_documento|default:"ventas" %}
+                {% if tipo_doc == 'ventas' %}
+                    <button type="button"
+                            hx-get="{% url 'interfaz_sae_coi:preview_poliza_factura' folio=documento.folio %}"
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML"
+                            class="btn btn-ghost btn-xs border border-base-300 gap-1 text-xs w-full sm:w-auto">
+                        <span class="icon-[tabler--eye] text-xs"></span> Ver Póliza
+                    </button>
+
+                {% elif tipo_doc == 'notas_credito' %}
+                    <button type="button"
+                            hx-get="{% url 'interfaz_sae_coi:preview_poliza_nota_credito' folio=documento.folio %}"
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML"
+                            class="btn btn-ghost btn-xs border border-base-300 gap-1 text-xs w-full sm:w-auto">
+                        <span class="icon-[tabler--eye] text-xs"></span> Ver Póliza
+                    </button>
+
+                {% elif tipo_doc == 'notas_devolucion' %}
+                    <button type="button"
+                            hx-get="{% url 'interfaz_sae_coi:preview_poliza_nota_devolucion' folio=documento.folio %}"
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML"
+                            class="btn btn-ghost btn-xs border border-base-300 gap-1 text-xs w-full sm:w-auto">
+                        <span class="icon-[tabler--eye] text-xs"></span> Ver Póliza
+                    </button>
+
+                {% elif tipo_doc == 'corte_caja' %}
+                    <button type="button"
+                            hx-get="{% url 'interfaz_sae_coi:preview_poliza_corte' %}?fecha={{ documento.fecha|date:'Y-m-d' }}&almacen={{ documento.almacen_id|default:'' }}"
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML"
+                            class="btn btn-ghost btn-xs border border-base-300 gap-1 text-xs w-full sm:w-auto">
+                        <span class="icon-[tabler--eye] text-xs"></span> Ver Póliza
+                    </button>
+
+                {% else %}
+                    <button type="button"
+                            hx-get="{% url 'interfaz_sae_coi:preview_poliza_factura' folio=documento.folio %}"
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML"
+                            class="btn btn-ghost btn-xs border border-base-300 gap-1 text-xs w-full sm:w-auto">
+                        <span class="icon-[tabler--eye] text-xs"></span> Ver Póliza
+                    </button>
+                {% endif %}
+            {% endwith %}
+        </div>
+
+    </div>
+</div>

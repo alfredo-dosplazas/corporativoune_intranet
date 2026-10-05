@@ -94,12 +94,15 @@ class OrdenForm(forms.ModelForm):
 
     def save(self, commit=True):
         instance: Orden = super().save(commit=False)
-        if instance.creada_por_id is None:
+
+        if not getattr(instance, 'creada_por_id', None) and self.user:
             instance.creada_por = self.user
+
         if commit:
             instance.save()
-        return instance
+            self.save_m2m()
 
+        return instance
 
 class DetalleOrdenForm(forms.ModelForm):
     class Meta:

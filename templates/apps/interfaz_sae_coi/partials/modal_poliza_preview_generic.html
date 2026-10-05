@@ -1,0 +1,177 @@
+{% load humanize %}
+
+<dialog id="modal_poliza" class="modal modal-open modal-bottom sm:modal-middle" x-data x-init="$el.showModal()">
+    <div class="modal-box max-w-5xl p-4 bg-base-100 border border-base-200">
+
+        <!-- Encabezado -->
+        <div class="flex items-center justify-between border-b border-base-200 pb-2 mb-3">
+            <div class="flex items-center gap-2">
+                <span class="icon-[tabler--file-description] text-primary text-lg"></span>
+                <h3 class="font-bold text-sm">
+                    Vista Previa de Pólizas — <span class="text-primary">{{ titulo_documento|default:folio }}</span>
+                </h3>
+            </div>
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost text-base-content/60" onclick="document.getElementById('modal_poliza').remove()">✕</button>
+            </form>
+        </div>
+
+        <!-- Resumen Metadatos del Documento -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2.5 bg-base-200/50 rounded-md text-xs mb-4">
+            {% if documento.cliente %}
+            <div>
+                <span class="block text-base-content/60 text-[10px] uppercase font-semibold">Cliente / Entidad</span>
+                <span class="font-medium text-base-content truncate block">{{ documento.cliente }}</span>
+            </div>
+            {% endif %}
+
+            {% if documento.fecha %}
+            <div>
+                <span class="block text-base-content/60 text-[10px] uppercase font-semibold">Fecha</span>
+                <span class="font-medium text-base-content">{{ documento.fecha }}</span>
+            </div>
+            {% endif %}
+
+            {% if documento.almacen %}
+            <div>
+                <span class="block text-base-content/60 text-[10px] uppercase font-semibold">Almacén</span>
+                <span class="font-medium text-base-content">{{ documento.almacen }}</span>
+            </div>
+            {% endif %}
+
+            {% if documento.total != None %}
+            <div>
+                <span class="block text-base-content/60 text-[10px] uppercase font-semibold">Total</span>
+                <span class="font-bold text-primary">${{ documento.total|floatformat:2|intcomma }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Listado Iterativo de Pólizas a Generar -->
+        <div class="space-y-4 max-h-[55vh] overflow-y-auto pr-1">
+            {% for poliza in polizas %}
+                {% if poliza %}
+                    <div class="border border-base-200 rounded-md overflow-hidden">
+                        <!-- Cabecera de la Póliza -->
+                        <div class="bg-base-200/80 px-3 py-1.5 flex justify-between items-center border-b border-base-200">
+                            <span class="font-semibold text-xs text-base-content">
+                                {{ poliza.titulo|default:"Póliza COI" }} (Tipo: {{ poliza.tipo_poliza }})
+                            </span>
+                            <span class="text-[11px] text-base-content/60">{{ poliza.concepto }}</span>
+                        </div>
+
+                        <!-- Tabla de Asientos / Movimientos -->
+                        <table class="table table-xs w-full text-xs">
+                            <thead>
+                                <tr class="bg-base-100 text-base-content/70 border-b border-base-200">
+                                    <th class="w-2/5">Cuenta Contable</th>
+                                    <th class="w-2/5">Concepto Movimiento</th>
+                                    <th class="text-right w-1/5">Debe</th>
+                                    <th class="text-right w-1/5">Haber</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-base-200/60">
+                                {% for mov in poliza.movimientos %}
+                                    <tr class="hover:bg-base-200/30">
+                                        <!-- Cuenta: Número, Nombre y UUID -->
+                                        <td>
+                                            <div class="flex flex-col gap-0.5">
+                                                <div class="flex items-center gap-1.5">
+                                                    <span class="font-mono font-bold text-base-content text-[11px]">
+                                                        {{ mov.cuenta }}
+                                                    </span>
+                                                    {% if mov.nombre_cuenta %}
+                                                        <span class="text-base-content/70 text-[11px] truncate">
+                                                            — {{ mov.nombre_cuenta }}
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+
+                                                {% if mov.uuid %}
+                                                    <div class="flex items-center gap-1 text-[10px] text-base-content/50 font-mono">
+                                                        <span class="icon-[tabler--id] text-xs"></span>
+                                                        <span class="truncate max-w-[280px]" title="{{ mov.uuid }}">
+                                                            {{ mov.uuid }}
+                                                        </span>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+
+                                        <!-- Concepto -->
+                                        <td class="text-base-content/80 align-top py-2">
+                                            {{ mov.concepto }}
+                                        </td>
+
+                                        <!-- Debe -->
+                                        <td class="text-right font-mono align-top py-2">
+                                            {% if mov.debe > 0 %}
+                                                ${{ mov.debe|floatformat:2|intcomma }}
+                                            {% else %}
+                                                <span class="text-base-content/30">-</span>
+                                            {% endif %}
+                                        </td>
+
+                                        <!-- Haber -->
+                                        <td class="text-right font-mono align-top py-2">
+                                            {% if mov.haber > 0 %}
+                                                ${{ mov.haber|floatformat:2|intcomma }}
+                                            {% else %}
+                                                <span class="text-base-content/30">-</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            {% empty %}
+                <div class="alert alert-warning text-xs">
+                    No se generaron partidas o movimientos para este documento.
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Acciones -->
+        <div class="modal-action border-t border-base-200 pt-3 mt-4 flex items-center justify-between">
+            <div>
+                {% if ya_contabilizado %}
+                    <span class="badge badge-success gap-1 text-[11px]">
+                        <span class="icon-[tabler--check] text-xs"></span> Ya contabilizado en COI
+                    </span>
+                {% elif not can_contabilizar %}
+                    <span class="badge badge-warning gap-1 text-[11px]">
+                        Documento no elegible para contabilizar
+                    </span>
+                {% endif %}
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button type="button" class="btn btn-ghost btn-xs text-xs font-normal" onclick="document.getElementById('modal_poliza').remove()">
+                    Cancelar
+                </button>
+
+                {% if can_contabilizar %}
+                    <form method="post" action="{% url 'interfaz_sae_coi:contabilizar' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="tipo_documento" value="{{ tipo_documento }}">
+                        <input type="hidden" name="folio" value="{{ folio }}">
+                        <input type="hidden" name="fecha" value="{{ documento.fecha }}">
+                        <input type="hidden" name="almacen" value="{{ documento.almacen }}">
+
+                        <button type="submit" class="btn btn-primary btn-xs px-4 text-xs gap-1">
+                            <span class="icon-[tabler--device-floppy] text-xs"></span>
+                            Generar en COI
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+    <form method="dialog" class="modal-backdrop">
+        <button onclick="document.getElementById('modal_poliza').remove()">cerrar</button>
+    </form>
+</dialog>

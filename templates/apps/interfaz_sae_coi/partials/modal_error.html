@@ -1,0 +1,31 @@
+<dialog id="modal_error" class="modal modal-open modal-bottom sm:modal-middle" x-data x-init="$el.showModal()">
+    <div class="modal-box max-w-md p-4 bg-base-100 border border-error/30">
+
+        <!-- Encabezado -->
+        <div class="flex items-center justify-between border-b border-base-200 pb-2 mb-3">
+            <div class="flex items-center gap-2 text-error">
+                <span class="icon-[tabler--alert-circle] text-xl"></span>
+                <h3 class="font-bold text-sm">{{ titulo|default:"Atención" }}</h3>
+            </div>
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost text-base-content/60" onclick="document.getElementById('modal_error').remove()">✕</button>
+            </form>
+        </div>
+
+        <!-- Mensaje -->
+        <div class="py-2 text-xs text-base-content/80">
+            <p>{{ mensaje|default:"No se pudo completar la operación solicitada." }}</p>
+        </div>
+
+        <!-- Acciones -->
+        <div class="modal-action border-t border-base-200 pt-3 mt-4 flex justify-end">
+            <button type="button" class="btn btn-error btn-xs px-4 text-xs" onclick="document.getElementById('modal_error').remove()">
+                Entendido
+            </button>
+        </div>
+    </div>
+
+    <form method="dialog" class="modal-backdrop">
+        <button onclick="document.getElementById('modal_error').remove()">cerrar</button>
+    </form>
+</dialog>

@@ -78,6 +78,11 @@ class OrdenCreateView(
     inlines_names = ['Detalle']
     success_message = 'Órden de Compra creada correctamente.'
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def get_success_url(self) -> str:
         return reverse('compras:ordenes__update', args=[self.object.pk])
 
@@ -105,6 +110,11 @@ class OrdenUpdateView(
     inlines = [DetalleOrdenInline]
     inlines_names = ['Detalle']
     success_message = 'Órden de Compra actualizada correctamente.'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
     def get_success_url(self) -> str:
         return reverse('compras:ordenes__update', args=[self.object.pk])

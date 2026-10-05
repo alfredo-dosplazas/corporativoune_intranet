@@ -1,27 +1,26 @@
 from django.urls import path
 
-from apps.interfaz_sae_coi.views import documentos_contabilizar_sae, poliza_preview_api, \
-    contabilizar_coi_api, poliza_corte_preview_api, poliza_nc_preview_api, poliza_nd_preview_api
+from . import views
 
 app_name = 'interfaz_sae_coi'
 
 urlpatterns = [
     path(
         'documentos/',
-        documentos_contabilizar_sae,
+        views.DocumentosContabilizarSaeView.as_view(),
         name='documentos_list'
     ),
     path(
-        'preview/<str:folio>/',
-        poliza_preview_api,
-        name='documento_preview',
+        'preview/factura/<str:folio>/',
+        views.poliza_preview_view,
+        name='preview_poliza_factura',
     ),
-    path('api/poliza-corte-preview/', poliza_corte_preview_api, name='poliza_corte_preview'),
-    path('api/poliza-nc/preview/<str:folio>/', poliza_nc_preview_api, name='poliza_nc_preview'),
-    path('api/poliza-nd/preview/<str:folio>/', poliza_nd_preview_api, name='poliza_nd_preview'),
+    path('preview/corte/', views.poliza_corte_preview_view, name='preview_poliza_corte'),
+    path('preview/nota-credito/<str:folio>/', views.poliza_nc_preview_view, name='preview_poliza_nota_credito'),
+    path('preview/nota-devolucion/<str:folio>/', views.poliza_nd_preview_view, name='preview_poliza_nota_devolucion'),
     path(
         'contabilizar/',
-        contabilizar_coi_api,
+        views.contabilizar_coi_view,
         name='contabilizar',
     ),
 ]

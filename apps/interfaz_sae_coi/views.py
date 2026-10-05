@@ -4,194 +4,221 @@ from datetime import datetime
 
 from django.contrib import messages
 from django.contrib.auth.decorators import permission_required, login_required
+from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db import transaction
 from django.http import JsonResponse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.timezone import now
-from inertia import render
+from django.views.decorators.http import require_POST
+from django.views.generic import TemplateView
+from django_filters.views import FilterView
+from django_tables2 import SingleTableMixin, tables
+from django_tables2.export import ExportMixin
+from extra_views import SearchableListMixin
 from sqlalchemy import or_, extract, cast, Integer
 from sqlalchemy import func
 
 from apps.coi.db import coi_session
 from apps.coi.models_coi import get_coi_models
 from apps.coi.utils import obtener_cuenta_clave
+from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.mixins.responsive_view import ResponsiveViewModeMixin
+from apps.core.mixins.session_filter_state import SessionFilterStateMixin
+from apps.core.mixins.title import PageTitleMixin
 from apps.core.utils.navigation import paginate_list, make_breadcrumbs
+from apps.interfaz_sae_coi.constants import TIPOS_DOCUMENTOS
+from apps.interfaz_sae_coi.forms import DocumentoFilterForm
 from apps.interfaz_sae_coi.generators import PolizaVentaGenerator, PolizaCostoVentaGenerator, PolizaCorteCajaGenerator, \
     PolizaNotaCreditoGenerator, PolizaNotaDevolucionGenerator
 from apps.interfaz_sae_coi.models import DocumentoContabilizado
 from apps.interfaz_sae_coi.services.corte_caja import obtener_cobros_del_dia
 from apps.interfaz_sae_coi.services.documentos_helpers import enrich_and_filter_contabilidad, sort_documentos
 from apps.interfaz_sae_coi.services.documentos_strategies import DOCUMENTO_STRATEGIES
+from apps.interfaz_sae_coi.tables import DocumentoContabilizadoTable
 from apps.sae.db import sae_session
 from apps.sae.models_sae import get_sae_models, FacturaMixin
 
-TIPOS_DOCUMENTOS = [
-    {'value': 'ventas', 'label': 'Ventas (Facturas)'},
-    {'value': 'notas_credito', 'label': 'Notas de Crédito'},
-    {'value': 'notas_devolucion', 'label': 'Notas de Devolución'},
-    {'value': 'corte_caja', 'label': 'Corte de Caja / Cobranza'},
-]
+
+class DocumentosContabilizarSaeView(
+    PermissionRequiredMixin,
+    SessionFilterStateMixin,
+    ResponsiveViewModeMixin,
+    PageTitleMixin,
+    BreadcrumbsMixin,
+    ExportMixin,
+    SingleTableMixin,
+    TemplateView
+):
+    permission_required = 'interfaz_sae_coi.view_documentos'
+    template_name = 'apps/interfaz_sae_coi/documentos/list.html'
+    page_title = 'Documentos a Contabilizar SAE - COI'
+
+    table_class = DocumentoContabilizadoTable
+    paginate_by = 25
+    export_name = 'Documentos_Contabilizar_SAE'
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Interfaz SAE COI'},
+        ]
+
+    def get_queryset(self):
+        """
+        Devuelve la lista pura de Python obtenida de SQLAlchemy.
+        SingleTableMixin se encarga del slicing y paginación automáticamente.
+        """
+        today = now().date()
+
+        # Extraer parámetros de búsqueda y filtros
+        filters = {
+            'q': self.request.GET.get('q', '').strip(),
+            'dia': self.request.GET.get('dia', None),
+            'mes': self.request.GET.get('mes', str(today.month)),
+            'anio': self.request.GET.get('anio', str(today.year)),
+            'almacen': self.request.GET.get('almacen', ''),
+            'tipo_documento': self.request.GET.get('tipo_documento', 'ventas'),
+            'estado_conta': self.request.GET.get('estado_conta', 'todos'),
+        }
+
+        order_by = self.request.GET.get('order_by', 'fecha')
+        order_dir = self.request.GET.get('order_dir', 'desc')
+
+        # Consulta directa a Firebird / SQLAlchemy dinámico
+        with sae_session() as (db_sae, suffix):
+            m = get_sae_models(suffix)
+
+            strategy = DOCUMENTO_STRATEGIES.get(
+                filters['tipo_documento'],
+                DOCUMENTO_STRATEGIES['ventas']
+            )
+
+            # 1. Búsqueda y filtrado dentro de la estrategia de SQLAlchemy
+            documentos_raw = strategy.fetch_documentos(db_sae, m, filters)
+
+            # 2. Cruce con COI / Django
+            documentos_procesados = enrich_and_filter_contabilidad(
+                documentos_raw,
+                suffix,
+                filters['estado_conta'],
+                coi_session,
+                get_coi_models,
+                DocumentoContabilizado
+            )
+
+            # 3. Ordenamiento en memoria (devuelve list)
+            documentos_ordenados = sort_documentos(documentos_procesados, order_by, order_dir)
+
+        return documentos_ordenados
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # 1. Obtener la lista procesada de documentos
+        object_list = self.get_queryset()
+
+        # 3. Formulario de filtros y catálogos SAE
+        filter_form = DocumentoFilterForm(self.request.GET or None)
+
+        with sae_session() as (db_sae, suffix):
+            m = get_sae_models(suffix)
+            almacenes_db = [a.nombre for a in db_sae.query(m.Almacen.nombre).all() if a.nombre]
+
+        # 4. Asignar las variables requeridas por django-tables2 y el template
+        context['object_list'] = object_list
+        context['form'] = filter_form
+        context['almacenes'] = almacenes_db + ['Sin Almacén / GENERAL']
+        context['tipos_documentos'] = TIPOS_DOCUMENTOS
+        return context
 
 
-@login_required()
-@permission_required('interfaz_sae_coi.view_documentos', raise_exception=True)
-def documentos_contabilizar_sae(request):
-    today = now().date()
-
-    filters = {
-        'q': request.GET.get('q', '').strip(),
-        'dia': request.GET.get('dia', None),
-        'mes': request.GET.get('mes', str(today.month)),
-        'anio': request.GET.get('anio', str(today.year)),
-        'almacen': request.GET.get('almacen', ''),
-        'tipo_documento': request.GET.get('tipo_documento', 'ventas'),
-        'estado_conta': request.GET.get('estado_conta', 'todos'),
-    }
-
-    # Ordenamiento enviado desde los query parameters
-    order_by = request.GET.get('order_by', 'fecha')
-    order_dir = request.GET.get('order_dir', 'desc')
-
-    with sae_session() as (db_sae, suffix):
-        m = get_sae_models(suffix)
-
-        # 1. Almacenes para filtros
-        almacenes_db = [a.nombre for a in db_sae.query(m.Almacen.nombre).all() if a.nombre]
-        almacenes = almacenes_db + ['Sin Almacén / GENERAL']
-
-        # 2. Selección de la Estrategia según el tipo de documento
-        strategy = DOCUMENTO_STRATEGIES.get(
-            filters['tipo_documento'],
-            DOCUMENTO_STRATEGIES['ventas']
-        )
-
-        # 3. Obtener consulta base de SAE
-        documentos_raw = strategy.fetch_documentos(db_sae, m, filters)
-
-        # 4. Cruzar información con COI y Django
-        documentos_procesados = enrich_and_filter_contabilidad(
-            documentos_raw,
-            suffix,
-            filters['estado_conta'],
-            coi_session,
-            get_coi_models,
-            DocumentoContabilizado
-        )
-
-        # 5. Ordenar resultados en memoria
-        documentos_ordenados = sort_documentos(documentos_procesados, order_by, order_dir)
-
-        # 6. Paginación
-        paginated_data = paginate_list(documentos_ordenados, request, page_size=12)
-
-    props = {
-        'data': paginated_data,
-        'filters': {
-            **filters,
-            'order_by': order_by,
-            'order_dir': order_dir
-        },
-        'options': {
-            'tipos_documentos': TIPOS_DOCUMENTOS,
-            'almacenes': almacenes,
-        },
-        'breadcrumbs': make_breadcrumbs(
-            [
-                ('Inicio', reverse('home')),
-                ('Interfaz SAE COI', None),
-            ],
-        )
-    }
-
-    return render(request, 'Interfaz_SAE_COI/Index', props)
+# Helper para retornar respuestas de error en modal HTMX
+def render_modal_error(request, mensaje, titulo="Atención"):
+    return render(request, 'apps/interfaz_sae_coi/partials/modal_error.html', {
+        'titulo': titulo,
+        'mensaje': mensaje
+    })
 
 
+# ------------------------------------------------------------------------------
+# 1. FACTURAS
+# ------------------------------------------------------------------------------
 @login_required
 @permission_required('interfaz_sae_coi.view_documentos', raise_exception=True)
-def poliza_preview_api(request, folio):
-    """
-    Regresa la Vista Previa de la Póliza de Venta y Póliza de Costo
-    incluyendo id_xml de COI_XML para enviarlo a la API de contabilización.
-    """
+def poliza_preview_view(request, folio):
     with sae_session() as (db_sae, suffix):
         m = get_sae_models(suffix)
 
-        # 1. Obtener la Factura asociando CFDI y COI_XML
         factura = db_sae.query(
-            m.Factura.folio,
-            m.Factura.fecha,
-            m.Cliente.nombre.label('cliente'),
-            m.Cliente.rfc.label('rfc'),
-            m.Cliente.clave.label('clave_cliente'),
-            m.Almacen.nombre.label('almacen'),
-            m.Factura.subtotal,
-            m.Factura.total_impuesto4,
-            m.Factura.total_descuento,
-            m.Factura.total,
-            m.CFDI.uuid_sat.label('uuid_xml'),
-            m.CoiXml.uuid_cfdi_sae.label('uuid_sae'),
+            m.Factura.folio, m.Factura.fecha, m.Cliente.nombre.label('cliente'),
+            m.Cliente.rfc.label('rfc'), m.Cliente.clave.label('clave_cliente'),
+            m.Almacen.nombre.label('almacen'), m.Factura.subtotal,
+            m.Factura.total_impuesto4, m.Factura.total_descuento, m.Factura.total,
+            m.CFDI.uuid_sat.label('uuid_xml'), m.CoiXml.uuid_cfdi_sae.label('uuid_sae'),
             m.Factura.status,
-        ).outerjoin(
-            m.Cliente
-        ).outerjoin(
-            m.Almacen
-        ).outerjoin(
+        ).outerjoin(m.Cliente).outerjoin(m.Almacen).outerjoin(
             m.CFDI, m.Factura.folio == m.CFDI.folio
         ).outerjoin(
             m.CoiXml, m.CFDI.uuid_sat == m.CoiXml.id_xml_sat
-        ).filter(
-            m.Factura.folio == folio
-        ).first()
+        ).filter(m.Factura.folio == folio).first()
 
         if not factura:
-            return JsonResponse({'error': 'Factura no encontrada'}, status=404)
+            return render_modal_error(request, f'La factura {folio} no existe en SAE.')
 
         factura_dict = factura._asdict()
 
-        # 2. Obtener las Partidas para el Costo de Ventas
         partidas_query = db_sae.query(
-            m.PartidaFactura.cantidad,
-            m.PartidaFactura.costo,
-            m.Producto.descripcion
+            m.PartidaFactura.cantidad, m.PartidaFactura.costo, m.Producto.descripcion
         ).join(m.Producto).filter(m.PartidaFactura.folio == folio).all()
 
         partidas_list = [p._asdict() for p in partidas_query]
 
-        # 3. Generar Pólizas en Memoria
         poliza_venta = PolizaVentaGenerator.generate(factura_dict)
         poliza_costo = PolizaCostoVentaGenerator.generate(factura_dict, partidas_list)
 
+        polizas = []
+        if poliza_venta:
+            p_v = poliza_venta.to_dict()
+            p_v['titulo'] = "Póliza de Ventas"
+            polizas.append(p_v)
+
+        if poliza_costo:
+            p_c = poliza_costo.to_dict()
+            p_c['titulo'] = "Póliza de Costo de Ventas"
+            polizas.append(p_c)
+
         ya_contabilizado = DocumentoContabilizado.objects.filter(
-            folio_sae=folio,
-            empresa_suffix=suffix,
-            status='ENVIADO_COI'
+            folio_sae=folio, empresa_suffix=suffix, status='ENVIADO_COI'
         ).exists()
 
-        can_contabilizar = (factura_dict.get('status') != 'C') and (not ya_contabilizado)
-
-        return JsonResponse({
+        return render(request, 'apps/interfaz_sae_coi/partials/modal_poliza_preview_generic.html', {
+            'titulo_documento': f'Factura {folio}',
+            'folio': folio,
+            'tipo_documento': 'FACTURA',
             'documento': factura_dict,
-            'can_contabilizar': can_contabilizar,
+            'polizas': polizas,
             'ya_contabilizado': ya_contabilizado,
-            'poliza_venta': poliza_venta.to_dict(),
-            'poliza_costo': poliza_costo.to_dict(),
+            'can_contabilizar': (factura_dict.get('status') != 'C') and (not ya_contabilizado),
         })
 
 
+# ------------------------------------------------------------------------------
+# 2. CORTE DE CAJA
+# ------------------------------------------------------------------------------
 @login_required
 @permission_required('interfaz_sae_coi.view_documentos', raise_exception=True)
-def poliza_corte_preview_api(request):
+def poliza_corte_preview_view(request):
     fecha_str = request.GET.get('fecha')
     almacen = request.GET.get('almacen', '')
 
     if not fecha_str:
-        return JsonResponse({'error': 'La fecha es requerida'}, status=400)
+        return render_modal_error(request, 'La fecha es requerida para consultar el corte de caja.')
 
     try:
         fecha_obj = datetime.fromisoformat(fecha_str).date()
     except ValueError:
-        return JsonResponse({'error': 'Formato de fecha inválido. Usar formato ISO'}, status=400)
+        return render_modal_error(request, 'Formato de fecha inválido. Utilice formato AAAA-MM-DD.')
 
     with sae_session() as (db_sae, suffix):
         m = get_sae_models(suffix)
@@ -199,87 +226,79 @@ def poliza_corte_preview_api(request):
         cobros = obtener_cobros_del_dia(db_sae, m, fecha_obj, almacen)
 
         if not cobros:
-            return JsonResponse({'error': 'No se encontraron abonos registrados para la fecha y almacén especificados'},
-                                status=404)
+            return render_modal_error(request,
+                                      f'No se encontraron abonos para la fecha {fecha_str} y almacén {almacen or "TODOS"}.')
 
-        # Generar ambas pólizas
         poliza_mostrador, poliza_cp = PolizaCorteCajaGenerator.generate_split(
             fecha_corte=fecha_str,
             almacen_nombre=almacen or 'GENERAL',
             cobros_list=cobros
         )
 
-        # Verificar estatus de envío previo para cada una
-        ref_mostrador = poliza_mostrador.referencia if poliza_mostrador else None
-        ref_cp = poliza_cp.referencia if poliza_cp else None
+        refs = [p.referencia for p in [poliza_mostrador, poliza_cp] if p]
 
-        refs_a_consultar = [r for r in [ref_mostrador, ref_cp] if r]
-
-        contabilizados_set = set(
+        contabilizados = set(
             DocumentoContabilizado.objects.filter(
-                folio_sae__in=refs_a_consultar,
-                empresa_suffix=suffix,
-                status='ENVIADO_COI'
+                folio_sae__in=refs, empresa_suffix=suffix, status='ENVIADO_COI'
             ).values_list('folio_sae', flat=True)
         )
 
-        # Permitir contabilizar si al menos una existe y no ha sido enviada a COI
-        can_contabilizar = False
-        if poliza_mostrador and ref_mostrador not in contabilizados_set:
-            can_contabilizar = True
-        if poliza_cp and ref_cp not in contabilizados_set:
-            can_contabilizar = True
+        can_contabilizar = any(r not in contabilizados for r in refs)
+
+        polizas = []
+        if poliza_mostrador:
+            p_m = poliza_mostrador.to_dict()
+            p_m['titulo'] = "Póliza Ventas Mostrador"
+            polizas.append(p_m)
+        if poliza_cp:
+            p_cp = poliza_cp.to_dict()
+            p_cp['titulo'] = "Póliza Cuentas por Cobrar"
+            polizas.append(p_cp)
 
         total_corte = sum(float(c.get('importe') or 0.0) for c in cobros)
 
-        documento_resumen = {
+        doc_resumen = {
             'fecha': fecha_str,
             'almacen': almacen or 'TODOS',
             'total': total_corte,
-            'total_movimientos': len(cobros)
         }
 
-        return JsonResponse({
-            'documento': documento_resumen,
+        return render(request, 'apps/interfaz_sae_coi/partials/modal_poliza_preview_generic.html', {
+            'titulo_documento': f'Corte de Caja ({fecha_str})',
+            'folio': fecha_str,
+            'tipo_documento': 'CORTE_CAJA',
+            'documento': doc_resumen,
+            'polizas': polizas,
+            'ya_contabilizado': not can_contabilizar,
             'can_contabilizar': can_contabilizar,
-            'poliza_mostrador': poliza_mostrador.to_dict() if poliza_mostrador else None,
-            'poliza_cp': poliza_cp.to_dict() if poliza_cp else None,
         })
 
 
+# ------------------------------------------------------------------------------
+# 3. NOTA DE CRÉDITO
+# ------------------------------------------------------------------------------
 @login_required
 @permission_required('interfaz_sae_coi.view_documentos', raise_exception=True)
-def poliza_nc_preview_api(request, folio):
-    """Regresa la Vista Previa de la Póliza de Nota de Crédito."""
+def poliza_nc_preview_view(request, folio):
     with sae_session() as (db_sae, suffix):
         m = get_sae_models(suffix)
 
         ModeloNC = m.NotaCredito
 
         query_nc = db_sae.query(
-            ModeloNC.folio,
-            ModeloNC.fecha,
-            m.Cliente.nombre.label('cliente'),
-            m.Cliente.rfc.label('rfc'),
-            m.Cliente.clave.label('clave_cliente'),
-            m.Almacen.nombre.label('almacen'),
-            ModeloNC.subtotal,
-            ModeloNC.total_impuesto4,
-            ModeloNC.total,
-            m.CFDI.uuid_sat.label('uuid_xml'),
-            m.CoiXml.uuid_cfdi_sae.label('uuid_sae'),
+            ModeloNC.folio, ModeloNC.fecha, m.Cliente.nombre.label('cliente'),
+            m.Cliente.rfc.label('rfc'), m.Cliente.clave.label('clave_cliente'),
+            m.Almacen.nombre.label('almacen'), ModeloNC.subtotal,
+            ModeloNC.total_impuesto4, ModeloNC.total,
+            m.CFDI.uuid_sat.label('uuid_xml'), m.CoiXml.uuid_cfdi_sae.label('uuid_sae'),
             ModeloNC.status,
-        ).outerjoin(
-            m.Cliente
-        ).outerjoin(
+        ).outerjoin(m.Cliente).outerjoin(
             m.Almacen, ModeloNC.num_alma == m.Almacen.clave
         ).outerjoin(
             m.CFDI, func.trim(ModeloNC.folio) == func.trim(m.CFDI.folio)
         ).outerjoin(
             m.CoiXml, m.CFDI.uuid_sat == m.CoiXml.id_xml_sat
-        ).filter(
-            ModeloNC.folio == folio
-        )
+        ).filter(ModeloNC.folio == folio)
 
         if hasattr(ModeloNC, 'tip_doc'):
             query_nc = query_nc.filter(ModeloNC.tip_doc == 'D')
@@ -287,62 +306,55 @@ def poliza_nc_preview_api(request, folio):
         nc_obj = query_nc.first()
 
         if not nc_obj:
-            return JsonResponse({'error': 'Nota de Crédito no encontrada'}, status=404)
+            return render_modal_error(request, f'La Nota de Crédito {folio} no existe en SAE.')
 
         nc_dict = nc_obj._asdict()
-
-        # Generar Póliza en memoria
         poliza_nc = PolizaNotaCreditoGenerator.generate(nc_dict)
 
+        p_dict = poliza_nc.to_dict() if poliza_nc else {}
+        p_dict['titulo'] = "Póliza Nota de Crédito"
+
         ya_contabilizado = DocumentoContabilizado.objects.filter(
-            folio_sae=folio,
-            empresa_suffix=suffix,
-            status='ENVIADO_COI'
+            folio_sae=folio, empresa_suffix=suffix, status='ENVIADO_COI'
         ).exists()
 
-        can_contabilizar = (nc_dict.get('status') != 'C') and (not ya_contabilizado)
-
-        return JsonResponse({
+        return render(request, 'apps/interfaz_sae_coi/partials/modal_poliza_preview_generic.html', {
+            'titulo_documento': f'Nota de Crédito {folio}',
+            'folio': folio,
+            'tipo_documento': 'NOTA_CREDITO',
             'documento': nc_dict,
-            'can_contabilizar': can_contabilizar,
+            'polizas': [p_dict],
             'ya_contabilizado': ya_contabilizado,
-            'poliza_nc': poliza_nc.to_dict(),
+            'can_contabilizar': (nc_dict.get('status') != 'C') and (not ya_contabilizado),
         })
 
 
+# ------------------------------------------------------------------------------
+# 4. DEVOLUCIÓN
+# ------------------------------------------------------------------------------
 @login_required
 @permission_required('interfaz_sae_coi.view_documentos', raise_exception=True)
-def poliza_nd_preview_api(request, folio):
-    """Regresa la Vista Previa de la Póliza de Devolución."""
+def poliza_nd_preview_view(request, folio):
     with sae_session() as (db_sae, suffix):
         m = get_sae_models(suffix)
 
-        ModeloNC = m.NotaDevolucion  # Modelo FACTD{suffix}
-        ModeloPartidasNC = m.PartidaNotaDevolucion  # Modelo PAR_FACTD{suffix}
+        ModeloNC = m.NotaDevolucion
+        ModeloPartidasNC = m.PartidaNotaDevolucion
 
-        # Subconsulta para calcular el costo total del material devuelto
         costo_subquery = db_sae.query(
             ModeloPartidasNC.folio,
             func.sum(ModeloPartidasNC.cantidad * ModeloPartidasNC.costo).label('costo_total')
         ).filter(
             func.trim(ModeloPartidasNC.folio) == folio.strip()
-        ).group_by(
-            ModeloPartidasNC.folio
-        ).subquery()
+        ).group_by(ModeloPartidasNC.folio).subquery()
 
         query_nc = db_sae.query(
-            ModeloNC.folio,
-            ModeloNC.fecha,
-            m.Cliente.nombre.label('cliente'),
-            m.Cliente.rfc.label('rfc'),
-            m.Cliente.clave.label('clave_cliente'),
-            m.Almacen.nombre.label('almacen'),
-            ModeloNC.subtotal,
-            ModeloNC.total_impuesto4,
-            ModeloNC.total,
+            ModeloNC.folio, ModeloNC.fecha, m.Cliente.nombre.label('cliente'),
+            m.Cliente.rfc.label('rfc'), m.Cliente.clave.label('clave_cliente'),
+            m.Almacen.nombre.label('almacen'), ModeloNC.subtotal,
+            ModeloNC.total_impuesto4, ModeloNC.total,
             func.coalesce(costo_subquery.c.costo_total, 0.0).label('costo_total'),
-            m.CFDI.uuid_sat.label('uuid_xml'),
-            m.CoiXml.uuid_cfdi_sae.label('uuid_sae'),
+            m.CFDI.uuid_sat.label('uuid_xml'), m.CoiXml.uuid_cfdi_sae.label('uuid_sae'),
             ModeloNC.status,
         ).outerjoin(
             m.Cliente, ModeloNC.clave_cliente == m.Cliente.clave
@@ -354,9 +366,7 @@ def poliza_nd_preview_api(request, folio):
             m.CoiXml, m.CFDI.uuid_sat == m.CoiXml.id_xml_sat
         ).outerjoin(
             costo_subquery, func.trim(ModeloNC.folio) == func.trim(costo_subquery.c.folio)
-        ).filter(
-            func.trim(ModeloNC.folio) == folio.strip()
-        )
+        ).filter(func.trim(ModeloNC.folio) == folio.strip())
 
         if hasattr(ModeloNC, 'tip_doc'):
             query_nc = query_nc.filter(ModeloNC.tip_doc == 'D')
@@ -364,70 +374,96 @@ def poliza_nd_preview_api(request, folio):
         nc_obj = query_nc.first()
 
         if not nc_obj:
-            return JsonResponse({'error': 'Nota de Devolución no encontrada'}, status=404)
+            return render_modal_error(request, f'La Nota de Devolución {folio} no existe en SAE.')
 
         nc_dict = nc_obj._asdict()
+        poliza_nd = PolizaNotaDevolucionGenerator.generate(nc_dict)
 
-        # Generar Póliza en memoria
-        poliza_nc = PolizaNotaDevolucionGenerator.generate(nc_dict)
+        p_dict = poliza_nd.to_dict() if poliza_nd else {}
+        p_dict['titulo'] = "Póliza Nota de Devolución"
 
         ya_contabilizado = DocumentoContabilizado.objects.filter(
-            folio_sae=folio,
-            empresa_suffix=suffix,
-            status='ENVIADO_COI'
+            folio_sae=folio, empresa_suffix=suffix, status='ENVIADO_COI'
         ).exists()
 
-        can_contabilizar = (nc_dict.get('status') != 'C') and (not ya_contabilizado)
-
-        return JsonResponse({
+        return render(request, 'apps/interfaz_sae_coi/partials/modal_poliza_preview_generic.html', {
+            'titulo_documento': f'Nota de Devolución {folio}',
+            'folio': folio,
+            'tipo_documento': 'DEVOLUCION',
             'documento': nc_dict,
-            'can_contabilizar': can_contabilizar,
+            'polizas': [p_dict],
             'ya_contabilizado': ya_contabilizado,
-            'poliza_nc': poliza_nc.to_dict(),
+            'can_contabilizar': (nc_dict.get('status') != 'C') and (not ya_contabilizado),
         })
 
 
 @login_required
 @permission_required('interfaz_sae_coi.add_poliza', raise_exception=True)
-def contabilizar_coi_api(request):
+@require_POST
+def contabilizar_coi_view(request):
     """
-    Guarda las pólizas validadas en COI (POLIZASYY y AUXILIARYY),
-    actualiza el consecutivo en FOLIOS, registra la bitácora en DocumentoContabilizado
-    y envía mensaje Flash a Inertia.
+    Recibe el folio desde el formulario del modal, re-genera las pólizas en memoria
+    para garantizar integridad y las guarda en Firebird COI.
     """
-    if request.method != 'POST':
-        messages.error(request, 'Método no permitido.')
+    folio = request.POST.get('folio')
+
+    if not folio:
+        messages.error(request, 'No se especificó un folio para contabilizar.')
         return redirect(request.META.get('HTTP_REFERER', '/'))
 
-    try:
-        body = json.loads(request.body)
-        polizas_data = body.get('polizas', [])
-
-        referencia = str(polizas_data[0].get('referencia', '')) if polizas_data else ''
-
-        dominum_suffix = '23'
+    with sae_session() as (db_sae, suffix):
+        m = get_sae_models(suffix)
 
         ya_enviado = DocumentoContabilizado.objects.filter(
-            folio_sae=referencia,
-            empresa_suffix=dominum_suffix,
+            folio_sae=folio,
+            empresa_suffix=suffix,
             status='ENVIADO_COI'
         ).exists()
 
         if ya_enviado:
-            messages.warning(request, f"El folio {referencia} ya fue enviado previamente a COI.")
+            messages.warning(request, f"El folio {folio} ya fue contabilizado previamente.")
             return redirect(request.META.get('HTTP_REFERER', '/'))
 
-        if not polizas_data:
-            messages.error(request, 'No se enviaron pólizas para contabilizar.')
+        # Regenerar la estructura de la póliza antes de la inserción
+        factura = db_sae.query(
+            m.Factura.folio, m.Factura.fecha, m.Cliente.nombre.label('cliente'),
+            m.Cliente.rfc.label('rfc'), m.Cliente.clave.label('clave_cliente'),
+            m.Almacen.nombre.label('almacen'), m.Factura.subtotal,
+            m.Factura.total_impuesto4, m.Factura.total_descuento, m.Factura.total,
+            m.CFDI.uuid_sat.label('uuid_xml'), m.CoiXml.uuid_cfdi_sae.label('uuid_sae'),
+            m.Factura.status,
+        ).outerjoin(m.Cliente).outerjoin(m.Almacen).outerjoin(
+            m.CFDI, m.Factura.folio == m.CFDI.folio
+        ).outerjoin(
+            m.CoiXml, m.CFDI.uuid_sat == m.CoiXml.id_xml_sat
+        ).filter(m.Factura.folio == folio).first()
+
+        if not factura:
+            messages.error(request, 'Factura no encontrada.')
             return redirect(request.META.get('HTTP_REFERER', '/'))
 
+        factura_dict = factura._asdict()
+
+        partidas_query = db_sae.query(
+            m.PartidaFactura.cantidad, m.PartidaFactura.costo, m.Producto.descripcion
+        ).join(m.Producto).filter(m.PartidaFactura.folio == folio).all()
+
+        partidas_list = [p._asdict() for p in partidas_query]
+
+        poliza_venta = PolizaVentaGenerator.generate(factura_dict)
+        poliza_costo = PolizaCostoVentaGenerator.generate(factura_dict, partidas_list)
+
+        polizas_a_procesar = [p for p in [poliza_venta, poliza_costo] if p]
+
+    try:
         with coi_session() as (db_coi, suffix_empresa):
             polizas_creadas = []
 
             with transaction.atomic():
-                for p_dict in polizas_data:
+                for poliza_obj in polizas_a_procesar:
+                    p_dict = poliza_obj.to_dict()
                     fecha_str = p_dict.get('fecha')
-                    fecha_dt = datetime.fromisoformat(fecha_str).date()
+                    fecha_dt = datetime.fromisoformat(fecha_str).date() if isinstance(fecha_str, str) else fecha_str
 
                     ejercicio = fecha_dt.year
                     periodo = fecha_dt.month
@@ -438,24 +474,19 @@ def contabilizar_coi_api(request):
                     tipo_poliza = str(p_dict.get('tipo_poliza', 'Dr'))
                     concepto = str(p_dict.get('concepto', ''))[:120]
                     uuid_xml = str(p_dict.get('uuid_xml', ''))
-                    referencia = str(p_dict.get('referencia', ''))  # folio_sae
+                    referencia = str(p_dict.get('referencia', ''))
                     movimientos = p_dict.get('movimientos', [])
 
                     if not movimientos or not referencia:
                         continue
 
-                    # =========================================================
-                    # 1. GESTIÓN DE FOLIOS (FOLIOS) Y CONSECUTIVO NUM_POLIZ
-                    # =========================================================
-                    col_folio_name = f"folio{periodo:02d}"  # ej. 'folio09'
-
-                    # A) Obtener el folio registrado en la tabla FOLIOS
+                    # Consecutivo de folios COI
+                    col_folio_name = f"folio{periodo:02d}"
                     folio_record = db_coi.query(m_coi.Folio).filter(
                         m_coi.Folio.tippol == tipo_poliza,
                         m_coi.Folio.ejercicio == ejercicio
                     ).first()
 
-                    # B) Obtener el max NUM_POLIZ registrado en POLIZASYY por protección
                     max_num_db = db_coi.query(
                         func.coalesce(func.max(cast(m_coi.Poliza.num_poliz, Integer)), 0)
                     ).filter(
@@ -464,12 +495,10 @@ def contabilizar_coi_api(request):
                         m_coi.Poliza.ejercicio == ejercicio
                     ).scalar()
 
-                    # C) Determinar el nuevo consecutivo
                     curr_folio_val = getattr(folio_record, col_folio_name, 0) if folio_record else 0
                     nuevo_num = max(int(curr_folio_val or 0), int(max_num_db or 0)) + 1
                     num_poliz_str = f"{nuevo_num:>5}"
 
-                    # D) Actualizar o Crear el registro en FOLIOS
                     if folio_record:
                         setattr(folio_record, col_folio_name, nuevo_num)
                     else:
@@ -478,20 +507,13 @@ def contabilizar_coi_api(request):
                             folio_kwargs[f"folio{i:02d}"] = 0
                             folio_kwargs[f"asig{i:02d}"] = 0
                         folio_kwargs[col_folio_name] = nuevo_num
-
-                        nuevo_folio_rec = m_coi.Folio(**folio_kwargs)
-                        db_coi.add(nuevo_folio_rec)
+                        db_coi.add(m_coi.Folio(**folio_kwargs))
 
                     poliza_nombre = f"{tipo_poliza}-{num_poliz_str}"
                     poliza_uuid = str(uuid.uuid4()).upper()
 
-                    uuid_sat_real = str(p_dict.get('uuid_xml', ''))
-                    uuid_sae = str(p_dict.get('uuid_sae', ''))
-
-                    # =========================================================
-                    # 2. ENCABEZADO COI (POLIZASYY)
-                    # =========================================================
-                    nueva_poliza = m_coi.Poliza(
+                    # Insertar Encabezado
+                    db_coi.add(m_coi.Poliza(
                         tipo_poli=tipo_poliza,
                         num_poliz=num_poliz_str,
                         periodo=periodo,
@@ -508,26 +530,22 @@ def contabilizar_coi_api(request):
                         uuid=poliza_uuid,
                         espolizaprivada=0,
                         sinc_ezaudita=0,
-                        uuidxml=uuid_sat_real,
-                        uuidsae=uuid_sae,
+                        uuidxml=p_dict.get('uuid_xml', ''),
+                        uuidsae=p_dict.get('uuid_sae', ''),
                         doc_sigo=referencia,
-                    )
-                    db_coi.add(nueva_poliza)
+                    ))
 
-                    # =========================================================
-                    # 3. DETALLE COI (AUXILIARYY)
-                    # =========================================================
+                    # Insertar Auxiliares (Movimientos)
                     for idx, mov in enumerate(movimientos, start=1):
                         debe = float(mov.get('debe') or 0.0)
                         haber = float(mov.get('haber') or 0.0)
-
                         debe_haber = 'D' if debe > 0 else 'H'
                         monto = debe if debe > 0 else haber
 
                         cuenta_raw = str(mov.get('cuenta', ''))
                         cuenta_coi = obtener_cuenta_clave(cuenta_raw)
 
-                        auxiliar = m_coi.Auxiliar(
+                        db_coi.add(m_coi.Auxiliar(
                             tipo_poli=tipo_poliza,
                             num_poliz=num_poliz_str,
                             num_part=float(idx),
@@ -546,13 +564,10 @@ def contabilizar_coi_api(request):
                             cgrupos=0,
                             idinfadipar=0,
                             iduuid=0
-                        )
-                        db_coi.add(auxiliar)
+                        ))
 
-                    # =========================================================
-                    # 4. BITÁCORA DIARIOSAE EN COI
-                    # =========================================================
-                    diario_entry = m_coi.DiarioSAE(
+                    # Registrar bitácora DiarioSAE
+                    db_coi.add(m_coi.DiarioSAE(
                         uuid_sinc=str(uuid.uuid4()).upper(),
                         fecha_sinc=datetime.now(),
                         origen='INTRANET',
@@ -567,12 +582,8 @@ def contabilizar_coi_api(request):
                         ejercicio=ejercicio,
                         obs=f"Poliza {poliza_nombre} generada automáticamente",
                         uuid_xml=uuid_xml
-                    )
-                    db_coi.add(diario_entry)
+                    ))
 
-                    # =========================================================
-                    # 5. REGISTRAR / ACTUALIZAR BITÁCORA DJANGO
-                    # =========================================================
                     DocumentoContabilizado.objects.update_or_create(
                         folio_sae=referencia,
                         empresa_suffix=str(suffix_empresa),
@@ -586,37 +597,14 @@ def contabilizar_coi_api(request):
                             'creado_por': request.user,
                         }
                     )
-
                     polizas_creadas.append(poliza_nombre)
 
-            # Confirmar cambios en Firebird
             db_coi.commit()
 
-        messages.success(
-            request,
-            f"Póliza(s) contabilizada(s) con éxito en COI: {', '.join(polizas_creadas)}"
-        )
+        messages.success(request, f"Póliza(s) generada(s) con éxito en COI: {', '.join(polizas_creadas)}")
 
     except Exception as e:
-        error_msg = str(e)
+        messages.error(request, f"Error al contabilizar en COI: {str(e)}")
 
-        try:
-            for p_dict in polizas_data:
-                ref = p_dict.get('referencia')
-                if ref:
-                    DocumentoContabilizado.objects.update_or_create(
-                        folio_sae=ref,
-                        empresa_suffix=str(suffix_empresa) if 'suffix_empresa' in locals() else '',
-                        defaults={
-                            'uuid_xml': p_dict.get('uuid_xml', ''),
-                            'status': 'ERROR',
-                            'mensaje_error': error_msg[:500],
-                            'creado_por': request.user,
-                        }
-                    )
-        except Exception:
-            pass
-
-        messages.error(request, f"Error al contabilizar en COI: {error_msg}")
-
+    # Redireccionar o refrescar pantalla
     return redirect(request.META.get('HTTP_REFERER', '/'))
