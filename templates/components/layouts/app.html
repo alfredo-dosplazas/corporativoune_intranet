@@ -1,34 +1,49 @@
-<c-layouts.base>
-    <!-- Contenedor principal: h-screen y overflow-hidden para la app de pantalla completa -->
-    <div class="h-screen max-h-screen w-full flex flex-col overflow-hidden bg-base-200 antialiased">
+<c-layouts.base :page_title="page_title" :breadcrumbs="breadcrumbs">
 
-        <!-- Header Fijo (shrink-0 asegura que no se comprima) -->
-        <header class="bg-base-100 shadow-sm shrink-0 z-30">
-            <c-shared.navbar/>
-            {% if breadcrumbs %}<c-shared.breadcrumbs :breadcrumbs="breadcrumbs"/>{% endif %}
-            {% if header %}<div class="header px-4 bg-base-100/60 py-2 shadow">{{ header }}</div>{% endif %}
-            {% if messages %}<div class="p-2"><c-shared.messages/></div>{% endif %}
-        </header>
+    <!-- HEADER UNIFICADO DE LA APP (Navbar + Breadcrumbs / Control Panel) -->
+    <header class="bg-base-100 border-b border-base-200 shrink-0 z-30 shadow-2xs">
+        <c-shared.navbar/>
 
-        <!-- Main Scrollable con Padding Inferior Extra en Móvil para el Dock -->
-        <main class="flex-1 min-h-0 overflow-y-auto w-full mx-auto p-4 md:p-6 pb-20 md:pb-6 flex flex-col">
-            {{ slot }}
-        </main>
+        <!-- Breadcrumbs estándar (siempre visibles si existen) -->
+        {% if breadcrumbs %}
+            <c-shared.breadcrumbs :breadcrumbs="breadcrumbs" class="w-full" />
+        {% endif %}
 
-        <!-- Footer Desktop (Oculto en mobile si se usa el Dock) -->
-        <footer id="footer" class="shrink-0 hidden md:flex footer footer-center bg-primary text-primary-content py-2 px-4 border-t border-primary/30 z-20">
-            <c-shared.footer />
-        </footer>
+        <!-- Header Slot (Barra de Control inyectada por la vista) -->
+        {% if header %}
+            <div class="header-control-panel px-3 md:px-4 py-1.5 border-t border-base-200 bg-base-100">
+                {{ header }}
+            </div>
+        {% endif %}
 
-        <!-- Dock Móvil Fijo abajo (Soporte para Safe Area de iOS / Android) -->
-        <div class="dock md:hidden shrink-0 bg-base-100 border-t border-base-300 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] z-40 pb-[env(safe-area-inset-bottom)]">
+        <!-- Notificaciones Flash / Mensajes de Django -->
+        {% if messages %}
+            <div class="px-3 py-1 bg-base-200/50">
+                <c-shared.messages/>
+            </div>
+        {% endif %}
+    </header>
+
+    <!-- ÁREA PRINCIPAL SCROLLABLE (Padding denso ERP) -->
+    <main class="flex-1 min-h-0 overflow-y-auto w-full p-2.5 md:p-4 pb-16 md:pb-4 flex flex-col gap-3">
+        {{ slot }}
+    </main>
+
+    <!-- FOOTER DESKTOP COMPACTO -->
+    <footer id="footer" class="shrink-0 hidden md:flex footer footer-center bg-base-100 text-base-content/70 border-t border-base-200 text-xs z-20">
+        <c-shared.footer />
+    </footer>
+
+    <!-- DOCK MÓVIL FIJO (Safe Area iOS / Android) -->
+    {% if mobile_dock_items %}
+        <div class="dock md:hidden shrink-0 bg-base-100 border-t border-base-300 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] z-40 pb-[env(safe-area-inset-bottom)]">
             {% for item in mobile_dock_items %}
-                <a href="{{ item.url }}" class="{% if item.active %}dock-active text-primary font-bold{% else %}text-base-content/60 hover:text-base-content{% endif %} transition-colors">
-                    <span class="{{ item.icon }} size-[1.3em]"></span>
-                    <span class="dock-label text-[11px] mt-0.5">{{ item.nombre }}</span>
+                <a href="{{ item.url }}" class="{% if item.active %}dock-active text-primary font-bold{% else %}text-base-content/60 hover:text-base-content{% endif %} transition-colors py-1">
+                    <span class="{{ item.icon }} size-[1.2em]"></span>
+                    <span class="dock-label text-[10px] mt-0.5">{{ item.nombre }}</span>
                 </a>
             {% endfor %}
         </div>
+    {% endif %}
 
-    </div>
 </c-layouts.base>

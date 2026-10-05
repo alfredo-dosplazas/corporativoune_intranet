@@ -1,15 +1,27 @@
-<div class="breadcrumb hidden md:flex bg-base-100 border-b border-base-200 px-4 py-1.5 text-xs min-h-10 h-10 items-center">
-    <div class="breadcrumbs text-sm">
-        <ul>
-            {% for breadcrumb in breadcrumbs %}
-                <li>
-                    {% if breadcrumb.url %}
-                        <a class="link" href="{{ breadcrumb.url }}{% querystring %}">{{ breadcrumb.title }}</a>
-                    {% else %}
-                        {{ breadcrumb.title }}
-                    {% endif %}
-                </li>
-            {% endfor %}
-        </ul>
-    </div>
-</div>
+<nav aria-label="Breadcrumb" class="w-full bg-base-100 border-b border-base-200/60 px-3 md:px-4 h-6 flex items-center overflow-hidden text-[11px] leading-none select-none">
+    <ol class="flex items-center gap-1.5 whitespace-nowrap text-base-content/60 m-0 p-0 list-none">
+        {% for breadcrumb in breadcrumbs %}
+            <li class="inline-flex items-center gap-1.5">
+                {% if not forloop.first %}
+                    <span class="icon-[tabler--chevron-right] size-3 opacity-40 shrink-0"></span>
+                {% endif %}
+
+                {% if breadcrumb.url %}
+                    <a class="hover:text-primary hover:underline transition-colors inline-flex items-center gap-1 font-medium text-base-content/70" href="{{ breadcrumb.url }}{% querystring %}">
+                        {% if forloop.first %}
+                            <span class="icon-[tabler--home] size-3 opacity-70 shrink-0"></span>
+                        {% endif %}
+                        <span>{{ breadcrumb.title }}</span>
+                    </a>
+                {% else %}
+                    <span class="font-semibold text-base-content inline-flex items-center gap-1">
+                        {% if forloop.first %}
+                            <span class="icon-[tabler--home] size-3 opacity-70 shrink-0"></span>
+                        {% endif %}
+                        <span>{{ breadcrumb.title }}</span>
+                    </span>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ol>
+</nav>

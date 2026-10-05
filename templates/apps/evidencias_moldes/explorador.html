@@ -1,38 +1,53 @@
 {% load static %}
 
 <c-layouts.app>
-    <!-- LightGallery CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/css/lightgallery-bundle.min.css">
+    <!-- Lightgallery CSS desde CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/css/lightgallery-bundle.min.css">
 
     <style>
-        .lg-backdrop, .lg-outer { z-index: 99999 !important; }
+        .lg-backdrop, .lg-outer {
+            z-index: 99999 !important;
+        }
 
-        /* Transiciones suaves estilo Google UI */
-        .drive-card {
+        .onedrive-card {
             transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .drive-card:hover {
-            box-shadow: 0 1px 3px 0 rgba(60,64,67,0.3), 0 4px 8px 3px rgba(60,64,67,0.15);
+
+        .onedrive-card:hover {
+            border-color: var(--fallback-p, Oklch(var(--p))) !important;
+            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+        }
+
+        .drop-zone-active {
+            border-color: var(--fallback-p, Oklch(var(--p))) !important;
+            background-color: Oklch(var(--p) / 0.05) !important;
+        }
+
+        /* Ajustes para miniaturas cuadradas en vista cuadrícula */
+        .img-thumb-container {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 0.75rem;
         }
     </style>
 
     <c-slot name="breadcrumbs"></c-slot>
 
-    <!-- Header Estilo Google Drive -->
+    <!-- Header Estilo OneDrive con Colores DaisyUI -->
     <c-slot name="header">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 w-full">
-            <!-- Título y Ruta tipo Chips Drive -->
             <div class="flex flex-col gap-1.5">
                 <div class="flex items-center gap-2">
                     <div class="p-2 bg-primary/10 rounded-xl text-primary">
-                        <span class="icon-[ph--folder-notched-bold] size-6"></span>
+                        <span class="icon-[ant-design--folder-filled] size-6"></span>
                     </div>
                     <h1 class="font-bold text-xl text-base-content tracking-tight">
                         Explorador de Evidencias
                     </h1>
                 </div>
 
-                <!-- Breadcrumbs Estilo Drive Chips -->
+                <!-- Breadcrumbs de navegación -->
                 <nav class="flex items-center gap-1 overflow-x-auto py-1 text-xs no-scrollbar">
                     {% for crumb in breadcrumbs %}
                         {% if not forloop.first %}
@@ -45,7 +60,10 @@
                                 {{ crumb.title }}
                             </span>
                         {% else %}
-                            <a href="{{ crumb.url }}{% if query_string_preserved %}?{{ query_string_preserved }}{% endif %}"
+                            <a href="
+
+
+                                    {{ crumb.url }}{% if query_string_preserved %}?{{ query_string_preserved }}{% endif %}"
                                class="px-2.5 py-1 rounded-lg hover:bg-base-200 text-base-content/70 hover:text-base-content font-medium transition-colors shrink-0 flex items-center gap-1">
                                 {% if forloop.first %}
                                     <span class="icon-[ph--hard-drives-fill] text-primary size-3.5"></span>
@@ -57,7 +75,6 @@
                 </nav>
             </div>
 
-            <!-- AD Badge & Acciones -->
             <div class="flex items-center gap-2 shrink-0 self-start md:self-auto">
                 {% if smb_info %}
                     <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-base-100 border border-base-200 rounded-full text-xs shadow-2xs">
@@ -70,47 +87,63 @@
         </div>
     </c-slot>
 
-    <!-- Barra de Herramientas Principal (Google Search Bar Style) -->
-    <div class="sticky top-2 z-20 mb-6 bg-base-100/90 backdrop-blur-md p-2.5 rounded-2xl border border-base-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
-        <!-- Búsqueda Central tipo Google Workspace -->
-        <form method="GET" class="relative w-full md:w-96" id="filter-form">
-            <input type="hidden" name="view" value="{{ modo_vista }}">
-            <input type="hidden" name="sort" value="{{ sort_by }}">
+    <!-- Barra de Herramientas -->
+    <div class="sticky top-2 z-20 mb-6 bg-base-100/95 backdrop-blur-md p-2.5 rounded-2xl border border-base-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
 
-            <div class="relative flex items-center">
-                <span class="icon-[ph--magnifying-glass-bold] absolute left-3.5 text-base-content/40 size-4"></span>
-                <input type="text"
-                       name="q"
-                       value="{{ query_busqueda }}"
-                       placeholder="Buscar en Evidencias..."
-                       class="input input-sm w-full pl-10 pr-9 bg-base-200/60 focus:bg-base-100 border-none rounded-full focus:ring-2 focus:ring-primary/20 text-xs transition-all">
-                {% if query_busqueda %}
-                    <a href="?view={{ modo_vista }}&sort={{ sort_by }}" class="absolute right-3 text-base-content/40 hover:text-error">
-                        <span class="icon-[ph--x-circle-fill] size-4"></span>
-                    </a>
-                {% endif %}
-            </div>
-        </form>
+        <div class="flex items-center gap-2 w-full md:w-auto">
+            {% if perms.evidencias_moldes.subir_evidencia %}
+                <button onclick="toggleZonaCarga()"
+                        class="btn btn-primary btn-sm rounded-xl px-4 gap-2 text-primary-content shadow-xs font-semibold">
+                    <span class="icon-[ph--upload-simple-bold] size-4"></span>
+                    <span>Cargar archivo</span>
+                    <span class="icon-[ph--caret-down-bold] size-3 ml-0.5"></span>
+                </button>
+            {% endif %}
 
-        <!-- Controles de Vista y Ordenamiento -->
+            <!-- Buscador -->
+            <form method="GET" class="relative flex-1 md:w-80" id="filter-form">
+                <input type="hidden" name="view" value="{{ modo_vista }}">
+                <input type="hidden" name="sort" value="{{ sort_by }}">
+
+                <div class="relative flex items-center">
+                    <span class="icon-[ph--magnifying-glass-bold] absolute left-3.5 text-base-content/40 size-4"></span>
+                    <input type="text"
+                           name="q"
+                           value="{{ query_busqueda }}"
+                           placeholder="Buscar archivos o carpetas..."
+                           class="input input-sm w-full pl-10 pr-9 bg-base-200/60 focus:bg-base-100 border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-xs transition-all">
+                    {% if query_busqueda %}
+                        <a href="?view={{ modo_vista }}&sort={{ sort_by }}"
+                           class="absolute right-3 text-base-content/40 hover:text-error">
+                            <span class="icon-[ph--x-circle-fill] size-4"></span>
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+
         <div class="flex items-center justify-between md:justify-end gap-2 w-full md:w-auto shrink-0 border-t md:border-t-0 pt-2 md:pt-0 border-base-200">
-            <!-- Botón Ordenar -->
+            <!-- Ordenamiento -->
             <div class="dropdown dropdown-end">
-                <label tabindex="0" class="btn btn-xs sm:btn-sm btn-ghost gap-1.5 rounded-lg text-xs font-medium text-base-content/70 hover:bg-base-200">
+                <label tabindex="0"
+                       class="btn btn-xs sm:btn-sm btn-ghost gap-1.5 rounded-lg text-xs font-medium text-base-content/70 hover:bg-base-200">
                     <span class="icon-[ph--arrows-down-up-bold] size-4"></span>
                     <span class="hidden sm:inline">Orden:</span>
                     <span class="font-semibold text-base-content">
                         {% if sort_by == 'name_desc' %}Z-A{% else %}A-Z{% endif %}
                     </span>
                 </label>
-                <ul tabindex="0" class="dropdown-content z-30 menu p-1 shadow-xl bg-base-100 rounded-xl border border-base-200 w-44 text-xs mt-1">
+                <ul tabindex="0"
+                    class="dropdown-content z-30 menu p-1 shadow-xl bg-base-100 rounded-xl border border-base-200 w-44 text-xs mt-1">
                     <li>
-                        <a href="?q={{ query_busqueda }}&sort=name_asc&view={{ modo_vista }}" class="{% if sort_by == 'name_asc' %}active font-semibold{% endif %}">
+                        <a href="?q={{ query_busqueda }}&sort=name_asc&view={{ modo_vista }}"
+                           class="{% if sort_by == 'name_asc' %}active font-semibold{% endif %}">
                             <span class="icon-[ph--sort-ascending-bold] size-4"></span> Nombre (A-Z)
                         </a>
                     </li>
                     <li>
-                        <a href="?q={{ query_busqueda }}&sort=name_desc&view={{ modo_vista }}" class="{% if sort_by == 'name_desc' %}active font-semibold{% endif %}">
+                        <a href="?q={{ query_busqueda }}&sort=name_desc&view={{ modo_vista }}"
+                           class="{% if sort_by == 'name_desc' %}active font-semibold{% endif %}">
                             <span class="icon-[ph--sort-descending-bold] size-4"></span> Nombre (Z-A)
                         </a>
                     </li>
@@ -119,7 +152,7 @@
 
             <div class="h-4 w-px bg-base-300 mx-0.5"></div>
 
-            <!-- Selector de Vista Grid / List -->
+            <!-- Botones de Cambio de Vista (Cuadrícula / Lista) -->
             <div class="flex items-center bg-base-200/80 p-0.5 rounded-lg">
                 <a href="?q={{ query_busqueda }}&sort={{ sort_by }}&view=grid"
                    title="Vista Cuadrícula"
@@ -129,327 +162,483 @@
                 <a href="?q={{ query_busqueda }}&sort={{ sort_by }}&view=list"
                    title="Vista Lista"
                    class="p-1.5 rounded-md transition-all {% if modo_vista == 'list' %}bg-base-100 shadow-2xs text-primary font-bold{% else %}text-base-content/60 hover:text-base-content{% endif %}">
-                    <span class="icon-[ph--list-bullet-bold] size-4 block"></span>
+                    <span class="icon-[clarity--bullet-list-line] size-4 block"></span>
                 </a>
             </div>
         </div>
     </div>
 
-    <!-- Cargar Evidencias (Dropzone estilo Drive "Nuevo +") -->
-    {% if perms.evidencias_moldes.subir_evidencia and es_nivel_obra %}
-        <div class="mb-6 p-4 bg-base-100 border border-base-200 rounded-2xl shadow-2xs">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                    <div class="p-2.5 bg-primary/10 text-primary rounded-xl shrink-0">
-                        <span class="icon-[ph--cloud-arrow-up-bold] size-6"></span>
+    <!-- PANEL DE CARGA DESPLEGABLE -->
+    {% if perms.evidencias_moldes.subir_evidencia %}
+        <div id="panel-zona-carga"
+             class="hidden mb-6 p-4 bg-base-100 border border-primary/20 rounded-2xl shadow-sm transition-all duration-300">
+            <form method="POST" enctype="multipart/form-data" id="form-subida" onsubmit="confirmarYSubir(event)">
+                {% csrf_token %}
+                <input type="file" id="file-input" name="foto_evidencia" accept="image/*,.xlsx,.xls,.csv" multiple
+                       class="hidden" onchange="manejarArchivosSeleccionados(this.files)">
+
+                <div id="drop-zone"
+                     onclick="document.getElementById('file-input').click()"
+                     class="border-2 border-dashed border-base-300 hover:border-primary/50 rounded-xl p-8 text-center cursor-pointer bg-base-200/30 hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-3">
+                    <div class="p-3 bg-primary/10 text-primary rounded-full">
+                        <span class="icon-[ph--cloud-arrow-up-bold] size-8"></span>
                     </div>
                     <div>
-                        <h3 class="font-bold text-xs sm:text-sm text-base-content">Subir nuevas evidencias a esta ubicación</h3>
-                        <p class="text-[11px] text-base-content/50 mt-0.5">
-                            Destino: <code class="bg-base-200 px-1.5 py-0.5 rounded text-primary font-mono text-[10px]">{{ nombre_carpeta_evidencias }}/YYYY-MM-DD/</code>
+                        <p class="text-sm font-bold text-base-content">
+                            Selecciona o arrastra los archivos que deseas cargar
+                        </p>
+                        <p class="text-xs text-base-content/50 mt-1">
+                            Formatos soportados: Excel (.xlsx, .xls, .csv) e Imágenes (.jpg, .png, .webp)
                         </p>
                     </div>
                 </div>
 
-                <form method="POST" enctype="multipart/form-data" id="form-subida" class="shrink-0">
-                    {% csrf_token %}
-                    <input type="file" id="camera-input" name="foto_evidencia" accept="image/*" capture="environment" class="hidden" onchange="procesarArchivos(this.files)">
-                    <input type="file" id="gallery-input" name="foto_evidencia" accept="image/*" multiple class="hidden" onchange="procesarArchivos(this.files)">
-
-                    <div class="flex gap-2">
-                        <button type="button" onclick="document.getElementById('camera-input').click();" class="btn btn-primary btn-sm rounded-full gap-1.5 font-medium px-4 shadow-2xs">
-                            <span class="icon-[ph--camera-bold] size-4"></span>
-                            Tomar foto
-                        </button>
-                        <button type="button" onclick="document.getElementById('gallery-input').click();" class="btn btn-outline btn-sm rounded-full gap-1.5 font-medium px-4">
-                            <span class="icon-[ph--upload-simple-bold] size-4"></span>
-                            Subir archivos
+                <!-- Resumen pre-envío -->
+                <div id="resumen-subida" class="hidden mt-4 pt-4 border-t border-base-200">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="icon-[ph--files-bold] size-4 text-primary"></span>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-base-content/80">
+                                Archivos preparados (<span id="total-archivos-num">0</span>)
+                            </h4>
+                            <span id="peso-total-label"
+                                  class="badge badge-sm badge-neutral text-[10px] font-mono">0 MB</span>
+                        </div>
+                        <button type="button" onclick="limpiarSeleccion()"
+                                class="btn btn-ghost btn-xs text-error font-medium hover:bg-error/10">
+                            Limpiar lista
                         </button>
                     </div>
-                </form>
-            </div>
 
-            <!-- Preview flotante de subida -->
-            <div id="preview-container" class="hidden mt-4 pt-3 border-t border-base-200">
-                <p class="text-xs font-bold text-base-content/70 mb-2">Archivos listos para subir:</p>
-                <div id="preview-grid" class="flex flex-wrap gap-2 mb-3"></div>
-                <div class="flex justify-end gap-2">
-                    <button type="button" onclick="cancelarSubida()" class="btn btn-ghost btn-xs text-error">Cancelar</button>
-                    <button type="button" onclick="confirmarSubida()" class="btn btn-success btn-xs text-white gap-1 rounded-lg">
-                        <span class="icon-[ph--check-bold] size-3.5"></span> Confirmar subida
-                    </button>
+                    <div id="lista-archivos-preview"
+                         class="max-h-48 overflow-y-auto divide-y divide-base-200 bg-base-200/30 rounded-xl border border-base-200 p-2 mb-4">
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2">
+                        <p class="text-[11px] text-base-content/50 flex items-center gap-1">
+                            <span class="icon-[ph--info-bold] size-3.5 text-primary"></span>
+                            Verifica los archivos antes de confirmar la carga.
+                        </p>
+
+                        <button type="submit" id="btn-submit-upload"
+                                class="btn btn-primary btn-sm text-primary-content rounded-xl px-6 gap-2 shadow-xs">
+                            <span id="btn-icon" class="icon-[ph--paper-plane-right-bold] size-4"></span>
+                            <span id="btn-text">Iniciar Carga</span>
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </form>
         </div>
     {% endif %}
 
-    <!-- Navegación "Carpeta Superior" -->
-    {% if ruta_padre is not None %}
-        <div class="mb-4">
-            <a href="{% if ruta_padre %}{% url 'evidencias_moldes:path' ruta=ruta_padre %}{% else %}{% url 'evidencias_moldes:root' %}{% endif %}{% if query_string_preserved %}?{{ query_string_preserved }}{% endif %}"
-               class="inline-flex items-center gap-1.5 text-xs font-medium text-base-content/60 hover:text-primary transition-colors py-1">
-                <span class="icon-[ph--arrow-left-bold] size-3.5"></span>
-                <span>Subir un nivel</span>
-            </a>
-        </div>
-    {% endif %}
-
-    <!-- CONTENIDO DEL EXPLORADOR -->
+    <!-- EXPLORADOR DE ARCHIVOS (CARPETAS, EXCEL, E IMÁGENES) -->
     <div id="vista-explorer-container">
 
-        {% if modo_vista == "grid" %}
-            <!-- ================= VISTA CUADRÍCULA (GRID) ================= -->
+        <!-- CARPETAS -->
+        {% if carpetas %}
+            <div class="mb-6">
+                <h2 class="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <span class="icon-[ph--folder-fill] text-warning size-4"></span>
+                    Carpetas
+                </h2>
 
-            <!-- Sección Carpetas -->
-            {% if carpetas %}
-                <div class="mb-6">
-                    <h2 class="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-3">Carpetas</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                        {% for carpeta in carpetas %}
-                            {% if ruta_actual %}
-                                {% url 'evidencias_moldes:path' ruta=ruta_actual|add:"/"|add:carpeta as folder_url %}
-                            {% else %}
-                                {% url 'evidencias_moldes:path' ruta=carpeta as folder_url %}
-                            {% endif %}
-                            <a href="{{ folder_url }}{% if query_string_preserved %}?{{ query_string_preserved }}{% endif %}"
-                               class="drive-card group flex items-center justify-between p-3 bg-base-100 hover:bg-base-200/50 border border-base-200 rounded-xl transition-all">
-                                <div class="flex items-center gap-3 min-w-0">
-                                    <span class="icon-[ph--folder-fill] text-amber-500 size-6 shrink-0"></span>
-                                    <span class="text-xs font-semibold text-base-content truncate group-hover:text-primary">{{ carpeta }}</span>
-                                </div>
-                                <span class="icon-[ph--caret-right-bold] text-base-content/20 group-hover:text-base-content/60 size-4 shrink-0"></span>
-                            </a>
-                        {% endfor %}
-                    </div>
+                <div class="{% if modo_vista == 'list' %}flex flex-col gap-2{% else %}grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3{% endif %}">
+                    {% for carpeta in carpetas %}
+                        {% if ruta_actual %}
+                            {% url 'evidencias_moldes:path' ruta=ruta_actual|add:"/"|add:carpeta as folder_url %}
+                        {% else %}
+                            {% url 'evidencias_moldes:path' ruta=carpeta as folder_url %}
+                        {% endif %}
+
+                        <a href="
+                                {{ folder_url }}{% if query_string_preserved %}?{{ query_string_preserved }}{% endif %}"
+                           class="onedrive-card group flex items-center justify-between p-3.5 bg-base-100 border border-base-200 rounded-2xl transition-all">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <span class="icon-[ph--folder-fill] text-warning size-6 shrink-0"></span>
+                                <span class="text-xs font-semibold text-base-content truncate group-hover:text-primary">{{ carpeta }}</span>
+                            </div>
+                            <span class="icon-[ph--caret-right-bold] text-base-content/20 group-hover:text-base-content/60 size-4 shrink-0 transition-transform group-hover:translate-x-0.5"></span>
+                        </a>
+                    {% endfor %}
                 </div>
-            {% endif %}
+            </div>
+        {% endif %}
 
-            <!-- Sección Archivos de Imagen -->
-            {% if fotos %}
-                <div class="mb-6">
-                    <div class="flex items-center justify-between mb-3">
-                        <h2 class="text-xs font-bold text-base-content/50 uppercase tracking-wider">Archivos de Evidencia</h2>
-                        <span class="text-[11px] text-base-content/40 font-mono">{{ page_obj.paginator.count }} archivos</span>
-                    </div>
+        <!-- HOJAS DE CÁLCULO (EXCEL) -->
+        {% if excels %}
+            <div class="mb-6">
+                <h2 class="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <span class="icon-[ph--file-xls-fill] text-success size-4"></span>
+                    Hojas de Cálculo
+                </h2>
 
-                    <div id="galeria-lightgallery" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                        {% for foto in fotos %}
-                            {% if ruta_actual %}
-                                {% url 'evidencias_moldes:show' ruta=ruta_actual|add:"/"|add:foto as img_full_url %}
-                            {% else %}
-                                {% url 'evidencias_moldes:show' ruta=foto as img_full_url %}
-                            {% endif %}
+                <div class="{% if modo_vista == 'list' %}flex flex-col gap-2{% else %}grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3{% endif %}">
+                    {% for excel in excels %}
+                        {% if ruta_actual %}
+                            {% url 'evidencias_moldes:show' ruta=ruta_actual|add:"/"|add:excel as excel_url %}
+                        {% else %}
+                            {% url 'evidencias_moldes:show' ruta=excel as excel_url %}
+                        {% endif %}
 
-                            <a href="{{ img_full_url }}"
-                               data-src="{{ img_full_url }}"
-                               data-sub-html="<h4>{{ foto }}</h4>"
-                               class="card-foto drive-card group flex flex-col bg-base-100 border border-base-200 rounded-xl overflow-hidden">
-
-                                <!-- Thumbnail Preview -->
-                                <div class="aspect-4/3 bg-base-200/60 relative overflow-hidden flex items-center justify-center">
-                                    <img src="{{ img_full_url }}?thumb=1"
-                                         alt="{{ foto }}"
-                                         loading="lazy"
-                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200">
-
-                                    <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                        <div class="p-2 bg-base-100/90 rounded-full text-base-content shadow-sm">
-                                            <span class="icon-[ph--arrows-out-cardinal-bold] size-4"></span>
-                                        </div>
-                                    </div>
+                        <div class="onedrive-card group flex {% if modo_vista == 'list' %}flex-row items-center justify-between p-2.5{% else %}flex-col p-3.5{% endif %} bg-base-100 border border-base-200 rounded-2xl transition-all">
+                            <div class="flex items-center gap-3 min-w-0 {% if modo_vista != 'list' %}mb-3{% endif %}">
+                                <div class="p-2 bg-success/10 rounded-xl shrink-0">
+                                    <span class="icon-[ph--file-xls-fill] text-success size-6 block"></span>
                                 </div>
-
-                                <!-- Card Footer Estilo Drive -->
-                                <div class="p-2.5 flex items-center gap-2 border-t border-base-200 bg-base-100 min-w-0">
-                                    <span class="icon-[ph--image-square-fill] text-red-500 size-4 shrink-0"></span>
-                                    <span class="text-[11px] font-medium text-base-content truncate" title="{{ foto }}">{{ foto }}</span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-xs font-semibold text-base-content truncate group-hover:text-primary transition-colors"
+                                       title="{{ excel }}">
+                                        {{ excel }}
+                                    </p>
+                                    <span class="text-[10px] text-base-content/50 uppercase font-mono">Hoja de Cálculo</span>
                                 </div>
-                            </a>
-                        {% endfor %}
-                    </div>
-                </div>
-            {% endif %}
+                            </div>
 
-        {% else %}
-            <!-- ================= VISTA LISTA / TABLA ESTILO GOOGLE DRIVE ================= -->
-            <div class="bg-base-100 border border-base-200 rounded-2xl overflow-hidden shadow-2xs mb-6">
-                <div class="overflow-x-auto">
-                    <table class="table table-sm w-full text-left">
-                        <thead>
-                            <tr class="border-b border-base-200 bg-base-200/40 text-[11px] font-bold text-base-content/50 uppercase">
-                                <th class="py-2.5 pl-4">Nombre</th>
-                                <th class="py-2.5 hidden sm:table-cell">Tipo</th>
-                                <th class="py-2.5 text-right pr-4">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-base-200 text-xs">
-                            <!-- Carpetas -->
-                            {% for carpeta in carpetas %}
-                                {% if ruta_actual %}
-                                    {% url 'evidencias_moldes:path' ruta=ruta_actual|add:"/"|add:carpeta as folder_url %}
-                                {% else %}
-                                    {% url 'evidencias_moldes:path' ruta=carpeta as folder_url %}
+                            <!-- Acciones -->
+                            <div class="flex items-center gap-1.5 {% if modo_vista != 'list' %}mt-auto pt-2.5 border-t border-base-200/80{% endif %}">
+                                <a href="{{ excel_url }}" download="{{ excel }}"
+                                   class="btn btn-success btn-xs gap-1.5 text-[11px] rounded-lg text-success-content font-medium shadow-2xs">
+                                    <span class="icon-[ph--download-simple-bold] size-3.5"></span>
+                                    <span>Descargar</span>
+                                </a>
+
+                                {% if perms.evidencias_moldes.subir_evidencia %}
+                                    <button type="button" onclick="subirNuevaVersion('{{ excel }}')"
+                                            class="btn btn-ghost btn-xs rounded-lg p-1 text-base-content/60 hover:text-primary"
+                                            title="Subir nueva versión modificada">
+                                        <span class="icon-[ph--arrows-counter-clockwise-bold] size-4"></span>
+                                    </button>
                                 {% endif %}
-                                <tr class="hover:bg-base-200/40 transition-colors group">
-                                    <td class="py-2.5 pl-4 font-semibold text-base-content">
-                                        <a href="{{ folder_url }}{% if query_string_preserved %}?{{ query_string_preserved }}{% endif %}" class="flex items-center gap-3">
-                                            <span class="icon-[ph--folder-fill] text-amber-500 size-5 shrink-0"></span>
-                                            <span class="truncate group-hover:text-primary transition-colors">{{ carpeta }}</span>
-                                        </a>
-                                    </td>
-                                    <td class="py-2.5 hidden sm:table-cell text-base-content/50">Carpeta de archivos</td>
-                                    <td class="py-2.5 text-right pr-4">
-                                        <a href="{{ folder_url }}{% if query_string_preserved %}?{{ query_string_preserved }}{% endif %}" class="btn btn-ghost btn-xs text-base-content/60">
-                                            Abrir
-                                        </a>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-
-                            <!-- Fotos en Galería -->
-                            <tbody id="galeria-lightgallery-list">
-                                {% for foto in fotos %}
-                                    {% if ruta_actual %}
-                                        {% url 'evidencias_moldes:show' ruta=ruta_actual|add:"/"|add:foto as img_full_url %}
-                                    {% else %}
-                                        {% url 'evidencias_moldes:show' ruta=foto as img_full_url %}
-                                    {% endif %}
-                                    <tr class="hover:bg-base-200/40 transition-colors group">
-                                        <td class="py-2 pl-4">
-                                            <a href="{{ img_full_url }}"
-                                               data-src="{{ img_full_url }}"
-                                               data-sub-html="<h4>{{ foto }}</h4>"
-                                               class="card-foto flex items-center gap-3 font-medium text-base-content">
-                                                <span class="icon-[ph--image-square-fill] text-red-500 size-5 shrink-0"></span>
-                                                <span class="truncate group-hover:text-primary transition-colors">{{ foto }}</span>
-                                            </a>
-                                        </td>
-                                        <td class="py-2 hidden sm:table-cell text-base-content/50 uppercase text-[10px] font-mono">Imagen</td>
-                                        <td class="py-2 text-right pr-4">
-                                            <a href="{{ img_full_url }}"
-                                               data-src="{{ img_full_url }}"
-                                               data-sub-html="<h4>{{ foto }}</h4>"
-                                               class="card-foto btn btn-ghost btn-xs text-primary gap-1">
-                                                <span class="icon-[ph--eye-bold] size-3.5"></span> Ver
-                                            </a>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </tbody>
-                    </table>
+                            </div>
+                        </div>
+                    {% endfor %}
                 </div>
             </div>
         {% endif %}
 
-        <!-- Paginación -->
-        {% if fotos and page_obj.paginator.num_pages > 1 %}
-            <div class="flex justify-center mt-6">
-                <div class="join border border-base-200 rounded-full bg-base-100 shadow-2xs overflow-hidden">
-                    {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}&q={{ query_busqueda }}&sort={{ sort_by }}&view={{ modo_vista }}"
-                           class="join-item btn btn-xs sm:btn-sm btn-ghost font-medium">
-                            <span class="icon-[ph--caret-left-bold]"></span>
-                        </a>
-                    {% else %}
-                        <button class="join-item btn btn-xs sm:btn-sm btn-ghost text-base-content/20" disabled>
-                            <span class="icon-[ph--caret-left-bold]"></span>
-                        </button>
-                    {% endif %}
+        <!-- FOTOS / GALERÍA CON LIGHTBOX Y PREVIEW -->
+        {% if fotos %}
+            <div class="mb-6">
+                <h2 class="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <span class="icon-[ph--image-fill] text-info size-4"></span>
+                    Archivos y Evidencias
+                </h2>
 
-                    <span class="join-item btn btn-xs sm:btn-sm btn-ghost pointer-events-none font-mono text-xs px-4 border-x border-base-200">
-                        {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
-                    </span>
+                <div class="{% if modo_vista == 'list' %}flex flex-col gap-2{% else %}grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3{% endif %}">
+                    {% for foto in fotos %}
+                        {% if ruta_actual %}
+                            {% url 'evidencias_moldes:show' ruta=ruta_actual|add:"/"|add:foto as foto_url %}
+                        {% else %}
+                            {% url 'evidencias_moldes:show' ruta=foto as foto_url %}
+                        {% endif %}
 
-                    {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}&q={{ query_busqueda }}&sort={{ sort_by }}&view={{ modo_vista }}"
-                           class="join-item btn btn-xs sm:btn-sm btn-ghost font-medium">
-                            <span class="icon-[ph--caret-right-bold]"></span>
-                        </a>
-                    {% else %}
-                        <button class="join-item btn btn-xs sm:btn-sm btn-ghost text-base-content/20" disabled>
-                            <span class="icon-[ph--caret-right-bold]"></span>
-                        </button>
-                    {% endif %}
+                        <div class="onedrive-card group relative flex {% if modo_vista == 'list' %}flex-row items-center justify-between p-2.5{% else %}flex-col p-2{% endif %} bg-base-100 border border-base-200 rounded-2xl transition-all overflow-hidden">
+
+                            <!-- Thumbnail / Vista Previa -->
+                            <div class="relative cursor-pointer overflow-hidden rounded-xl bg-base-200/50 flex items-center justify-center {% if modo_vista == 'list' %}size-12 shrink-0 mr-3{% else %}w-full aspect-square mb-2.5{% endif %}"
+                                 onclick="abrirLightbox('{{ foto_url }}', '{{ foto }}')">
+                                <img src="{{ foto_url }}?thumb=true"
+                                     alt="{{ foto }}"
+                                     loading="lazy"
+                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                     onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+
+                                <!-- Fallback si falla la carga de la imagen o no es formato soportado -->
+                                <div class="hidden flex-col items-center justify-center text-info p-2">
+                                    <span class="icon-[ph--image-fill] size-6"></span>
+                                </div>
+
+                                <!-- Hover Overlay para indicar vista previa -->
+                                <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white backdrop-blur-[1px]">
+                                    <span class="icon-[ph--magnifying-glass-plus-bold] size-6"></span>
+                                </div>
+                            </div>
+
+                            <!-- Detalles del Archivo -->
+                            <div class="min-w-0 flex-1 {% if modo_vista != 'list' %}px-1 mb-2{% endif %}">
+                                <p class="text-xs font-semibold text-base-content truncate group-hover:text-primary transition-colors"
+                                   title="{{ foto }}">
+                                    {{ foto }}
+                                </p>
+                                <span class="text-[10px] text-base-content/50 uppercase font-mono block">Imagen</span>
+                            </div>
+
+                            <!-- Acciones -->
+                            <div class="flex items-center gap-1.5 {% if modo_vista != 'list' %}mt-auto pt-2 border-t border-base-200/80 w-full justify-between{% endif %}">
+                                <button type="button"
+                                        onclick="abrirLightbox('{{ foto_url }}', '{{ foto }}')"
+                                        class="btn btn-ghost btn-xs gap-1 text-[11px] rounded-lg text-base-content/70 hover:text-primary">
+                                    <span class="icon-[ph--eye-bold] size-3.5"></span>
+                                    <span class="{% if modo_vista == 'list' %}hidden sm:inline{% endif %}">Ver</span>
+                                </button>
+
+                                <a href="{{ foto_url }}" download="{{ foto }}"
+                                   class="btn btn-info btn-xs gap-1 text-[11px] rounded-lg text-info-content font-medium shadow-2xs">
+                                    <span class="icon-[ph--download-simple-bold] size-3.5"></span>
+                                    <span class="{% if modo_vista == 'list' %}hidden sm:inline{% endif %}">Descargar</span>
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
                 </div>
             </div>
         {% endif %}
 
-        <!-- Empty State estilo Google Drive -->
-        {% if not carpetas and not fotos %}
-            <div class="py-16 text-center bg-base-100 border border-base-200 rounded-2xl">
-                <div class="inline-flex p-4 bg-base-200/50 rounded-full text-base-content/30 mb-3">
-                    <span class="icon-[ph--folder-open-duotone] size-12"></span>
+        <!-- MODAL LIGHTBOX PARA VISUALIZACIÓN DE IMÁGENES -->
+        <dialog id="modal_lightbox" class="modal backdrop-blur-md">
+            <div class="modal-box max-w-5xl bg-base-100/95 p-4 rounded-2xl border border-base-300 shadow-2xl relative flex flex-col items-center">
+                <!-- Botón Cerrar -->
+                <form method="dialog" class="absolute right-3 top-3 z-10">
+                    <button class="btn btn-sm btn-circle btn-ghost text-base-content/70 hover:bg-base-200">✕</button>
+                </form>
+
+                <!-- Título de la imagen -->
+                <div class="w-full pr-10 mb-3 flex items-center gap-2">
+                    <span class="icon-[ph--image-bold] text-info size-5"></span>
+                    <h3 id="lightbox-titulo" class="font-bold text-sm text-base-content truncate"></h3>
                 </div>
-                <h3 class="text-sm font-bold text-base-content">No hay elementos en esta ubicación</h3>
-                <p class="text-xs text-base-content/50 mt-1 max-w-xs mx-auto">
-                    {% if query_busqueda %}
-                        No se encontraron resultados para "{{ query_busqueda }}".
-                    {% else %}
-                        Suba imágenes o navegue a otra carpeta.
-                    {% endif %}
-                </p>
-                {% if query_busqueda %}
-                    <a href="?view={{ modo_vista }}&sort={{ sort_by }}" class="btn btn-xs btn-ghost text-primary mt-3">Limpiar búsqueda</a>
-                {% endif %}
+
+                <!-- Contenedor de la Imagen Full HD -->
+                <div class="relative w-full max-h-[75vh] flex items-center justify-center overflow-hidden rounded-xl bg-black/5 p-2">
+                    <img id="lightbox-img" src="" alt=""
+                         class="max-h-[70vh] w-auto max-w-full object-contain rounded-lg shadow-md transition-all">
+                </div>
+
+                <!-- Barra inferior con acciones -->
+                <div class="flex items-center justify-end w-full gap-2 mt-4 pt-3 border-t border-base-200">
+                    <a id="lightbox-download" href="" download
+                       class="btn btn-primary btn-sm rounded-xl px-4 text-xs font-semibold gap-2">
+                        <span class="icon-[ph--download-simple-bold] size-4"></span>
+                        Descargar original
+                    </a>
+                </div>
+            </div>
+            <form method="dialog" class="modal-backdrop bg-black/60">
+                <button>Cerrar</button>
+            </form>
+        </dialog>
+
+        {% if not carpetas and not excels and not fotos %}
+            <div class="flex flex-col items-center justify-center p-12 text-center bg-base-100 border border-base-200 rounded-2xl">
+                <div class="p-4 bg-base-200 text-base-content/40 rounded-full mb-3">
+                    <span class="icon-[ph--folder-open-bold] size-10"></span>
+                </div>
+                <h3 class="text-sm font-bold text-base-content">Carpeta vacía</h3>
+                <p class="text-xs text-base-content/50 mt-1">No se encontraron archivos ni subcarpetas en este
+                    directorio.</p>
             </div>
         {% endif %}
+
     </div>
 
-    <!-- LightGallery JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/lightgallery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/plugins/zoom/lg-zoom.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/plugins/thumbnail/lg-thumbnail.min.js"></script>
+    <!-- MODAL DE CONFIRMACIÓN CON COMPONENTES DAISYUI -->
+    <dialog id="modal_confirmar_subida" class="modal">
+        <div class="modal-box max-w-sm rounded-2xl p-5">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="p-2.5 bg-primary/10 text-primary rounded-xl">
+                    <span class="icon-[ph--cloud-arrow-up-bold] size-6"></span>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm text-base-content">¿Confirmar carga de archivos?</h3>
+                    <p class="text-xs text-base-content/60 mt-0.5">Se enviarán a la carpeta actual.</p>
+                </div>
+            </div>
+
+            <p class="text-xs text-base-content/70 my-4 bg-base-200/50 p-3 rounded-xl border border-base-200">
+                Estás a punto de subir <strong id="modal-cantidad-archivos" class="text-primary">0 archivos</strong>.
+                Asegúrate de que los cambios guardados localmente sean los definitivos.
+            </p>
+
+            <div class="modal-action gap-2">
+                <form method="dialog">
+                    <button class="btn btn-sm btn-ghost rounded-xl text-xs">Cancelar</button>
+                </form>
+                <button type="button" onclick="ejecutarEnvioFormulario()"
+                        class="btn btn-sm btn-primary text-primary-content rounded-xl px-4 text-xs font-semibold">
+                    Sí, subir archivos
+                </button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- JS de Lightgallery CDN con Plugins (Thumbnail + Zoom) -->
+    <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/lightgallery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/plugins/thumbnail/lg-thumbnail.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/plugins/zoom/lg-zoom.min.js"></script>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const galeriaGrid = document.getElementById('galeria-lightgallery');
-            const galeriaList = document.getElementById('galeria-lightgallery-list');
-
-            const targetGaleria = galeriaGrid || galeriaList;
-            if (targetGaleria) {
-                lightGallery(targetGaleria, {
-                    selector: '.card-foto',
-                    plugins: [lgZoom, lgThumbnail],
-                    speed: 250,
+        // Inicializar Lightgallery al cargar el DOM
+        document.addEventListener('DOMContentLoaded', function () {
+            const lgContainer = document.getElementById('lightgallery');
+            if (lgContainer) {
+                lightGallery(lgContainer, {
+                    plugins: [lgThumbnail, lgZoom],
+                    selector: '.onedrive-card',
+                    speed: 300,
                     download: true,
+                    mobileSettings: {
+                        controls: true,
+                        showCloseIcon: true,
+                        download: true
+                    }
                 });
             }
         });
 
-        let archivosSeleccionados = [];
+        let archivosAcumulados = [];
 
-        function procesarArchivos(files) {
-            if (!files.length) return;
+        function toggleZonaCarga() {
+            const panel = document.getElementById('panel-zona-carga');
+            panel.classList.toggle('hidden');
+        }
 
-            archivosSeleccionados = Array.from(files);
-            const previewContainer = document.getElementById('preview-container');
-            const previewGrid = document.getElementById('preview-grid');
-            previewGrid.innerHTML = '';
-
-            archivosSeleccionados.forEach((file) => {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    const div = document.createElement('div');
-                    div.className = "relative size-12 rounded-lg overflow-hidden border border-base-300 bg-base-200 shadow-2xs";
-                    div.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
-                    previewGrid.appendChild(div);
-                };
-                reader.readAsDataURL(file);
+        const dropZone = document.getElementById('drop-zone');
+        if (dropZone) {
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.add('drop-zone-active');
+                }, false);
             });
 
-            previewContainer.classList.remove('hidden');
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.remove('drop-zone-active');
+                }, false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                manejarArchivosSeleccionados(dt.files);
+            });
         }
 
-        function cancelarSubida() {
-            archivosSeleccionados = [];
-            document.getElementById('preview-container').classList.add('hidden');
-            document.getElementById('form-subida').reset();
+        function manejarArchivosSeleccionados(files) {
+            if (!files || files.length === 0) return;
+            for (let i = 0; i < files.length; i++) {
+                archivosAcumulados.push(files[i]);
+            }
+            renderizarResumen();
         }
 
-        function confirmarSubida() {
-            if (!archivosSeleccionados.length) return;
+        function quitarArchivo(index) {
+            archivosAcumulados.splice(index, 1);
+            renderizarResumen();
+        }
+
+        function limpiarSeleccion() {
+            archivosAcumulados = [];
+            document.getElementById('file-input').value = "";
+            renderizarResumen();
+        }
+
+        function formatearTamano(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function renderizarResumen() {
+            const contenedorResumen = document.getElementById('resumen-subida');
+            const listaContainer = document.getElementById('lista-archivos-preview');
+            const totalNum = document.getElementById('total-archivos-num');
+            const pesoLabel = document.getElementById('peso-total-label');
+
+            if (archivosAcumulados.length === 0) {
+                contenedorResumen.classList.add('hidden');
+                return;
+            }
+
+            contenedorResumen.classList.remove('hidden');
+            totalNum.innerText = archivosAcumulados.length;
+
+            let totalBytes = 0;
+            listaContainer.innerHTML = "";
+
+            archivosAcumulados.forEach((file, idx) => {
+                totalBytes += file.size;
+                const ext = file.name.split('.').pop().toLowerCase();
+
+                let iconoClass = 'icon-[ph--file-bold] text-base-content/60';
+                if (['xlsx', 'xls', 'csv'].includes(ext)) {
+                    iconoClass = 'icon-[ph--file-xls-fill] text-success';
+                } else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+                    iconoClass = 'icon-[ph--image-fill] text-info';
+                }
+
+                const item = document.createElement('div');
+                item.className = "flex items-center justify-between p-2 hover:bg-base-100 rounded-lg transition-colors text-xs";
+                item.innerHTML = `
+                    <div class="flex items-center gap-2.5 min-w-0 pr-2">
+                        <span class="${iconoClass} size-5 shrink-0"></span>
+                        <div class="min-w-0">
+                            <p class="font-medium text-base-content truncate">${file.name}</p>
+                            <p class="text-[10px] text-base-content/50">${formatearTamano(file.size)}</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="quitarArchivo(${idx})" class="btn btn-ghost btn-xs btn-circle text-error/70 hover:text-error" title="Quitar">
+                        ✕
+                    </button>
+                `;
+                listaContainer.appendChild(item);
+            });
+
+            pesoLabel.innerText = formatearTamano(totalBytes);
+        }
+
+        function confirmarYSubir(event) {
+            event.preventDefault();
+            if (archivosAcumulados.length === 0) return;
+
+            document.getElementById('modal-cantidad-archivos').innerText = `${archivosAcumulados.length} archivo(s)`;
+            document.getElementById('modal_confirmar_subida').showModal();
+        }
+
+        function ejecutarEnvioFormulario() {
+            document.getElementById('modal_confirmar_subida').close();
+
+            const btnSubmit = document.getElementById('btn-submit-upload');
+            const btnIcon = document.getElementById('btn-icon');
+            const btnText = document.getElementById('btn-text');
+
+            btnSubmit.disabled = true;
+            btnSubmit.classList.add('btn-disabled');
+            btnIcon.className = "loading loading-spinner loading-xs";
+            btnText.innerText = "Subiendo al servidor...";
+
+            const dt = new DataTransfer();
+            archivosAcumulados.forEach(file => dt.items.add(file));
+            document.getElementById('file-input').files = dt.files;
+
             document.getElementById('form-subida').submit();
+        }
+
+        function subirNuevaVersion(nombreExcel) {
+            const panel = document.getElementById('panel-zona-carga');
+            panel.classList.remove('hidden');
+            panel.scrollIntoView({behavior: 'smooth'});
+            document.getElementById('file-input').click();
+        }
+
+        function abrirLightbox(urlImagen, nombreImagen) {
+            const modal = document.getElementById('modal_lightbox');
+            const img = document.getElementById('lightbox-img');
+            const titulo = document.getElementById('lightbox-titulo');
+            const btnDownload = document.getElementById('lightbox-download');
+
+            // Asignar recursos
+            img.src = urlImagen;
+            titulo.innerText = nombreImagen;
+            btnDownload.href = urlImagen;
+            btnDownload.setAttribute('download', nombreImagen);
+
+            // Mostrar Modal de DaisyUI
+            modal.showModal();
         }
     </script>
 </c-layouts.app>

@@ -1,26 +1,19 @@
 {% load money %}
 {% load humanize %}
-{% load crispy_forms_filters %}
 {% load crispy_forms_tags %}
 
 {% if form.errors %}
-    <div id="form-errors-banner"
-         class="alert alert-error alert-soft shadow mb-4">
-        <div>
-            <span class="font-semibold">
-                Hay errores en el formulario
-            </span>
-            <p class="text-sm">
-                Por favor revisa los campos marcados en rojo antes de continuar.
-            </p>
+    <div id="form-errors-banner" class="alert alert-error alert-soft p-3 text-xs mb-3 rounded-lg border border-error/30">
+        <div class="flex items-center gap-2">
+            <span class="icon-[tabler--alert-circle] text-base shrink-0 text-error"></span>
+            <div>
+                <span class="font-bold">Hay errores en el formulario</span>
+                <p class="text-[11px] opacity-90">Por favor revisa los campos marcados antes de guardar.</p>
+            </div>
         </div>
     </div>
 {% endif %}
 
-<div class="card bg-base-100 shadow mb-4">
-    <div class="card-body">
-        {% crispy form %}
-    </div>
+<div class="bg-base-100 rounded-lg border border-base-200 shadow-2xs p-3">
+    {% crispy form %}
 </div>
-
-

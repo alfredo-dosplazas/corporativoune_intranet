@@ -11,7 +11,7 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.http import Http404, FileResponse, HttpResponseForbidden
+from django.http import Http404, FileResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.views.generic import TemplateView
@@ -24,6 +24,7 @@ from apps.evidencias_moldes.win_impersonate import impersonate_user
 from apps.fotos.utils import get_thumbnail
 
 IMAGENES_EXT = (".jpg", ".jpeg", ".png", ".webp")
+EXCEL_EXT = (".xlsx", ".xls", ".csv")
 CARPETA_EVIDENCIAS_NOMBRE = "fotos_subidas_intranet"
 
 
@@ -47,11 +48,10 @@ class ExploradorEvidenciasMoldesView(
     paginate_by = 24
     permission_required = "evidencias_moldes.acceder_explorador_direccion_obras"
 
-    # FilterStateMixin settings
     filter_fields = ["q", "sort", "view"]
 
     REGLAS_NIVEL = {
-        0: lambda nombre: bool(re.match(r"^\d{4}$", nombre)),  # Ej: Año / Folio de 4 dígitos
+        0: lambda nombre: bool(re.match(r"^\d{4}$", nombre)),
         1: lambda nombre: nombre.lower() in {"moldes"},
         2: lambda nombre: nombre.lower() in {"construidea"},
         3: lambda nombre: True,
@@ -105,71 +105,85 @@ class ExploradorEvidenciasMoldesView(
             return HttpResponseForbidden("No tienes permiso para subir evidencias.")
 
         ruta = (self.kwargs.get("ruta") or "").strip("/")
-        if not self._es_nivel_obra(ruta):
-            return HttpResponseForbidden("No está permitido subir archivos en este directorio.")
-
         base_path = settings.PROYECTOS_ROOT.resolve()
-        obra_path = (base_path / ruta).resolve()
+        destino_dir = (base_path / ruta).resolve()
 
-        if not str(obra_path).startswith(str(base_path)) or not obra_path.exists():
+        if not str(destino_dir).startswith(str(base_path)) or not destino_dir.exists():
             raise Http404("Ruta inválida")
 
         uploaded_files = request.FILES.getlist("foto_evidencia")
         if not uploaded_files:
-            messages.error(request, "No se ha seleccionado ninguna imagen.")
+            messages.error(request, "No se ha seleccionado ningún archivo.")
             return redirect("evidencias_moldes:path", ruta=ruta)
 
         archivos_validos = []
         for uploaded_file in uploaded_files:
             ext = os.path.splitext(uploaded_file.name)[1].lower()
-            if ext not in IMAGENES_EXT or not es_imagen_valida(uploaded_file):
-                messages.error(request, f"El archivo '{uploaded_file.name}' no es un formato de imagen válido.")
+            if ext in IMAGENES_EXT:
+                if not es_imagen_valida(uploaded_file):
+                    messages.error(request, f"El archivo '{uploaded_file.name}' no es un formato de imagen válido.")
+                    return redirect("evidencias_moldes:path", ruta=ruta)
+                archivos_validos.append(uploaded_file)
+            elif ext in EXCEL_EXT:
+                archivos_validos.append(uploaded_file)
+            else:
+                messages.error(request, f"El archivo '{uploaded_file.name}' no tiene una extensión permitida.")
                 return redirect("evidencias_moldes:path", ruta=ruta)
-            archivos_validos.append(uploaded_file)
 
-        ahora = datetime.now()
-        fecha_str = ahora.strftime("%Y-%m-%d")
         usuario = request.user.username if request.user.is_authenticated else "anonimo"
-        destino_dir = obra_path / CARPETA_EVIDENCIAS_NOMBRE / fecha_str
         archivos_guardados = []
-
         ad_user, ad_pass, ad_domain = self._obtener_credenciales_ad(request.user)
 
         try:
             with impersonate_user(ad_user, ad_pass, ad_domain):
-                destino_dir.mkdir(parents=True, exist_ok=True)
+                for uploaded_file in archivos_validos:
+                    # 1. Limpieza de nombre manteniendo el original
+                    nombre_base, extension = os.path.splitext(uploaded_file.name)
+                    nombre_limpio = "".join(c for c in nombre_base if c.isalnum() or c in " ._-").strip()
+                    nombre_final = f"{nombre_limpio}{extension}"
 
-                for idx, uploaded_file in enumerate(archivos_validos):
-                    hora_str = datetime.now().strftime("%H%M%S")
-                    nombre_limpio = "".join(c for c in uploaded_file.name if c.isalnum() or c in "._-")
-                    nombre_final = f"{usuario}_{hora_str}_{idx}_{nombre_limpio}"
                     archivo_destino = destino_dir / nombre_final
 
-                    with open(archivo_destino, "wb+") as destination:
-                        for chunk in uploaded_file.chunks():
-                            destination.write(chunk)
+                    # 2. Estrategia de Versionado si ya existe y no queremos romper nada
+                    contador = 1
+                    while archivo_destino.exists():
+                        # Si quieres intentar sobrescribir directamente, remueve este bloque while
+                        nombre_propuesto = f"{nombre_limpio} ({contador}){extension}"
+                        archivo_destino = destino_dir / nombre_propuesto
+                        contador += 1
 
-                    archivos_guardados.append(archivo_destino)
+                    # 3. Intentar escritura con manejo de bloqueo SMB
+                    try:
+                        with open(archivo_destino, "wb+") as destination:
+                            for chunk in uploaded_file.chunks():
+                                destination.write(chunk)
+                        archivos_guardados.append(archivo_destino)
+
+                    except PermissionError:
+                        messages.warning(
+                            request,
+                            f"El archivo '{nombre_final}' no se pudo actualizar porque actualmente está siendo editado por otro usuario en la red."
+                        )
 
         except (PermissionError, OSError) as e:
             if "1326" in str(e):
                 raise PermissionDenied("Las credenciales de Active Directory son incorrectas o vencieron.")
             raise PermissionDenied("Tu usuario de Active Directory no tiene permisos NTFS para esta carpeta.")
 
-        ruta_redireccion = f"{ruta}/{CARPETA_EVIDENCIAS_NOMBRE}/{fecha_str}".strip("/")
-        url_carpeta = request.build_absolute_uri(
-            reverse("evidencias_moldes:path", kwargs={"ruta": ruta_redireccion})
-        )
+        if archivos_guardados:
+            url_carpeta = request.build_absolute_uri(
+                reverse("evidencias_moldes:path", kwargs={"ruta": ruta})
+            )
 
-        enviar_notificacion_evidencia_moldes(
-            archivos_guardados=archivos_guardados,
-            usuario=usuario,
-            ruta_obra=ruta,
-            url_carpeta=url_carpeta,
-        )
+            enviar_notificacion_evidencia_moldes(
+                archivos_guardados=archivos_guardados,
+                usuario=usuario,
+                ruta_obra=ruta,
+                url_carpeta=url_carpeta,
+            )
+            messages.success(request, f"Se procesaron {len(archivos_guardados)} archivo(s) correctamente.")
 
-        messages.success(request, f"Se subieron {len(archivos_guardados)} evidencias correctamente.")
-        return redirect("evidencias_moldes:path", ruta=ruta_redireccion)
+        return redirect("evidencias_moldes:path", ruta=ruta)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -184,7 +198,7 @@ class ExploradorEvidenciasMoldesView(
         partes_ruta = self._obtener_partes_ruta(ruta)
         nivel_actual = len(partes_ruta)
 
-        carpetas, fotos = [], []
+        carpetas, fotos, excels = [], [], []
         query = self.request.GET.get("q", "").strip().lower()
         sort_by = self.request.GET.get("sort", "name_asc")
         modo_vista = self.request.GET.get("view", "grid")
@@ -208,16 +222,18 @@ class ExploradorEvidenciasMoldesView(
                             carpetas.append(item.name)
                     elif item.suffix.lower() in IMAGENES_EXT:
                         fotos.append(item.name)
+                    elif item.suffix.lower() in EXCEL_EXT:
+                        excels.append(item.name)
 
         except (PermissionError, OSError) as e:
             if "1326" in str(e):
                 raise PermissionDenied("Las credenciales de Active Directory son incorrectas o vencieron.")
             raise PermissionDenied("Tu usuario de Active Directory no tiene permisos NTFS para esta carpeta.")
 
-        # Ordenamiento
         reverse_order = sort_by == "name_desc"
         carpetas.sort(key=lambda x: x.lower(), reverse=reverse_order)
         fotos.sort(key=lambda x: x.lower(), reverse=reverse_order)
+        excels.sort(key=lambda x: x.lower(), reverse=reverse_order)
 
         paginator = Paginator(fotos, self.paginate_by)
         page_number = self.request.GET.get("page", 1)
@@ -225,7 +241,6 @@ class ExploradorEvidenciasMoldesView(
 
         ruta_padre = "/".join(partes_ruta[:-1]) if partes_ruta else None
 
-        # Construcción de query parameters preservados
         extra_params = self.request.GET.copy()
         if "page" in extra_params:
             del extra_params["page"]
@@ -235,6 +250,7 @@ class ExploradorEvidenciasMoldesView(
             "carpetas": carpetas,
             "page_obj": page_obj,
             "fotos": page_obj.object_list,
+            "excels": excels,
             "ruta_actual": ruta,
             "ruta_padre": ruta_padre,
             "es_nivel_obra": self._es_nivel_obra(ruta),
@@ -277,12 +293,12 @@ def ver_foto(request, ruta):
                 raise Http404("Archivo no encontrado")
 
             content_type, _ = mimetypes.guess_type(path)
-            content_type = content_type or "image/jpeg"
+            content_type = content_type or "application/octet-stream"
 
             with open(path, "rb") as f:
-                contenido_foto = BytesIO(f.read())
+                contenido_archivo = BytesIO(f.read())
 
-            response = FileResponse(contenido_foto, content_type=content_type, as_attachment=False)
+            response = FileResponse(contenido_archivo, content_type=content_type, as_attachment=False)
             response["Cache-Control"] = "private, max-age=3600"
             return response
 
@@ -290,3 +306,38 @@ def ver_foto(request, ruta):
         if "1326" in str(e):
             raise PermissionDenied("Las credenciales de Active Directory son incorrectas o vencieron.")
         raise PermissionDenied("Tu usuario de Active Directory no tiene permiso para consultar este archivo.")
+
+
+@login_required
+@permission_required("evidencias_moldes.subir_evidencia", raise_exception=True)
+def guardar_excel(request, ruta):
+    """Guarda los cambios de un archivo Excel modificado desde Univer.js."""
+    if request.method != "POST":
+        return JsonResponse({"error": "Método no permitido"}, status=405)
+
+    base_path = settings.PROYECTOS_ROOT.resolve()
+    archivo_path = (base_path / ruta).resolve()
+
+    if not str(archivo_path).startswith(str(base_path)):
+        return JsonResponse({"error": "Ruta no permitida"}, status=403)
+
+    excel_file = request.FILES.get("file")
+    if not excel_file:
+        return JsonResponse({"error": "No se recibió ningún archivo"}, status=400)
+
+    try:
+        cred = request.user.credencial_ad
+        ad_user, ad_pass, ad_domain = cred.ad_username, cred.get_password(), cred.ad_domain
+    except CredencialADUsuario.DoesNotExist:
+        return JsonResponse({"error": "Sin credenciales de AD asignadas"}, status=403)
+
+    try:
+        with impersonate_user(ad_user, ad_pass, ad_domain):
+            with open(archivo_path, "wb+") as destination:
+                for chunk in excel_file.chunks():
+                    destination.write(chunk)
+
+        return JsonResponse({"status": "success", "message": "Excel guardado correctamente en servidor."})
+
+    except (PermissionError, OSError) as e:
+        return JsonResponse({"error": f"Error de permisos NTFS: {str(e)}"}, status=403)

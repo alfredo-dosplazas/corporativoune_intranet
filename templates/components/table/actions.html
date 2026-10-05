@@ -1,16 +1,25 @@
+{% comment %}
+  Uso:
+  - En tablas: <c-table.actions :record="orden" />  --> id="popover-123"
+  - En cards:  <c-table.actions :record="orden" prefix="card" /> --> id="card-popover-123"
+{% endcomment %}
+<c-vars prefix="popover"/>
+
 <div class="flex justify-end">
     <button
-            class="btn btn-ghost btn-sm"
-            popovertarget="popover-{{ record.pk }}"
-            style="anchor-name:--anchor-{{ record.pk }}"
+            class="btn btn-xs btn-square h-6 w-6 min-h-0 border border-base-300 bg-base-100 hover:bg-base-200 hover:border-base-400 text-base-content/80 shadow-2xs transition-all active:scale-95"
+            popovertarget="{{ prefix }}-{{ record.pk }}"
+            style="anchor-name:--{{ prefix }}-{{ record.pk }}"
+            title="Acciones"
     >
-        <span class="icon-[tabler--dots-vertical] size-5"></span>
+        <span class="icon-[tabler--dots-vertical] text-xs"></span>
     </button>
+
     <ul
-            class="dropdown dropdown-end menu menu-sm bg-base-200 rounded-box shadow-md w-48 p-1"
+            class="dropdown dropdown-end menu menu-xs bg-base-100 rounded-md border border-base-200 shadow-xl w-40 p-1 z-50"
             popover
-            id="popover-{{ record.pk }}"
-            style="position-anchor:--anchor-{{ record.pk }}"
+            id="{{ prefix }}-{{ record.pk }}"
+            style="position-anchor:--{{ prefix }}-{{ record.pk }}"
     >
         {{ slot }}
     </ul>

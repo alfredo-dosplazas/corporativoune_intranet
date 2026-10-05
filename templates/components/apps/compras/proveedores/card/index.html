@@ -1,0 +1,69 @@
+<div class="bg-base-100 p-3 rounded-lg border border-base-200 shadow-2xs hover:shadow-md transition-shadow flex flex-col justify-between gap-2.5 text-xs">
+
+    <!-- Encabezado Card: Nombre, RFC y Condición de Pago -->
+    <div class="flex items-start justify-between gap-2 border-b border-base-200/60 pb-2">
+        <div class="flex flex-col min-w-0">
+            <span class="font-bold text-xs sm:text-sm text-base-content truncate"
+                  title="{{ proveedor.nombre_completo }}">
+                {{ proveedor.nombre_completo }}
+            </span>
+            {% if proveedor.rfc %}
+                <span class="text-[10px] font-mono text-base-content/60">
+                    {{ proveedor.rfc }}
+                </span>
+            {% endif %}
+        </div>
+        <span class="badge badge-outline badge-xs shrink-0 mt-0.5 text-[10px]">
+            {{ proveedor.condicion_pago|default:"Contado" }}
+        </span>
+    </div>
+
+    <!-- Detalles de Contacto -->
+    <div class="space-y-1 text-[11px] text-base-content/80">
+        {% if proveedor.contacto %}
+            <div class="flex items-center gap-1.5 truncate">
+                <span class="icon-[tabler--user] text-base-content/50 text-xs shrink-0"></span>
+                <span class="truncate">{{ proveedor.contacto }}</span>
+            </div>
+        {% endif %}
+
+        {% if proveedor.telefono %}
+            <div class="flex items-center gap-1.5">
+                <span class="icon-[tabler--phone] text-base-content/50 text-xs shrink-0"></span>
+                <a href="tel:{{ proveedor.telefono }}" class="link link-hover text-primary">
+                    {{ proveedor.telefono }}
+                </a>
+            </div>
+        {% endif %}
+
+        {% if proveedor.email %}
+            <div class="flex items-center gap-1.5 truncate">
+                <span class="icon-[tabler--mail] text-base-content/50 text-xs shrink-0"></span>
+                <a href="mailto:{{ proveedor.email }}" class="link link-hover text-primary truncate">
+                    {{ proveedor.email }}
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Footer de la Card: Domicilio y Acciones Rápidas -->
+    <div class="flex items-center justify-between pt-2 border-t border-base-200/60 mt-0.5">
+        <span class="text-[10px] text-base-content/50 truncate max-w-[180px]" title="{{ proveedor.domicilio }}">
+            {{ proveedor.domicilio|default:"Sin domicilio registrado" }}
+        </span>
+
+        <div class="flex items-center gap-1 shrink-0">
+            {% if perms.compras.change_proveedor %}
+                <a href="{% url 'compras:proveedores__update' proveedor.pk %}"
+                   class="btn btn-ghost btn-xs btn-square h-6 w-6 min-h-0" title="Editar">
+                    <span class="icon-[tabler--edit] text-xs"></span>
+                </a>
+            {% endif %}
+            <a href="{% url 'compras:proveedores__update' proveedor.pk %}"
+               class="btn btn-ghost btn-xs btn-square h-6 w-6 min-h-0 text-primary" title="Ver detalle">
+                <span class="icon-[tabler--chevron-right] text-xs"></span>
+            </a>
+        </div>
+    </div>
+
+</div>

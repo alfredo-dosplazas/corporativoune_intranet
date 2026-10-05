@@ -1,223 +1,192 @@
 {% load django_tables2 %}
+{% load export_url from django_tables2 %}
+
 <c-layouts.app>
     <c-slot name="header">
-        <div class="flex flex-col gap-3">
+        <!-- BARRA DE ACCIONES Y FILTROS -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
 
-            <!-- FILA PRINCIPAL DEL CONTROL PANEL (TIPO ODOO) -->
-            <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <!-- TITULO DE LA VISTA + BOTÓN CREAR -->
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="icon-[tabler--building-store] text-primary text-base"></span>
+                <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">Proveedores</h1>
 
-                <!-- 1. IZQUIERDA: Título de la vista + Botón de Acción Principal -->
-                <div class="flex items-center justify-between md:justify-start gap-3 shrink-0">
-                    <div class="flex items-center gap-2">
-                        <span class="icon-[tabler--building-store] text-primary text-2xl"></span>
-                        <div>
-                            <h1 class="font-extrabold text-lg md:text-xl leading-none tracking-tight">
-                                Proveedores
-                            </h1>
-                            <p class="text-xs text-muted hidden sm:block">Catálogo de suministradores</p>
-                        </div>
+                {% if perms.compras.add_proveedor %}
+                    <a href="{% url 'compras:proveedores__create' %}"
+                       class="btn btn-primary btn-xs gap-1 font-medium shadow-2xs ml-1">
+                        <span class="icon-[tabler--plus] text-xs"></span>
+                        <span>Nuevo</span>
+                    </a>
+                {% endif %}
+            </div>
+
+            <!-- BUSCADOR + BOTÓN MODAL FILTROS + CONTADORES -->
+            <div class="flex items-center gap-2 flex-1 justify-end max-w-2xl">
+
+                <!-- FORMULARIO DE BUSQUEDA RÁPIDA -->
+                <form method="get" action="" id="search-form" class="flex items-center gap-2 flex-1 max-w-sm">
+                    {% for key, value in request.GET.items %}
+                        {% if key != 'q' and key != 'page' and key != '_export' and value %}
+                            <input type="hidden" name="{{ key }}" value="{{ value }}">
+                        {% endif %}
+                    {% endfor %}
+
+                    <div class="relative flex-1 flex items-center">
+                        <span class="absolute left-2.5 text-base-content/40 pointer-events-none z-10">
+                            <span class="icon-[tabler--search] text-xs block"></span>
+                        </span>
+
+                        <input
+                                type="text"
+                                name="q"
+                                value="{{ request.GET.q|default:'' }}"
+                                placeholder="Buscar proveedor, RFC, contacto..."
+                                class="input input-xs w-full pl-7 pr-3 bg-base-100 border-base-300 focus:border-primary focus:outline-none text-xs rounded-md h-7"
+                        />
                     </div>
+                </form>
 
-                    <!-- BOTÓN CREAR / NUEVO PROVEEDOR -->
-                    {% if perms.compras.add_proveedor %}
-                        <a href="{% url 'compras:proveedores__create' %}"
-                           class="btn btn-primary btn-sm gap-1.5 shadow-sm">
-                            <span class="icon-[tabler--plus] text-base"></span>
-                            <span>Nuevo</span>
-                        </a>
+                <!-- BOTÓN QUE DISPARA EL MODAL DE FILTROS -->
+                <button type="button"
+                        onclick="modal_filtros.showModal()"
+                        class="btn btn-ghost btn-xs h-7 min-h-0 px-2 border border-base-300 bg-base-100 font-normal text-xs text-base-content/70 relative">
+                    <span class="icon-[tabler--adjustments-horizontal] text-xs"></span>
+                    <span class="hidden sm:inline">Filtros</span>
+                    {% if request.GET.condicion_pago or request.GET.activo or request.GET.rfc %}
+                        <span class="badge badge-primary badge-xs size-2 p-0 rounded-full absolute -top-1 -right-1"></span>
                     {% endif %}
+                </button>
+
+                <!-- MENÚ EXPORTAR / IMPRIMIR -->
+                <div class="dropdown dropdown-end">
+                    <button tabindex="0"
+                            class="btn btn-ghost btn-xs btn-square h-7 w-7 border border-base-300 bg-base-100">
+                        <span class="icon-[tabler--dots-vertical] text-xs"></span>
+                    </button>
+                    <ul tabindex="0"
+                        class="dropdown-content menu menu-xs bg-base-100 rounded-md border border-base-200 shadow-lg w-36 z-50 p-1">
+                        <li>
+                            <a href="{% querystring "_export"="xls" %}" target="_blank">
+                                <span class="icon-[tabler--file-spreadsheet]"></span> Excel
+                            </a>
+                        </li>
+                    </ul>
                 </div>
 
-                <!-- 2. CENTRO: OMNIBAR TIPO ODOO -->
-                <div class="flex-1 max-w-2xl mx-auto w-full">
-                    <form method="get" action="" class="relative flex items-center">
-                        <!-- Persistencia de filtros URL -->
-                        {% for key, value in request.GET.items %}
-                            {% if key != 'q' and key != 'page' and value %}
-                                <input type="hidden" name="{{ key }}" value="{{ value }}">
-                            {% endif %}
-                        {% endfor %}
+                <!-- CONTADOR + CAMBIADOR DE VISTA -->
+                <div class="hidden sm:flex items-center gap-1.5 border-l border-base-300 pl-2 text-xs text-base-content/60">
+                    <span class="text-[11px] whitespace-nowrap">
+                        <span class="font-bold text-base-content">{{ table.page.paginator.count|default:"0" }}</span>
+                    </span>
 
-                        <div class="join w-full border border-base-300 rounded-lg shadow-xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary bg-base-100 overflow-hidden">
+                    <div class="join border border-base-300 rounded p-0.5 bg-base-100">
+                        <!-- Botón Tabla / Lista -->
+                        <a href="{% querystring "view"="list" %}"
+                           class="join-item btn btn-xs btn-ghost btn-square h-5 w-5 min-h-0 {% if view_mode == 'list' %}btn-active text-primary{% endif %}"
+                           title="Vista de lista">
+                            <span class="icon-[tabler--list] text-xs"></span>
+                        </a>
 
-                            <!-- Ícono de Lupa -->
-                            <span class="join-item flex items-center px-3 text-base-content/50 bg-transparent">
-                                <span class="icon-[tabler--search] text-base"></span>
-                            </span>
-
-                            <!-- Chips de Filtros Activos -->
-                            <div class="flex items-center gap-1 py-1 pr-1 shrink-0 flex-wrap">
-                                {% if request.GET.q %}
-                                    <a href="{% querystring 'q'="" %}"
-                                       class="badge badge-neutral badge-sm gap-1 cursor-pointer hover:opacity-80"
-                                       title="Limpiar búsqueda por texto">
-                                        <span class="text-[11px]">"{{ request.GET.q }}"</span>
-                                        <span class="icon-[tabler--x] text-xs"></span>
-                                    </a>
-                                {% endif %}
-                            </div>
-
-                            <!-- Input de Búsqueda Principal -->
-                            <input
-                                    type="text"
-                                    name="q"
-                                    value="{{ request.GET.q|default:'' }}"
-                                    placeholder="Buscar proveedor, RFC, contacto..."
-                                    class="join-item input input-sm w-full focus:outline-none bg-transparent text-xs sm:text-sm px-2 border-none"
-                            />
-                        </div>
-                    </form>
-                </div>
-
-                <!-- 3. DERECHA: Espacio reservado para acciones secundarias -->
-                <div class="hidden md:flex items-center justify-end gap-2 shrink-0">
+                        <!-- Botón Cards / Kanban -->
+                        <a href="{% querystring "view"="kanban" %}"
+                           class="join-item btn btn-xs btn-ghost btn-square h-5 w-5 min-h-0 {% if view_mode == 'kanban' %}btn-active text-primary{% endif %}"
+                           title="Vista de tarjetas">
+                            <span class="icon-[tabler--layout-kanban] text-xs"></span>
+                        </a>
+                    </div>
                 </div>
 
             </div>
-
         </div>
+
+        <!-- CHIPS DE FILTROS ACTIVOS -->
+        {% if request.GET.condicion_pago or request.GET.q or request.GET.activo or request.GET.rfc %}
+            <div class="flex items-center gap-1.5 flex-wrap pt-1 border-t border-base-200/60 mt-1">
+                {% if request.GET.q %}
+                    <a href="{% querystring 'q'="" %}"
+                       class="badge badge-ghost border-base-300 badge-xs gap-1 text-[10px] h-4.5">
+                        <span>"{{ request.GET.q }}"</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+                {% if request.GET.condicion_pago %}
+                    <a href="{% querystring 'condicion_pago'="" %}"
+                       class="badge badge-info badge-outline badge-xs gap-1 text-[10px] h-4.5">
+                        <span>Condición: {{ request.GET.condicion_pago }}</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+                <a href="{% url 'compras:proveedores__list' %}?clean_filter=1"
+                   class="text-[10px] text-primary hover:underline ml-1">Limpiar</a>
+            </div>
+        {% endif %}
     </c-slot>
 
-    <!-- CONTENIDO PRINCIPAL DE PROVEEDORES -->
-    {% if proveedor_list %}
+    <!-- VISTA DESKTOP: TABLA COMPACTA ERP -->
+    <div class="{% if view_mode == 'kanban' %}hidden{% else %}hidden sm:flex flex-1{% endif %}">
+        {% render_table table %}
+    </div>
 
-        <!-- VISTA MOBILE: CARDS (Visible sólo en pantallas < md) -->
-        <div class="block md:hidden">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {% for proveedor in proveedor_list %}
-                    <div class="bg-base-100 p-4 rounded-xl border border-base-200 shadow-xs flex flex-col justify-between gap-3">
-
-                        <!-- Encabezado Card: Nombre y RFC -->
-                        <div class="flex items-start justify-between gap-2 border-b border-base-200/60 pb-2">
-                            <div class="flex flex-col min-w-0">
-                                <span class="font-bold text-sm text-base-content truncate"
-                                      title="{{ proveedor.nombre_completo }}">
-                                    {{ proveedor.nombre_completo }}
-                                </span>
-                                {% if proveedor.rfc %}
-                                    <span class="text-[11px] font-mono text-base-content/60">
-                                        {{ proveedor.rfc }}
-                                    </span>
-                                {% endif %}
-                            </div>
-                            <span class="badge badge-outline badge-xs shrink-0 mt-0.5">
-                                {{ proveedor.condicion_pago|default:"Contado" }}
-                            </span>
-                        </div>
-
-                        <!-- Detalles del Proveedor -->
-                        <div class="space-y-1.5 text-xs text-base-content/80">
-                            {% if proveedor.contacto %}
-                                <div class="flex items-center gap-2">
-                                    <span class="icon-[tabler--user] text-base-content/50 size-4 shrink-0"></span>
-                                    <span class="truncate">{{ proveedor.contacto }}</span>
-                                </div>
-                            {% endif %}
-
-                            {% if proveedor.telefono %}
-                                <div class="flex items-center gap-2">
-                                    <span class="icon-[tabler--phone] text-base-content/50 size-4 shrink-0"></span>
-                                    <a href="tel:{{ proveedor.telefono }}" class="link link-hover text-primary">
-                                        {{ proveedor.telefono }}
-                                    </a>
-                                </div>
-                            {% endif %}
-
-                            {% if proveedor.email %}
-                                <div class="flex items-center gap-2">
-                                    <span class="icon-[tabler--mail] text-base-content/50 size-4 shrink-0"></span>
-                                    <a href="mailto:{{ proveedor.email }}"
-                                       class="link link-hover text-primary truncate">
-                                        {{ proveedor.email }}
-                                    </a>
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Footer de la Card: Acciones rápidas -->
-                        <div class="flex items-center justify-between pt-2 border-t border-base-200/60 mt-1">
-                            <span class="text-[10px] text-base-content/50 truncate max-w-[180px]"
-                                  title="{{ proveedor.domicilio }}">
-                                {{ proveedor.domicilio }}
-                            </span>
-                            <div class="flex items-center gap-1">
-                                {% if perms.compras.change_proveedor %}
-                                    <a href="{% url 'compras:proveedores__update' proveedor.pk %}"
-                                       class="btn btn-ghost btn-xs btn-square" title="Editar">
-                                        <span class="icon-[tabler--edit] size-4"></span>
-                                    </a>
-                                {% endif %}
-                                <a href="{% url 'compras:proveedores__update' proveedor.pk %}"
-                                   class="btn btn-ghost btn-xs btn-square text-primary" title="Ver detalle">
-                                    <span class="icon-[tabler--chevron-right] size-4"></span>
-                                </a>
-                            </div>
-                        </div>
-
+    <!-- VISTA MOBILE / CARDS (Visible en mobile o cuando view_mode == 'kanban') -->
+    <div class="{% if view_mode == 'kanban' %}block{% else %}block sm:hidden{% endif %}">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-2">
+            {% for proveedor in object_list %}
+                <c-apps.compras.proveedores.card :proveedor="proveedor"/>
+            {% empty %}
+                <div class="col-span-full text-center py-12 px-4 bg-base-100 rounded-lg border border-dashed border-base-300 my-2">
+                    <div class="bg-base-200/60 p-3 rounded-full inline-block mb-2 text-base-content/50">
+                        <span class="text-2xl icon-[tabler--building-store] block"></span>
                     </div>
-                {% endfor %}
-            </div>
-
-            <!-- Paginación Mobile -->
-            {% if page_obj.has_other_pages %}
-                <div class="mt-6 flex justify-center space-x-1">
-                    {% if page_obj.has_previous %}
-                        <a href="{% querystring 'page'=page_obj.previous_page_number %}"
-                           class="btn btn-xs btn-outline">Anterior</a>
-                    {% endif %}
-
-                    <span class="btn btn-xs btn-primary">{{ page_obj.number }}</span>
-
-                    {% if page_obj.has_next %}
-                        <a href="{% querystring 'page'=page_obj.next_page_number %}"
-                           class="btn btn-xs btn-outline">Siguiente</a>
-                    {% endif %}
+                    <h3 class="text-xs font-semibold text-base-content/80">No se encontraron proveedores</h3>
+                    <p class="text-[11px] text-base-content/60 mt-0.5">Intenta modificar los criterios de búsqueda o
+                        limpia los filtros.</p>
                 </div>
-            {% endif %}
+            {% endfor %}
         </div>
+    </div>
 
-        <!-- VISTA DESKTOP: TABLA (Visible sólo en pantallas >= md) -->
-        <div class="hidden md:block">
-            {% render_table table %}
-        </div>
+    <!-- MODAL DE FILTROS (MOBILE BOTTOM SHEET / DESKTOP MODAL) -->
+    <dialog id="modal_filtros" class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box p-4 bg-base-100 border border-base-200">
 
-    {% else %}
-        <!-- EMPTY STATE -->
-        <div class="flex flex-col items-center justify-center py-12 px-4 text-center bg-base-100 rounded-lg border border-dashed border-base-300 my-4">
-            <div class="bg-base-200/60 p-4 rounded-full mb-3 text-base-content/50">
-                <span class="text-3xl icon-[tabler--building-store]"></span>
+            <!-- ENCABEZADO MODAL -->
+            <div class="flex items-center justify-between border-b border-base-200 pb-2 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="icon-[tabler--adjustments-horizontal] text-primary text-base"></span>
+                    <h3 class="font-bold text-sm">Filtros Avanzados</h3>
+                </div>
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost text-base-content/60">✕</button>
+                </form>
             </div>
 
-            <h3 class="text-sm font-semibold text-base-content/80">
-                No se encontraron proveedores
-            </h3>
-
-            <p class="text-xs text-base-content/60 mt-1 max-w-sm">
+            <!-- FORMULARIO DE FILTROS COMPLETO -->
+            <form method="get" action="" id="advanced-filter-form" class="space-y-3 text-xs">
                 {% if request.GET.q %}
-                    No hay resultados que coincidan con tu búsqueda.
-                {% else %}
-                    Aún no hay proveedores registrados en el sistema.
+                    <input type="hidden" name="q" value="{{ request.GET.q }}">
                 {% endif %}
-            </p>
 
-            <div class="flex items-center gap-2 mt-4">
-                {% if request.GET.q %}
-                    <a href="{% url 'compras:proveedores__list' %}"
-                       class="btn btn-ghost btn-xs text-xs font-normal gap-1">
-                        <span class="icon-[tabler--x] text-sm"></span>
+                <!-- Renderizado de campos de django-filter -->
+                <div class="space-y-2">
+                    {{ filter.form }}
+                </div>
+
+                <!-- ACCIONES DEL MODAL -->
+                <div class="modal-action border-t border-base-200 pt-3 mt-4 flex items-center justify-end gap-2">
+                    <a href="{% url 'compras:proveedores__list' %}?clean_filter=1"
+                       class="btn btn-ghost btn-xs text-xs font-normal">
                         Limpiar filtros
                     </a>
-                {% else %}
-                    {% if perms.compras.add_proveedor %}
-                        <a href="{% url 'compras:proveedores__create' %}"
-                           class="btn btn-primary btn-xs text-xs font-medium gap-1">
-                            <span class="icon-[tabler--plus] text-sm"></span>
-                            Nuevo Proveedor
-                        </a>
-                    {% endif %}
-                {% endif %}
-            </div>
+                    <button type="submit" class="btn btn-primary btn-xs px-4">
+                        Aplicar Filtros
+                    </button>
+                </div>
+            </form>
         </div>
-    {% endif %}
 
+        <!-- FONDO / BACKDROP PARA CERRAR AL HACER CLIC FUERA -->
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
 </c-layouts.app>

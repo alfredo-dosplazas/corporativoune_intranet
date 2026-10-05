@@ -3,13 +3,13 @@
 {% load i18n l10n %}
 
 {% block table-wrapper %}
-    <!-- Contenedor Principal Unificado -->
-    <div class="relative w-full rounded-box border border-base-content/10 bg-base-100 shadow-sm flex flex-col">
+    <!-- Contenedor Unificado Densidad ERP -->
+    <div class="flex-1 relative w-full rounded-md border border-base-200 bg-base-100 shadow-2xs flex flex-col overflow-hidden">
 
-        <!-- TABLA (Crece libremente según el número de filas) -->
-        <div class="overflow-x-auto rounded-t-box">
+        <!-- TABLA SCROLLABLE -->
+        <div class="flex-1 overflow-x-auto">
             {% block table %}
-                <table {% render_attrs table.attrs class="table table-sm table-pin-rows table-zebra w-full border-separate border-spacing-0" %}>
+                <table {% render_attrs table.attrs class="table table-xs table-pin-rows table-zebra w-full border-separate border-spacing-0" %}>
 
                     {% block table.thead %}
                         {% if table.show_header %}
@@ -17,15 +17,23 @@
                             <tr>
                                 {% for column in table.columns %}
                                     <th {{ column.attrs.th.as_html }}
-                                            class="bg-base-200 font-semibold text-xs text-base-content/80 uppercase tracking-wider py-2.5 px-3 border-b border-r border-base-300 last:border-r-0 select-none">
+                                            class="bg-base-200/90 backdrop-blur-xs font-semibold text-[11px] text-base-content/80 uppercase tracking-tight py-2 px-2.5 border-b border-base-300 select-none whitespace-nowrap">
                                         {% if column.orderable %}
                                             <a href="{% querystring table.prefixed_page_field=table.page.number table.prefixed_order_by_field=column.order_by_alias.next %}"
-                                               class="flex items-center gap-1.5 hover:text-primary transition-colors group">
-                                                {{ column.header }}
-                                                <span class="icon-[tabler--arrows-sort] size-3.5 opacity-40 group-hover:opacity-100 transition-opacity"></span>
+                                               class="flex items-center justify-between gap-1.5 hover:text-primary transition-colors group {% if column.is_ordered %}text-primary font-bold{% endif %}">
+                                                <span>{{ column.header }}</span>
+                                                {% if column.is_ordered %}
+                                                    {% if column.order_by_alias.is_descending %}
+                                                        <span class="icon-[tabler--sort-descending] size-3.5 text-primary"></span>
+                                                    {% else %}
+                                                        <span class="icon-[tabler--sort-ascending] size-3.5 text-primary"></span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="icon-[tabler--arrows-sort] size-3 opacity-30 group-hover:opacity-100 transition-opacity"></span>
+                                                {% endif %}
                                             </a>
                                         {% else %}
-                                            {{ column.header }}
+                                            <span>{{ column.header }}</span>
                                         {% endif %}
                                     </th>
                                 {% endfor %}
@@ -35,18 +43,17 @@
                     {% endblock table.thead %}
 
                     {% block table.tbody %}
-                        <tbody {{ table.attrs.tbody.as_html }} class="divide-y divide-base-200">
+                        <tbody {{ table.attrs.tbody.as_html }} class="divide-y divide-base-200/60 text-xs">
                         {% for row in table.paginated_rows %}
                             {% block table.tbody.row %}
-                                <tr class="hover:bg-base-200/60 transition-colors h-12" {{ row.attrs.as_html }}>
+                                <tr class="hover:bg-primary/5 transition-colors h-8" {{ row.attrs.as_html }}>
                                     {% for column, cell in row.items %}
                                         <td {{ column.attrs.td.as_html }}
-                                                class="py-2 px-3 border-r border-base-200 last:border-r-0 text-xs sm:text-sm align-middle">
+                                                class="py-1.5 px-2.5 text-xs text-base-content/90 align-middle whitespace-nowrap">
                                             {% if column.localize == None %}
                                                 {{ cell }}
                                             {% else %}
-                                                {% if column.localize %}{{ cell|localize }}{% else %}
-                                                    {{ cell|unlocalize }}{% endif %}
+                                                {% if column.localize %}{{ cell|localize }}{% else %}{{ cell|unlocalize }}{% endif %}
                                             {% endif %}
                                         </td>
                                     {% endfor %}
@@ -56,11 +63,12 @@
                             {% if table.empty_text %}
                                 {% block table.tbody.empty_text %}
                                     <tr>
-                                        <td colspan="{{ table.columns|length }}"
-                                            class="text-center p-12 text-base-content/50">
-                                            <div class="flex flex-col items-center gap-2">
-                                                <span class="icon-[tabler--database-off] size-8 opacity-40"></span>
-                                                <span class="text-sm font-medium">{{ table.empty_text }}</span>
+                                        <td colspan="{{ table.columns|length }}" class="text-center py-10 px-4 text-base-content/50">
+                                            <div class="flex flex-col items-center justify-center gap-2 max-w-xs mx-auto">
+                                                <div class="p-2.5 bg-base-200 rounded-full text-base-content/40">
+                                                    <span class="icon-[tabler--database-off] size-6 block"></span>
+                                                </div>
+                                                <span class="text-xs font-medium text-base-content/70">{{ table.empty_text }}</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -73,10 +81,9 @@
                     {% block table.tfoot %}
                         {% if table.has_footer %}
                             <tfoot {{ table.attrs.tfoot.as_html }} class="z-10">
-                            <tr class="bg-base-200 font-semibold border-t border-base-300">
+                            <tr class="bg-base-200/80 font-semibold border-t border-base-300">
                                 {% for column in table.columns %}
-                                    <td {{ column.attrs.tf.as_html }}
-                                            class="py-2.5 px-3 border-r border-base-300 last:border-r-0 text-sm">
+                                    <td {{ column.attrs.tf.as_html }} class="py-1.5 px-2.5 text-xs">
                                         {{ column.footer }}
                                     </td>
                                 {% endfor %}
@@ -88,55 +95,53 @@
             {% endblock table %}
         </div>
 
-        <!-- PAGINADOR STICKY MEJORADO -->
-        <div class="pagination-container sticky bottom-16 md:bottom-0 z-20 border-t border-base-200 bg-base-100/95 backdrop-blur-md p-3 rounded-b-box shadow-md">
-            {% if table.page and table.paginator.num_pages > 1 %}
-                <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
+        <!-- PAGINADOR COMPACTO ERP -->
+        <div class="pagination-container shrink-0 border-t border-base-200 bg-base-100 px-3 py-1.5 z-20">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-2">
 
-                    <!-- INFORMACIÓN DE REGISTROS -->
-                    <div class="flex items-center gap-2 text-xs sm:text-sm text-base-content/70 order-last sm:order-first">
-                        <span class="icon-[tabler--list-numbers] size-4 opacity-60"></span>
-                        <span>
-                            Mostrando del <span
-                                class="font-semibold text-base-content">{{ table.page.start_index|default:0|intcomma }}</span> al <span
-                                class="font-semibold text-base-content">{{ table.page.end_index|default:0|intcomma }}</span> de <span
-                                class="badge badge-xs sm:badge-sm font-bold bg-base-200 border-base-300 px-2 py-2">{{ table.paginator.count|default:0|intcomma }}</span> registros
-                        </span>
-                    </div>
+                <!-- INFORMACIÓN DE REGISTROS -->
+                <div class="flex items-center gap-1.5 text-[11px] text-base-content/60 order-last sm:order-first">
+                    <span class="icon-[tabler--list-numbers] size-3.5 opacity-70"></span>
+                    <span>
+                        <span class="font-semibold text-base-content">{{ table.page.start_index|default:0|intcomma }}</span> -
+                        <span class="font-semibold text-base-content">{{ table.page.end_index|default:0|intcomma }}</span> de
+                        <span class="font-bold text-base-content">{{ table.paginator.count|default:0|intcomma }}</span>
+                    </span>
+                </div>
 
-                    <!-- BOTONES DE NAVEGACIÓN DE PÁGINAS -->
-                    {% block pagination %}
-                        <div class="join shadow-xs">
+                <!-- BOTONES DE NAVEGACIÓN -->
+                {% block pagination %}
+                    {% if table.page and table.paginator.num_pages > 1 %}
+                        <div class="join border border-base-300/70 rounded-md bg-base-100 shadow-2xs">
                             <!-- Primera página / Anterior -->
                             {% if table.page.has_previous %}
-                                <a class="join-item btn btn-xs sm:btn-sm btn-outline border-base-300 text-base-content hover:bg-base-200 px-2"
-                                   href="{% querystring table.prefixed_page_field=1 %}"
-                                   title="{% trans 'Primera página' %}">«</a>
-                                <a class="join-item btn btn-xs sm:btn-sm btn-outline border-base-300 text-base-content hover:bg-base-200 gap-1 normal-case px-2 sm:px-3"
+                                <a class="join-item btn btn-xs btn-ghost h-6 min-h-0 px-1.5 text-base-content/80"
+                                   href="{% querystring table.prefixed_page_field=1 %}" title="{% trans 'Primera página' %}">
+                                    <span class="icon-[tabler--chevrons-left] size-3.5"></span>
+                                </a>
+                                <a class="join-item btn btn-xs btn-ghost h-6 min-h-0 px-2 text-base-content/80 gap-1 text-[11px]"
                                    href="{% querystring table.prefixed_page_field=table.page.previous_page_number %}">
                                     <span class="icon-[tabler--chevron-left] size-3.5"></span>
-                                    <span class="hidden sm:inline">{% trans 'Anterior' %}</span>
+                                    <span class="hidden sm:inline">Anterior</span>
                                 </a>
                             {% else %}
-                                <button class="join-item btn btn-xs sm:btn-sm btn-outline border-base-300 btn-disabled px-2">
-                                    «
+                                <button class="join-item btn btn-xs btn-ghost h-6 min-h-0 px-1.5 btn-disabled opacity-40">
+                                    <span class="icon-[tabler--chevrons-left] size-3.5"></span>
                                 </button>
-                                <button class="join-item btn btn-xs sm:btn-sm btn-outline border-base-300 btn-disabled px-2 sm:px-3">
+                                <button class="join-item btn btn-xs btn-ghost h-6 min-h-0 px-2 btn-disabled opacity-40 text-[11px]">
                                     <span class="icon-[tabler--chevron-left] size-3.5"></span>
-                                    <span class="hidden sm:inline">{% trans 'Anterior' %}</span>
+                                    <span class="hidden sm:inline">Anterior</span>
                                 </button>
                             {% endif %}
 
                             <!-- Números de Página -->
                             {% for p in table.page|table_page_range:table.paginator %}
                                 {% if p == '...' %}
-                                    <button class="join-item btn btn-xs sm:btn-sm btn-outline border-base-300 btn-disabled pointer-events-none">
-                                        ...
-                                    </button>
+                                    <button class="join-item btn btn-xs btn-ghost h-6 min-h-0 px-1.5 btn-disabled text-[11px]">...</button>
                                 {% elif p == table.page.number %}
-                                    <button class="join-item btn btn-xs sm:btn-sm btn-primary text-primary-content font-bold no-animation">{{ p }}</button>
+                                    <button class="join-item btn btn-xs btn-primary h-6 min-h-0 px-2 text-[11px] font-bold no-animation">{{ p }}</button>
                                 {% else %}
-                                    <a class="join-item btn btn-xs sm:btn-sm btn-outline border-base-300 text-base-content hover:bg-base-200"
+                                    <a class="join-item btn btn-xs btn-ghost h-6 min-h-0 px-2 text-[11px] text-base-content/80"
                                        href="{% querystring table.prefixed_page_field=p %}">{{ p }}</a>
                                 {% endif %}
                             {% endfor %}
@@ -144,27 +149,28 @@
                             <!-- Siguiente / Última página -->
                             {% if table.page.has_next %}
                                 <a href="{% querystring table.prefixed_page_field=table.page.next_page_number %}"
-                                   class="join-item btn btn-xs sm:btn-sm btn-outline border-base-300 text-base-content hover:bg-base-200 gap-1 normal-case px-2 sm:px-3">
-                                    <span class="hidden sm:inline">{% trans 'Siguiente' %}</span>
+                                   class="join-item btn btn-xs btn-ghost h-6 min-h-0 px-2 text-base-content/80 gap-1 text-[11px]">
+                                    <span class="hidden sm:inline">Siguiente</span>
                                     <span class="icon-[tabler--chevron-right] size-3.5"></span>
                                 </a>
-                                <a class="join-item btn btn-xs sm:btn-sm btn-outline border-base-300 text-base-content hover:bg-base-200 px-2"
-                                   href="{% querystring table.prefixed_page_field=table.paginator.num_pages %}"
-                                   title="{% trans 'Última página' %}">»</a>
+                                <a class="join-item btn btn-xs btn-ghost h-6 min-h-0 px-1.5 text-base-content/80"
+                                   href="{% querystring table.prefixed_page_field=table.paginator.num_pages %}" title="{% trans 'Última página' %}">
+                                    <span class="icon-[tabler--chevrons-right] size-3.5"></span>
+                                </a>
                             {% else %}
-                                <button class="join-item btn btn-xs sm:btn-sm btn-outline border-base-300 btn-disabled px-2 sm:px-3">
-                                    <span class="hidden sm:inline">{% trans 'Siguiente' %}</span>
+                                <button class="join-item btn btn-xs btn-ghost h-6 min-h-0 px-2 btn-disabled opacity-40 text-[11px]">
+                                    <span class="hidden sm:inline">Siguiente</span>
                                     <span class="icon-[tabler--chevron-right] size-3.5"></span>
                                 </button>
-                                <button class="join-item btn btn-xs sm:btn-sm btn-outline border-base-300 btn-disabled px-2">
-                                    »
+                                <button class="join-item btn btn-xs btn-ghost h-6 min-h-0 px-1.5 btn-disabled opacity-40">
+                                    <span class="icon-[tabler--chevrons-right] size-3.5"></span>
                                 </button>
                             {% endif %}
                         </div>
-                    {% endblock pagination %}
+                    {% endif %}
+                {% endblock pagination %}
 
-                </div>
-            {% endif %}
+            </div>
         </div>
 
     </div>

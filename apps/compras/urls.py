@@ -1,26 +1,26 @@
 from django.urls import path
+from django.views import View
 
 from apps.compras.autocompletes import SolicitanteAutocomplete, ProveedorAutocomplete, AutorizadorAutocomplete, \
     UsoCFDIAutocomplete, MetodoPagoAutocomplete, FormaPagoAutocomplete
-from apps.compras.views.ordenes import OrdenPdfView, ordenes_list, \
-    orden_update, orden_delete, orden_create
-from apps.compras.views.proveedores import proveedores_list, proveedor_create, proveedor_update, proveedor_delete
+from apps.compras.views.ordenes import OrdenPdfView, orden_delete
+from apps.compras.views.proveedores import proveedor_delete
 
 from . import views
 
 app_name = 'compras'
 
 urlpatterns = [
-    path('proveedores/', proveedores_list, name='proveedores__list'),
-    path('proveedores/crear/', proveedor_create, name='proveedores__create'),
-    path('proveedores/editar/<int:pk>/', proveedor_update, name='proveedores__update'),
-    path('proveedores/<int:pk>/', proveedor_update, name='proveedores__detail'),
+    path('proveedores/', views.proveedores.ProveedorListView.as_view(), name='proveedores__list'),
+    path('proveedores/crear/', views.proveedores.ProveedorCreateView.as_view(), name='proveedores__create'),
+    path('proveedores/editar/<int:pk>/', views.proveedores.ProveedorUpdateView.as_view(), name='proveedores__update'),
+    path('proveedores/<int:pk>/', views.proveedores.ProveedorUpdateView.as_view(), name='proveedores__detail'),
     path('proveedores/eliminar/<int:pk>/', proveedor_delete, name='proveedores__delete'),
 
     path('', views.ordenes.OrdenListView.as_view(), name='ordenes__list'),
-    path('crear/', orden_create, name='ordenes__create'),
-    path('editar/<int:pk>/', orden_update, name='ordenes__detail'),
-    path('<int:pk>/', orden_update, name='ordenes__update'),
+    path('crear/', views.ordenes.OrdenCreateView.as_view(), name='ordenes__create'),
+    path('editar/<int:pk>/', views.ordenes.OrdenUpdateView.as_view(), name='ordenes__detail'),
+    path('<int:pk>/', views.ordenes.OrdenUpdateView.as_view(), name='ordenes__update'),
     path('eliminar/<int:pk>/', orden_delete, name='ordenes__delete'),
     path('pdf/<int:pk>/', OrdenPdfView.as_view(), name='ordenes__pdf'),
 
