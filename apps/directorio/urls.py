@@ -2,13 +2,14 @@ from django.urls import path
 
 from apps.directorio.autocompletes import ContactoAutocomplete, SedeAutocomplete, JefeAutocomplete
 from apps.directorio.views import DirectorioListView, ContactoDetailView, ContactoCreateView, ContactoUpdateView, \
-    ContactoArchivarView, ContactoExportMediaView, directorio, contacto_detail, contacto_create, contacto_delete, \
+    ContactoArchivarView, ContactoExportMediaView, contacto_detail, contacto_create, contacto_delete, \
     contacto_update
+from . import views
 
 app_name = 'directorio'
 
 urlpatterns = [
-    path('', directorio, name='list'),
+    path('', views.DirectorioListView.as_view(), name='list'),
     path('contacto/<int:pk>/', contacto_detail, name='detail'),
     path('contacto/crear/', contacto_create, name='create'),
     path('contacto/editar/<int:pk>/', contacto_update, name='update'),

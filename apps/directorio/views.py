@@ -3,9 +3,7 @@ import json
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.contrib.auth.models import User
 from django.contrib.messages.views import SuccessMessageMixin
-from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpResponse
@@ -16,6 +14,7 @@ from django.views import View
 from django.views.generic import DetailView, UpdateView
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin
+from django_tables2.export import ExportMixin
 from extra_views import SearchableListMixin, CreateWithInlinesView, NamedFormsetsMixin, UpdateWithInlinesView
 from inertia import render
 from playwright.sync_api import sync_playwright
@@ -23,6 +22,7 @@ from playwright.sync_api import sync_playwright
 from apps.core.decorators import remember_filter_state
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.mixins.modulo_required import ModuloRequiredMixin
+from apps.core.mixins.responsive_view import ResponsiveViewModeMixin
 from apps.core.mixins.session_filter_state import SessionFilterStateMixin
 from apps.core.mixins.title import PageTitleMixin
 from apps.core.models import Empresa
@@ -42,116 +42,58 @@ from apps.rrhh.models.puestos import Puesto
 from apps.rrhh.models.sedes import Sede
 
 
-@remember_filter_state()
-def directorio(request):
-    search_query = request.GET.get('search', '')
-    empresa_id = request.GET.get('empresa', '')
-    sede_id = request.GET.get('sede', '')
-    area_nombre = request.GET.get('area', '')
-    puesto_nombre = request.GET.get('puesto', '')
-    page_number = request.GET.get('page', 1)
-    view_mode = request.GET.get('view_mode', 'grid')
+class DirectorioListView(
+    PermissionRequiredMixin,
+    SessionFilterStateMixin,
+    ResponsiveViewModeMixin,
+    SearchableListMixin,
+    PageTitleMixin,
+    BreadcrumbsMixin,
+    ExportMixin,
+    SingleTableMixin,
+    FilterView
+):
+    permission_required = 'directorio.view_contacto'
+    template_name = 'apps/directorio/list.html'
+    page_title = 'Directorio'
+    model = Contacto
+    table_class = ContactoTable
+    filterset_class = ContactoFilter
+    paginate_by = 12
+    search_fields = ['primer_nombre', 'primer_apellido', 'numero_empleado']
+    export_name = 'Directorio'
 
-    sedes_permitidas = obtener_sedes_permitidas(request)
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Directorio'},
+        ]
 
-    contactos = (
-        Contacto.objects.filter(
-            esta_archivado=False,
-            usuario__is_active=True,
-            mostrar_en_directorio=True,
-            sede_administrativa_id__in=sedes_permitidas
-        )
-        .select_related('empresa', 'sede_administrativa', 'area', 'puesto')
-        .prefetch_related('emails', 'telefonos')
-    )
+    def get_filterset_kwargs(self, filterset_class):
+        kwargs = super().get_filterset_kwargs(filterset_class)
+        kwargs['sedes_permitidas'] = obtener_sedes_permitidas(self.request)
+        return kwargs
 
-    if search_query:
-        terms = search_query.split()
-        query_conditions = Q()
-        for term in terms:
-            term_condition = (
-                    Q(primer_nombre__icontains=term) |
-                    Q(segundo_nombre__icontains=term) |
-                    Q(primer_apellido__icontains=term) |
-                    Q(segundo_apellido__icontains=term) |
-                    Q(numero_empleado__icontains=term)
+    def get_queryset(self):
+        qs = super().get_queryset()
+
+        sedes_permitidas = obtener_sedes_permitidas(self.request)
+
+        contactos_sedes_permitidas = (
+            Contacto.objects.filter(
+                esta_archivado=False,
+                usuario__is_active=True,
+                mostrar_en_directorio=True,
+                sede_administrativa_id__in=sedes_permitidas
             )
-            query_conditions &= term_condition
-            query_conditions |= Q(emails__email__icontains=search_query)
-            query_conditions |= Q(telefonos__telefono__icontains=search_query)
+            .select_related('empresa', 'sede_administrativa', 'area', 'puesto')
+            .prefetch_related('emails', 'telefonos')
+            .distinct()
+        )
 
-        contactos = contactos.filter(query_conditions)
+        qs = qs.filter(id__in=contactos_sedes_permitidas.values_list('id'))
 
-    if empresa_id:
-        contactos = contactos.filter(empresa_id=empresa_id)
-
-    if sede_id and int(sede_id) in sedes_permitidas:
-        contactos = contactos.filter(sede_administrativa_id=sede_id)
-
-    if area_nombre:
-        contactos = contactos.filter(area__nombre=area_nombre)
-
-    if puesto_nombre:
-        contactos = contactos.filter(puesto__nombre=puesto_nombre)
-
-    contactos = contactos.distinct()
-
-    paginator = Paginator(contactos, 12)
-    page_obj = paginator.get_page(page_number)
-
-    # --- Opciones sin duplicados por Nombre ---
-    # 1. Áreas únicas (usamos el nombre como id y valor)
-    areas_qs = Area.objects.all()
-    if empresa_id:
-        areas_qs = areas_qs.filter(empresa_id=empresa_id)
-
-    areas_options = [
-        {'id': nombre, 'nombre': nombre}
-        for nombre in areas_qs.values_list('nombre', flat=True).distinct().order_by('nombre')
-    ]
-
-    # 2. Puestos únicos (usamos el nombre como id y valor)
-    puestos_qs = Puesto.objects.all()
-    if empresa_id:
-        puestos_qs = puestos_qs.filter(empresa_id=empresa_id)
-
-    puestos_options = [
-        {'id': nombre, 'nombre': nombre}
-        for nombre in puestos_qs.values_list('nombre', flat=True).distinct().order_by('nombre')
-    ]
-
-    sedes_options = list(
-        Sede.objects.filter(id__in=sedes_permitidas).values('id', 'nombre')
-    )
-
-    props = {
-        'breadcrumbs': [
-            {'label': 'Inicio', 'url': '/', 'icon': 'icon-[lucide--home]'},
-            {'label': 'Directorio', 'icon': 'icon-[lucide--users]'},
-        ],
-        'contactos': {
-            'data': [ContactoSerializer(c).data for c in page_obj],
-            'current_page': page_obj.number,
-            'has_next': page_obj.has_next(),
-            'has_previous': page_obj.has_previous(),
-            'num_pages': paginator.num_pages,
-            'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
-            'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
-        },
-        'filters': {
-            'search': search_query,
-            'empresa': empresa_id,
-            'sede': sede_id,
-            'area': area_nombre,
-            'puesto': puesto_nombre,
-        },
-        'empresas_options': list(Empresa.objects.values('id', 'nombre')),
-        'sedes_options': sedes_options,
-        'areas_options': areas_options,
-        'puestos_options': puestos_options,
-        'view_mode': view_mode,
-    }
-    return render(request, 'Directorio/Index', props)
+        return qs
 
 
 def contacto_detail(request, pk):

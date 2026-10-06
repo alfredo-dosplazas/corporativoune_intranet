@@ -123,7 +123,7 @@
     </c-slot>
 
     <!-- VISTA DESKTOP: TABLA COMPACTA ERP -->
-    <div class="{% if view_mode == 'kanban' %}hidden{% else %}hidden sm:flex flex-1{% endif %}">
+    <div class="{% if view_mode == 'kanban' %}hidden{% else %}hidden sm:flex flex-col flex-1 min-h-0 h-full w-full{% endif %}">
         {% render_table table %}
     </div>
 

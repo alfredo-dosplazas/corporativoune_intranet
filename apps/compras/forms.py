@@ -145,7 +145,6 @@ class ProveedorForm(forms.ModelForm):
 
         self.helper = FormHelper()
         self.helper.form_id = 'proveedor-form'
-        self.helper.form_tag = False
         self.helper.attrs = {'novalidate': 'novalidate'}
         self.helper.include_media = False
 

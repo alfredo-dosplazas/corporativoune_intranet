@@ -16,7 +16,7 @@ class ContactoFilter(django_filters.FilterSet):
         field_name='empresa',
         widget=autocomplete.ModelSelect2(
             url='empresa__autocomplete',
-            attrs={'style': 'width: 100%;'}
+            attrs={'style': 'width: 100%;', 'data-dropdown-parent': '#modal_filtros'}
         ),
     )
 
@@ -27,7 +27,7 @@ class ContactoFilter(django_filters.FilterSet):
         choices=lambda: Area.objects.values_list('nombre', 'nombre').distinct(),
         widget=autocomplete.ListSelect2(
             url='rrhh:areas_nombre__autocomplete',
-            attrs={'style': 'width: 100%;'}
+            attrs={'style': 'width: 100%;', 'data-dropdown-parent': '#modal_filtros'}
         )
     )
 
@@ -36,7 +36,7 @@ class ContactoFilter(django_filters.FilterSet):
         field_name='puesto',
         widget=autocomplete.ModelSelect2(
             url='rrhh:puestos__autocomplete',
-            attrs={'style': 'width: 100%;'}
+            attrs={'style': 'width: 100%;', 'data-dropdown-parent': '#modal_filtros'}
         )
     )
 

@@ -1,5 +1,4 @@
 {% load django_tables2 %}
-{% load export_url from django_tables2 %}
 
 <c-layouts.app>
     <c-slot name="header">
@@ -122,7 +121,7 @@
         {% endif %}
     </c-slot>
 
-    <div class="{% if view_mode == 'kanban' %}hidden{% else %}hidden sm:flex flex-1{% endif %}">
+    <div class="{% if view_mode == 'kanban' %}hidden{% else %}hidden sm:flex flex-col flex-1 min-h-0 h-full w-full{% endif %}">
         {% render_table table %}
     </div>
 

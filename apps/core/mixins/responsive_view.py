@@ -9,7 +9,7 @@ class ResponsiveViewModeMixin:
     def get_view_mode(self):
         # 1. Parámetro explícito en la URL
         view_mode = self.request.GET.get(self.view_param)
-        if view_mode in ['list', 'kanban']:
+        if view_mode in ['list', 'kanban', 'grid']:
             return view_mode
 
         # 2. Preferencia previa guardada en sesión
