@@ -40,31 +40,6 @@ PAPELERIA_MODULOS = [
 ]
 
 
-@login_required()
-@permission_required('papeleria.view_reportes', raise_exception=True)
-def papeleria(request):
-    user = request.user
-    modulos_disponibles = []
-
-    for modulo in PAPELERIA_MODULOS:
-        permisos = modulo.get("permisos", [])
-
-        if all(user.has_perm(p) for p in permisos):
-            modulos_disponibles.append({
-                **modulo,
-                "url": reverse(modulo["url_name"]),
-            })
-
-    props = {
-        'breadcrumbs': [
-            {'label': 'Inicio', 'url': reverse('home')},
-            {'label': 'Papelería'},
-        ],
-        'modulos': modulos_disponibles,
-    }
-    return render(request, 'Papeleria/Index', props)
-
-
 class PapeleriaView(PermissionRequiredMixin, BreadcrumbsMixin, TemplateView):
     permission_required = ['papeleria.acceder_papeleria']
     template_name = 'apps/papeleria/index.html'

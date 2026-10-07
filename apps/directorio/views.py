@@ -25,25 +25,19 @@ from apps.core.mixins.modulo_required import ModuloRequiredMixin
 from apps.core.mixins.responsive_view import ResponsiveViewModeMixin
 from apps.core.mixins.session_filter_state import SessionFilterStateMixin
 from apps.core.mixins.title import PageTitleMixin
-from apps.core.models import Empresa
-from apps.core.services.notificaciones import notificar_soporte
-from apps.core.utils.network import get_client_ip, ip_in_allowed_range, get_empresas_from_ip, \
-    get_sede_from_ip
+from apps.core.utils.network import get_client_ip, ip_in_allowed_range
 from apps.directorio.filters import ContactoFilter
-from apps.directorio.forms import ContactoForm, ContactoCreateUpdateForm
-from apps.directorio.helpers import puede_editar_contacto, puede_eliminar_contacto, puede_ver_contacto
+from apps.directorio.forms import ContactoForm
+from apps.directorio.helpers import puede_eliminar_contacto, puede_ver_contacto
 from apps.directorio.inlines import EmailContactoInline, TelefonoContactoInline
-from apps.directorio.models import Contacto, TelefonoContacto, EmailContacto
+from apps.directorio.models import Contacto
 from apps.directorio.serializers import ContactoSerializer
 from apps.directorio.tables import ContactoTable
 from apps.directorio.utils import obtener_sedes_permitidas
-from apps.rrhh.models.areas import Area
-from apps.rrhh.models.puestos import Puesto
-from apps.rrhh.models.sedes import Sede
 
 
 class DirectorioListView(
-    PermissionRequiredMixin,
+    ModuloRequiredMixin,
     SessionFilterStateMixin,
     ResponsiveViewModeMixin,
     SearchableListMixin,
@@ -53,7 +47,7 @@ class DirectorioListView(
     SingleTableMixin,
     FilterView
 ):
-    permission_required = 'directorio.view_contacto'
+    nombre_modulo = 'directorio'
     template_name = 'apps/directorio/list.html'
     page_title = 'Directorio'
     model = Contacto
@@ -77,6 +71,11 @@ class DirectorioListView(
     def get_queryset(self):
         qs = super().get_queryset()
 
+        user = self.request.user
+
+        if user.is_superuser:
+            return qs
+
         sedes_permitidas = obtener_sedes_permitidas(self.request)
 
         contactos_sedes_permitidas = (
@@ -96,6 +95,62 @@ class DirectorioListView(
         return qs
 
 
+class ContactoCreateView(
+    PermissionRequiredMixin,
+    PageTitleMixin,
+    BreadcrumbsMixin,
+    SuccessMessageMixin,
+    NamedFormsetsMixin,
+    CreateWithInlinesView,
+):
+    permission_required = 'directorio.add_contacto'
+    template_name = 'apps/directorio/contacto/create.html'
+    page_title = 'Crear Contacto'
+    model = Contacto
+    form_class = ContactoForm
+    inlines = [EmailContactoInline, TelefonoContactoInline]
+    inlines_names = ['Email', 'Telefono']
+    success_message = 'Contacto creado correctamente.'
+
+    def get_success_url(self) -> str:
+        return reverse('directorio:update', args=[self.object.pk])
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Directorio', 'url': reverse('directorio:list')},
+            {'title': 'Crear'},
+        ]
+
+
+class ContactoUpdateView(
+    PermissionRequiredMixin,
+    PageTitleMixin,
+    BreadcrumbsMixin,
+    SuccessMessageMixin,
+    NamedFormsetsMixin,
+    UpdateWithInlinesView,
+):
+    permission_required = 'directorio.change_contacto'
+    template_name = 'apps/directorio/contacto/update.html'
+    page_title = 'Actualizar Contacto'
+    model = Contacto
+    form_class = ContactoForm
+    inlines = [EmailContactoInline, TelefonoContactoInline]
+    inlines_names = ['Email', 'Telefono']
+    success_message = 'Contacto actualizado correctamente.'
+
+    def get_success_url(self) -> str:
+        return reverse('directorio:update', args=[self.object.pk])
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Directorio', 'url': reverse('directorio:list')},
+            {'title': 'Editar'},
+        ]
+
+
 def contacto_detail(request, pk):
     contacto = get_object_or_404(Contacto, pk=pk)
 
@@ -110,274 +165,12 @@ def contacto_detail(request, pk):
     return render(request, 'Directorio/Contacto/Detail', props)
 
 
-@login_required
-@permission_required("directorio.add_contacto", raise_exception=True)
-def contacto_create(request):
-    if request.method == "GET":
-        return render(request, "Directorio/Contacto/Form", props=get_contacto_form_props(request))
-
-    return _procesar_formulario_contacto(request, contacto=None)
-
-
-@login_required
-@permission_required("directorio.change_contacto", raise_exception=True)
-def contacto_update(request, pk):
-    contacto = get_object_or_404(Contacto, pk=pk)
-
-    if request.method == "GET":
-        return render(request, "Directorio/Contacto/Form", props=get_contacto_form_props(request, contacto))
-
-    return _procesar_formulario_contacto(request, contacto=contacto)
-
-
-def _procesar_formulario_contacto(request, contacto=None):
-    # Soporta tanto multipart/form-data (archivos) como JSON
-    if request.content_type and 'application/json' in request.content_type:
-        payload = json.loads(request.body)
-    else:
-        payload = request.POST.dict()
-        # Parsear arrays JSON serializados en FormData si se enviaron como strings
-        for list_key in ['emails', 'telefonos', 'empresas_relacionadas', 'sedes_visibles']:
-            if list_key in request.POST and isinstance(request.POST[list_key], str):
-                try:
-                    payload[list_key] = json.loads(request.POST[list_key])
-                except json.JSONDecodeError:
-                    pass
-
-    data_to_form = {
-        'abreviatura_titulo': payload.get('abreviatura_titulo'),
-        'numero_empleado': payload.get('numero_empleado') or None,
-        'primer_nombre': payload.get('primer_nombre'),
-        'segundo_nombre': payload.get('segundo_nombre') or None,
-        'primer_apellido': payload.get('primer_apellido'),
-        'segundo_apellido': payload.get('segundo_apellido') or None,
-        'fecha_nacimiento': payload.get('fecha_nacimiento') or None,
-        'empresa': payload.get('empresa_id') or None,
-        'area': payload.get('area_id') or None,
-        'puesto': payload.get('puesto_id') or None,
-        'sede_administrativa': payload.get('sede_administrativa_id') or None,
-        'jefe_directo': payload.get('jefe_directo_id') or None,
-        'fecha_ingreso': payload.get('fecha_ingreso') or None,
-        'fecha_egreso': payload.get('fecha_egreso') or None,
-        'mostrar_en_directorio': str(payload.get('mostrar_en_directorio')).lower() in ['true', '1'],
-        'mostrar_en_cumpleanios': str(payload.get('mostrar_en_cumpleanios')).lower() in ['true', '1'],
-        'es_jefe': str(payload.get('es_jefe')).lower() in ['true', '1'],
-        'esta_archivado': str(payload.get('esta_archivado')).lower() in ['true', '1'],
-    }
-
-    form = ContactoCreateUpdateForm(data_to_form, request.FILES, instance=contacto)
-    emails_data = payload.get("emails", [])
-    telefonos_data = payload.get("telefonos", [])
-    custom_errors = {}
-
-    # Validar correos
-    if isinstance(emails_data, list):
-        for idx, item in enumerate(emails_data):
-            email_val = item.get("email", "").strip() if isinstance(item, dict) else ""
-            if not email_val:
-                custom_errors[f"emails.{idx}.email"] = "El correo no puede estar vacío."
-            else:
-                query = EmailContacto.objects.filter(email=email_val)
-                if contacto:
-                    query = query.exclude(contacto=contacto)
-                if query.exists():
-                    custom_errors[f"emails.{idx}.email"] = f"El correo '{email_val}' ya pertenece a otro contacto."
-
-    if form.is_valid() and not custom_errors:
-        try:
-            with transaction.atomic():
-                contacto_obj = form.save()
-
-                if 'foto' in request.FILES:
-                    contacto_obj.foto = request.FILES['foto']
-                    contacto_obj.save()
-
-                if payload.get("empresas_relacionadas"):
-                    contacto_obj.empresas_relacionadas.set(payload.get("empresas_relacionadas"))
-                if payload.get("sedes_visibles"):
-                    contacto_obj.sedes_visibles.set(payload.get("sedes_visibles"))
-
-                # Actualización de Emails
-                contacto_obj.emails.all().delete()
-                for item in emails_data:
-                    if isinstance(item, dict):
-                        e_str = item.get("email", "").strip()
-                        if e_str:
-                            EmailContacto.objects.create(
-                                contacto=contacto_obj,
-                                email=e_str,
-                                es_principal=item.get("es_principal", False),
-                                esta_activo=True,
-                                es_slack=item.get("es_slack", False),
-                            )
-
-                # Actualización de Teléfonos
-                contacto_obj.telefonos.all().delete()
-                for item in telefonos_data:
-                    if isinstance(item, dict):
-                        t_str = item.get("telefono", "").strip()
-                        if t_str:
-                            TelefonoContacto.objects.create(
-                                contacto=contacto_obj,
-                                telefono=t_str,
-                                extension=item.get("extension") or None,
-                                es_principal=item.get("es_principal", False),
-                                esta_activo=True,
-                                es_celular=item.get("es_celular", False),
-                            )
-
-            accion = "actualizado" if contacto else "creado"
-            messages.success(request, f"Contacto {contacto_obj.nombre_completo} {accion} correctamente.")
-
-            # Redirección a la vista de edición del contacto guardado/creado
-            return redirect("directorio:update", pk=contacto_obj.pk)
-
-        except Exception as e:
-            messages.error(request, f"Error al guardar: {str(e)}")
-
-    # Formatear errores a un diccionario simple llave: [mensajes]
-    all_errors = {
-        field: [err['message'] for err in error_list]
-        for field, error_list in form.errors.get_json_data().items()
-    }
-    for key, val in custom_errors.items():
-        all_errors[key] = [val]
-
-    return render(
-        request,
-        "Directorio/Contacto/Form",
-        props={
-            **get_contacto_form_props(request, contacto),
-            "errors": all_errors,
-            "formData": payload
-        },
-    )
-
-
-def get_contacto_form_props(request, contacto=None):
-    return {
-        "contacto": ContactoSerializer(contacto).data if contacto else None,
-        "empresas": list(Empresa.objects.values("id", "nombre")),
-        "areas": list(Area.objects.values("id", "nombre", "empresa_id")),
-        "puestos": list(Puesto.objects.values("id", "nombre", "empresa_id")),
-        "sedes": list(Sede.objects.values("id", "nombre")),
-        "contactosJefes": [
-            {"id": c.id, "nombre_completo": c.nombre_completo}
-            for c in
-            Contacto.objects.filter(esta_archivado=False, es_jefe=True).exclude(pk=contacto.pk if contacto else None)
-        ],
-        "cancelUrl": reverse("directorio:list"),
-        "breadcrumbs": [
-            {"label": "Inicio", "url": "/", "icon": "icon-[lucide--home]"},
-            {"label": "Directorio", "icon": "icon-[lucide--users]", "url": reverse("directorio:list")},
-            {"label": "Editar Contacto" if contacto else "Crear Contacto", "icon": "icon-[lucide--users]"},
-        ],
-    }
-
-
 def contacto_delete(request, pk):
     contacto = get_object_or_404(Contacto, pk=pk)
     if request.method == "POST":
         contacto.delete()
         messages.success(request, 'Contacto eliminado correctamente.')
     return redirect(reverse("directorio:list"))
-
-
-class DirectorioListView(
-    PageTitleMixin,
-    ModuloRequiredMixin,
-    SessionFilterStateMixin,
-    BreadcrumbsMixin,
-    SearchableListMixin,
-    SingleTableMixin,
-    FilterView
-):
-    nombre_modulo = 'Directorio'
-
-    template_name = "apps/directorio/list.html"
-    model = Contacto
-    table_class = ContactoTable
-    paginate_by = 18
-    context_object_name = 'contactos'
-    search_fields = ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido', 'emails__email',
-                     'telefonos__telefono']
-    filterset_class = ContactoFilter
-
-    def get_page_title(self):
-        return 'Directorio'
-
-    def get_filterset_kwargs(self, filterset_class):
-        kwargs = super().get_filterset_kwargs(filterset_class)
-        kwargs['user'] = self.request.user
-        return kwargs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['vista'] = self.request.GET.get('vista')
-
-        return context
-
-    def get_queryset(self):
-        ip = get_client_ip(self.request)
-        empresas_ip = get_empresas_from_ip(ip)
-        sede = sede = get_sede_from_ip(ip)
-
-        user = self.request.user
-        qs = super().get_queryset()
-
-        # Superusuario ve todo
-        if user.is_superuser:
-            return qs.distinct()
-
-        # Empresas visibles por IP
-        if not empresas_ip:
-            return qs.none()
-
-        qs = qs.filter(empresa__in=empresas_ip)
-
-        # Restricción adicional por usuario
-        if user.is_authenticated and hasattr(user, "contacto"):
-            contacto = user.contacto
-
-            empresa = contacto.empresa
-
-            sedes = []
-
-            if contacto.sede_administrativa:
-                sedes.append(contacto.sede_administrativa)
-
-            sedes.extend(contacto.sedes_visibles.all())
-            sedes.extend(
-                Sede.objects.filter(
-                    Q(empresa=empresa) |
-                    Q(empresa__isnull=True)
-                )
-            )
-
-            if sedes:
-                qs = qs.filter(
-                    Q(sede_administrativa__in=sedes) |
-                    Q(sedes_visibles__in=sedes)
-                )
-
-            # Filtrado de vista en directorio
-            if not (user.has_perm('directorio.change_contacto') or user.has_perm('directorio.delete_contacto')):
-                qs = qs.filter(mostrar_en_directorio=True, fecha_egreso__isnull=True, esta_archivado=False)
-        else:
-            if sede:
-                qs = qs.filter(
-                    Q(sede_administrativa=sede) |
-                    Q(sedes_visibles=sede)
-                )
-            qs = qs.filter(mostrar_en_directorio=True, fecha_egreso__isnull=True, esta_archivado=False)
-
-        return qs.distinct()
-
-    def get_breadcrumbs(self):
-        return [
-            {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'Directorio'},
-        ]
 
 
 class ContactoExportMediaView(View):
@@ -460,152 +253,6 @@ class ContactoExportMediaView(View):
 
             browser.close()
             return response
-
-
-class ContactoCreateView(
-    PermissionRequiredMixin,
-    SuccessMessageMixin,
-    BreadcrumbsMixin,
-    CreateWithInlinesView,
-    NamedFormsetsMixin
-):
-    permission_required = ['directorio.add_contacto']
-
-    template_name = "apps/directorio/contacto/create.html"
-    model = Contacto
-    form_class = ContactoForm
-    success_message = 'Contacto creado correctamente'
-    inlines = [EmailContactoInline, TelefonoContactoInline]
-    inlines_names = ['Email', 'Telefono']
-
-    def forms_valid(self, form, inlines):
-        user = self.request.user
-        empresa = getattr(user.contacto, 'empresa', None)
-
-        response = super().forms_valid(form, inlines)
-
-        accion = self.request.POST.get("accion")
-
-        if accion == "notificar":
-            context = {
-                **self.object.json(),
-                'es_nuevo': True,
-                'detalle_url': self.request.build_absolute_uri(
-                    reverse('directorio:detail', args=[self.object.pk])
-                )
-            }
-            notificar_soporte(
-                empresa,
-                'Nuevo Contacto Directorio',
-                template_name_email='apps/directorio/emails/sistemas_contacto.html',
-                template_name_slack='apps/directorio/slack/sistemas_contacto.html',
-                context=context,
-            )
-
-        return response
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        return kwargs
-
-    def get_success_url(self):
-        return reverse('directorio:update', args=(self.object.pk,))
-
-    def get_breadcrumbs(self):
-        return [
-            {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'Directorio', 'url': reverse('directorio:list')},
-            {'title': 'Crear'},
-        ]
-
-
-class ContactoUpdateView(
-    PermissionRequiredMixin,
-    SuccessMessageMixin,
-    BreadcrumbsMixin,
-    UpdateWithInlinesView,
-    NamedFormsetsMixin
-):
-    permission_required = ['directorio.change_contacto']
-    template_name = "apps/directorio/contacto/update.html"
-    model = Contacto
-    form_class = ContactoForm
-    success_message = 'Contacto actualizado correctamente'
-    inlines = [EmailContactoInline, TelefonoContactoInline]
-    inlines_names = ['Email', 'Telefono']
-
-    def _detectar_cambios(self, anteriores, nuevos):
-        cambios = {}
-
-        for key, valor_nuevo in nuevos.items():
-            valor_anterior = anteriores.get(key)
-
-            if valor_anterior != valor_nuevo:
-                cambios[key] = {
-                    "antes": valor_anterior,
-                    "despues": valor_nuevo
-                }
-
-        return cambios
-
-    def forms_valid(self, form, inlines):
-        user = self.request.user
-        empresa = getattr(user.contacto, 'empresa', None)
-
-        contacto_anterior = Contacto.objects.get(pk=self.get_object().pk)
-        datos_anteriores = contacto_anterior.json()
-
-        response = super().forms_valid(form, inlines)
-
-        contacto_actual = self.get_object()
-        datos_nuevos = contacto_actual.json()
-
-        accion = self.request.POST.get("accion")
-
-        if accion == "notificar":
-            cambios = self._detectar_cambios(datos_anteriores, datos_nuevos)
-
-            context = {
-                **datos_nuevos,
-                'es_nuevo': False,
-                'es_baja': contacto_actual.fecha_egreso is not None,
-                'cambios': cambios,
-                'detalle_url': self.request.build_absolute_uri(
-                    reverse('directorio:detail', args=[contacto_actual.pk])
-                )
-            }
-
-            notificar_soporte(
-                empresa,
-                'Contacto Actualizado Directorio',
-                template_name_email='apps/directorio/emails/sistemas_contacto.html',
-                template_name_slack='apps/directorio/slack/sistemas_contacto.html',
-                context=context,
-            )
-
-        return response
-
-    def dispatch(self, request, *args, **kwargs):
-        if not puede_editar_contacto(request.user, self.get_object()):
-            return redirect('directorio:list')
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        return kwargs
-
-    def get_success_url(self):
-        return reverse('directorio:update', args=(self.get_object().pk,))
-
-    def get_breadcrumbs(self):
-        return [
-            {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'Directorio', 'url': reverse('directorio:list')},
-            {'title': self.get_object(), 'url': reverse('directorio:detail', args=[self.get_object().pk])},
-            {'title': 'Editar'},
-        ]
 
 
 class ContactoDetailView(BreadcrumbsMixin, DetailView):

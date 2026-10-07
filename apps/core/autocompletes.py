@@ -4,22 +4,22 @@ from django.db.models import Q
 
 from apps.core.models import Empresa, RazonSocial
 from apps.core.utils.network import get_empresas_from_ip, get_client_ip
-from apps.directorio.utils import es_frescopack
+from apps.directorio.utils import obtener_sedes_permitidas
 
 
 class RazonSocialAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
-        qs = RazonSocial.objects.all()
-
-        user = self.request.user
-
-        if not user.is_authenticated:
+        if not self.request.user.is_authenticated:
             return RazonSocial.objects.none()
 
+        qs = RazonSocial.objects.all()
+
+        sedes = obtener_sedes_permitidas(self.request)
+        if sedes is not None:
+            qs = qs.filter(empresas__sedes__id__in=sedes).distinct()
+
         if self.q:
-            qs = qs.filter(
-                Q(nombre__icontains=self.q)
-            )
+            qs = qs.filter(Q(nombre__icontains=self.q))
 
         return qs
 
@@ -28,21 +28,15 @@ class EmpresaAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         qs = Empresa.objects.all()
 
-        if not self.request.user.is_authenticated:
-            ip = get_client_ip(self.request)
-            empresas = get_empresas_from_ip(ip)
-            qs = qs.filter(id__in=[empresa.id for empresa in empresas])
+        # Filtrado por sedes permitidas globales
+        sedes = obtener_sedes_permitidas(self.request)
 
-        user = self.request.user
-
-        if es_frescopack(user):
-            qs = qs.filter(nombre='Frescopack')
+        print(sedes)
+        if sedes is not None:
+            qs = qs.filter(sedes__id__in=sedes).distinct()
 
         if self.q:
-            qs = qs.filter(
-                Q(nombre__icontains=self.q) |
-                Q(nombre__contains=self.q)
-            )
+            qs = qs.filter(Q(nombre__icontains=self.q))
 
         return qs
 
@@ -54,25 +48,24 @@ class UsuarioAutocomplete(autocomplete.Select2QuerySetView):
 
         qs = User.objects.all()
 
+        sedes = obtener_sedes_permitidas(self.request)
+        if sedes is not None:
+            qs = qs.filter(contacto__empresa__sedes__id__in=sedes).distinct()
+
         if self.q:
             qs = qs.filter(
                 Q(username__icontains=self.q) |
                 Q(contacto__primer_nombre__icontains=self.q) |
-                Q(contacto__segundo_nombre_icontains=self.q) |
-                Q(contacto__primer_apellido_icontains=self.q) |
-                Q(contacto__segundo_apellido_icontains=self.q)
+                Q(contacto__segundo_nombre__icontains=self.q) |
+                Q(contacto__primer_apellido__icontains=self.q) |
+                Q(contacto__segundo_apellido__icontains=self.q)
             )
 
         return qs
 
     def get_result_label(self, result):
         contacto = getattr(result, 'contacto', None)
-        if contacto:
-            return contacto.nombre_completo
-        return str(result)
+        return contacto.nombre_completo if contacto else str(result)
 
     def get_selected_result_label(self, result):
-        contacto = getattr(result, 'contacto', None)
-        if contacto:
-            return contacto.nombre_completo
-        return str(result)
+        return self.get_result_label(result)

@@ -19,38 +19,46 @@ def obtener_sedes_permitidas(request):
     """
     Retorna los IDs de las Sedes que el usuario actual (o su IP)
     tiene permitido visualizar en el directorio.
+
+    Regla:
+    - Staff / Superuser: Ven TODAS las sedes.
+    - Usuario Autenticado: Ve sus sedes asignadas (principal + adicionales). Se ignora la IP.
+    - Usuario Anónimo: Ve las sedes correspondientes a la IP de la red local desde la que navega.
     """
     user = request.user
 
     # 1. Superusuarios o Staff ven todas las sedes
     if user.is_staff or user.is_superuser:
-        return Sede.objects.values_list('id', flat=True)
+        return list(Sede.objects.filter(activa=True).values_list('id', flat=True))
 
     sedes_ids = set()
 
-    # 2. Visibilidad por Red / IP de origen
+    # 2. Usuario Autenticado -> Visibilidad basada EXCLUSIVAMENTE en su perfil/contacto
+    if user.is_authenticated:
+        if hasattr(user, 'contacto') and user.contacto:
+            contacto = user.contacto
+
+            # Sede física/administrativa propia
+            if contacto.sede_administrativa_id:
+                sedes_ids.add(contacto.sede_administrativa_id)
+
+            # Sedes adicionales configuradas explícitamente en el ManyToMany
+            sedes_visibles = contacto.sedes_visibles.values_list('id', flat=True)
+            sedes_ids.update(sedes_visibles)
+
+        return list(sedes_ids)
+
+    # 3. Usuario Anónimo (No Autenticado) -> Visibilidad basada en Red / IP
     ip_cliente = get_client_ip(request)
     if ip_cliente:
         try:
             ip_obj = ipaddress.ip_address(ip_cliente)
-            # Evaluamos rangos de red vinculados a las sedes
-            for rango in SedeIPRange.objects.filter(activa=True).select_related('sede'):
+            # Evaluamos rangos de red vinculados a las sedes activas
+            for rango in SedeIPRange.objects.filter(activa=True, sede__activa=True).select_related('sede'):
                 if ip_obj in ipaddress.ip_network(rango.cidr):
                     sedes_ids.add(rango.sede_id)
         except ValueError:
             pass
-
-    # 3. Visibilidad por usuario autenticado (Sede principal + Sedes adicionales)
-    if user.is_authenticated and hasattr(user, 'contacto') and user.contacto:
-        contacto = user.contacto
-
-        # Sede física/administrativa propia
-        if contacto.sede_administrativa_id:
-            sedes_ids.add(contacto.sede_administrativa_id)
-
-        # Sedes adicionales configuradas explícitamente en el ManyToMany
-        sedes_visibles = contacto.sedes_visibles.values_list('id', flat=True)
-        sedes_ids.update(sedes_visibles)
 
     return list(sedes_ids)
 

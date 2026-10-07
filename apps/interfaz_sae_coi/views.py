@@ -6,17 +6,14 @@ from django.contrib import messages
 from django.contrib.auth.decorators import permission_required, login_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db import transaction
-from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.timezone import now
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
-from django_filters.views import FilterView
-from django_tables2 import SingleTableMixin, tables
+from django_tables2 import SingleTableMixin
 from django_tables2.export import ExportMixin
-from extra_views import SearchableListMixin
-from sqlalchemy import or_, extract, cast, Integer
+from sqlalchemy import cast, Integer
 from sqlalchemy import func
 
 from apps.coi.db import coi_session
@@ -26,7 +23,6 @@ from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.mixins.responsive_view import ResponsiveViewModeMixin
 from apps.core.mixins.session_filter_state import SessionFilterStateMixin
 from apps.core.mixins.title import PageTitleMixin
-from apps.core.utils.navigation import paginate_list, make_breadcrumbs
 from apps.interfaz_sae_coi.constants import TIPOS_DOCUMENTOS
 from apps.interfaz_sae_coi.forms import DocumentoFilterForm
 from apps.interfaz_sae_coi.generators import PolizaVentaGenerator, PolizaCostoVentaGenerator, PolizaCorteCajaGenerator, \
@@ -37,7 +33,7 @@ from apps.interfaz_sae_coi.services.documentos_helpers import enrich_and_filter_
 from apps.interfaz_sae_coi.services.documentos_strategies import DOCUMENTO_STRATEGIES
 from apps.interfaz_sae_coi.tables import DocumentoContabilizadoTable
 from apps.sae.db import sae_session
-from apps.sae.models_sae import get_sae_models, FacturaMixin
+from apps.sae.models_sae import get_sae_models
 
 
 class DocumentosContabilizarSaeView(
@@ -118,12 +114,12 @@ class DocumentosContabilizarSaeView(
         # 1. Obtener la lista procesada de documentos
         object_list = self.get_queryset()
 
-        # 3. Formulario de filtros y catálogos SAE
-        filter_form = DocumentoFilterForm(self.request.GET or None)
-
         with sae_session() as (db_sae, suffix):
             m = get_sae_models(suffix)
             almacenes_db = [a.nombre for a in db_sae.query(m.Almacen.nombre).all() if a.nombre]
+
+        almacenes_choices = [(almacen, almacen) for almacen in almacenes_db]
+        filter_form = DocumentoFilterForm(self.request.GET or None, almacenes_choices=almacenes_choices)
 
         # 4. Asignar las variables requeridas por django-tables2 y el template
         context['object_list'] = object_list

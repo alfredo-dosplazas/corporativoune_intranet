@@ -5,14 +5,13 @@ from dal import autocomplete
 
 from apps.core.models import Empresa
 from apps.directorio.models import Contacto
-from apps.directorio.utils import es_frescopack
 from apps.rrhh.models.areas import Area
 from apps.rrhh.models.puestos import Puesto
 
 
 class ContactoFilter(django_filters.FilterSet):
     empresa = django_filters.ModelChoiceFilter(
-        queryset=Empresa.objects,
+        queryset=Empresa.objects.none(),
         field_name='empresa',
         widget=autocomplete.ModelSelect2(
             url='empresa__autocomplete',
@@ -24,7 +23,7 @@ class ContactoFilter(django_filters.FilterSet):
         field_name='area__nombre',
         label='Área',
         lookup_expr='iexact',
-        choices=lambda: Area.objects.values_list('nombre', 'nombre').distinct(),
+        choices=(),
         widget=autocomplete.ListSelect2(
             url='rrhh:areas_nombre__autocomplete',
             attrs={'style': 'width: 100%;', 'data-dropdown-parent': '#modal_filtros'}
@@ -32,7 +31,7 @@ class ContactoFilter(django_filters.FilterSet):
     )
 
     puesto = django_filters.ModelChoiceFilter(
-        queryset=Puesto.objects,
+        queryset=Puesto.objects.none(),
         field_name='puesto',
         widget=autocomplete.ModelSelect2(
             url='rrhh:puestos__autocomplete',
@@ -44,16 +43,8 @@ class ContactoFilter(django_filters.FilterSet):
         model = Contacto
         fields = ["empresa", "area", "puesto"]
 
-    def _configurar_frescopack(self):
-        if self.user and es_frescopack(self.user):
-            empresa_fp = Empresa.objects.get(nombre_corto="Frescopack")
-
-            self.form.fields["empresa"].queryset = Empresa.objects.filter(nombre_corto="Frescopack")
-            self.form.fields["area"].queryset = Area.objects.filter(empresa=empresa_fp)
-            self.form.fields["puesto"].queryset = Puesto.objects.filter(empresa=empresa_fp)
-
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop("user", None)
+        sedes_permitidas = kwargs.pop("sedes_permitidas", None)
 
         super().__init__(*args, **kwargs)
 
@@ -63,7 +54,25 @@ class ContactoFilter(django_filters.FilterSet):
         self.form.helper.include_media = False
         self.form.helper.disable_csrf = True
 
-        self._configurar_frescopack()
+        # Restringir los querysets/choices según las sedes pasadas
+        if sedes_permitidas is not None:
+            self.form.fields["empresa"].queryset = (
+                Empresa.objects.filter(sedes__id__in=sedes_permitidas).distinct()
+            )
+
+            areas = (
+                Area.objects.filter(empresa__sedes__id__in=sedes_permitidas)
+                .values_list('nombre', 'nombre')
+                .distinct()
+            )
+            self.form.fields["area"].choices = [('', '---------')] + list(areas)
+
+            self.form.fields["puesto"].queryset = (
+                Puesto.objects.filter(empresa__sedes__id__in=sedes_permitidas).distinct()
+            )
+        else:
+            self.form.fields["empresa"].queryset = Empresa.objects.all()
+            self.form.fields["puesto"].queryset = Puesto.objects.all()
 
         self.form.helper.layout = Layout(
             'empresa',

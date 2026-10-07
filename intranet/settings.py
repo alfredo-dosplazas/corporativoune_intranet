@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     'apps.refacciones_servicios',
     'apps.evidencias_moldes',
     'apps.resguardos',
+    'apps.regalos',
 
     'apps.sae',
     'apps.interfaz_sae_coi',

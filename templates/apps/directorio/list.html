@@ -9,6 +9,14 @@
             <div class="flex items-center gap-2 shrink-0">
                 <span class="icon-[tabler--address-book] text-primary text-base"></span>
                 <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">Directorio</h1>
+
+                {% if perms.directorio.add_contacto %}
+                    <a href="{% url 'directorio:create' %}"
+                       class="btn btn-primary btn-xs gap-1 font-medium shadow-2xs ml-1">
+                        <span class="icon-[tabler--plus] text-xs"></span>
+                        <span>Nuevo</span>
+                    </a>
+                {% endif %}
             </div>
 
             <!-- BUSCADOR + BOTÓN MODAL FILTROS + CONTADORES -->
@@ -174,8 +182,8 @@
             </div>
 
             <form method="get" action="" id="advanced-filter-form" class="space-y-3 text-xs">
-                {% if request.GET.search %}
-                    <input type="hidden" name="search" value="{{ request.GET.search }}">
+                {% if request.GET.q %}
+                    <input type="hidden" name="q" value="{{ request.GET.q }}">
                 {% endif %}
 
                 <div class="space-y-2">

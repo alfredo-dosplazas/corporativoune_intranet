@@ -1,0 +1,143 @@
+<c-layouts.base>
+    <!-- CSS DE LA CAJA ANIMADA -->
+    <style>
+        /* Animación de temblor en espera */
+        @keyframes boxShake {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            20% { transform: rotate(-3deg) scale(1.02); }
+            40% { transform: rotate(3deg) scale(1.02); }
+            60% { transform: rotate(-2deg) scale(1.01); }
+            80% { transform: rotate(2deg) scale(1.01); }
+        }
+
+        /* Animación de apertura de la tapa */
+        @keyframes openLid {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            50% { transform: translateY(-120px) rotate(-25deg); opacity: 0.9; }
+            100% { transform: translateY(-300px) rotate(-45deg); opacity: 0; }
+        }
+
+        /* Emerger el premio */
+        @keyframes emergePremio {
+            0% { transform: scale(0.3) translateY(100px); opacity: 0; }
+            70% { transform: scale(1.1) translateY(-10px); }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        .animate-box-shake { animation: boxShake 2.5s infinite ease-in-out; }
+        .animate-lid-open { animation: openLid 0.9s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+        .animate-emerge { animation: emergePremio 0.8s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; opacity: 0; }
+    </style>
+
+    <div class="min-h-screen flex items-center justify-center p-4 bg-base-200">
+        <div class="card w-full max-w-md bg-base-100 shadow-2xl border border-base-300 overflow-hidden">
+            <div class="card-body text-center p-6">
+
+                {% if not regalo.canjeado %}
+                    <!-- FORMULARIO DE INGRESO DE NOMBRE -->
+                    <div class="inline-block mx-auto text-6xl mb-2 animate-bounce">🎁</div>
+                    <h1 class="card-title text-2xl font-black justify-center text-primary">
+                        ¡Gran Rifa Navideña!
+                    </h1>
+                    <p class="text-base-content/80 font-medium">
+                        Boleto <span class="badge badge-warning badge-lg font-bold font-mono">#{{ regalo.numero|stringformat:"03d" }}</span>
+                    </p>
+                    <p class="text-sm text-base-content/70 mt-2">
+                        Escribe tu nombre para destapar tu regalo en vivo:
+                    </p>
+
+                    <form method="POST" class="mt-4 space-y-4">
+                        {% csrf_token %}
+                        <div class="form-control">
+                            <input
+                                type="text"
+                                name="ganador_nombre"
+                                placeholder="Tu nombre y apellido"
+                                required
+                                class="input input-bordered input-primary w-full text-center text-lg font-bold"
+                            />
+                        </div>
+                        <button type="submit" class="btn btn-primary w-full text-lg shadow-lg">
+                            ¡Destapar Mi Regalo! 🚀
+                        </button>
+                    </form>
+
+                {% else %}
+                    <!-- ANIMACIÓN DE LA CAJA ABRIÉNDOSE EN EL MÓVIL -->
+                    <div class="relative min-h-[380px] flex flex-col justify-center items-center my-2">
+
+                        <!-- CAJA DE REGALO INTERACTIVA -->
+                        <div id="gift-box-container" class="relative w-48 h-48 cursor-pointer animate-box-shake" onclick="revelarPremioMovil()">
+
+                            <!-- TAPA DEL REGALO -->
+                            <div id="gift-lid" class="absolute -top-4 -left-2 w-52 h-14 bg-red-600 rounded-lg shadow-lg z-20 flex items-center justify-center border-b-4 border-red-800">
+                                <div class="w-12 h-full bg-yellow-400"></div>
+                                <div class="absolute -top-6 w-16 h-8 bg-yellow-400 rounded-full border-2 border-yellow-500 shadow-sm"></div>
+                            </div>
+
+                            <!-- CUERPO DE LA CAJA -->
+                            <div class="w-48 h-44 bg-red-500 rounded-b-2xl shadow-2xl flex items-center justify-center relative overflow-hidden border-2 border-red-700 z-10">
+                                <div class="w-12 h-full bg-yellow-400"></div>
+                                <div class="absolute w-full h-12 bg-yellow-400"></div>
+                            </div>
+
+                            <p class="mt-4 text-xs font-bold text-neutral-content/60 animate-pulse">
+                                👇 ¡Toca la caja para abrir!
+                            </p>
+                        </div>
+
+                        <!-- REVELACIÓN DEL PREMIO (OCULTO INICIALMENTE) -->
+                        <div id="premio-revealed" class="hidden flex-col items-center justify-center space-y-3 w-full">
+                            <div class="badge badge-success badge-lg text-white font-bold tracking-wider">
+                                🎉 ¡PREMIO DESBLOQUEADO! 🎉
+                            </div>
+
+                            <h2 class="text-2xl font-black text-primary leading-tight mt-2">
+                                {{ regalo.nombre }}
+                            </h2>
+
+                            <p class="text-sm font-semibold text-base-content/70">
+                                Ganador: <strong class="text-info">{{ regalo.ganador_nombre }}</strong>
+                            </p>
+
+                            {% if regalo.imagen %}
+                                <figure class="rounded-2xl overflow-hidden bg-base-200 p-2 border border-base-300 w-full max-h-56">
+                                    <img src="{{ regalo.imagen.url }}" alt="{{ regalo.nombre }}" class="rounded-xl max-h-52 object-contain mx-auto" />
+                                </figure>
+                            {% endif %}
+                        </div>
+
+                    </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function revelarPremioMovil() {
+            const lid = document.getElementById('gift-lid');
+            const boxContainer = document.getElementById('gift-box-container');
+            const premio = document.getElementById('premio-revealed');
+
+            if (!lid || !boxContainer || !premio) return;
+
+            // Animar tapa
+            boxContainer.classList.remove('animate-box-shake');
+            lid.classList.add('animate-lid-open');
+
+            setTimeout(() => {
+                boxContainer.classList.add('hidden');
+                premio.classList.remove('hidden');
+                premio.classList.add('flex', 'animate-emerge');
+            }, 600);
+        }
+
+        // Si ya fue canjeado con anterioridad, abre la caja automáticamente a los 500ms
+        {% if regalo.canjeado and exito %}
+            window.addEventListener('DOMContentLoaded', () => {
+                setTimeout(revelarPremioMovil, 500);
+            });
+        {% endif %}
+    </script>
+</c-layouts.base>

@@ -6,58 +6,9 @@ from django.core.exceptions import ValidationError
 
 from apps.core.models import Empresa
 from apps.directorio.models import Contacto, Sede
-from apps.directorio.utils import es_frescopack
+from apps.directorio.utils import es_frescopack, obtener_sedes_permitidas
 from apps.rrhh.models.areas import Area
 from apps.rrhh.models.puestos import Puesto
-
-
-class ContactoCreateUpdateForm(forms.ModelForm):
-    crear_usuario_sistema = forms.BooleanField(required=False)
-    usuario_username = forms.CharField(required=False)
-
-    class Meta:
-        model = Contacto
-        fields = [
-            'abreviatura_titulo',
-            'numero_empleado',
-            'primer_nombre',
-            'segundo_nombre',
-            'primer_apellido',
-            'segundo_apellido',
-            'fecha_nacimiento',
-            'empresa',
-            'area',
-            'puesto',
-            'sede_administrativa',
-            'jefe_directo',
-            'fecha_ingreso',
-            'fecha_egreso',
-            'mostrar_en_directorio',
-            'mostrar_en_cumpleanios',
-            'es_jefe',
-            'esta_archivado',
-        ]
-
-    def clean_numero_empleado(self):
-        numero = self.cleaned_data.get('numero_empleado')
-        if numero:
-            qs = Contacto.objects.filter(numero_empleado=numero)
-            if self.instance.pk:
-                qs = qs.exclude(pk=self.instance.pk)
-            if qs.exists():
-                raise ValidationError("Este número de empleado ya está registrado.")
-        return numero
-
-    def clean(self):
-        cleaned_data = super().clean()
-        fecha_ingreso = cleaned_data.get('fecha_ingreso')
-        fecha_egreso = cleaned_data.get('fecha_egreso')
-
-        if fecha_ingreso and fecha_egreso and fecha_ingreso > fecha_egreso:
-            self.add_error('fecha_ingreso', "La fecha de ingreso no puede ser mayor a la de egreso.")
-            self.add_error('fecha_egreso', "La fecha de egreso no puede ser menor a la de ingreso.")
-
-        return cleaned_data
 
 
 class ContactoForm(forms.ModelForm):
@@ -65,175 +16,156 @@ class ContactoForm(forms.ModelForm):
         model = Contacto
         exclude = ['usuario', 'slack_id', 'sedes_visibles']
         widgets = {
+            'foto': forms.FileInput(attrs={'class': 'file-input file-input-xs file-input-bordered w-full'}),
+            'primer_nombre': forms.TextInput(attrs={'class': 'input input-xs input-bordered w-full h-8'}),
+            'segundo_nombre': forms.TextInput(attrs={'class': 'input input-xs input-bordered w-full h-8'}),
+            'primer_apellido': forms.TextInput(attrs={'class': 'input input-xs input-bordered w-full h-8'}),
+            'segundo_apellido': forms.TextInput(attrs={'class': 'input input-xs input-bordered w-full h-8'}),
+            'numero_empleado': forms.TextInput(attrs={'class': 'input input-xs input-bordered w-full h-8 font-mono'}),
             'area': autocomplete.ModelSelect2(url='rrhh:areas__autocomplete', forward=['empresa']),
             'puesto': autocomplete.ModelSelect2(url='rrhh:puestos__autocomplete', forward=['empresa']),
             'jefe_directo': autocomplete.ModelSelect2(url='directorio:jefe__autocomplete', forward=['empresa']),
-            'fecha_nacimiento': forms.TextInput(attrs={'type': 'date'}),
-            'fecha_ingreso': forms.TextInput(attrs={'type': 'date'}),
-            'fecha_egreso': forms.TextInput(attrs={'type': 'date'}),
+            'fecha_nacimiento': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date',
+                                                                          'class': 'input input-xs input-bordered w-full h-8'}),
+            'fecha_ingreso': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date',
+                                                                       'class': 'input input-xs input-bordered w-full h-8'}),
+            'fecha_egreso': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date',
+                                                                      'class': 'input input-xs input-bordered w-full h-8'}),
             'empresas_relacionadas': forms.CheckboxSelectMultiple(),
             'empresa': autocomplete.ModelSelect2(url='empresa__autocomplete'),
             'sede_administrativa': autocomplete.ModelSelect2(url='directorio:sede__autocomplete'),
         }
 
-    def _configurar_frescopack(self):
-        if self.user and es_frescopack(self.user):
-            empresa_fp = Empresa.objects.get(nombre_corto="Frescopack")
-            sede_fp, _ = Sede.objects.get_or_create(nombre="Frescopack Planta Celaya",
-                                                    defaults={'codigo': 'FP-CELAYA', 'ciudad': 'Celaya',
-                                                              'activa': True})
+    def _aplicar_filtros_permisos(self):
+        """Filtra los querysets del formulario según las sedes/empresas permitidas del usuario."""
+        if not hasattr(self, 'request') or not self.request:
+            return
 
-            self.fields["area"].queryset = Area.objects.filter(empresa=empresa_fp)
-            self.fields["puesto"].queryset = Puesto.objects.filter(empresa=empresa_fp)
-            self.fields["jefe_directo"].queryset = Contacto.objects.filter(empresa=empresa_fp)
+        sedes_ids = obtener_sedes_permitidas(self.request)
+        if sedes_ids:
+            sedes_permitidas = Sede.objects.filter(id__in=sedes_ids, activa=True)
+            self.fields["sede_administrativa"].queryset = sedes_permitidas
 
-            if not self.instance.pk:
-                self.initial.setdefault("empresa", empresa_fp)
-                self.initial.setdefault("sede_administrativa", sede_fp)
-
-            self.fields["empresa"].disabled = True
-            self.fields["sede_administrativa"].disabled = True
+            empresas_ids = sedes_permitidas.values_list('empresas__id', flat=True).distinct()
+            if empresas_ids:
+                self.fields["empresa"].queryset = Empresa.objects.filter(id__in=empresas_ids)
+                self.fields["area"].queryset = Area.objects.filter(empresa_id__in=empresas_ids)
+                self.fields["puesto"].queryset = Puesto.objects.filter(empresa_id__in=empresas_ids)
 
     def _construir_layout(self):
         self.helper.layout = Layout(
-
-            # ==========================================
-            # SECCIÓN 1: IDENTIDAD (Layout de 2 Columnas Principal)
-            # ==========================================
-            Div(
-                # Encabezado de la tarjeta
-                HTML("""
-                    <div class="flex items-center gap-3 border-b border-slate-100 pb-3 mb-5">
-                        <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                            <span class="icon-[mdi--account] text-xl"></span>
-                        </div>
-                        <div>
-                            <h3 class="text-sm font-semibold text-slate-800">Identidad del Contacto</h3>
-                            <p class="text-xs text-slate-500">Información básica y fotografía del colaborador.</p>
-                        </div>
-                    </div>
-                """),
-
-                # Grid de contenido
-                Row(
-                    # Foto a la izquierda con diseño centrado
-                    Column(
-                        Div('foto',
-                            css_class='p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex flex-col items-center justify-center min-h-[180px]'),
-                        css_class='w-full lg:w-1/4 mb-4 lg:mb-0'
-                    ),
-                    # Campos a la derecha
-                    Column(
-                        Row(
-                            Column('primer_nombre', css_class='w-full md:w-1/2 mb-3'),
-                            Column('segundo_nombre', css_class='w-full md:w-1/2 mb-3'),
-                        ),
-                        Row(
-                            Column('primer_apellido', css_class='w-full md:w-1/2 mb-3'),
-                            Column('segundo_apellido', css_class='w-full md:w-1/2 mb-3'),
-                        ),
-                        Row(
-                            Column('numero_empleado', css_class='w-full md:w-1/3'),
-                        ),
-                        css_class='w-full lg:w-3/4 lg:pl-4'
-                    ),
-                ),
-                css_class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 mb-6"
-            ),
-
-            # ==========================================
-            # SECCIÓN 2: ORGANIZACIÓN Y PUESTO
-            # ==========================================
-            Div(
-                HTML("""
-                    <div class="flex items-center gap-3 border-b border-slate-100 pb-3 mb-5">
-                        <div class="p-2 bg-amber-50 text-amber-600 rounded-lg">
-                            <span class="icon-[mdi--office-building] text-xl"></span>
-                        </div>
-                        <div>
-                            <h3 class="text-sm font-semibold text-slate-800">Estructura Organizacional</h3>
-                            <p class="text-xs text-slate-500">Asignación de lugar de trabajo, áreas y jerarquías.</p>
-                        </div>
-                    </div>
-                """),
-
-                Row(
-                    Column('empresa', css_class='w-full md:w-1/2 mb-4'),
-                    Column('sede_administrativa', css_class='w-full md:w-1/2 mb-4'),
-                ),
-                Row(
-                    Column('area', css_class='w-full md:w-1/3 mb-4'),
-                    Column('puesto', css_class='w-full md:w-1/3 mb-4'),
-                    Column('jefe_directo', css_class='w-full md:w-1/3 mb-4'),
-                ),
-                Div(
-                    HTML(
-                        "<label class='block text-xs font-semibold text-slate-600 mb-2'>Empresas Relacionadas</label>"),
-                    'empresas_relacionadas',
-                    css_class='bg-slate-50 p-4 rounded-xl border border-slate-100 mt-2 grid grid-cols-2 gap-2'
-                ),
-                css_class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 mb-6"
-            ),
-
-            # ==========================================
-            # SECCIÓN 3: FECHAS Y CONFIGURACIÓN (Lado a Lado en Desktop)
-            # ==========================================
             Row(
-                # Bloque Fechas
+                # SECCIÓN 1: IDENTIDAD
                 Column(
                     Div(
                         HTML("""
-                            <div class="flex items-center gap-3 border-b border-slate-100 pb-3 mb-4">
-                                <div class="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-                                    <span class="icon-[mdi--calendar] text-xl"></span>
-                                </div>
-                                <h3 class="text-sm font-semibold text-slate-800">Fechas Clave</h3>
+                            <div class="flex items-center gap-1.5 pb-2 mb-3 border-b border-base-200">
+                                <span class="icon-[tabler--user] text-primary text-base"></span>
+                                <h3 id="sec-identidad" class="text-xs font-bold uppercase tracking-wider text-base-content">Identidad</h3>
                             </div>
                         """),
-                        Row(Column('fecha_nacimiento', css_class='w-full mb-3')),
                         Row(
-                            Column('fecha_ingreso', css_class='w-full md:w-1/2 mb-3'),
-                            Column('fecha_egreso', css_class='w-full md:w-1/2'),
+                            # Foto de perfil
+                            Column(
+                                HTML("""
+                                    <div class="flex flex-col items-center justify-center p-3 bg-base-200/50 rounded-lg border border-dashed border-base-300 text-center">
+                                        <div class="avatar mb-2">
+                                            <div class="w-16 h-16 rounded-full ring ring-primary/30 ring-offset-base-100 ring-offset-2 overflow-hidden bg-base-300 flex items-center justify-center">
+                                                <span class="icon-[tabler--camera] text-2xl text-base-content/40"></span>
+                                            </div>
+                                        </div>
+                                """),
+                                'foto',
+                                HTML("</div>"),
+                                css_class="col-span-12 sm:col-span-4"
+                            ),
+                            # Nombres y Empleado
+                            Column(
+                                Row(
+                                    Column('primer_nombre', css_class="col-span-12 sm:col-span-6"),
+                                    Column('segundo_nombre', css_class="col-span-12 sm:col-span-6"),
+                                    css_class="grid grid-cols-12 gap-2"
+                                ),
+                                Row(
+                                    Column('primer_apellido', css_class="col-span-12 sm:col-span-6"),
+                                    Column('segundo_apellido', css_class="col-span-12 sm:col-span-6"),
+                                    css_class="grid grid-cols-12 gap-2"
+                                ),
+                                'numero_empleado',
+                                css_class="col-span-12 sm:col-span-8 space-y-2"
+                            ),
+                            css_class="grid grid-cols-12 gap-3"
                         ),
-                        css_class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 h-full"
+                        css_class="card bg-base-100 border border-base-200 p-4 shadow-2xs"
                     ),
-                    css_class="w-full lg:w-1/2 mb-6 lg:mb-0"
+                    css_class="col-span-12 lg:col-span-6 space-y-4"
                 ),
 
-                # Bloque Configuración / Visibilidad
+                # SECCIÓN 2: ESTRUCTURA ORGANIZACIONAL
                 Column(
                     Div(
                         HTML("""
-                            <div class="flex items-center gap-3 border-b border-slate-100 pb-3 mb-4">
-                                <div class="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                                    <span class="icon-[mdi--cog] text-xl"></span>
-                                </div>
-                                <h3 class="text-sm font-semibold text-slate-800">Ajustes de Visibilidad</h3>
+                            <div class="flex items-center gap-1.5 pb-2 mb-3 border-b border-base-200">
+                                <span class="icon-[tabler--building-skyscraper] text-primary text-base"></span>
+                                <h3 id="sec-organizacion" class="text-xs font-bold uppercase tracking-wider text-base-content">Organización</h3>
                             </div>
                         """),
-                        # Organizados en un grid de 2x2 interactivo para que no se amontonen
+                        Row(
+                            Column('empresa', css_class="col-span-12 sm:col-span-6"),
+                            Column('sede_administrativa', css_class="col-span-12 sm:col-span-6"),
+                            css_class="grid grid-cols-12 gap-2"
+                        ),
+                        Row(
+                            Column('area', css_class="col-span-12 sm:col-span-6"),
+                            Column('puesto', css_class="col-span-12 sm:col-span-6"),
+                            css_class="grid grid-cols-12 gap-2"
+                        ),
+                        'jefe_directo',
+                        css_class="card bg-base-100 border border-base-200 p-4 shadow-2xs space-y-2"
+                    ),
+                    css_class="col-span-12 lg:col-span-6 space-y-4"
+                ),
+
+                # SECCIÓN 3: FECHAS Y AJUSTES (ANCHO COMPLETO ABAJO)
+                Column(
+                    Div(
+                        HTML("""
+                            <div class="flex items-center gap-1.5 pb-2 mb-3 border-b border-base-200">
+                                <span class="icon-[tabler--calendar] text-primary text-base"></span>
+                                <h3 id="sec-fechas" class="text-xs font-bold uppercase tracking-wider text-base-content">Fechas y Ajustes de Visibilidad</h3>
+                            </div>
+                        """),
+                        Row(
+                            Column('fecha_nacimiento', css_class="col-span-12 md:col-span-4"),
+                            Column('fecha_ingreso', css_class="col-span-12 md:col-span-4"),
+                            Column('fecha_egreso', css_class="col-span-12 md:col-span-4"),
+                            css_class="grid grid-cols-12 gap-3 mb-3"
+                        ),
+                        HTML(
+                            '<div class="text-[10px] font-bold text-base-content/50 uppercase tracking-wider mb-2">Ajustes Generales</div>'),
                         Div(
                             'esta_archivado', 'es_jefe', 'mostrar_en_directorio', 'mostrar_en_cumpleanios',
-                            css_class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2"
+                            css_class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-base-200/30 p-2.5 rounded-lg border border-base-200"
                         ),
-                        css_class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 h-full"
+                        css_class="card bg-base-100 border border-base-200 p-4 shadow-2xs"
                     ),
-                    css_class="w-full lg:w-1/2"
+                    css_class="col-span-12 space-y-4"
                 ),
-                css_class="mb-8"
-            ),
+
+                css_class="grid grid-cols-12 gap-4"
+            )
         )
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop("user", None)
+        self.request = kwargs.pop("request", None)
 
         super().__init__(*args, **kwargs)
 
         self.helper = FormHelper()
-        self.helper.form_id = 'contacto-form'
+        self.helper.form_tag = False
         self.helper.attrs = {'novalidate': 'novalidate'}
         self.helper.include_media = False
-        self.helper.form_tag = False
 
-        self._configurar_frescopack()
+        self._aplicar_filtros_permisos()
         self._construir_layout()

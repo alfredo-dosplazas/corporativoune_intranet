@@ -1,0 +1,83 @@
+<div class="card bg-base-100 border border-base-200 shadow-2xs hover:shadow-md hover:border-base-300 transition-all rounded-lg overflow-visible">
+    <div class="card-body p-3 gap-2.5 text-xs">
+
+        <!-- ENCABEZADO: Número de Premio, Estado de Canje y Menú de Acciones -->
+        <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5">
+                    <span class="font-mono font-bold text-primary text-xs tracking-tight truncate">
+                        #{{ regalo.numero|stringformat:"03d" }}
+                    </span>
+                    <span class="badge badge-outline border-base-300 text-[10px] px-1 py-0 h-4 font-mono text-base-content/70 shrink-0"
+                          title="Código QR">
+                        {{ regalo.codigo_qr|truncatechars:8 }}
+                    </span>
+                </div>
+                <h4 class="font-semibold text-base-content truncate mt-0.5" title="{{ regalo.nombre }}">
+                    {{ regalo.nombre }}
+                </h4>
+            </div>
+
+            <div class="flex items-center gap-1 shrink-0">
+                <span class="badge badge-xs font-semibold px-1.5 py-0.5 h-auto text-[10px]
+                    {% if regalo.canjeado %}
+                        badge-success/15 text-success border-success/30
+                    {% else %}
+                        badge-warning/15 text-warning-content border-warning/30
+                    {% endif %}">
+                    {% if regalo.canjeado %}CANJEADO{% else %}PENDIENTE{% endif %}
+                </span>
+
+                <!-- INVOCACIÓN A COMPONENTE DE ACCIONES CON PREFIJO CARD -->
+                <c-apps.regalos.table.actions :record="regalo" prefix="card"/>
+            </div>
+        </div>
+
+        <!-- INFORMACIÓN CENTRAL: Vista Previa e Información del Ganador -->
+        <div class="flex items-center gap-2.5 bg-base-200/40 p-1.5 rounded border border-base-200/60 min-h-[52px]">
+            {% if regalo.imagen %}
+                <figure class="w-10 h-10 rounded border border-base-200 overflow-hidden bg-base-100 shrink-0">
+                    <img src="{{ regalo.imagen.url }}" alt="{{ regalo.nombre }}" class="w-full h-full object-cover"/>
+                </figure>
+            {% else %}
+                <div class="w-10 h-10 rounded border border-base-200 bg-base-200/80 flex items-center justify-center shrink-0 text-base-content/40">
+                    <span class="icon-[tabler--gift] text-lg"></span>
+                </div>
+            {% endif %}
+
+            <div class="min-w-0 flex-1 text-[11px]">
+                <span class="text-base-content/50 block text-[10px]">Ganador / Asignado:</span>
+                {% if regalo.ganador_nombre %}
+                    <span class="font-semibold text-base-content truncate block" title="{{ regalo.ganador_nombre }}">
+                        {{ regalo.ganador_nombre }}
+                    </span>
+                {% else %}
+                    <span class="text-base-content/40 italic block text-[10px]">
+                        Aún sin reclamar
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- PIE DE CARD: Fecha de Canje y Enlace de Ver/Canjear -->
+        <div class="flex items-end justify-between border-t border-base-200 pt-2 mt-0.5">
+            <div>
+                <span class="text-[10px] text-base-content/50 uppercase tracking-wider block font-medium">Fecha Canje</span>
+                <span class="font-mono font-medium text-[11px] text-base-content/80 tracking-tight">
+                    {% if regalo.fecha_canje %}
+                        {{ regalo.fecha_canje|date:"d/m/Y H:i" }}
+                    {% else %}
+                        <span class="text-base-content/40">--/--/----</span>
+                    {% endif %}
+                </span>
+            </div>
+
+            <a href="{% url 'regalos:detail' regalo.pk %}"
+               class="btn btn-xs btn-ghost gap-1 h-6 min-h-0 text-[11px] text-base-content/70 hover:text-primary font-medium px-2">
+                <span>Detalles</span>
+                <span class="icon-[tabler--chevron-right] text-xs"></span>
+            </a>
+        </div>
+
+    </div>
+</div>

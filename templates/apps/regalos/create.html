@@ -1,0 +1,39 @@
+<c-layouts.app>
+    <c-slot name="header">
+        <!-- BARRA SUPERIOR ERP: NAVEGACIÓN Y ACCIONES -->
+        <div class="flex items-center justify-between gap-2">
+
+            <!-- TÍTULO Y BREADCRUMBS -->
+            <div class="flex items-center gap-2 min-w-0">
+                <a href="{% url 'regalos:list' %}"
+                   class="btn btn-ghost btn-xs btn-square shrink-0 text-base-content/60 hover:text-base-content"
+                   title="Volver a la lista">
+                    <span class="icon-[tabler--arrow-left] text-sm"></span>
+                </a>
+
+                <div class="flex items-center gap-1.5 text-xs truncate">
+                    <span class="font-bold text-base-content truncate">Nuevo Regalo</span>
+                </div>
+            </div>
+
+            <!-- BOTONES DE ACCIÓN RÁPIDA -->
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="{% url 'regalos:list' %}"
+                   class="btn btn-ghost btn-xs font-normal text-base-content/70">
+                    Cancelar
+                </a>
+
+                <button form="regalo-form"
+                        type="submit"
+                        class="btn btn-primary btn-xs gap-1 font-medium shadow-2xs">
+                    <span class="icon-[tabler--device-floppy] text-xs"></span>
+                    <span>Guardar Regalo</span>
+                </button>
+            </div>
+
+        </div>
+    </c-slot>
+
+    <!-- FORMULARIO DE REGALOS -->
+    <c-apps.regalos.form/>
+</c-layouts.app>

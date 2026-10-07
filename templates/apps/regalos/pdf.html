@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Boletos de Tómbola Corporativos</title>
+    <style>
+        :root {
+            --primary-color: #0f172a;   /* Color primario corporativo */
+            --accent-color: #2563eb;    /* Color de acento corporativo */
+            --bg-light: #f8fafc;
+            --border-color: #cbd5e1;
+        }
+
+        @page {
+            size: 80mm 130mm; /* Formato vertical óptimo para doblar */
+            margin: 0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #ffffff;
+            color: #0f172a;
+        }
+
+        .ticket-page {
+            width: 80mm;
+            height: 130mm;
+            padding: 4mm;
+            page-break-after: always;
+            box-sizing: border-box;
+        }
+
+        .ticket-page:last-child {
+            page-break-after: avoid;
+        }
+
+        .ticket-container {
+            border: 1.5pt solid var(--primary-color);
+            border-radius: 6px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            background-color: #ffffff;
+            position: relative;
+        }
+
+        /* BANNER CABECERA CORPORATIVA */
+        .header-brand {
+            background-color: var(--primary-color);
+            color: #ffffff;
+            padding: 3mm 4mm;
+            text-align: center;
+        }
+
+        .logo-img {
+            max-height: 8mm;
+            max-width: 40mm;
+            margin-bottom: 1.5mm;
+            filter: brightness(0) invert(1); /* Pasa logos oscuros a blanco si aplica */
+        }
+
+        .brand-name {
+            font-size: 6pt;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .event-name {
+            font-size: 8pt;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #ffffff;
+        }
+
+        /* BANDA DE FOLIO Y NUMERO */
+        .folio-section {
+            background-color: var(--bg-light);
+            border-bottom: 1px solid var(--border-color);
+            border-top: 1px solid var(--border-color);
+            padding: 2mm 4mm;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .folio-label {
+            font-size: 6.5pt;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #64748b;
+        }
+
+        .folio-number {
+            font-size: 11pt;
+            font-weight: 900;
+            color: var(--accent-color);
+            font-family: monospace;
+        }
+
+        /* CUERPO DEL TICKET / ZONA QR */
+        .qr-section {
+            padding: 3mm 4mm;
+            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .premio-title {
+            font-size: 8.5pt;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 2mm;
+            line-height: 1.1;
+            max-height: 2.2em;
+            overflow: hidden;
+        }
+
+        .qr-card {
+            background-color: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 2.5mm;
+            display: inline-block;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .qr-image {
+            width: 38mm;
+            height: 38mm;
+            display: block;
+        }
+
+        .qr-hash {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 5.5pt;
+            color: #64748b;
+            margin-top: 1.5mm;
+            word-break: break-all;
+        }
+
+        /* LÍNEA GUÍA DE DOBLEZ PARA TÓMBOLA */
+        .fold-line {
+            border-top: 1px dashed #94a3af;
+            position: relative;
+            margin: 1mm 0;
+            text-align: center;
+        }
+
+        .fold-label {
+            position: absolute;
+            top: -4pt;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ffffff;
+            padding: 0 3px;
+            font-size: 4.5pt;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* PIE DE PÁGINA / SEGURIDAD */
+        .footer-section {
+            padding: 2.5mm 4mm;
+            background-color: var(--bg-light);
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .instructions {
+            font-size: 5.5pt;
+            color: #475569;
+            line-height: 1.2;
+        }
+
+        .watermark {
+            font-size: 5pt;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 1mm;
+        }
+    </style>
+</head>
+<body>
+
+    {% for item in items %}
+    <div class="ticket-page">
+        <div class="ticket-container">
+            <!-- CABECERA DE MARCA / CORPORATIVO -->
+            <div class="header-brand">
+                {% if logo_url %}
+                    <img src="{{ logo_url }}" class="logo-img" alt="Logo Corporativo">
+                {% else %}
+                    <div class="brand-name">CORPORATIVO</div>
+                {% endif %}
+                <div class="event-name">Gran Rifa Navideña</div>
+            </div>
+
+            <!-- BANDA DE FOLIO -->
+            <div class="folio-section">
+                <span class="folio-label">Boleto Oficial</span>
+                <span class="folio-number">#{{ item.regalo.numero|stringformat:"03d" }}</span>
+            </div>
+
+            <!-- GUÍA VISUAL DE DOBLEZ -->
+            <div class="fold-line">
+                <span class="fold-label">doblar aquí</span>
+            </div>
+
+            <!-- ÁREA CENTRAL CON QR -->
+            <div class="qr-section">
+{#                <div class="premio-title">{{ item.regalo.nombre }}</div>#}
+
+                <div class="qr-card">
+                    {% if item.qr_code_base64 %}
+                        <img src="data:image/png;base64,{{ item.qr_code_base64 }}" class="qr-image" alt="Código QR" />
+                    {% else %}
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ item.regalo.codigo_qr }}" class="qr-image" alt="Código QR" />
+                    {% endif %}
+                </div>
+
+                <div class="qr-hash">{{ item.regalo.codigo_qr }}</div>
+            </div>
+
+            <!-- GUÍA VISUAL DE DOBLEZ INFERIOR -->
+            <div class="fold-line">
+                <span class="fold-label">doblar aquí</span>
+            </div>
+
+            <!-- FOOTER CON VALIDEZ Y SEGURIDAD -->
+            <div class="footer-section">
+                <div class="instructions">
+                    Conserva este boleto. Válido únicamente con el código QR legible.
+                </div>
+                <div class="watermark">
+                    Documento de Control Interno • No Clonable
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+</body>
+</html>

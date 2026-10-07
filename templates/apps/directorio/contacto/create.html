@@ -1,28 +1,72 @@
 <c-layouts.app>
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+        <!-- BARRA SUPERIOR ERP -->
+        <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+                <a href="{% url 'directorio:list' %}"
+                   class="btn btn-ghost btn-xs btn-square shrink-0 text-base-content/60 hover:text-base-content"
+                   title="Volver al directorio">
+                    <span class="icon-[tabler--arrow-left] text-sm"></span>
+                </a>
 
-            <!-- START -->
-            <div class="justify-self-start">
-                <h1 class="text-primary font-bold text-xl flex items-center gap-2">Crear Contacto</h1>
+                <div class="flex items-center gap-1.5 text-xs truncate">
+                    <span class="font-bold text-base-content truncate">
+                        {% if contacto.pk %}{{ contacto }}{% else %}Nuevo Contacto{% endif %}
+                    </span>
+                </div>
+
+                <div class="flex gap-1 shrink-0 ml-1">
+                    {% if contacto.fecha_egreso %}<span class="badge badge-xs badge-error">Baja</span>{% endif %}
+                    {% if contacto.esta_archivado %}<span class="badge badge-xs badge-warning">Archivado</span>{% endif %}
+                    {% if contacto.es_jefe %}<span class="badge badge-xs badge-info">Jefe</span>{% endif %}
+                </div>
             </div>
 
-            <!-- MIDDLE -->
-            <div class="justify-self-center w-full flex justify-center">
-
-            </div>
-
-
-            <!-- END -->
-            <div class="justify-self-end">
-                <c-apps.directorio.contactos.modal.confirmar tipo="crear"/>
-                <button type="button" onclick="confirmar_contacto.showModal()" class="btn btn-primary btn-sm">
-                    Crear
+            <div class="flex items-center gap-1.5 shrink-0">
+                <a href="{% url 'directorio:list' %}" class="btn btn-ghost btn-xs font-normal text-base-content/70">
+                    Cancelar
+                </a>
+                <c-apps.directorio.contactos.modal.confirmar tipo="actualizar"/>
+                <button type="submit" form="contacto-form" class="btn btn-primary btn-xs gap-1 font-medium shadow-2xs">
+                    <span class="icon-[tabler--device-floppy] text-xs"></span>
+                    <span>Guardar</span>
                 </button>
             </div>
         </div>
-
     </c-slot>
 
-    <c-apps.directorio.contactos.form/>
+    <!-- LAYOUT PRINCIPAL SAAS: 2 COLUMNAS (ALTA DENSIDAD Y SCROLL SUAVE) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start scroll-smooth">
+
+        <!-- COLUMNA IZQUIERDA: MENÚ DE NAVEGACIÓN STICKY -->
+        <div class="lg:col-span-3 xl:col-span-2 sticky top-4 space-y-1 z-10">
+            <div class="card bg-base-100 border border-base-200 p-2 shadow-2xs">
+                <p class="px-2 py-1 text-[10px] font-bold tracking-wider text-base-content/50 uppercase">Secciones</p>
+
+                <nav id="sidebar-nav" class="space-y-0.5 text-xs font-medium">
+                    <a href="#sec-identidad" class="nav-sec-link flex items-center gap-2 px-2.5 py-1.5 rounded-md text-base-content/70 hover:bg-base-200 hover:text-base-content transition-colors">
+                        <span class="icon-[tabler--user] text-sm text-primary"></span>
+                        Identidad
+                    </a>
+                    <a href="#sec-organizacion" class="nav-sec-link flex items-center gap-2 px-2.5 py-1.5 rounded-md text-base-content/70 hover:bg-base-200 hover:text-base-content transition-colors">
+                        <span class="icon-[tabler--building-skyscraper] text-sm text-primary"></span>
+                        Organización
+                    </a>
+                    <a href="#sec-fechas" class="nav-sec-link flex items-center gap-2 px-2.5 py-1.5 rounded-md text-base-content/70 hover:bg-base-200 hover:text-base-content transition-colors">
+                        <span class="icon-[tabler--calendar] text-sm text-primary"></span>
+                        Fechas y Visibilidad
+                    </a>
+                    <a href="#sec-telefonos-emails" class="nav-sec-link flex items-center gap-2 px-2.5 py-1.5 rounded-md text-base-content/70 hover:bg-base-200 hover:text-base-content transition-colors">
+                        <span class="icon-[tabler--phone-call] text-sm text-primary"></span>
+                        Correos y Teléfonos
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: FORMULARIO ERP Y FORMSETS -->
+        <div class="lg:col-span-9 xl:col-span-10">
+            <c-apps.directorio.contactos.form />
+        </div>
+    </div>
 </c-layouts.app>

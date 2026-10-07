@@ -1,3 +1,4 @@
+{% load crispy_forms_tags %}
 {% load django_tables2 %}
 {% load export_url from django_tables2 %}
 
@@ -170,7 +171,7 @@
                 {% endif %}
 
                 <div class="space-y-2">
-                    {{ form.as_p }}
+                    {% crispy form %}
                 </div>
 
                 <div class="modal-action border-t border-base-200 pt-3 mt-4 flex items-center justify-end gap-2">

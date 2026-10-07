@@ -1,36 +1,187 @@
 <c-layouts.app>
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+        <!-- BARRA DE ACCIONES Y ENCABEZADO -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
 
-            <!-- START -->
-            <div class="justify-self-start">
-                <h1 class="text-primary font-bold text-xl flex items-center gap-2">Papelería</h1>
-                <h2 class="text-muted text-sm"></h2>
+            <!-- TÍTULO DEL MÓDULO DE PAPELERÍA -->
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="icon-[tabler--notebook] text-primary text-base"></span>
+                <div>
+                    <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">Papelería e Insumos</h1>
+                </div>
             </div>
 
-            <!-- MIDDLE -->
-            <div class="justify-self-center w-full flex justify-center">
+            <!-- CONTROLES: BUSCADOR DE MÓDULOS Y CAMBIADOR DE VISTA -->
+            <div class="flex items-center gap-2 flex-1 justify-end max-w-2xl">
+
+                <!-- BUSCADOR RÁPIDO CLIENT-SIDE (Filtra las tarjetas en vivo) -->
+                <div class="relative flex-1 flex items-center max-w-xs">
+                    <span class="absolute left-2.5 text-base-content/40 pointer-events-none z-10">
+                        <span class="icon-[tabler--search] text-xs block"></span>
+                    </span>
+
+                    <input
+                            type="text"
+                            id="module-search"
+                            placeholder="Buscar módulo o sección..."
+                            onkeyup="filterModules()"
+                            class="input input-xs w-full pl-7 pr-7 bg-base-100 border-base-300 focus:border-primary focus:outline-none text-xs rounded-md h-7"
+                    />
+
+                    <button
+                            type="button"
+                            id="clear-search"
+                            onclick="clearModuleSearch()"
+                            class="hidden absolute right-2 text-base-content/40 hover:text-base-content text-xs">
+                        <span class="icon-[tabler--x]"></span>
+                    </button>
+                </div>
+
+                <!-- CONTADOR DE MÓDULOS Y VISTAS -->
+                <div class="flex items-center gap-1.5 border-l border-base-300 pl-2 text-xs text-base-content/60">
+                    <span class="text-[11px] whitespace-nowrap">
+                        <span id="modules-count" class="font-bold text-base-content">{{ modulos|length }}</span> accesos
+                    </span>
+
+                    <!-- TOGGLE DE VISTA (GRID / LISTA) -->
+                    <div class="join border border-base-300 rounded p-0.5 bg-base-100">
+                        <button
+                                type="button"
+                                onclick="setModuleView('grid')"
+                                id="btn-view-grid"
+                                class="join-item btn btn-xs btn-ghost btn-square h-5 w-5 min-h-0 btn-active text-primary"
+                                title="Vista en cuadrícula">
+                            <span class="icon-[tabler--layout-grid] text-xs"></span>
+                        </button>
+
+                        <button
+                                type="button"
+                                onclick="setModuleView('list')"
+                                id="btn-view-list"
+                                class="join-item btn btn-xs btn-ghost btn-square h-5 w-5 min-h-0"
+                                title="Vista en lista">
+                            <span class="icon-[tabler--list] text-xs"></span>
+                        </button>
+                    </div>
+                </div>
 
             </div>
-
-
-            <!-- END -->
-            <div class="justify-self-end">
-
-            </div>
-
         </div>
-
     </c-slot>
 
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <!-- MENSAJE DE RESULTADOS VACÍOS -->
+    <div id="no-modules-found"
+         class="hidden text-center py-12 bg-base-100 rounded-lg border border-base-200 shadow-2xs">
+        <span class="icon-[tabler--search-off] text-3xl text-base-content/30 mb-2 block mx-auto"></span>
+        <p class="text-xs font-semibold text-base-content/70">No se encontraron módulos de papelería</p>
+        <p class="text-[11px] text-base-content/50 mt-0.5">Intenta con otro término de búsqueda</p>
+    </div>
+
+    <!-- CONTENEDOR DE MÓDULOS (Modo Grid por defecto) -->
+    <div id="modules-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {% for modulo in modulos %}
-            <c-shared.modulos.card
-                    :url="modulo.url"
-                    :icono="modulo.icono"
-                    :nombre="modulo.nombre"
-                    :descripcion="modulo.descripcion"
-            />
+            <div class="module-card group transition-all duration-150"
+                 data-nombre="{{ modulo.nombre|lower }}"
+                 data-descripcion="{{ modulo.descripcion|lower }}">
+
+                <!-- COMPONENTE PERSONALIZADO / TARJETA INTEGRADA DE ALTA DENSIDAD -->
+                <a href="{{ modulo.url }}"
+                   class="flex flex-col h-full bg-base-100 hover:bg-base-200/50 border border-base-200 hover:border-primary/40 rounded-lg p-3 transition-all duration-200 shadow-2xs hover:shadow-xs relative overflow-hidden">
+
+                    <!-- LÍNEA INDICADORA SUPERIOR ACCENT EN HOVER -->
+                    <div class="absolute top-0 left-0 right-0 h-0.5 bg-primary opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+
+                    <div class="flex items-start gap-3">
+                        <!-- ICONO CON CONTENEDOR SUAVE -->
+                        <div class="p-2 rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-content transition-colors duration-200 shrink-0">
+                            <span class="{{ modulo.icono|default:'icon-[tabler--box]' }} text-lg block"></span>
+                        </div>
+
+                        <!-- TEXTOS Y DETALLES -->
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-1">
+                                <h2 class="font-semibold text-xs text-base-content group-hover:text-primary transition-colors truncate">
+                                    {{ modulo.nombre }}
+                                </h2>
+                                <span class="icon-[tabler--chevron-right] text-xs text-base-content/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0"></span>
+                            </div>
+
+                            <p class="text-[11px] text-base-content/60 mt-1 line-clamp-2 leading-snug">
+                                {{ modulo.descripcion }}
+                            </p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        {% empty %}
+            <div class="col-span-full text-center py-12 bg-base-100 rounded-lg border border-base-200">
+                <span class="icon-[tabler--lock] text-3xl text-base-content/30 mb-2 block mx-auto"></span>
+                <p class="text-xs font-semibold text-base-content/70">Sin accesos disponibles</p>
+                <p class="text-[11px] text-base-content/50 mt-0.5">No tienes permisos asignados para ningún módulo de
+                    papelería.</p>
+            </div>
         {% endfor %}
     </div>
+
+    <!-- SCRIPT CLIENT-SIDE PARA BÚSQUEDA Y VISTAS RÁPIDAS (SIN RECARGA) -->
+    <script>
+        function filterModules() {
+            const query = document.getElementById('module-search').value.toLowerCase().trim();
+            const cards = document.querySelectorAll('.module-card');
+            const clearBtn = document.getElementById('clear-search');
+            const noResults = document.getElementById('no-modules-found');
+            const counter = document.getElementById('modules-count');
+
+            let visibleCount = 0;
+
+            if (query.length > 0) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+
+            cards.forEach(card => {
+                const nombre = card.getAttribute('data-nombre');
+                const descripcion = card.getAttribute('data-descripcion');
+
+                if (nombre.includes(query) || descripcion.includes(query)) {
+                    card.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+
+            counter.textContent = visibleCount;
+
+            if (visibleCount === 0 && cards.length > 0) {
+                noResults.classList.remove('hidden');
+            } else {
+                noResults.classList.add('hidden');
+            }
+        }
+
+        function clearModuleSearch() {
+            const input = document.getElementById('module-search');
+            input.value = '';
+            filterModules();
+            input.focus();
+        }
+
+        function setModuleView(mode) {
+            const container = document.getElementById('modules-container');
+            const btnGrid = document.getElementById('btn-view-grid');
+            const btnList = document.getElementById('btn-view-list');
+
+            if (mode === 'list') {
+                container.className = 'grid grid-cols-1 gap-2';
+                btnList.classList.add('btn-active', 'text-primary');
+                btnGrid.classList.remove('btn-active', 'text-primary');
+            } else {
+                container.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3';
+                btnGrid.classList.add('btn-active', 'text-primary');
+                btnList.classList.remove('btn-active', 'text-primary');
+            }
+        }
+    </script>
 </c-layouts.app>

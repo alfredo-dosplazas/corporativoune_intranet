@@ -1,11 +1,11 @@
 from django.urls import path
 
+from . import views
 from apps.papeleria.autocompletes.articulos import ArticuloAutocomplete
 from apps.papeleria.autocompletes.requisiciones import RequisicionAutocomplete
-from apps.papeleria.views.articulos import articulos_list, articulo_create, articulo_update, articulo_detail, \
+from apps.papeleria.views.articulos import articulo_detail, \
     articulo_delete
 from apps.papeleria.views.carrito import catalogo_view, cart_add, checkout_view, cart_remove, cart_update
-from apps.papeleria.views.papeleria import papeleria
 from apps.papeleria.views.reportes import ReportesPapeleriaView, AcumuladoArticuloView, AcumuladoArticuloExcelView
 from apps.papeleria.views.requisiciones import RequisicionUpdateView, RequisicionExcelView, RequisicionRechazarView, \
     RequisicionAutorizarView, ActividadRequisicionDeleteView, requisiciones_list, \
@@ -15,13 +15,13 @@ from apps.papeleria.views.requisiciones import RequisicionUpdateView, Requisicio
 app_name = 'papeleria'
 
 urlpatterns = [
-    path('', papeleria, name='index'),
+    path('', views.PapeleriaView.as_view(), name='index'),
 ]
 
 articulos_urlpatterns = [
-    path('articulos/', articulos_list, name='articulos__list'),
-    path('articulos/crear/', articulo_create, name='articulos__create'),
-    path('articulos/editar/<int:pk>/', articulo_update, name='articulos__update'),
+    path('articulos/', views.articulos.ArticuloListView.as_view(), name='articulos__list'),
+    path('articulos/crear/', views.articulos.ArticuloCreateView.as_view(), name='articulos__create'),
+    path('articulos/editar/<int:pk>/', views.articulos.ArticuloUpdateView.as_view(), name='articulos__update'),
     path('articulos/detalle/<int:pk>/', articulo_detail, name='articulos__detail'),
     path('articulos/eliminar/<int:pk>/', articulo_delete, name='articulos__delete'),
 

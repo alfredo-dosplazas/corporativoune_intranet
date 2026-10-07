@@ -46,7 +46,7 @@ class OrdenListView(
 ):
     permission_required = 'compras.view_orden'
     template_name = 'apps/compras/ordenes/list.html'
-    page_title = 'Ordenes de Compra'
+    page_title = 'Órdenes de Compra'
     model = Orden
     table_class = OrdenTable
     paginate_by = 12

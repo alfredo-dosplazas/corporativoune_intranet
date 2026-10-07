@@ -1,107 +1,396 @@
 {% load django_tables2 %}
+
 <c-layouts.app>
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+        <!-- BARRA DE ACCIONES Y FILTROS -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
 
-            <!-- START -->
-            <div class="justify-self-start">
-                <h1 class="text-primary font-bold text-xl flex items-center gap-2">
-                    <span class="icon-[ix--product]"></span>
-                    Artículos
-                </h1>
-                <h2 class="text-muted text-sm mb-2">Gestione los artículos de las empresas</h2>
+            <!-- TÍTULO DE LA VISTA + BOTÓN CREAR -->
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="icon-[tabler--package] text-primary text-base"></span>
+                <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">Artículos de Papelería</h1>
+
                 {% if perms.papeleria.add_articulo %}
-                    <div class="md:hidden fixed bottom-6 right-6 z-40">
-                        <a href="{% url 'papeleria:articulos__create' %}"
-                           class="btn btn-primary btn-circle shadow-lg">
-                            <span class="icon-[mdi--plus]"></span>
+                    <a href="{% url 'papeleria:articulos__create' %}"
+                       class="btn btn-primary btn-xs gap-1 font-medium shadow-2xs ml-1">
+                        <span class="icon-[tabler--plus] text-xs"></span>
+                        <span>Nuevo</span>
+                    </a>
+                {% endif %}
+            </div>
+
+            <!-- BUSCADOR + BOTÓN MODAL FILTROS + CONTADORES -->
+            <div class="flex items-center gap-2 flex-1 justify-end max-w-2xl">
+
+                <!-- FORMULARIO DE BÚSQUEDA RÁPIDA -->
+                <form method="get" action="" id="search-form" class="flex items-center gap-2 flex-1 max-w-sm">
+                    {% for key, value in request.GET.items %}
+                        {% if key != 'q' and key != 'page' and key != '_export' and value %}
+                            <input type="hidden" name="{{ key }}" value="{{ value }}">
+                        {% endif %}
+                    {% endfor %}
+
+                    <div class="relative flex-1 flex items-center">
+                        <span class="absolute left-2.5 text-base-content/40 pointer-events-none z-10">
+                            <span class="icon-[tabler--search] text-xs block"></span>
+                        </span>
+
+                        <input type="text"
+                               name="q"
+                               value="{{ request.GET.q|default:'' }}"
+                               placeholder="Buscar por nombre, código..."
+                               class="input input-xs w-full pl-7 pr-3 bg-base-100 border-base-300 focus:border-primary focus:outline-none text-xs rounded-md h-7"/>
+                    </div>
+                </form>
+
+                <!-- BOTÓN QUE DISPARA EL MODAL DE FILTROS -->
+                <button type="button"
+                        onclick="modal_filtros.showModal()"
+                        class="btn btn-ghost btn-xs h-7 min-h-0 px-2 border border-base-300 bg-base-100 font-normal text-xs text-base-content/70 relative">
+                    <span class="icon-[tabler--adjustments-horizontal] text-xs"></span>
+                    <span class="hidden sm:inline">Filtros</span>
+                    {% if request.GET.categoria or request.GET.es_cuadro_basico or request.GET.empresa %}
+                        <span class="badge badge-primary badge-xs size-2 p-0 rounded-full absolute -top-1 -right-1"></span>
+                    {% endif %}
+                </button>
+
+                <!-- MENÚ EXPORTAR / IMPRIMIR -->
+                <div class="dropdown dropdown-end">
+                    <button tabindex="0"
+                            class="btn btn-ghost btn-xs btn-square h-7 w-7 border border-base-300 bg-base-100">
+                        <span class="icon-[tabler--dots-vertical] text-xs"></span>
+                    </button>
+                    <ul tabindex="0"
+                        class="dropdown-content menu menu-xs bg-base-100 rounded-md border border-base-200 shadow-lg w-36 z-50 p-1">
+                        <li>
+                            <a href="{% querystring "_export"="xls" %}" target="_blank">
+                                <span class="icon-[tabler--file-spreadsheet]"></span> Excel
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- CONTADOR + CAMBIADOR DE VISTA -->
+                <div class="hidden sm:flex items-center gap-1.5 border-l border-base-300 pl-2 text-xs text-base-content/60">
+                    <span class="text-[11px] whitespace-nowrap">
+                        <span class="font-bold text-base-content">{{ table.page.paginator.count|default:"0" }}</span>
+                    </span>
+
+                    <div class="join border border-base-300 rounded p-0.5 bg-base-100">
+                        <!-- Botón Tabla -->
+                        <a href="{% querystring "view"="list" %}"
+                           class="join-item btn btn-xs btn-ghost btn-square h-5 w-5 min-h-0 {% if view_mode == 'list' or not view_mode %}btn-active text-primary{% endif %}"
+                           title="Vista de lista">
+                            <span class="icon-[tabler--list] text-xs"></span>
+                        </a>
+
+                        <!-- Botón Tarjetas / Grid -->
+                        <a href="{% querystring "view"="kanban" %}"
+                           class="join-item btn btn-xs btn-ghost btn-square h-5 w-5 min-h-0 {% if view_mode == 'kanban' %}btn-active text-primary{% endif %}"
+                           title="Vista de tarjetas">
+                            <span class="icon-[tabler--layout-grid] text-xs"></span>
                         </a>
                     </div>
-                {% endif %}
-            </div>
-
-            <!-- MIDDLE -->
-            <div class="justify-self-center w-full flex justify-center">
+                </div>
 
             </div>
-
-
-            <!-- END -->
-            <div class="justify-self-end">
-                <c-shared.searchbar/>
-            </div>
-
         </div>
 
+        <!-- CHIPS DE FILTROS ACTIVOS -->
+        {% if request.GET.q or request.GET.categoria or request.GET.es_cuadro_basico %}
+            <div class="flex items-center gap-1.5 flex-wrap pt-1 border-t border-base-200/60 mt-1">
+                {% if request.GET.q %}
+                    <a href="{% querystring 'q'="" %}"
+                       class="badge badge-ghost border-base-300 badge-xs gap-1 text-[10px] h-4.5">
+                        <span>"{{ request.GET.q }}"</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+
+                {% if request.GET.categoria %}
+                    <a href="{% querystring 'categoria'="" %}"
+                       class="badge badge-info badge-outline badge-xs gap-1 text-[10px] h-4.5">
+                        <span>Categoría: {{ request.GET.categoria }}</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+
+                {% if request.GET.es_cuadro_basico %}
+                    <a href="{% querystring 'es_cuadro_basico'="" %}"
+                       class="badge badge-success badge-outline badge-xs gap-1 text-[10px] h-4.5">
+                        <span>Cuadro básico</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+
+                <a href="{% url 'papeleria:articulos__list' %}?clean_filter=1"
+                   class="text-[10px] text-primary hover:underline ml-1">Limpiar</a>
+            </div>
+        {% endif %}
     </c-slot>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4">
-        {% for obj in page_obj %}
-            <a href="{{ obj.get_absolute_url }}"
-               class="bg-base-100 rounded-xl shadow-sm border border-base-200 p-3 flex flex-col hover:shadow-md transition">
+    <!-- VISTA TABLA COMPACTA (ERP DEFAULT EN DESKTOP) -->
+    <div class="{% if view_mode == 'kanban' %}hidden{% else %}hidden sm:flex flex-col flex-1 min-h-0 h-full w-full{% endif %}">
+        {% render_table table %}
+    </div>
 
-                <!-- Imagen -->
-                <div class="aspect-square w-full bg-base-200 rounded-lg overflow-hidden mb-3">
-                    {% if obj.imagen %}
-                        <img src="{{ obj.imagen.url }}"
-                             alt="{{ obj.nombre }}"
-                             class="w-full h-full object-cover">
-                    {% else %}
-                        <div class="w-full h-full flex items-center justify-center text-muted text-xs">
-                            Sin imagen
+    <!-- VISTA TARJETAS / GRID (COMPACTA/MOBILE) -->
+    <div class="{% if view_mode == 'kanban' %}block{% else %}block sm:hidden{% endif %}">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 p-2">
+            {% for obj in object_list %}
+                <a href="{{ obj.get_absolute_url|default:'#' }}"
+                   class="card bg-base-100 border border-base-200 p-2.5 shadow-2xs hover:border-primary/50 transition-all flex flex-col justify-between group">
+
+                    <div>
+                        <!-- Imagen -->
+                        <div class="aspect-square w-full bg-base-200/50 rounded-md overflow-hidden mb-2 relative flex items-center justify-center">
+                            {% if obj.imagen %}
+                                <img src="{{ obj.imagen.url }}"
+                                     alt="{{ obj.nombre }}"
+                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200">
+                            {% else %}
+                                <span class="icon-[tabler--photo-off] text-base-content/30 text-xl"></span>
+                            {% endif %}
+
+                            {% if obj.es_cuadro_basico %}
+                                <span class="badge badge-success badge-xs text-[9px] absolute top-1 left-1 font-semibold">
+                                    Básico
+                                </span>
+                            {% endif %}
                         </div>
+
+                        <!-- Nombre -->
+                        <h3 class="font-medium text-xs text-base-content leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                            {{ obj.nombre }}
+                        </h3>
+
+                        <!-- Código -->
+                        {% if obj.codigo_vs_dp %}
+                            <p class="text-[10px] text-base-content/50 font-mono mt-0.5 truncate">
+                                {{ obj.codigo_vs_dp }}
+                            </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Precio y Unidad -->
+                    <div class="mt-2 pt-1.5 border-t border-base-200/60 flex items-baseline justify-between">
+                        <span class="text-xs font-bold text-primary font-mono">
+                            ${{ obj.importe|floatformat:2 }}
+                        </span>
+
+                        {% if obj.unidad %}
+                            <span class="text-[10px] text-base-content/50 uppercase">
+                                {{ obj.unidad }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </a>
+            {% empty %}
+                <div class="col-span-full text-center py-10 text-base-content/50 text-xs">
+                    <span class="icon-[tabler--box-off] text-2xl block mb-1"></span>
+                    No se encontraron artículos disponibles.
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- PAGINACIÓN MODO TARJETAS -->
+        {% if table.page %}
+            <div class="flex items-center justify-between p-3 border-t border-base-200 bg-base-100 rounded-b-lg mt-2">
+                <span class="text-[11px] text-base-content/60">
+                    Página {{ table.page.number }} de {{ table.paginator.num_pages }}
+                </span>
+                <div class="join">
+                    {% if table.page.has_previous %}
+                        <a href="{% querystring 'page'=table.page.previous_page_number %}"
+                           class="join-item btn btn-xs border-base-300">Anterior</a>
+                    {% endif %}
+                    {% if table.page.has_next %}
+                        <a href="{% querystring 'page'=table.page.next_page_number %}"
+                           class="join-item btn btn-xs border-base-300">Siguiente</a>
                     {% endif %}
                 </div>
+            </div>
+        {% endif %}
+    </div>
 
-                <!-- Nombre -->
-                <h3 class="font-semibold text-sm leading-tight line-clamp-2">
-                    {{ obj.nombre }}
-                </h3>
+    <!-- MODAL DE FILTROS AVANZADOS -->
+    <dialog id="modal_filtros" class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box p-4 bg-base-100 border border-base-200">
 
-                <!-- Código -->
-                {% if obj.codigo_vs_dp %}
-                    <p class="text-xs text-muted mt-1">
-                        {{ obj.codigo_vs_dp }}
-                    </p>
+            <!-- ENCABEZADO MODAL -->
+            <div class="flex items-center justify-between border-b border-base-200 pb-2 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="icon-[tabler--adjustments-horizontal] text-primary text-base"></span>
+                    <h3 class="font-bold text-sm">Filtros Avanzados</h3>
+                </div>
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost text-base-content/60">✕</button>
+                </form>
+            </div>
+
+            <!-- FORMULARIO DE FILTROS -->
+            <form method="get" action="" id="advanced-filter-form" class="space-y-3 text-xs">
+                {% if request.GET.q %}
+                    <input type="hidden" name="q" value="{{ request.GET.q }}">
                 {% endif %}
 
-                <!-- Precio -->
-                <div class="mt-auto pt-2">
-                    <p class="text-primary font-bold text-sm">
-                        ${{ obj.importe|floatformat:2 }}
-                    </p>
+                {% if request.GET.view %}
+                    <input type="hidden" name="view" value="{{ request.GET.view }}">
+                {% endif %}
 
-                    <p class="text-xs text-muted">
-                        {{ obj.unidad }}
-                    </p>
+                <!-- Renderizado de los campos del FilterSet -->
+                <div class="space-y-2">
+                    {{ filter.form }}
                 </div>
 
-                <!-- Cuadro básico -->
-                {% if obj.es_cuadro_basico %}
-                    <span class="badge badge-success badge-xs mt-2 self-start">
-                    Cuadro básico
-                </span>
-                {% endif %}
-            </a>
-        {% empty %}
-            <div class="col-span-2 text-center text-muted py-10">
-                No hay artículos disponibles
-            </div>
-        {% endfor %}
-    </div>
+                <!-- ACCIONES DEL MODAL -->
+                <div class="modal-action border-t border-base-200 pt-3 mt-4 flex items-center justify-end gap-2">
+                    <a href="{% url 'papeleria:articulos__list' %}?clean_filter=1"
+                       class="btn btn-ghost btn-xs text-xs font-normal">
+                        Limpiar filtros
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-xs px-4">
+                        Aplicar Filtros
+                    </button>
+                </div>
+            </form>
+        </div>
 
-    <div class="flex items-center justify-center mt-6 gap-4">
-        {% for num in page_obj.paginator.page_range %}
-            {% if num == page_obj.number %}
-                <button class="join-item btn btn-sm btn-active">
-                    {{ num }}
-                </button>
-            {% elif num >= page_obj.number|add:-1 and num <= page_obj.number|add:1 %}
-                <a href="?page={{ num }}"
-                   class="join-item btn btn-sm">
-                    {{ num }}
-                </a>
-            {% endif %}
-        {% endfor %}
-    </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+    <!-- COMPONENTE LIGHTBOX -->
+    <dialog id="articulo_lightbox_modal" class="modal modal-bottom sm:modal-middle backdrop-blur-xs">
+        <div class="modal-box p-0 bg-base-100 border border-base-200 max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+
+            <!-- Encabezado del Modal -->
+            <div class="px-4 py-2.5 bg-base-200/50 border-b border-base-200 flex items-center justify-between">
+                <h3 id="lightbox-title" class="font-bold text-xs sm:text-sm text-base-content truncate pr-4">Vista
+                    previa de imagen</h3>
+
+                <!-- Controles de Zoom -->
+                <div class="flex items-center gap-1">
+                    <button type="button" id="btn-zoom-out" class="btn btn-ghost btn-xs btn-square" title="Alejar (-)">
+                        <span class="icon-[tabler--zoom-out] text-base"></span>
+                    </button>
+                    <span id="zoom-level"
+                          class="text-[10px] font-mono px-1 min-w-[3rem] text-center text-base-content/70">100%</span>
+                    <button type="button" id="btn-zoom-in" class="btn btn-ghost btn-xs btn-square" title="Acercar (+)">
+                        <span class="icon-[tabler--zoom-in] text-base"></span>
+                    </button>
+                    <button type="button" id="btn-zoom-reset" class="btn btn-ghost btn-xs btn-square"
+                            title="Restablecer">
+                        <span class="icon-[tabler--refresh] text-base"></span>
+                    </button>
+                    <div class="divider divider-horizontal my-1 mx-0.5"></div>
+                    <form method="dialog">
+                        <button class="btn btn-ghost btn-xs btn-square text-base-content/60">
+                            <span class="icon-[tabler--x] text-base"></span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Área de Contenido con Visor / Drag / Zoom -->
+            <div class="relative flex-1 bg-base-300/30 overflow-hidden flex items-center justify-center min-h-[350px] sm:min-h-[450px] select-none cursor-grab active:cursor-grabbing"
+                 id="lightbox-viewport">
+                <img id="lightbox-image"
+                     src=""
+                     alt=""
+                     class="max-h-[70vh] max-w-full object-contain transition-transform duration-100 ease-out origin-center"
+                     draggable="false"/>
+            </div>
+        </div>
+
+        <form method="dialog" class="modal-backdrop bg-base-900/40">
+            <button>cerrar</button>
+        </form>
+    </dialog>
+
+    <!-- SCRIPT DE INTERACCIÓN LIGHTBOX CON ZOOM/PAN -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('articulo_lightbox_modal');
+            const img = document.getElementById('lightbox-image');
+            const title = document.getElementById('lightbox-title');
+            const viewport = document.getElementById('lightbox-viewport');
+            const zoomLevelDisplay = document.getElementById('zoom-level');
+
+            let scale = 1;
+            let pointX = 0;
+            let pointY = 0;
+            let startX = 0;
+            let startY = 0;
+            let isDragging = false;
+
+            function updateTransform() {
+                img.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+                zoomLevelDisplay.textContent = `${Math.round(scale * 100)}%`;
+            }
+
+            function resetZoom() {
+                scale = 1;
+                pointX = 0;
+                pointY = 0;
+                updateTransform();
+            }
+
+            // Abrir modal desde cualquier botón con [data-lightbox-src]
+            document.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-lightbox-src]');
+                if (!btn) return;
+
+                const src = btn.getAttribute('data-lightbox-src');
+                const imgTitle = btn.getAttribute('data-lightbox-title') || 'Vista previa';
+
+                img.src = src;
+                title.textContent = imgTitle;
+                resetZoom();
+                modal.showModal();
+            });
+
+            // Controles de zoom con botones
+            document.getElementById('btn-zoom-in').addEventListener('click', () => {
+                scale = Math.min(scale + 0.3, 4);
+                updateTransform();
+            });
+
+            document.getElementById('btn-zoom-out').addEventListener('click', () => {
+                scale = Math.max(scale - 0.3, 0.5);
+                updateTransform();
+            });
+
+            document.getElementById('btn-zoom-reset').addEventListener('click', resetZoom);
+
+            // Zoom con rueda de scroll
+            viewport.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY < 0 ? 0.15 : -0.15;
+                scale = Math.min(Math.max(0.5, scale + delta), 4);
+                updateTransform();
+            }, {passive: false});
+
+            // Arrastrar imagen (Pan)
+            viewport.addEventListener('mousedown', (e) => {
+                if (scale <= 1) return;
+                isDragging = true;
+                startX = e.clientX - pointX;
+                startY = e.clientY - pointY;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                pointX = e.clientX - startX;
+                pointY = e.clientY - startY;
+                updateTransform();
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+        });
+    </script>
 </c-layouts.app>

@@ -21,6 +21,7 @@ urlpatterns = [
                   path('interfaz-sae-coi/', include('apps.interfaz_sae_coi.urls')),
                   path('listas-precio/', include('apps.listas_precios.urls')),
                   path('resguardos/', include('apps.resguardos.urls')),
+                  path('regalos/', include('apps.regalos.urls')),
                   path('', include('pwa.urls')),
                   path("jsreverse.json", urls_json, name="js_reverse"),
               ] + debug_toolbar_urls()

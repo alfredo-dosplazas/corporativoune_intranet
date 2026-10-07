@@ -1,0 +1,131 @@
+{% comment %}
+  Acepta 'prefix' de forma opcional (por defecto "table")
+{% endcomment %}
+<c-vars prefix="table"/>
+
+<c-table.actions :record="record" :prefix="prefix">
+    {% if perms.regalos.view_regalo %}
+        <li>
+            <button type="button"
+                    onclick="qr_modal_{{ prefix }}_{{ record.pk }}.showModal()"
+                    class="flex items-center gap-1.5 py-1 text-xs">
+                <span class="icon-[tabler--qrcode] text-xs text-primary shrink-0"></span>
+                <span>Ver Código QR</span>
+            </button>
+        </li>
+    {% endif %}
+
+    <!-- 2. EDITAR REGALO -->
+    {% if perms.regalos.change_regalo %}
+        <li>
+            <a href="{% url 'regalos:update' record.pk %}"
+               class="flex items-center gap-1.5 py-1 text-xs">
+                <span class="icon-[tabler--edit] text-xs text-base-content/60 shrink-0"></span>
+                <span>Editar</span>
+            </a>
+        </li>
+    {% endif %}
+
+    <!-- 3. ELIMINAR REGALO -->
+    {% if perms.regalos.delete_regalo %}
+        <li class="my-0.5 border-t border-base-200"></li>
+        <li>
+            <button type="button"
+                    class="flex items-center gap-1.5 py-1 text-xs text-error hover:bg-error/10"
+                    onclick="regalo_delete_modal_{{ prefix }}_{{ record.pk }}.showModal()">
+                <span class="icon-[tabler--trash] text-xs shrink-0"></span>
+                <span>Eliminar</span>
+            </button>
+        </li>
+    {% endif %}
+
+    <!-- MODAL PARA VER EL CÓDIGO QR -->
+    {% if perms.regalos.view_regalo %}
+        <dialog id="qr_modal_{{ prefix }}_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
+            <div class="modal-box max-w-xs w-full p-5 bg-base-100 text-center border border-base-200 shadow-2xl overflow-x-hidden">
+                <form method="dialog">
+                    <button class="btn btn-xs btn-circle btn-ghost absolute right-2.5 top-2.5 text-base-content/50">✕
+                    </button>
+                </form>
+
+                <div class="mb-3 px-2">
+                    <span class="badge badge-primary badge-outline text-[10px] font-bold">Premio #{{ record.numero }}</span>
+                    <!-- Ajuste: break-words y line-clamp para evitar desbordamiento con nombres largos -->
+                    <h3 class="text-sm font-bold text-base-content mt-1 break-words line-clamp-2 leading-tight" title="{{ record.nombre }}">
+                        {{ record.nombre }}
+                    </h3>
+                </div>
+
+                <!-- CONTENEDOR DEL QR -->
+                <div class="bg-white p-3 rounded-xl border border-base-200 inline-block shadow-inner my-2 max-w-full">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ record.codigo_qr }}"
+                         alt="QR Regalo"
+                         class="w-44 h-44 max-w-full object-contain mx-auto"/>
+                </div>
+
+                <!-- Ajuste: break-all para asegurar que el código QR/UUID no desborde horizontalmente -->
+                <p class="text-[10px] font-mono text-base-content/60 mt-1 select-all break-all px-2">
+                    {{ record.codigo_qr }}
+                </p>
+
+                <div class="mt-4 pt-3 border-t border-base-200 flex justify-center gap-2">
+                    <a href="{% url 'regalos:pdf' %}{% querystring pk=record.pk %}" target="_blank"
+                       class="btn btn-primary btn-xs gap-1">
+                        <span class="icon-[tabler--printer] text-xs"></span>
+                        <span>Imprimir Ticket</span>
+                    </a>
+                </div>
+            </div>
+            <form method="dialog" class="modal-backdrop bg-neutral/40 backdrop-blur-2xs">
+                <button>close</button>
+            </form>
+        </dialog>
+    {% endif %}
+
+    <!-- MODAL DE ELIMINACIÓN -->
+    {% if perms.regalos.delete_regalo %}
+        <dialog id="regalo_delete_modal_{{ prefix }}_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
+            <div class="modal-box max-w-sm w-full p-4 bg-base-100 border border-base-200 shadow-2xl overflow-x-hidden">
+                <form method="dialog">
+                    <button class="btn btn-xs btn-circle btn-ghost absolute right-2.5 top-2.5 text-base-content/50">✕
+                    </button>
+                </form>
+
+                <div class="flex items-start gap-2.5 mb-3">
+                    <div class="p-2 bg-error/10 text-error rounded-full shrink-0">
+                        <span class="icon-[tabler--alert-triangle] text-base block"></span>
+                    </div>
+                    <div class="pr-4 min-w-0 flex-1">
+                        <h3 class="text-xs font-bold text-base-content uppercase tracking-wider">¿Eliminar Regalo?</h3>
+                        <p class="text-[11px] text-base-content/70 mt-0.5 break-words">
+                            Se eliminará permanentemente el regalo
+                            <span class="font-bold text-base-content break-words">{{ record.nombre|default:record.pk }}</span>.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-base-200/50 border border-base-200 rounded p-2 text-[10px] text-base-content/70 mb-4 flex gap-1.5 items-center">
+                    <span class="icon-[tabler--info-circle] text-warning text-xs shrink-0"></span>
+                    <span>Esta acción no se puede deshacer y borrará los datos asociados.</span>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-base-200">
+                    <form method="dialog">
+                        <button class="btn btn-ghost btn-xs font-normal">Cancelar</button>
+                    </form>
+                    <form action="{% url 'regalos:delete' record.pk %}" method="post">
+                        {% csrf_token %}
+                        <button class="btn btn-error btn-xs gap-1 font-medium text-white shadow-2xs">
+                            <span class="icon-[tabler--trash] text-xs"></span>
+                            <span>Confirmar</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <form method="dialog" class="modal-backdrop bg-neutral/40 backdrop-blur-2xs">
+                <button>close</button>
+            </form>
+        </dialog>
+    {% endif %}
+</c-table.actions>

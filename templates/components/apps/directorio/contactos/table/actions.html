@@ -1,105 +1,113 @@
-{% load phone_filters %}
+{% comment %}
+  Acepta 'prefix' de forma opcional (por defecto "table")
+{% endcomment %}
+<c-vars prefix="table" />
 
-<c-table.actions>
+<c-table.actions :record="record" :prefix="prefix">
+    <!-- 1. VER PERFIL -->
     <li>
-        <a href="{% url 'directorio:detail' record.pk %}" class="flex items-center gap-2">
-            <span class="icon-[tabler--user-search] size-4 opacity-70 text-primary"></span>
-            Ver Perfil
+        <a href="{% url 'directorio:detail' record.pk %}"
+           class="flex items-center gap-1.5 py-1 text-xs">
+            <span class="icon-[tabler--user-search] text-xs text-primary shrink-0"></span>
+            <span>Ver Perfil</span>
         </a>
     </li>
 
+    <!-- 2. EDITAR CONTACTO -->
     {% if perms.directorio.change_contacto %}
         <li>
-            <a href="{% url 'directorio:update' record.pk %}" class="flex items-center gap-2">
-                <span class="icon-[tabler--edit] size-4 opacity-70"></span>
-                Editar
+            <a href="{% url 'directorio:update' record.pk %}"
+               class="flex items-center gap-1.5 py-1 text-xs">
+                <span class="icon-[tabler--edit] text-xs text-base-content/60 shrink-0"></span>
+                <span>Editar</span>
             </a>
         </li>
     {% endif %}
 
+    <!-- 3. ARCHIVAR / DESARCHIVAR -->
     {% if perms.directorio.change_contacto %}
+        <li class="my-0.5 border-t border-base-200"></li>
         <li>
-            <hr class="opacity-20 my-1">
-        </li>
-        <li class="{% if record.esta_archivado %}text-success hover:bg-success/10{% else %}text-warning hover:bg-warning/10{% endif %} rounded-lg">
-            <button class="flex items-center gap-2 w-full text-left {% if record.esta_archivado %}text-success{% else %}text-warning{% endif %}"
-                    onclick="contacto_archivar_modal_{{ record.pk }}.showModal()">
+            <button type="button"
+                    class="flex items-center gap-1.5 py-1 text-xs {% if record.esta_archivado %}text-success hover:bg-success/10{% else %}text-warning hover:bg-warning/10{% endif %}"
+                    onclick="contacto_archivar_modal_{{ prefix }}_{{ record.pk }}.showModal()">
                 {% if record.esta_archivado %}
-                    <span class="icon-[tabler--user-check] size-4"></span>
-                    Desarchivar
+                    <span class="icon-[tabler--user-check] text-xs shrink-0"></span>
+                    <span>Desarchivar</span>
                 {% else %}
-                    <span class="icon-[tabler--user-minus] size-4"></span>
-                    Archivar
+                    <span class="icon-[tabler--user-minus] text-xs shrink-0"></span>
+                    <span>Archivar</span>
                 {% endif %}
             </button>
         </li>
     {% endif %}
 
+    <!-- MODAL ADAPTATIVO SIN SCROLL HORIZONTAL -->
     {% if perms.directorio.change_contacto %}
-        <dialog id="contacto_archivar_modal_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
-            <div class="modal-box max-w-md p-6 border border-base-200 shadow-xl">
+        <dialog id="contacto_archivar_modal_{{ prefix }}_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
+            <div class="modal-box w-11/12 max-w-xs sm:max-w-sm p-4 bg-base-100 border border-base-200 shadow-2xl overflow-x-hidden">
                 <form method="dialog">
-                    <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3">✕</button>
+                    <button class="btn btn-xs btn-circle btn-ghost absolute right-2.5 top-2.5 text-base-content/50">✕</button>
                 </form>
 
-                <div class="flex items-start gap-4 mb-4">
+                <!-- ENCABEZADO: ÍCONO + TITULO Y DESCRIPCIÓN CON FLUIDEZ VERTICAL -->
+                <div class="flex items-start gap-2.5 mb-3">
                     {% if record.esta_archivado %}
-                        <div class="p-3 bg-success/10 text-success rounded-full shrink-0">
-                            <span class="icon-[tabler--user-check] size-6 block"></span>
+                        <div class="p-2 bg-success/10 text-success rounded-full shrink-0">
+                            <span class="icon-[tabler--user-check] text-base block"></span>
                         </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-base-content">¿Desarchivar Colaborador?</h3>
-                            <p class="text-sm text-base-content/70 mt-1">
-                                Vas a reincorporar al directorio a <span
-                                    class="font-semibold text-base-content">{{ record.nombre_completo }}</span>.
+                        <div class="min-w-0 flex-1 pr-3">
+                            <h3 class="text-xs font-bold text-base-content uppercase tracking-wider break-words">¿Desarchivar Colaborador?</h3>
+                            <p class="text-[11px] text-base-content/70 mt-0.5 break-words">
+                                Vas a reincorporar al directorio a <span class="font-bold text-base-content break-all">{{ record.nombre_completo }}</span>.
                             </p>
                         </div>
                     {% else %}
-                        <div class="p-3 bg-warning/10 text-warning rounded-full shrink-0">
-                            <span class="icon-[tabler--user-minus] size-6 block"></span>
+                        <div class="p-2 bg-warning/10 text-warning rounded-full shrink-0">
+                            <span class="icon-[tabler--user-minus] text-base block"></span>
                         </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-base-content">¿Archivar Colaborador?</h3>
-                            <p class="text-sm text-base-content/70 mt-1">
-                                Estás por retirar del directorio activo a <span
-                                    class="font-semibold text-base-content">{{ record.nombre_completo }}</span>.
+                        <div class="min-w-0 flex-1 pr-3">
+                            <h3 class="text-xs font-bold text-base-content uppercase tracking-wider break-words">¿Archivar Colaborador?</h3>
+                            <p class="text-[11px] text-base-content/70 mt-0.5 break-words">
+                                Estás por retirar del directorio activo a <span class="font-bold text-base-content break-all">{{ record.nombre_completo }}</span>.
                             </p>
                         </div>
                     {% endif %}
                 </div>
 
-                <div class="bg-base-50 border border-base-200 rounded-lg p-3 text-xs text-base-content/70 mb-6 flex gap-2">
-                    <span class="icon-[tabler--info-circle] size-4 shrink-0 mt-0.5 text-info"></span>
-                    <span>
+                <!-- ALERTA INFORMATIVA CON WRAP -->
+                <div class="bg-base-200/50 border border-base-200 rounded p-2 text-[10px] text-base-content/70 mb-4 flex gap-2 items-start">
+                    <span class="icon-[tabler--info-circle] text-info text-xs shrink-0 mt-0.5"></span>
+                    <span class="break-words whitespace-normal leading-snug">
                         {% if record.esta_archivado %}
-                            El contacto volverá a ser visible en las búsquedas organizacionales, cumpleaños y
-                            organigramas.
+                            El contacto volverá a ser visible en las búsquedas organizacionales, cumpleaños y organigramas.
                         {% else %}
-                            Esta acción ocultará temporalmente al usuario de las listas públicas del directorio sin
-                            borrar sus datos históricos.
+                            Esta acción ocultará temporalmente al usuario de las listas públicas sin borrar sus datos históricos.
                         {% endif %}
                     </span>
                 </div>
 
-                <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                <!-- ACCIONES APILADAS EN MÓVIL Y FILA EN DESKTOP -->
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-end gap-1.5 pt-2 border-t border-base-200">
                     <form method="dialog" class="w-full sm:w-auto">
-                        <button class="btn btn-ghost w-full sm:w-auto normal-case">Cancelar</button>
+                        <button class="btn btn-ghost btn-xs w-full sm:w-auto font-normal">Cancelar</button>
                     </form>
                     <form action="{% url 'directorio:archivar' record.pk %}" method="post" class="w-full sm:w-auto">
                         {% csrf_token %}
-                        <button class="btn w-full sm:w-auto normal-case gap-2 {% if record.esta_archivado %}btn-success text-white{% else %}btn-warning text-warning-content{% endif %}">
+                        <button class="btn btn-xs w-full sm:w-auto gap-1 font-medium shadow-2xs {% if record.esta_archivado %}btn-success text-white{% else %}btn-warning text-warning-content{% endif %}">
                             {% if record.esta_archivado %}
-                                <span class="icon-[tabler--user-check] size-4"></span>
-                                Confirmar Activación
+                                <span class="icon-[tabler--user-check] text-xs"></span>
+                                <span>Confirmar Activación</span>
                             {% else %}
-                                <span class="icon-[tabler--user-minus] size-4"></span>
-                                Confirmar Archivado
+                                <span class="icon-[tabler--user-minus] text-xs"></span>
+                                <span>Confirmar Archivado</span>
                             {% endif %}
                         </button>
                     </form>
                 </div>
             </div>
-            <form method="dialog" class="modal-backdrop bg-neutral-focus/40 backdrop-blur-xs">
+
+            <form method="dialog" class="modal-backdrop bg-neutral/40 backdrop-blur-2xs">
                 <button>close</button>
             </form>
         </dialog>

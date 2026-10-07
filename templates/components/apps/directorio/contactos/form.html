@@ -1,403 +1,250 @@
-{% load crispy_forms_tags widget_tweaks %}
+{% load widget_tweaks %}
+{% load crispy_forms_tags %}
 
-<form id="contacto-form"
-      method="POST"
-      enctype="multipart/form-data"
-      novalidate
-      class="space-y-8">
+{% if form.errors or Email.errors or Email.non_form_errors or Telefono.errors or Telefono.non_form_errors %}
+    <div class="alert alert-error alert-soft shadow-2xs mb-4 rounded-lg py-2 px-3 text-xs flex items-center gap-2">
+        <span class="icon-[tabler--alert-triangle] text-base shrink-0"></span>
+        <div><span class="font-bold">Error en la validación:</span> Por favor revisa los campos señalados abajo.</div>
+    </div>
+{% endif %}
 
+<form id="contacto-form" method="post" enctype="multipart/form-data" novalidate class="space-y-4">
     {% csrf_token %}
 
-    {% if form.errors or Email.errors or Email.non_form_errors or Telefono.errors or Telefono.non_form_errors %}
-        <div class="alert alert-error alert-soft">
-            <div>
-                <h3 class="font-bold">No se pudo guardar el contacto</h3>
-                <p class="text-sm opacity-80">
-                    Hay errores en el formulario. Revisa las secciones marcadas.
-                </p>
-            </div>
-        </div>
-    {% endif %}
-
-    <div class="card bg-base-100/90 border border-base-300">
-        <div class="card-body gap-6">
-            <h2 class="text-lg font-semibold flex items-center gap-2">
-                <span class="icon-[mdi--account] text-xl"></span>
-                Información del contacto
-            </h2>
-
-            {% crispy form %}
+    <!-- CABECERA ID -->
+    <div class="card bg-base-100 border border-base-200 px-4 py-2.5 shadow-2xs flex-row items-center justify-between gap-2">
+        <div class="flex items-center gap-2 text-xs">
+            <span class="font-semibold text-base-content/60">ID Colaborador:</span>
+            <span class="font-mono font-bold text-base-content text-sm bg-base-200 px-2 py-0.5 rounded-md border border-base-300">
+                {% if contacto.pk %}{{ contacto.numero_empleado|default:contacto.pk }}{% else %}NUEVO-REGISTRO{% endif %}
+            </span>
         </div>
     </div>
 
-    <div class="card bg-base-100 border border-base-300">
-        <div class="card-body gap-4">
+    <!-- FORMULARIO CRISPY -->
+    <div class="text-xs">
+        {% crispy form %}
+    </div>
 
-            <div>
-                <h3 class="text-lg font-semibold flex items-center gap-2">
-                    <span class="icon-[mdi--email-multiple] text-xl"></span>
-                    Correos electrónicos
-                </h3>
-                <p class="text-sm opacity-70">
-                    Puedes registrar varios correos. Solo uno puede ser principal.
-                </p>
+    <!-- SECCIÓN FORMSETS (CORREOS Y TELÉFONOS) -->
+    <div id="sec-telefonos-emails" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+
+        <!-- FORMSET CORREOS ELECTRÓNICOS -->
+        <div id="formset-emails-container" class="card bg-base-100 border border-base-200 shadow-2xs overflow-hidden">
+            <div class="px-4 py-2.5 flex items-center justify-between bg-base-200/40 border-b border-base-200">
+                <div class="flex items-center gap-1.5">
+                    <span class="icon-[tabler--mail] text-primary text-base"></span>
+                    <h3 class="font-bold text-xs uppercase tracking-wider text-base-content">Correos Electrónicos</h3>
+                </div>
+                <button type="button" class="btn btn-xs btn-outline btn-primary gap-1 font-medium h-7 min-h-0" data-add-formset="emails">
+                    <span class="icon-[tabler--plus] text-xs"></span>
+                    Agregar Email
+                </button>
             </div>
 
             {{ Email.management_form }}
 
+            <!-- ERRORES GLOBALES DEL FORMSET EMAIL -->
             {% if Email.non_form_errors %}
-                <div class="alert alert-error alert-soft">
-                    <ul class="text-sm list-disc list-inside">
-                        {% for error in Email.non_form_errors %}
-                            <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
+                <div class="p-2 bg-error/10 border-b border-error/20 text-error text-[11px] font-medium flex items-center gap-1.5 px-4">
+                    <span class="icon-[tabler--alert-circle] text-sm shrink-0"></span>
+                    <div>{{ Email.non_form_errors|join:", " }}</div>
                 </div>
             {% endif %}
 
+            <template id="empty-form-emails">
+                <tr class="formset-row hover:bg-base-200/30 transition-colors">
+                    <td class="p-1.5 align-middle">
+                        {{ Email.empty_form.id }}
+                        {% render_field Email.empty_form.email class+="input input-xs input-bordered w-full h-7 font-mono" %}
+                    </td>
+                    <td class="p-1.5 text-center align-middle">{% render_field Email.empty_form.es_principal class+="checkbox checkbox-xs checkbox-primary" %}</td>
+                    <td class="p-1.5 text-center align-middle">{% render_field Email.empty_form.es_slack class+="checkbox checkbox-xs checkbox-primary" %}</td>
+                    <td class="p-1.5 text-center align-middle">{% render_field Email.empty_form.esta_activo class+="checkbox checkbox-xs checkbox-primary" %}</td>
+                    <td class="p-1.5 text-center align-middle">
+                        <button type="button" class="btn btn-ghost btn-xs text-error btn-square h-6 w-6 min-h-0" data-remove-row>
+                            <span class="icon-[tabler--trash] text-xs"></span>
+                        </button>
+                    </td>
+                </tr>
+            </template>
+
             <div class="overflow-x-auto">
-                <table class="table table-sm">
+                <table class="w-full text-left border-collapse text-xs">
                     <thead>
-                    <tr>
-                        <th>Email</th>
-                        <th class="text-center">Principal</th>
-                        <th class="text-center">¿Registrado En Slack?</th>
-                        <th class="text-center">Activo</th>
-                        <th></th>
-                    </tr>
+                        <tr class="bg-base-200/50 text-[10px] uppercase tracking-wider text-base-content/70 border-b border-base-200">
+                            <th class="py-1.5 px-3">Email</th>
+                            <th class="py-1.5 px-2 text-center w-14">Ppal.</th>
+                            <th class="py-1.5 px-2 text-center w-14">Slack</th>
+                            <th class="py-1.5 px-2 text-center w-14">Activo</th>
+                            <th class="w-8 py-1.5 px-2"></th>
+                        </tr>
                     </thead>
-
-                    <tbody>
-                    {% for email_form in Email %}
-                        {% with has_errors=email_form.errors %}
-                            <tr
-                                    class="
-                                    {% if has_errors %}
-                                        bg-error/10
-                                    {% elif not email_form.instance.pk %}
-                                        bg-success/5
-                                    {% endif %}
-                                  "
-                            >
-
-                                <td class="min-w-[260px]">
+                    <tbody id="tbody-emails" class="divide-y divide-base-200/60">
+                        {% for email_form in Email %}
+                            <tr class="formset-row hover:bg-base-200/30 transition-colors {% if email_form.errors %}bg-error/5{% endif %}">
+                                <td class="p-1.5 align-top">
                                     {{ email_form.id }}
-
                                     {% if email_form.email.errors %}
-                                        {% render_field email_form.email class+="w-full input input-error" %}
+                                        {% render_field email_form.email class+="input input-xs input-bordered input-error w-full h-7 font-mono" %}
+                                        <p class="text-error text-[10px] mt-0.5 leading-tight font-medium">{{ email_form.email.errors|join:", " }}</p>
                                     {% else %}
-                                        {% render_field email_form.email class+="w-full input" %}
+                                        {% render_field email_form.email class+="input input-xs input-bordered w-full h-7 font-mono" %}
                                     {% endif %}
 
-                                    {% for error in email_form.email.errors %}
-                                        <p class="text-xs text-error mt-1">{{ error }}</p>
-                                    {% endfor %}
-
-                                    {% for error in email_form.non_field_errors %}
-                                        <p class="text-xs text-error mt-1">{{ error }}</p>
-                                    {% endfor %}
-                                </td>
-
-                                <td class="text-center">
-                                    {% if email_form.es_principal.errors %}
-                                        {% render_field email_form.es_principal class+="checkbox checkbox-error" %}
-                                    {% else %}
-                                        {% render_field email_form.es_principal class+="checkbox checkbox-primary" %}
+                                    {% if email_form.non_field_errors %}
+                                        <p class="text-error text-[10px] mt-0.5 leading-tight font-medium">{{ email_form.non_field_errors|join:", " }}</p>
                                     {% endif %}
                                 </td>
-
-                                <td class="text-center">
-                                    {% if email_form.es_slack.errors %}
-                                        {% render_field email_form.es_slack class+="checkbox checkbox-error" %}
-                                    {% else %}
-                                        {% render_field email_form.es_slack class+="checkbox checkbox-primary" %}
+                                <td class="p-1.5 text-center align-top pt-2">{% render_field email_form.es_principal class+="checkbox checkbox-xs checkbox-primary" %}</td>
+                                <td class="p-1.5 text-center align-top pt-2">{% render_field email_form.es_slack class+="checkbox checkbox-xs checkbox-primary" %}</td>
+                                <td class="p-1.5 text-center align-top pt-2">{% render_field email_form.esta_activo class+="checkbox checkbox-xs checkbox-primary" %}</td>
+                                <td class="p-1.5 text-center align-top pt-2">
+                                    {% if email_form.DELETE %}
+                                        <span class="hidden">{% render_field email_form.DELETE %}</span>
                                     {% endif %}
+                                    <button type="button" class="btn btn-ghost btn-xs text-error btn-square h-6 w-6 min-h-0" data-remove-row>
+                                        <span class="icon-[tabler--trash] text-xs"></span>
+                                    </button>
                                 </td>
-
-                                <td class="text-center">
-                                    {% if email_form.es_principal.errors %}
-                                        {% render_field email_form.esta_activo class+="checkbox checkbox-error" %}
-                                    {% else %}
-                                        {% render_field email_form.esta_activo class+="checkbox checkbox-primary" %}
-                                    {% endif %}
-                                </td>
-
-                                <td class="text-left">
-                                    {% if email_form.DELETE and email_form.instance.pk and perms.directorio.delete_emailcontacto %}
-                                        <label class="cursor-pointer text-error text-xs flex items-center gap-1">
-                                            {% render_field email_form.DELETE class+="checkbox checkbox-error" %}
-                                            Eliminar
-                                        </label>
-                                    {% endif %}
-                                    {% if not email_form.instance.pk %}
-                                        <button type="button"
-                                                class="btn btn-xs btn-error"
-                                                data-formset-remove>
-                                            Eliminar
-                                        </button>
-                                    {% endif %}
-                                </td>
-
                             </tr>
-                        {% endwith %}
-                    {% endfor %}
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
-
-            <div class="flex justify-end">
-                <button type="button"
-                        class="btn btn-sm btn-outline btn-primary"
-                        data-formset-add="emails">
-                    <span class="icon-[mdi--plus]"></span>
-                    Agregar correo
-                </button>
-            </div>
         </div>
-    </div>
 
-    <div class="card bg-base-100 border border-base-300">
-        <div class="card-body gap-4">
-
-            <div>
-                <h3 class="text-lg font-semibold flex items-center gap-2">
-                    <span class="icon-[ic--baseline-phone] text-xl"></span>
-                    Teléfonos
-                </h3>
-                <p class="text-sm opacity-70">
-                    Registra teléfonos internos, celulares o extensiones.
-                </p>
+        <!-- FORMSET TELÉFONOS -->
+        <div id="formset-telefonos-container" class="card bg-base-100 border border-base-200 shadow-2xs overflow-hidden">
+            <div class="px-4 py-2.5 flex items-center justify-between bg-base-200/40 border-b border-base-200">
+                <div class="flex items-center gap-1.5">
+                    <span class="icon-[tabler--phone] text-primary text-base"></span>
+                    <h3 class="font-bold text-xs uppercase tracking-wider text-base-content">Teléfonos</h3>
+                </div>
+                <button type="button" class="btn btn-xs btn-outline btn-primary gap-1 font-medium h-7 min-h-0" data-add-formset="telefonos">
+                    <span class="icon-[tabler--plus] text-xs"></span>
+                    Agregar Teléfono
+                </button>
             </div>
 
             {{ Telefono.management_form }}
 
+            <!-- ERRORES GLOBALES DEL FORMSET TELÉFONO -->
             {% if Telefono.non_form_errors %}
-                <div class="alert alert-error alert-soft">
-                    <ul class="text-sm list-disc list-inside">
-                        {% for error in Telefono.non_form_errors %}
-                            <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
+                <div class="p-2 bg-error/10 border-b border-error/20 text-error text-[11px] font-medium flex items-center gap-1.5 px-4">
+                    <span class="icon-[tabler--alert-circle] text-sm shrink-0"></span>
+                    <div>{{ Telefono.non_form_errors|join:", " }}</div>
                 </div>
             {% endif %}
 
+            <template id="empty-form-telefonos">
+                <tr class="formset-row hover:bg-base-200/30 transition-colors">
+                    <td class="p-1.5 align-middle">
+                        {{ Telefono.empty_form.id }}
+                        {% render_field Telefono.empty_form.telefono class+="input input-xs input-bordered w-full h-7 font-mono" %}
+                    </td>
+                    <td class="p-1.5 align-middle">{% render_field Telefono.empty_form.extension class+="input input-xs input-bordered w-full h-7 font-mono" %}</td>
+                    <td class="p-1.5 text-center align-middle">{% render_field Telefono.empty_form.es_principal class+="checkbox checkbox-xs checkbox-primary" %}</td>
+                    <td class="p-1.5 text-center align-middle">{% render_field Telefono.empty_form.es_celular class+="checkbox checkbox-xs checkbox-primary" %}</td>
+                    <td class="p-1.5 text-center align-middle">{% render_field Telefono.empty_form.esta_activo class+="checkbox checkbox-xs checkbox-primary" %}</td>
+                    <td class="p-1.5 text-center align-middle">
+                        <button type="button" class="btn btn-ghost btn-xs text-error btn-square h-6 w-6 min-h-0" data-remove-row>
+                            <span class="icon-[tabler--trash] text-xs"></span>
+                        </button>
+                    </td>
+                </tr>
+            </template>
+
             <div class="overflow-x-auto">
-                <table class="table table-sm">
+                <table class="w-full text-left border-collapse text-xs">
                     <thead>
-                    <tr>
-                        <th>Teléfono</th>
-                        <th>Extensión</th>
-                        <th class="text-center">Principal</th>
-                        <th class="text-center">¿Es Celular?</th>
-                        <th class="text-center">Activo</th>
-                        <th></th>
-                    </tr>
+                        <tr class="bg-base-200/50 text-[10px] uppercase tracking-wider text-base-content/70 border-b border-base-200">
+                            <th class="py-1.5 px-3">Teléfono</th>
+                            <th class="py-1.5 px-2 w-20">Ext.</th>
+                            <th class="py-1.5 px-2 text-center w-12">Ppal.</th>
+                            <th class="py-1.5 px-2 text-center w-12">Cel.</th>
+                            <th class="py-1.5 px-2 text-center w-12">Activo</th>
+                            <th class="w-8 py-1.5 px-2"></th>
+                        </tr>
                     </thead>
-
-                    <tbody>
-                    {% for telefono_form in Telefono %}
-                        {% with has_errors=telefono_form.errors %}
-                            <tr
-                                    class="
-                                    {% if has_errors %}
-                                        bg-error/10
-                                    {% elif not telefono_form.instance.pk %}
-                                        bg-success/5
-                                    {% endif %}
-                                  "
-                            >
-
-                                <td class="min-w-[220px]">
+                    <tbody id="tbody-telefonos" class="divide-y divide-base-200/60">
+                        {% for telefono_form in Telefono %}
+                            <tr class="formset-row hover:bg-base-200/30 transition-colors {% if telefono_form.errors %}bg-error/5{% endif %}">
+                                <td class="p-1.5 align-top">
                                     {{ telefono_form.id }}
-
                                     {% if telefono_form.telefono.errors %}
-                                        {% render_field telefono_form.telefono class+="w-full input input-error" %}
+                                        {% render_field telefono_form.telefono class+="input input-xs input-bordered input-error w-full h-7 font-mono" %}
+                                        <p class="text-error text-[10px] mt-0.5 leading-tight font-medium">{{ telefono_form.telefono.errors|join:", " }}</p>
                                     {% else %}
-                                        {% render_field telefono_form.telefono class+="w-full input" %}
+                                        {% render_field telefono_form.telefono class+="input input-xs input-bordered w-full h-7 font-mono" %}
                                     {% endif %}
 
-                                    {% for error in telefono_form.telefono.errors %}
-                                        <p class="text-xs text-error mt-1">{{ error }}</p>
-                                    {% endfor %}
-
-                                    {% for error in telefono_form.non_field_errors %}
-                                        <p class="text-xs text-error mt-1">{{ error }}</p>
-                                    {% endfor %}
+                                    {% if telefono_form.non_field_errors %}
+                                        <p class="text-error text-[10px] mt-0.5 leading-tight font-medium">{{ telefono_form.non_field_errors|join:", " }}</p>
+                                    {% endif %}
                                 </td>
-
-                                <td class="min-w-[100px]">
+                                <td class="p-1.5 align-top">
                                     {% if telefono_form.extension.errors %}
-                                        {% render_field telefono_form.extension class+="w-full input input-error" %}
+                                        {% render_field telefono_form.extension class+="input input-xs input-bordered input-error w-full h-7 font-mono" %}
                                     {% else %}
-                                        {% render_field telefono_form.extension class+="w-full input" %}
+                                        {% render_field telefono_form.extension class+="input input-xs input-bordered w-full h-7 font-mono" %}
                                     {% endif %}
                                 </td>
-
-                                <td class="text-center">
-                                    {% if telefono_form.es_principal.errors %}
-                                        {% render_field telefono_form.es_principal class+="checkbox checkbox-error" %}
-                                    {% else %}
-                                        {% render_field telefono_form.es_principal class+="checkbox checkbox-primary" %}
+                                <td class="p-1.5 text-center align-top pt-2">{% render_field telefono_form.es_principal class+="checkbox checkbox-xs checkbox-primary" %}</td>
+                                <td class="p-1.5 text-center align-top pt-2">{% render_field telefono_form.es_celular class+="checkbox checkbox-xs checkbox-primary" %}</td>
+                                <td class="p-1.5 text-center align-top pt-2">{% render_field telefono_form.esta_activo class+="checkbox checkbox-xs checkbox-primary" %}</td>
+                                <td class="p-1.5 text-center align-top pt-2">
+                                    {% if telefono_form.DELETE %}
+                                        <span class="hidden">{% render_field telefono_form.DELETE %}</span>
                                     {% endif %}
+                                    <button type="button" class="btn btn-ghost btn-xs text-error btn-square h-6 w-6 min-h-0" data-remove-row>
+                                        <span class="icon-[tabler--trash] text-xs"></span>
+                                    </button>
                                 </td>
-
-                                <td class="text-center">
-                                    {% if telefono_form.es_celular.errors %}
-                                        {% render_field telefono_form.es_celular class+="checkbox checkbox-error" %}
-                                    {% else %}
-                                        {% render_field telefono_form.es_celular class+="checkbox checkbox-primary" %}
-                                    {% endif %}
-                                </td>
-
-                                <td class="text-center">
-                                    {% if telefono_form.esta_activo.errors %}
-                                        {% render_field telefono_form.esta_activo class+="checkbox checkbox-error" %}
-                                    {% else %}
-                                        {% render_field telefono_form.esta_activo class+="checkbox checkbox-primary" %}
-                                    {% endif %}
-                                </td>
-
-                                <td class="text-left">
-                                    {% if telefono_form.DELETE and telefono_form.instance.pk and perms.directorio.delete_telefonocontacto %}
-                                        <label class="cursor-pointer text-error text-xs flex items-center gap-1">
-                                            {% render_field telefono_form.DELETE class+="checkbox checkbox-error" %}
-                                            Eliminar
-                                        </label>
-                                    {% endif %}
-                                    {% if not telefono_form.instance.pk %}
-                                        <button type="button"
-                                                class="btn btn-xs btn-error"
-                                                data-formset-remove>
-                                            Eliminar
-                                        </button>
-                                    {% endif %}
-                                </td>
-
                             </tr>
-                        {% endwith %}
-                    {% endfor %}
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
-
-            <div class="flex justify-end">
-                <button type="button"
-                        class="btn btn-sm btn-outline btn-primary"
-                        data-formset-add="telefonos">
-                    <span class="icon-[mdi--plus]"></span>
-                    Agregar teléfono
-                </button>
-            </div>
         </div>
-    </div>
 
+    </div>
 </form>
 
-<template id="emails-empty-form">
-    <tr class="bg-success/5">
-        <td class="min-w-[260px]">
-            {{ Email.empty_form.id }}
-            {% render_field Email.empty_form.email class+="w-full input input-bordered" %}
-        </td>
-        <td class="text-center">
-            {% render_field Email.empty_form.es_principal class+="checkbox checkbox-primary" %}
-        </td>
-        <td class="text-center">
-            {% render_field Email.empty_form.es_slack class+="checkbox checkbox-primary" %}
-        </td>
-        <td class="text-center">
-            {% render_field Email.empty_form.esta_activo class+="checkbox checkbox-primary" %}
-        </td>
-        <td class="text-left">
-            <button type="button"
-                    class="btn btn-xs btn-error"
-                    data-formset-remove>
-                Eliminar
-            </button>
-        </td>
-    </tr>
-</template>
-
-<template id="telefonos-empty-form">
-    <tr class="bg-success/5">
-        <td class="min-w-[220px]">
-            {{ Telefono.empty_form.id }}
-            {% render_field Telefono.empty_form.telefono class+="w-full input input-bordered" %}
-        </td>
-        <td class="min-w-[100px]">
-            {% render_field Telefono.empty_form.extension class+="w-full input input-bordered" %}
-        </td>
-        <td class="text-center">
-            {% render_field Telefono.empty_form.es_principal class+="checkbox checkbox-primary" %}
-        </td>
-        <td class="text-center">
-            {% render_field Telefono.empty_form.es_celular class+="checkbox checkbox-primary" %}
-        </td>
-        <td class="text-center">
-            {% render_field Telefono.empty_form.esta_activo class+="checkbox checkbox-primary" %}
-        </td>
-        <td class="text-left">
-            <button type="button"
-                    class="btn btn-xs btn-error"
-                    data-formset-remove>
-                Eliminar
-            </button>
-        </td>
-    </tr>
-</template>
-
 <script>
-    (function () {
+    document.addEventListener('DOMContentLoaded', () => {
+        function initFormset(prefix) {
+            const btnAdd = document.querySelector(`[data-add-formset="${prefix}"]`);
+            const tbody = document.getElementById(`tbody-${prefix}`);
+            const template = document.getElementById(`empty-form-${prefix}`);
+            const totalFormsInput = document.getElementById(`id_${prefix}-TOTAL_FORMS`);
 
-        function setupFormset(prefix) {
-            const addBtn = document.querySelector(`[data-formset-add="${prefix}"]`);
-            if (!addBtn) return;
+            if (!btnAdd || !tbody || !template || !totalFormsInput) return;
 
-            const totalForms = document.querySelector(`#id_${prefix}-TOTAL_FORMS`);
-            const tbody = addBtn.closest('.card-body').querySelector('tbody');
-            const template = document.getElementById(`${prefix}-empty-form`);
-
-            addBtn.addEventListener('click', () => {
-                const index = parseInt(totalForms.value, 10);
-                let html = template.innerHTML.replace(/__prefix__/g, index);
-
-                const temp = document.createElement('tbody');
-                temp.innerHTML = html.trim();
-
-                tbody.appendChild(temp.firstElementChild);
-                totalForms.value = index + 1;
+            btnAdd.addEventListener('click', () => {
+                const formCount = parseInt(totalFormsInput.value, 10);
+                const htmlRow = template.innerHTML.replace(/__prefix__/g, formCount);
+                tbody.insertAdjacentHTML('beforeend', htmlRow);
+                totalFormsInput.value = formCount + 1;
             });
 
             tbody.addEventListener('click', (e) => {
-                if (!e.target.closest('[data-formset-remove]')) return;
+                const btnDelete = e.target.closest('[data-remove-row]');
+                if (!btnDelete) return;
 
-                const row = e.target.closest('tr');
-                const deleteInput = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+                const row = btnDelete.closest('.formset-row');
+                const deleteCheckbox = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
 
-                if (deleteInput) {
-                    deleteInput.checked = true;
-                    row.classList.add('opacity-40');
-                    row.style.display = 'none';
+                if (deleteCheckbox) {
+                    deleteCheckbox.checked = true;
+                    row.classList.add('hidden');
                 } else {
                     row.remove();
-                    totalForms.value = totalForms.value - 1;
                 }
             });
         }
 
-        setupFormset('emails');
-        setupFormset('telefonos');
-
-    })();
-</script>
-
-<script>
-    const form = document.getElementById('contacto-form');
-
-    form.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            confirmar_contacto.showModal();
-        }
+        initFormset('emails');
+        initFormset('telefonos');
     });
 </script>

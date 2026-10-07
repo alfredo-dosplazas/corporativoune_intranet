@@ -215,19 +215,21 @@ class PolizaCorteCajaGenerator:
 
             # 3. DEBE: Cancelación de IVA Trasladado Pendiente
             if iva_pago > 0:
+                concepto = f"CANCELACION IVA PEND. | {doc_referencia}{complemento_str}"[:100]
                 poliza.movimientos.append(MovimientoPolizaDTO(
                     nombre_cuenta=get_nombre_cuenta(cuenta_iva_pend),
                     cuenta=cuenta_iva_pend,
-                    concepto=f"CANCELACION IVA PEND. | {doc_referencia}"[:100],
+                    concepto=concepto,
                     debe=iva_pago,
                     haber=0.0
                 ))
 
                 # 4. HABER: IVA Trasladado Cobrado
+                concepto = f"IVA COBRADO | {doc_referencia}{complemento_str}"[:100]
                 poliza.movimientos.append(MovimientoPolizaDTO(
                     nombre_cuenta=get_nombre_cuenta(cuenta_iva_cobrado),
                     cuenta=cuenta_iva_cobrado,
-                    concepto=f"IVA COBRADO | {doc_referencia}"[:100],
+                    concepto=concepto,
                     debe=0.0,
                     haber=iva_pago
                 ))

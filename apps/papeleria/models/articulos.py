@@ -2,19 +2,11 @@ from django.db import models
 from django.urls import reverse
 
 from apps.core.models import Empresa
-from apps.vs_erp.models import Insumosgeneral
 
 
 class Unidad(models.Model):
     nombre = models.CharField(max_length=255, unique=True)
     clave = models.CharField(max_length=50, unique=True)
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "nombre": self.nombre,
-            "clave": self.clave,
-        }
 
     def __str__(self):
         return self.nombre
@@ -56,23 +48,6 @@ class Articulo(models.Model):
     @property
     def importe(self):
         return self.precio * (1 + self.impuesto)
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "imagen": self.imagen.url if self.imagen else None,
-            "codigo_vs_dp": self.codigo_vs_dp,
-            "numero_papeleria": self.numero_papeleria,
-            "nombre": self.nombre,
-            "descripcion": self.descripcion,
-            "unidad": self.unidad.to_dict(),
-            "precio": self.precio,
-            "impuesto": self.impuesto,
-            "importe": self.importe,
-            "es_cuadro_basico": self.es_cuadro_basico,
-            "mostrar_en_sitio": self.mostrar_en_sitio,
-            "url": self.get_absolute_url(),
-        }
 
     def get_absolute_url(self):
         return reverse('papeleria:articulos__detail', args=[self.id])

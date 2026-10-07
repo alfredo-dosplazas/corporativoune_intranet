@@ -41,6 +41,13 @@ class Empresa(models.Model):
     theme = models.CharField(max_length=100, default='light')
     logo = models.ImageField(upload_to="empresas/logos/", blank=True, null=True)
 
+    razones_sociales = models.ManyToManyField(
+        RazonSocial,
+        blank=True,
+        related_name="empresas",
+        help_text="Razones sociales vinculadas a esta unidad de negocio."
+    )
+
     modulos = models.ManyToManyField(
         "Modulo",
         through="ModuloEmpresa",

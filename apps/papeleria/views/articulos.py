@@ -7,106 +7,111 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
+from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin
+from django_tables2.export import ExportMixin
 from extra_views import SearchableListMixin
 from inertia import render
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.mixins.responsive_view import ResponsiveViewModeMixin
+from apps.core.mixins.session_filter_state import SessionFilterStateMixin
+from apps.core.mixins.title import PageTitleMixin
 from apps.core.utils.navigation import make_breadcrumbs, paginate_queryset
 from apps.papeleria.forms.articulos import ArticuloForm
 from apps.papeleria.models.articulos import Articulo, Unidad
 from apps.papeleria.tables.articulos import ArticuloTable
 
 
-@login_required()
-@permission_required('papeleria.view_articulo', raise_exception=True)
-def articulos_list(request):
-    search_query = request.GET.get('search', '')
-    usuario = request.user
+class ArticuloListView(
+    PermissionRequiredMixin,
+    SessionFilterStateMixin,
+    ResponsiveViewModeMixin,
+    SearchableListMixin,
+    PageTitleMixin,
+    BreadcrumbsMixin,
+    ExportMixin,
+    SingleTableMixin,
+    FilterView
+):
+    permission_required = 'papeleria.view_articulo'
+    template_name = 'apps/papeleria/articulos/list.html'
+    page_title = 'Artículos de Papelería'
+    model = Articulo
+    table_class = ArticuloTable
+    paginate_by = 12
+    search_fields = ['codigo_vs_dp', 'numero_papeleria', 'nombre', 'descripcion']
+    export_name = 'Artículos De Papelería'
+    filterset_fields = ['unidad', 'es_cuadro_basico']
 
-    articulos = Articulo.objects.all()
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Papelería', 'url': reverse('papeleria:index')},
+            {'title': 'Artículos'},
+        ]
 
-    if not usuario.is_superuser and not usuario.groups.filter(name='ADMINISTRADOR PAPELERÍA').exists():
-        articulos = articulos.filter(mostrar_en_sitio=True)
+    def get_queryset(self):
+        qs = super().get_queryset()
 
-    if search_query:
-        articulos = articulos.filter(nombre__icontains=search_query)
+        usuario = self.request.user
 
-    return render(request, 'Papeleria/Articulos/List', {
-        'breadcrumbs': make_breadcrumbs([
-            ('Inicio', 'home'),
-            ('Papelería', 'papeleria:index'),
-            ('Artículos', None),
-        ]),
-        'articulos': paginate_queryset(articulos, request, page_size=12),
-        'can_create': usuario.has_perm('papeleria.add_articulo'),
-        'can_update': usuario.has_perm('papeleria.change_articulo'),
-        'can_delete': usuario.has_perm('papeleria.delete_articulo'),
-    })
+        if not usuario.is_superuser and not usuario.groups.filter(name='ADMINISTRADOR PAPELERÍA').exists():
+            qs = qs.filter(mostrar_en_sitio=True)
 
-
-@login_required()
-@permission_required('papeleria.add_articulo', raise_exception=True)
-def articulo_create(request):
-    props = {
-        'breadcrumbs': make_breadcrumbs([
-            ('Inicio', 'home'),
-            ('Papelería', 'papeleria:index'),
-            ('Artículos', 'papeleria:articulos__list'),
-            ('Crear', None),
-        ]),
-        'unidades': [u.to_dict() for u in Unidad.objects.all()]
-    }
-
-    if request.method == 'POST':
-        data = request.POST or json.loads(request.body)
-        form = ArticuloForm(data)
-
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Artículo agregado con exito')
-            return redirect('papeleria:articulos__update', form.instance.pk)
-        else:
-            props.update({
-                'errors': form.errors,
-            })
-            messages.error(request, 'Error al agregar el artículo')
-            return render(request, 'Papeleria/Articulos/Create', props)
-
-    return render(request, 'Papeleria/Articulos/Create', props)
+        return qs
 
 
-@login_required()
-@permission_required('papeleria.change_articulo', raise_exception=True)
-def articulo_update(request, pk):
-    articulo = get_object_or_404(Articulo, pk=pk)
-    props = {
-        'breadcrumbs': make_breadcrumbs([
-            ('Inicio', 'home'),
-            ('Papelería', 'papeleria:index'),
-            ('Artículos', 'papeleria:articulos__list'),
-            ('Editar', None),
-        ]),
-        'unidades': [u.to_dict() for u in Unidad.objects.all()],
-        'articulo': articulo.to_dict(),
-    }
+class ArticuloCreateView(
+    PermissionRequiredMixin,
+    PageTitleMixin,
+    BreadcrumbsMixin,
+    SuccessMessageMixin,
+    CreateView,
+):
+    permission_required = 'papeleria.add_articulo'
+    template_name = 'apps/papeleria/articulos/create.html'
+    page_title = 'Crear Artículo'
+    model = Articulo
+    form_class = ArticuloForm
+    success_message = 'Artículo credo correctamente.'
 
-    if request.method == 'POST':
-        data = request.POST or json.loads(request.body)
-        form = ArticuloForm(data, instance=articulo)
+    def get_success_url(self) -> str:
+        return reverse('papeleria:articulos__update', args=[self.object.pk])
 
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Artículo editado con exito')
-            return redirect('papeleria:articulos__update', articulo.pk)
-        else:
-            props.update({
-                'errors': form.errors,
-            })
-            messages.error(request, 'Error al editar el artículo')
-            return render(request, 'Papeleria/Articulos/Update', props)
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Papelería', 'url': reverse('papeleria:index')},
+            {'title': 'Artículos', 'url': reverse('papeleria:articulos__list')},
+            {'title': 'Crear'},
+        ]
 
-    return render(request, 'Papeleria/Articulos/Update', props)
+
+class ArticuloUpdateView(
+    PermissionRequiredMixin,
+    PageTitleMixin,
+    BreadcrumbsMixin,
+    SuccessMessageMixin,
+    CreateView,
+):
+    permission_required = 'papeleria.change_articulo'
+    template_name = 'apps/papeleria/articulos/update.html'
+    page_title = 'Actualizar Artículo'
+    model = Articulo
+    form_class = ArticuloForm
+    success_message = 'Artículo actual correctamente.'
+
+    def get_success_url(self) -> str:
+        return reverse('papeleria:articulos__update', args=[self.object.pk])
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Papelería', 'url': reverse('papeleria:index')},
+            {'title': 'Artículos', 'url': reverse('papeleria:articulos__list')},
+            {'title': 'Crear'},
+        ]
 
 
 @login_required()
@@ -124,6 +129,7 @@ def articulo_detail(request, pk):
         'articulo': articulo.to_dict(),
     }
     return render(request, 'Papeleria/Articulos/Detail', props)
+
 
 @login_required()
 @permission_required('papeleria:delete_articulo')

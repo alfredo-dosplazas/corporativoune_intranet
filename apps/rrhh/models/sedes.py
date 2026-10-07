@@ -11,12 +11,11 @@ class Sede(models.Model):
     ciudad = models.CharField(max_length=100, blank=True, null=True)
     activa = models.BooleanField(default=True)
 
-    empresa = models.ForeignKey(
+    empresas = models.ManyToManyField(
         Empresa,
-        on_delete=models.CASCADE,
         blank=True,
-        null=True,
         related_name="sedes",
+        help_text="Empresas que operan o son administradas desde esta sede."
     )
 
     def __str__(self):
