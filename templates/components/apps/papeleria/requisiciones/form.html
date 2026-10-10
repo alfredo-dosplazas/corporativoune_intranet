@@ -1,314 +1,472 @@
-{% load money %}
-{% load humanize %}
 {% load crispy_forms_filters %}
 {% load crispy_forms_tags %}
 
 {% if form.errors or Detalle.errors %}
-    <div id="form-errors-banner"
-         class="alert alert-error alert-soft shadow mb-4">
-        <div>
-            <span class="font-semibold">
-                Hay errores en el formulario
-            </span>
-            <p class="text-sm">
-                Por favor revisa los campos marcados en rojo antes de continuar.
-            </p>
+    <div class="alert alert-error alert-soft shadow-2xs mb-3 rounded-md py-1.5 px-3 text-xs">
+        <div class="flex items-center gap-2">
+            <span class="icon-[tabler--alert-triangle] text-base shrink-0"></span>
+            <div>
+                <span class="font-bold">Faltan campos obligatorios:</span> Por favor revise los errores marcados en el
+                formulario.
+            </div>
         </div>
     </div>
 {% endif %}
 
-<form id="requisicion-form" method="post" novalidate>
+<form id="requisicion-form" method="post" novalidate class="space-y-3">
     {% csrf_token %}
 
-    <!-- ===================== -->
-    <!-- FORM PRINCIPAL -->
-    <!-- ===================== -->
-    {% if form.tipo_usuario == 'admin' %}
-        <div class="card bg-base-100 shadow mb-4">
-            <div class="card-body">
-                {% crispy form %}
-            </div>
-        </div>
-    {% else %}
-        <div class="card bg-base-100 shadow mb-4">
-            <div class="card-body">
-                {% crispy form %}
-            </div>
-        </div>
-    {% endif %}
+    <!-- FICHA ESTILO ODOO (SHEET CONTAINER) -->
+    <div class="bg-base-100 rounded-lg border border-base-200 shadow-2xs overflow-hidden">
 
-    <!-- ===================== -->
-    <!-- DETALLE / INLINE FORMSET -->
-    <!-- ===================== -->
-    <div class="card bg-base-100 shadow">
-        <div class="card-body space-y-3">
+        <!-- BARRA SUPERIOR DE ESTADO / PIPELINE -->
+        <div class="bg-base-200/50 px-4 py-2 border-b border-base-200 flex items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-2">
+                <span class="font-mono text-xs text-base-content/60">Folio:</span>
+                <span class="font-bold font-mono text-base-content text-sm">
+                    {% if object.folio %}{{ object.folio }}{% else %}NUEVA-REQUISICION{% endif %}
+                </span>
+            </div>
+            {% if object.estado %}
+                <span class="badge badge-sm badge-soft badge-primary font-bold uppercase tracking-wider">
+                    {{ object.get_estado_display|default:object.estado }}
+                </span>
+            {% else %}
+                <span class="badge badge-sm badge-soft badge-ghost font-bold uppercase tracking-wider">
+                    Borrador
+                </span>
+            {% endif %}
+        </div>
+
+        <!-- FORMULARIO ENCABEZADO (3 COLUMNAS COMPACTAS ERP) -->
+        <div class="p-3 text-xs bg-base-100">
+            {% crispy form %}
+        </div>
+
+        <!-- TABLA DE DETALLE / PARTIDAS REQUERIDAS -->
+        <div class="border-t border-base-200 bg-base-100">
+            <div class="px-4 py-2 flex items-center justify-between bg-base-200/30 border-b border-base-200">
+                <div class="flex items-center gap-2">
+                    <span class="icon-[tabler--list-check] text-primary text-base"></span>
+                    <h2 class="font-bold text-xs text-base-content uppercase tracking-wider">Artículos Solicitados</h2>
+                </div>
+                <span class="text-[11px] text-base-content/50">Mínimo 1 artículo requerido</span>
+            </div>
 
             {{ Detalle.management_form }}
 
-            <!-- TEMPLATE VACÍO -->
-            <div id="empty_row" class="hidden">
-                <table>
-                    <tbody>
-                    <tr class="form-row hover" data-has-id="0">
-                        <td>
-                            {{ Detalle.empty_form.id }}
-                            {{ Detalle.empty_form.articulo|as_crispy_field }}
-                            <div class="link-articulo hidden text-xs mt-1">
-                                <a target="_blank" class="link link-primary">Ver</a>
-                            </div>
-                        </td>
-                        <td>{{ Detalle.empty_form.cantidad|as_crispy_field }}</td>
-                        <td>{{ Detalle.empty_form.notas|as_crispy_field }}</td>
-                        <td class="precio text-right">-</td>
-                        <td class="impuesto text-right">-</td>
-                        <td class="importe text-right">-</td>
-                        <td class="subtotal text-right font-medium">-</td>
-                        <td class="text-center">
-                            <input type="checkbox"
-                                   name="{{ Detalle.empty_form.DELETE.html_name }}"
-                                   class="hidden">
-                            <button type="button"
-                                    class="btn btn-ghost btn-xs text-error btn-delete-row">
-                                ✕
-                            </button>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- TABLA -->
+            <!-- TABLA DE CONCEPTOS -->
             <div class="overflow-x-auto">
-                <table id="table-detalle"
-                       class="formset table table-sm table-zebra w-full text-sm">
-                    <thead class="bg-base-200 sticky top-0 z-10">
-                    <tr>
-                        <th>Artículo</th>
-                        <th>Cant.</th>
-                        <th>Notas</th>
-                        <th class="text-right">Precio</th>
-                        <th class="text-right">Imp.</th>
-                        <th class="text-right">Importe</th>
-                        <th class="text-right">Subtotal</th>
-                        <th class="text-center w-16">✕</th>
+                <table id="table-detalle" class="w-full text-left border-collapse text-xs">
+                    <thead>
+                    <tr class="bg-base-200/60 text-[11px] uppercase tracking-wider text-base-content/70 border-b border-base-200">
+                        <th class="w-8 py-1.5 px-2 text-center">#</th>
+                        <th class="w-12 py-1.5 px-1 text-center">Img</th>
+                        <th class="py-1.5 px-2">Artículo *</th>
+                        <th class="w-24 py-1.5 px-2 text-right">Cant. *</th>
+                        <th class="w-28 py-1.5 px-2 text-right">P. Unit.</th>
+                        <th class="w-28 py-1.5 px-2 text-right">Importe</th>
+                        <th class="w-48 py-1.5 px-2">Notas / Especificaciones</th>
+                        <th class="w-8 py-1.5 px-2 text-center"></th>
                     </tr>
                     </thead>
-
-                    <tbody>
+                    <tbody id="detalle-container-desktop" class="divide-y divide-base-200/60">
                     {% for inline_form in Detalle %}
-                        <tr
-                                class="form-row hover
-                                {% if inline_form.errors %}
-                                    bg-error/10 border-l-4 border-error
-                                {% endif %}"
-                                data-has-id="{% if inline_form.instance.pk %}1{% else %}0{% endif %}"
-                        >
-                            <td>
-                                {{ inline_form.id }}
-                                {{ inline_form.articulo|as_crispy_field }}
+                        <tr class="form-row hover:bg-base-200/20 transition-colors {% if inline_form.errors %}bg-error/10{% endif %}"
+                            data-has-id="{% if inline_form.instance.pk %}1{% else %}0{% endif %}">
 
-                                {% if inline_form.non_field_errors %}
-                                    <div class="mt-1 text-xs text-error">
-                                        {% for error in inline_form.non_field_errors %}
-                                            <div class="flex items-start gap-1">
-                                                <span>{{ error }}</span>
-                                            </div>
-                                        {% endfor %}
+                            <!-- NUMERACIÓN -->
+                            <td class="text-center bg-base-200/30 text-[11px] text-base-content/60 font-mono py-1 px-2 align-middle select-none row-number">
+                                {{ forloop.counter }}
+                            </td>
+
+                            <!-- MINIATURA DE IMAGEN -->
+                            <td class="p-1 align-middle text-center">
+                                <div class="avatar">
+                                    <div class="w-7 h-7 rounded border border-base-200 bg-base-200/40 flex items-center justify-center overflow-hidden">
+                                        <img src="
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                {% if inline_form.instance.articulo.imagen %}{{ inline_form.instance.articulo.imagen.url }}{% endif %}"
+                                             class="img-articulo object-cover w-full h-full {% if not inline_form.instance.articulo.imagen %}hidden{% endif %}"
+                                             alt="Preview">
+                                        <span class="icon-[tabler--photo] text-base-content/30 size-4 img-placeholder {% if inline_form.instance.articulo.imagen %}hidden{% endif %}"></span>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- ARTÍCULO (Select2/Autocomplete) -->
+                            <td class="p-1 align-middle min-w-[220px]">
+                                {{ inline_form.id }}
+                                <div class="select-articulo-container">
+                                    {{ inline_form.articulo }}
+                                </div>
+                                {% if inline_form.errors %}
+                                    <div class="text-[10px] text-error px-1 py-0.5 bg-error/10 rounded mt-0.5">
+                                        {{ inline_form.errors }}
+                                    </div>
+                                {% endif %}
+                                {% if inline_form.articulo.errors %}
+                                    <div class="text-[10px] text-error px-1 py-0.5 bg-error/10 rounded mt-0.5">
+                                        {% for error in inline_form.articulo.errors %}{{ error }}{% endfor %}
                                     </div>
                                 {% endif %}
                             </td>
-                            <td>{{ inline_form.cantidad|as_crispy_field }}</td>
-                            <td>{{ inline_form.notas|as_crispy_field }}</td>
-                            <td class="precio text-right">
-                                {{ inline_form.instance.articulo.precio|money|default:"-" }}
+
+                            <!-- CANTIDAD -->
+                            <td class="p-1 align-middle">
+                                <input type="number"
+                                       name="{{ inline_form.cantidad.html_name }}"
+                                       id="{{ inline_form.cantidad.id_for_label }}"
+                                       value="{{ inline_form.cantidad.value|default_if_none:'1' }}"
+                                       step="1" min="1" required
+                                       class="input input-xs input-bordered w-full font-mono text-right input-cantidad h-7 {% if inline_form.cantidad.errors %}input-error{% endif %}">
                             </td>
-                            <td class="impuesto text-right">
-                                {{ inline_form.instance.articulo.impuesto|percent|default:"-" }}
+
+                            <!-- PRECIO UNITARIO (Lectura / Automático) -->
+                            <td class="p-1 align-middle min-w-[100px]">
+                                <input type="number"
+                                       name="{{ inline_form.precio_unitario.html_name }}"
+                                       id="{{ inline_form.precio_unitario.id_for_label }}"
+                                       value="{{ inline_form.precio_unitario.value|default_if_none:inline_form.instance.precio_unitario|default:'0.00' }}"
+                                       step="0.01"
+                                       min="0"
+                                       readonly
+                                       tabindex="-1"
+                                       class="input input-xs input-bordered w-full font-mono text-right input-precio bg-base-200/50 cursor-not-allowed focus:outline-none h-7">
                             </td>
-                            <td class="importe text-right">
-                                {{ inline_form.instance.articulo.importe|money|default:"-" }}
+
+                            <!-- IMPORTE / SUBTOTAL -->
+                            <td class="py-1 px-2 text-right font-mono text-xs font-semibold text-primary align-middle bg-base-200/20 cell-importe select-none">
+                                ${{ inline_form.instance.subtotal|default:"0.00" }}
                             </td>
-                            <td class="subtotal text-right font-medium">
-                                {{ inline_form.instance.subtotal|money|default:"-" }}
+
+                            <!-- NOTAS -->
+                            <td class="p-1 align-middle">
+                                <input type="text"
+                                       name="{{ inline_form.notas.html_name }}"
+                                       id="{{ inline_form.notas.id_for_label }}"
+                                       value="{{ inline_form.notas.value|default_if_none:'' }}"
+                                       class="input input-xs input-bordered w-full h-7 text-xs"
+                                       placeholder="Notas...">
                             </td>
-                            <td class="text-center">
-                                <input type="checkbox"
-                                       name="{{ inline_form.DELETE.html_name }}"
-                                       id="{{ inline_form.DELETE.id_for_label }}"
-                                       class="hidden">
+
+                            <!-- ACCIONES -->
+                            <td class="text-center align-middle p-1">
+                                {% if inline_form.DELETE %}
+                                    <input type="checkbox"
+                                           name="{{ inline_form.DELETE.html_name }}"
+                                           id="{{ inline_form.DELETE.id_for_label }}"
+                                           class="hidden input-delete-check"
+                                           {% if inline_form.DELETE.value %}checked{% endif %}>
+                                {% endif %}
                                 <button type="button"
-                                        class="btn btn-ghost btn-xs text-error btn-delete-row">
+                                        class="btn btn-ghost btn-xs btn-square text-error/60 hover:text-error hover:bg-error/10 size-6 rounded btn-delete-row"
+                                        title="Eliminar fila">
                                     ✕
                                 </button>
                             </td>
                         </tr>
                     {% endfor %}
                     </tbody>
-
-                    <tfoot class="bg-base-200 font-semibold sticky bottom-0">
-                    <tr>
-                        <th colspan="5"></th>
-                        <th class="text-right">Total</th>
-                        <th id="total-general" class="text-right">0.00</th>
-                        <th></th>
-                    </tr>
-                    </tfoot>
                 </table>
+            </div>
 
-                <div class="p-4">
-                    <button type="button"
-                            id="add-form"
-                            class="link link-success">
-                        + Agregar artículo
-                    </button>
+            <!-- BLOQUE RESUMEN ACTUALIZADO CON ESTIMACIÓN ECONÓMICA -->
+            <div class="p-3 bg-base-200/20 border-t border-base-200 flex flex-col sm:flex-row items-stretch sm:items-start justify-between gap-4">
+                <button type="button" id="add-form"
+                        class="btn btn-xs btn-outline btn-primary gap-1 font-semibold rounded-md h-7">
+                    <span class="text-xs font-bold">+</span>
+                    <span>Agregar artículo</span>
+                </button>
+
+                <div class="w-full sm:w-72 space-y-1 text-xs bg-base-100 border border-base-200 rounded-md p-2.5 shadow-2xs">
+                    <div class="flex justify-between items-center text-base-content/70">
+                        <span>Renglones:</span>
+                        <span id="total-renglones" class="font-mono font-bold text-base-content">0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-base-content/70">
+                        <span>Piezas Totales:</span>
+                        <span id="total-piezas" class="font-mono font-bold text-base-content">0</span>
+                    </div>
+                    <div class="flex justify-between items-center font-bold text-xs pt-1.5 border-t border-base-200 text-base-content">
+                        <span>Monto Estimado Total:</span>
+                        <span id="total-estimado" class="font-mono text-primary font-extrabold text-sm">$0.00</span>
+                    </div>
                 </div>
             </div>
+
         </div>
     </div>
 </form>
 
 <script>
-    (function () {
+    document.addEventListener('DOMContentLoaded', function () {
+        const tableBody = document.getElementById('detalle-container-desktop');
+        const btnAdd = document.getElementById('add-form');
 
-        /* =============================
-         *  VARIABLES BASE
-         * ============================= */
-        const $table = $("#table-detalle");
-        const $totalForms = $("#id_detalle_requisicion-TOTAL_FORMS");
+        // Búsqueda resiliente del input TOTAL_FORMS
+        const getTotalFormsInput = () => {
+            return document.getElementById('id_detalle_requisicion-TOTAL_FORMS')
+                || document.getElementById('id_detalle-TOTAL_FORMS')
+                || document.querySelector('input[name$="-TOTAL_FORMS"]');
+        };
 
-        const getTotalForms = () => parseInt($totalForms.val(), 10);
-        const setTotalForms = v => $totalForms.val(v);
+        // Formateador Moneda
+        const formatCurrency = (amount) => {
+            return new Intl.NumberFormat('es-MX', {
+                style: 'currency',
+                currency: 'MXN',
+                minimumFractionDigits: 2
+            }).format(amount || 0);
+        };
 
-        /* =============================
-         *  UTILIDADES
-         * ============================= */
-        function reindexForms() {
-            $table.find("tbody tr").each(function (index) {
-                $(this).find(":input[name]").each(function () {
-                    this.name = this.name.replace(
-                        /detalle_requisicion-\d+-/,
-                        `detalle_requisicion-${index}-`
-                    );
-                });
-            });
-        }
+        // Carga AJAX de datos de artículo
+        function cargarDatosArticulo(row, articuloId) {
+            if (!articuloId) {
+                row.querySelector('.img-articulo')?.classList.add('hidden');
+                row.querySelector('.img-placeholder')?.classList.remove('hidden');
 
-        function recalcularTotal() {
-            let total = 0;
+                const precioInput = row.querySelector('.input-precio');
+                if (precioInput) precioInput.value = '0.00';
 
-            $table.find("tbody tr").each(function () {
-                if ($(this).find("input[name$='-DELETE']").prop("checked")) return;
-                total += parseFloat($(this).find(".subtotal").text()) || 0;
-            });
-
-            $("#total-general").text(total.toFixed(2));
-        }
-
-        /* =============================
-         *  CÁLCULO POR FILA
-         * ============================= */
-        function actualizarFila($select) {
-            const $row = $select.closest("tr");
-            const data = $select.select2("data")[0];
-
-            if (!data) return;
-
-            const precio = parseFloat(data.precio) || 0;
-            const impuesto = parseFloat(data.impuesto) || 0;
-            const cantidad = parseFloat(
-                $row.find("input[name$='cantidad']").val()
-            ) || 1;
-
-            const importe = cantidad * precio;
-            const subtotal = importe * (1 + impuesto);
-
-            // Pintar valores
-            $row.find(".precio").text(precio.toFixed(2));
-            $row.find(".impuesto").text((impuesto * 100).toFixed(0) + "%");
-            $row.find(".importe").text(importe.toFixed(2));
-            $row.find(".subtotal").text(subtotal.toFixed(2));
-
-            // Link al artículo
-            const $linkBox = $row.find(".link-articulo");
-            if (data.url) {
-                $linkBox.removeClass("hidden");
-                $linkBox.find("a").attr("href", data.url);
-            } else {
-                $linkBox.addClass("hidden");
+                row.querySelector('.cell-importe').textContent = '$0.00';
+                row.setAttribute('data-precio', '0');
+                recalculateTotals();
+                return;
             }
 
-            recalcularTotal();
+            fetch(`/papeleria/api/articulos/${articuloId}/info/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const art = data.articulo;
+
+                        const imgEl = row.querySelector('.img-articulo');
+                        const placeholderEl = row.querySelector('.img-placeholder');
+
+                        if (art.imagen_url) {
+                            imgEl.src = art.imagen_url;
+                            imgEl.classList.remove('hidden');
+                            placeholderEl?.classList.add('hidden');
+                        } else {
+                            imgEl?.classList.add('hidden');
+                            placeholderEl?.classList.remove('hidden');
+                        }
+
+                        const precioInput = row.querySelector('.input-precio');
+                        if (precioInput) {
+                            precioInput.value = parseFloat(art.precio_unitario).toFixed(2);
+                        }
+                        row.setAttribute('data-precio', art.precio_unitario);
+
+                        recalculateTotals();
+                    }
+                })
+                .catch(err => console.error("Error al obtener información del artículo:", err));
         }
 
-        /* =============================
-         *  FORMSET
-         * ============================= */
-        function addForm() {
-            const index = getTotalForms();
-            const html = $("#empty_row tbody").html()
-                .replace(/__prefix__/g, index);
+        // Recalcular Subtotales por Renglón y Resumen
+        function recalculateTotals() {
+            let totalRenglones = 0;
+            let totalPiezas = 0;
+            let totalMonto = 0;
 
-            const $row = $(html);
-            $table.find("tbody").append($row);
+            const rows = tableBody.querySelectorAll('tr.form-row');
+            rows.forEach(row => {
+                if (row.style.display === 'none') return;
 
-            setTotalForms(index + 1);
+                const cantidadInput = row.querySelector('.input-cantidad');
+                const precioInput = row.querySelector('.input-precio');
 
-            // UX
-            $row[0].scrollIntoView({behavior: "smooth", block: "center"});
-            $row.addClass("bg-success/10");
-            setTimeout(() => $row.removeClass("bg-success/10"), 1200);
+                const cantidad = parseFloat(cantidadInput?.value) || 0;
+                const precioUnitario = parseFloat(precioInput?.value) || parseFloat(row.getAttribute('data-precio')) || 0;
+
+                const subtotal = cantidad * precioUnitario;
+
+                const cellImporte = row.querySelector('.cell-importe');
+                if (cellImporte) cellImporte.textContent = formatCurrency(subtotal);
+
+                totalRenglones += 1;
+                totalPiezas += cantidad;
+                totalMonto += subtotal;
+            });
+
+            if (document.getElementById('total-renglones')) document.getElementById('total-renglones').textContent = totalRenglones;
+            if (document.getElementById('total-piezas')) document.getElementById('total-piezas').textContent = totalPiezas;
+            if (document.getElementById('total-estimado')) document.getElementById('total-estimado').textContent = formatCurrency(totalMonto);
         }
 
-        function deleteForm($row) {
-            const hasId = $row.data("has-id") === 1;
-            const $delete = $row.find("input[name$='-DELETE']");
-
-            if (hasId) {
-                $delete.prop("checked", true);
-                $row.hide();
-            } else {
-                $row.remove();
-                setTotalForms(getTotalForms() - 1);
-                reindexForms();
+        // Escuchar cambios en los selects (Nativo y Select2)
+        document.addEventListener('change', function (e) {
+            if (e.target && e.target.matches('select[name*="-articulo"]')) {
+                const row = e.target.closest('tr.form-row');
+                cargarDatosArticulo(row, e.target.value);
             }
-
-            recalcularTotal();
-        }
-
-        /* =============================
-         *  EVENTOS
-         * ============================= */
-
-        // Agregar fila
-        $("#add-form").on("click", addForm);
-
-        // Eliminar fila
-        $table.on("click", ".btn-delete-row", function () {
-            deleteForm($(this).closest("tr"));
         });
 
-        // Selección de artículo (DAL / Select2)
-        $table.on(
-            "select2:select select2:clear",
-            '[data-autocomplete-light-function="select2"]',
-            function () {
-                actualizarFila($(this));
-            }
-        );
+        if (window.jQuery) {
+            jQuery(document).on('change select2:select', 'select[name*="-articulo"]', function () {
+                const row = this.closest('tr.form-row');
+                cargarDatosArticulo(row, this.value);
+            });
+        }
 
-        // Cambio de cantidad
-        $table.on(
-            "input",
-            "input[name$='cantidad']",
-            function () {
-                const $row = $(this).closest("tr");
-                const $select = $row.find('[data-autocomplete-light-function="select2"]');
+        function reindexRows() {
+            let visibleCount = 0;
+            const rows = tableBody.querySelectorAll('tr.form-row');
+            rows.forEach(row => {
+                if (row.style.display !== 'none') {
+                    visibleCount++;
+                    const numTd = row.querySelector('.row-number');
+                    if (numTd) numTd.textContent = visibleCount;
+                }
+            });
+        }
 
-                if ($select.val()) {
-                    actualizarFila($select);
+        // AGREGAR NUEVA FILA DINÁMICAMENTE
+        if (btnAdd) {
+            btnAdd.addEventListener('click', function () {
+                const totalFormsInput = getTotalFormsInput();
+                if (!totalFormsInput) return;
+
+                const currentFormCount = parseInt(totalFormsInput.value, 10);
+                const rows = tableBody.querySelectorAll('tr.form-row');
+                if (rows.length === 0) return;
+
+                // Clonar la primera fila
+                const templateRow = rows[0].cloneNode(true);
+
+                templateRow.style.display = '';
+                templateRow.removeAttribute('data-has-id');
+                templateRow.classList.remove('bg-error/10');
+
+                // Limpiar contenedores generados por Select2/DAL
+                templateRow.querySelectorAll('.select2-container').forEach(e => e.remove());
+
+                // Reemplazar prefijos del FormSet (ejemplo: detalle_requisicion-0- -> detalle_requisicion-1-)
+                const prefix = totalFormsInput.name.replace('-TOTAL_FORMS', '');
+                const regexIndex = new RegExp(`${prefix}-(\\d+)-`, 'g');
+                const replacement = `${prefix}-${currentFormCount}-`;
+                templateRow.innerHTML = templateRow.innerHTML.replace(regexIndex, replacement);
+
+                // Resetear valores e inputs
+                templateRow.querySelectorAll('input, select, textarea').forEach(input => {
+                    if (input.type === 'checkbox') {
+                        input.checked = false;
+                        input.removeAttribute('checked');
+                    } else if (input.name && input.name.endsWith('-id')) {
+                        input.value = ''; // ID nulo para nuevos registros
+                    } else if (input.classList.contains('input-cantidad')) {
+                        input.value = '1';
+                    } else if (input.classList.contains('input-precio')) {
+                        input.value = '0.00';
+                    } else {
+                        input.value = '';
+                    }
+                    input.removeAttribute('disabled');
+                });
+
+                tableBody.appendChild(templateRow);
+
+                // Reinicializar Select2 / Autocomplete para el nuevo elemento clonado
+                if (window.jQuery && jQuery.fn.select2) {
+                    const $newSelect = jQuery(templateRow).find('select[data-autocomplete-light-function]');
+                    if ($newSelect.length) {
+                        $newSelect.removeClass('select2-hidden-accessible').removeAttr('data-select2-id');
+                        $newSelect.find('option').remove();
+                        // Inicializar Autocomplete DAL si está disponible
+                        if (typeof ydal !== 'undefined' && ydal.init) {
+                            ydal.init();
+                        } else {
+                            $newSelect.select2();
+                        }
+                    }
+                }
+
+                totalFormsInput.value = currentFormCount + 1;
+                reindexRows();
+                recalculateTotals();
+            });
+        }
+
+        // ELIMINAR / MARCAR COMO ELIMINADA UNA FILA
+        tableBody.addEventListener('click', function (e) {
+            const btnDelete = e.target.closest('.btn-delete-row');
+            if (!btnDelete) return;
+
+            const row = btnDelete.closest('tr.form-row');
+
+            // Obtener el ID oculto del registro y el Checkbox DELETE
+            const idInput = row.querySelector('input[name$="-id"]');
+            const deleteCheckbox = row.querySelector('.input-delete-check') || row.querySelector('input[name$="-DELETE"]');
+
+            if (deleteCheckbox) {
+                // CASO A: Registro existente en Base de Datos
+                deleteCheckbox.checked = true;
+                deleteCheckbox.setAttribute('checked', 'checked');
+
+                // Quitar atributos 'required' para evitar bloqueos del navegador en el submit
+                row.querySelectorAll('input, select, textarea').forEach(field => {
+                    if (field !== deleteCheckbox) {
+                        field.removeAttribute('required');
+                        if (field.classList.contains('input-cantidad') && !field.value) {
+                            field.value = '1';
+                        }
+                        if (field.classList.contains('input-precio') && !field.value) {
+                            field.value = '0.00';
+                        }
+                    }
+                });
+
+                // Ocultar fila visualmente
+                row.style.display = 'none';
+
+            } else {
+                // CASO B: Fila nueva agregada dinámicamente
+                const visibleRows = Array.from(tableBody.querySelectorAll('tr.form-row')).filter(r => r.style.display !== 'none');
+                if (visibleRows.length > 1) {
+                    row.remove(); // Se elimina del DOM
+                } else {
+                    // Si es la última fila visible, blanquear sus valores
+                    row.querySelectorAll('input, select, textarea').forEach(i => {
+                        if (i.type === 'checkbox') i.checked = false;
+                        else if (i.classList.contains('input-cantidad')) i.value = '1';
+                        else if (i.classList.contains('input-precio')) i.value = '0.00';
+                        else i.value = '';
+                    });
+                    row.querySelector('.img-articulo')?.classList.add('hidden');
+                    row.querySelector('.img-placeholder')?.classList.remove('hidden');
+                    row.querySelector('.cell-importe').textContent = '$0.00';
+                    row.setAttribute('data-precio', '0');
                 }
             }
-        );
 
-    })();
+            reindexRows();
+            recalculateTotals();
+        });
+
+        // Escuchar cambios de cantidad en tiempo real
+        tableBody.addEventListener('input', function (e) {
+            if (e.target.classList.contains('input-cantidad')) {
+                recalculateTotals();
+            }
+        });
+
+        // Inicialización
+        reindexRows();
+        recalculateTotals();
+    });
 </script>

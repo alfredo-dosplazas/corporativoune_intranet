@@ -1,48 +1,181 @@
-{% load requisiciones_extras %}
-<c-table.actions>
-    {% if perms.papeleria.add_requisicion %}
+{% comment %}
+    Componente de Acciones para Requisiciones de Papelería
+    Uso: <c-apps.papeleria.requisiciones.table.actions :record="requisicion" prefix="list|card" />
+{% endcomment %}
+
+<div class="dropdown dropdown-end">
+    <button tabindex="0"
+            type="button"
+            class="btn btn-ghost btn-xs btn-square h-6 w-6 border border-base-200 bg-base-100 hover:bg-base-200">
+        <span class="icon-[tabler--dots-vertical] text-xs"></span>
+    </button>
+
+    <ul tabindex="0"
+        class="dropdown-content menu menu-xs bg-base-100 rounded-md border border-base-200 shadow-lg w-44 z-50 p-1 space-y-0.5">
+
+        <!-- VER DETALLE -->
         <li>
-            <a href="{% url 'papeleria:requisiciones__create' %}{% querystring requisicion_id=record.pk %}">
-                Duplicar
+            <a href="{% url 'papeleria:requisiciones__detail' record.pk %}">
+                <span class="icon-[tabler--eye] text-xs text-base-content/70"></span>
+                <span>Ver Detalle</span>
             </a>
         </li>
-    {% endif %}
-    {% if perms.papeleria.view_requisicion %}
-        <li><a href="{% url 'papeleria:requisiciones__detail' record.pk %}">Detalle</a></li>
-    {% endif %}
-    {% if perms.papeleria.change_requisicion and record|puede_editar:user %}
-        <li><a href="{% url 'papeleria:requisiciones__update' record.pk %}">Editar</a></li>
-    {% endif %}
-    {% if perms.papeleria.delete_requisicion %}
-        <li>
-            <button onclick="requisicion_delete_modal_{{ record.pk }}.showModal()">Eliminar</button>
-        </li>
-    {% endif %}
 
+        <!-- EDITAR (SOLO EN BORRADOR O SUPERUSUARIO) -->
+        {% if record.puede_editar and perms.papeleria.change_requisicion or record.solicitante == request.user and record.estado == 'borrador' %}
+            <li>
+                <a href="{% url 'papeleria:requisiciones__update' record.pk %}">
+                    <span class="icon-[tabler--pencil] text-xs text-info"></span>
+                    <span>Editar</span>
+                </a>
+            </li>
+        {% endif %}
 
-    {% if perms.papeleria.delete_requisicion %}
-        <dialog id="requisicion_delete_modal_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
-            <div class="modal-box">
-                <form method="dialog">
-                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+        <div class="divider my-0.5"></div>
+
+        <!-- ACCIONES DE FLUJO DE APROBACIÓN -->
+
+        <!-- CONFIRMAR BORRADOR -->
+        {% if record.estado == 'borrador' %}
+            <li>
+                <form action="{% url 'papeleria:requisiciones__confirm' record.pk %}" method="POST" class="w-full">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full flex items-center gap-2 text-success font-medium">
+                        <span class="icon-[tabler--check] text-xs"></span>
+                        <span>Confirmar</span>
+                    </button>
                 </form>
-                <h3 class="text-lg font-bold">¿Eliminar {{ record }}?</h3>
-                <p class="py-4">Esta acción no se podrá deshacer.</p>
+            </li>
+        {% endif %}
 
-                <div class="modal-action">
-                    <form action="{% url 'papeleria:requisiciones__delete' record.pk %}" method="post">
-                        {% csrf_token %}
-                        <button class="btn btn-error">Confirmar</button>
-                    </form>
-                    <form method="dialog">
-                        <button class="btn">Cancelar</button>
-                    </form>
+        <!-- SOLICITAR APROBACIÓN -->
+        {% if record.estado == 'confirmada' %}
+            <li>
+                <form action="{% url 'papeleria:requisiciones__request_confirm' record.pk %}" method="POST"
+                      class="w-full">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full flex items-center gap-2 text-info font-medium">
+                        <span class="icon-[tabler--send] text-xs"></span>
+                        <span>Solicitar Aprobación</span>
+                    </button>
+                </form>
+            </li>
+        {% endif %}
+
+        <!-- EXPORTAR A EXCEL -->
+        <li>
+            <a href="{% url 'papeleria:requisiciones__excel' record.pk %}" target="_blank">
+                <span class="icon-[file-icons--microsoft-excel] text-xs text-[#20744a]"></span>
+                <span>Descargar Excel</span>
+            </a>
+        </li>
+
+        <!-- CANCELAR / RECHAZAR -->
+        {% if record.estado != 'cancelada' and record.estado != 'completada' %}
+            <div class="divider my-0.5"></div>
+            <li>
+                <button type="button"
+                        onclick="rechazar_requisicion_modal_{{ prefix|default:'default' }}_{{ record.pk }}.showModal()"
+                        class="text-error font-medium">
+                    <span class="icon-[tabler--x] text-xs"></span>
+                    <span>Rechazar / Cancelar</span>
+                </button>
+            </li>
+        {% endif %}
+
+        <!-- ELIMINAR (SI ES BORRADOR O SUPERUSUARIO) -->
+        {% if record.estado == 'borrador' %}
+            <li>
+                <button type="button"
+                        onclick="eliminar_requisicion_modal_{{ prefix|default:'default' }}_{{ record.pk }}.showModal()"
+                        class="text-error font-medium">
+                    <span class="icon-[tabler--trash] text-xs"></span>
+                    <span>Eliminar</span>
+                </button>
+            </li>
+        {% endif %}
+
+    </ul>
+</div>
+
+<!-- MODAL RECHAZAR / CANCELAR CON PREFIJO ÚNICO -->
+{% if record.estado != 'cancelada' and record.estado != 'completada' %}
+    <dialog id="rechazar_requisicion_modal_{{ prefix|default:'default' }}_{{ record.pk }}"
+            class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box p-4 bg-base-100 border border-base-200">
+            <div class="flex items-center justify-between border-b border-base-200 pb-2 mb-3">
+                <div class="flex items-center gap-1.5 font-bold text-xs text-error">
+                    <span class="icon-[tabler--alert-circle] text-base"></span>
+                    <span>Rechazar Requisición {{ record.folio }}</span>
+                </div>
+                <form method="dialog">
+                    <button class="btn btn-xs btn-circle btn-ghost">✕</button>
+                </form>
+            </div>
+
+            <form method="post" action="{% url 'papeleria:requisiciones__rechazar' record.pk %}"
+                  class="space-y-3 text-xs">
+                {% csrf_token %}
+                <div>
+                    <label class="block font-semibold mb-1">Motivo o razón del rechazo *</label>
+                    <textarea name="razon_rechazo"
+                              rows="3"
+                              class="textarea textarea-bordered textarea-xs w-full focus:outline-none focus:border-error"
+                              placeholder="Escribe la razón detallada para cancelar la solicitud..."
+                              required></textarea>
                 </div>
 
-            </div>
-            <form method="dialog" class="modal-backdrop">
-                <button>close</button>
+                <div class="modal-action border-t border-base-200 pt-2">
+                    <form method="dialog">
+                        <button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost btn-xs">
+                            Cancelar
+                        </button>
+                    </form>
+                    <button type="submit" class="btn btn-error btn-xs font-medium text-white">
+                        Confirmar Rechazo
+                    </button>
+                </div>
             </form>
-        </dialog>
-    {% endif %}
-</c-table.actions>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+{% endif %}
+
+<!-- MODAL ELIMINAR CON PREFIJO ÚNICO -->
+{% if record.estado == 'borrador' %}
+    <dialog id="eliminar_requisicion_modal_{{ prefix|default:'default' }}_{{ record.pk }}"
+            class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box p-4 bg-base-100 border border-base-200">
+            <div class="flex items-center justify-between border-b border-base-200 pb-2 mb-3">
+                <div class="flex items-center gap-1.5 font-bold text-xs text-error">
+                    <span class="icon-[tabler--trash] text-base"></span>
+                    <span>Eliminar Borrador {{ record.folio }}</span>
+                </div>
+                <form method="dialog">
+                    <button class="btn btn-xs btn-circle btn-ghost">✕</button>
+                </form>
+            </div>
+
+            <p class="text-xs text-base-content/80 mb-4">
+                ¿Estás seguro de que deseas eliminar permanentemente la requisición <strong
+                    class="font-mono">{{ record.folio }}</strong>? Esta acción no se puede deshacer.
+            </p>
+
+            <form method="post" action="{% url 'papeleria:requisiciones__delete' record.pk %}"
+                  class="flex items-center justify-end gap-2 text-xs border-t border-base-200 pt-2">
+                {% csrf_token %}
+                <button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost btn-xs">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-error btn-xs font-medium text-white">
+                    Sí, Eliminar
+                </button>
+            </form>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+{% endif %}

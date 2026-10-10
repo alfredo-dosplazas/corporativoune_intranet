@@ -1,0 +1,120 @@
+<c-layouts.base>
+    <div id="pantalla-container"
+         class="w-screen h-screen bg-black overflow-hidden relative flex items-center justify-center select-none">
+
+        <!-- ELEMENTO IMAGEN -->
+        <img id="slide-imagen" src="" alt="Diapositiva"
+             class="absolute inset-0 w-full h-full object-contain transition-opacity duration-700 opacity-0 z-10"/>
+
+        <!-- ELEMENTO VIDEO -->
+        <video id="slide-video"
+               class="absolute inset-0 w-full h-full object-contain transition-opacity duration-700 opacity-0 z-10"
+               autoplay muted playsinline></video>
+
+        <!-- MENSAJE SI NO HAY ARCHIVOS -->
+        <div id="sin-contenido" class="hidden text-center text-white/50 space-y-4">
+            <p class="text-6xl animate-pulse">📺</p>
+            <p class="text-2xl font-light">Esperando contenido en la carpeta de red...</p>
+        </div>
+    </div>
+
+    <script>
+        // Carga inicial transmitida desde Django
+        let playlist = {{ playlist_inicial|safe }};
+        let indiceActual = 0;
+        let timerImagen = null;
+
+        const imgElement = document.getElementById('slide-imagen');
+        const videoElement = document.getElementById('slide-video');
+        const emptyElement = document.getElementById('sin-contenido');
+
+        function reproducirSiguiente() {
+            if (timerImagen) clearTimeout(timerImagen);
+
+            if (!playlist || playlist.length === 0) {
+                imgElement.classList.add('opacity-0');
+                videoElement.classList.add('opacity-0');
+                videoElement.pause();
+                emptyElement.classList.remove('hidden');
+                return;
+            }
+
+            emptyElement.classList.add('hidden');
+
+            if (indiceActual >= playlist.length) {
+                indiceActual = 0;
+            }
+
+            const item = playlist[indiceActual];
+            indiceActual++;
+
+            if (item.tipo === 'imagen') {
+                // Ocultar video y mostrar imagen
+                videoElement.classList.add('opacity-0');
+                videoElement.pause();
+
+                imgElement.src = item.url;
+                imgElement.classList.remove('opacity-0');
+
+                // Transición a la siguiente imagen tras transcurrir la duración asignada
+                timerImagen = setTimeout(() => {
+                    reproducirSiguiente();
+                }, item.duracion * 1000);
+
+            } else if (item.tipo === 'video') {
+                // Ocultar imagen y mostrar video
+                imgElement.classList.add('opacity-0');
+
+                videoElement.src = item.url;
+                videoElement.currentTime = 0;
+                videoElement.classList.remove('opacity-0');
+
+                videoElement.play().catch(err => {
+                    console.warn("Autoplay prevenido por el navegador, reintentando...", err);
+                    reproducirSiguiente();
+                });
+            }
+        }
+
+        // Evento nativo de HTML5: Al terminar el video, pasa automáticamente a la siguiente diapositiva
+        videoElement.addEventListener('ended', () => {
+            reproducirSiguiente();
+        });
+
+        // Manejo de errores si un video o imagen no se puede cargar
+        videoElement.addEventListener('error', () => reproducirSiguiente());
+        imgElement.addEventListener('error', () => reproducirSiguiente());
+
+        // CONEXIÓN WEBSOCKET PARA ACTUALIZACIONES EN TIEMPO REAL
+        function conectarWebSocket() {
+            const wsScheme = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            const socketUrl = wsScheme + window.location.host + '/ws/infopantallas/pantalla1/';
+            const socket = new WebSocket(socketUrl);
+
+            socket.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'ACTUALIZAR_PLAYLIST') {
+                    console.log("Nueva playlist recibida desde la carpeta de red:", data.playlist);
+
+                    // Actualizamos la playlist en memoria
+                    playlist = data.playlist;
+
+                    // Si la pantalla estaba vacía, iniciamos la reproducción de inmediato
+                    if (imgElement.classList.contains('opacity-0') && videoElement.classList.contains('opacity-0')) {
+                        indiceActual = 0;
+                        reproducirSiguiente();
+                    }
+                }
+            };
+
+            socket.onclose = function () {
+                setTimeout(conectarWebSocket, 3000);
+            };
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            reproducirSiguiente();
+            conectarWebSocket();
+        });
+    </script>
+</c-layouts.base>

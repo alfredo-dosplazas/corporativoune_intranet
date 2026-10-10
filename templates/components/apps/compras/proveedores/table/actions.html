@@ -1,8 +1,19 @@
 <c-table.actions>
-    <!-- 1. EDITAR PROVEEDOR -->
-    {% if perms.compras.change_proveedor %}
+    <!-- 1. VER DETALLE DE ARTÍCULO -->
+    {% if perms.papeleria.view_articulo %}
         <li>
-            <a href="{% url 'compras:proveedores__update' record.pk %}"
+            <a href="{% url 'papeleria:articulos__detail' record.pk %}"
+               class="flex items-center gap-1.5 py-1 text-xs">
+                <span class="icon-[tabler--eye] text-xs text-base-content/60 shrink-0"></span>
+                <span>Detalle</span>
+            </a>
+        </li>
+    {% endif %}
+
+    <!-- 2. EDITAR ARTÍCULO -->
+    {% if perms.papeleria.change_articulo %}
+        <li>
+            <a href="{% url 'papeleria:articulos__update' record.pk %}"
                class="flex items-center gap-1.5 py-1 text-xs">
                 <span class="icon-[tabler--edit] text-xs text-base-content/60 shrink-0"></span>
                 <span>Editar</span>
@@ -10,13 +21,13 @@
         </li>
     {% endif %}
 
-    <!-- 2. ELIMINAR PROVEEDOR -->
-    {% if perms.compras.delete_proveedor %}
+    <!-- 3. ELIMINAR ARTÍCULO -->
+    {% if perms.papeleria.delete_articulo %}
         <li class="my-0.5 border-t border-base-200"></li>
         <li>
             <button type="button"
                     class="flex items-center gap-1.5 py-1 text-xs text-error hover:bg-error/10"
-                    onclick="proveedor_delete_modal_{{ record.pk }}.showModal()">
+                    onclick="articulo_delete_modal_{{ record.pk }}.showModal()">
                 <span class="icon-[tabler--trash] text-xs shrink-0"></span>
                 <span>Eliminar</span>
             </button>
@@ -24,8 +35,8 @@
     {% endif %}
 
     <!-- MODAL DE CONFIRMACIÓN -->
-    {% if perms.compras.delete_proveedor %}
-        <dialog id="proveedor_delete_modal_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
+    {% if perms.papeleria.delete_articulo %}
+        <dialog id="articulo_delete_modal_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
             <div class="modal-box max-w-sm p-4 bg-base-100 border border-base-200 shadow-2xl">
                 <!-- Cierre rápido -->
                 <form method="dialog">
@@ -35,12 +46,12 @@
                 <!-- Encabezado compacto -->
                 <div class="flex items-start gap-2.5 mb-3">
                     <div class="p-2 bg-error/10 text-error rounded-full shrink-0">
-                        <span class="icon-[tabler--building-store] text-base block"></span>
+                        <span class="icon-[tabler--box] text-base block"></span>
                     </div>
                     <div class="pr-4">
-                        <h3 class="text-xs font-bold text-base-content uppercase tracking-wider">¿Eliminar Proveedor?</h3>
+                        <h3 class="text-xs font-bold text-base-content uppercase tracking-wider">¿Eliminar Artículo?</h3>
                         <p class="text-[11px] text-base-content/70 mt-0.5">
-                            Se retirará del catálogo a <span class="font-bold text-base-content">{{ record.nombre_completo|default:record }}</span>.
+                            Se retirará del catálogo a <span class="font-bold text-base-content">{{ record.nombre|default:record }}</span>.
                         </p>
                     </div>
                 </div>
@@ -48,7 +59,7 @@
                 <!-- Caja de advertencia -->
                 <div class="bg-base-200/50 border border-base-200 rounded p-2 text-[10px] text-base-content/70 mb-4 flex gap-1.5 items-center">
                     <span class="icon-[tabler--info-circle] text-warning text-xs shrink-0"></span>
-                    <span>Esta acción borrará la información de contacto y datos fiscales.</span>
+                    <span>Esta acción no se puede deshacer y desvinculará sus registros.</span>
                 </div>
 
                 <!-- Botones de Acción -->
@@ -56,7 +67,7 @@
                     <form method="dialog">
                         <button class="btn btn-ghost btn-xs font-normal">Cancelar</button>
                     </form>
-                    <form action="{% url 'compras:proveedores__delete' record.pk %}" method="post">
+                    <form action="{% url 'papeleria:articulos__delete' record.pk %}" method="post">
                         {% csrf_token %}
                         <button class="btn btn-error btn-xs gap-1 font-medium text-white shadow-2xs">
                             <span class="icon-[tabler--trash] text-xs"></span>

@@ -1,255 +1,302 @@
 {% load money %}
-{% load django_tables2 %}
+
 <c-layouts.app>
     <c-slot name="header">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <!-- BARRA SUPERIOR ERP: NAVEGACIÓN Y ACCIONES -->
+        <div class="flex items-center justify-between gap-2">
+            <!-- TITULO, FOLIO Y ESTADO -->
+            <div class="flex items-center gap-2 min-w-0">
+                <a href="{% url 'papeleria:requisiciones__list' %}"
+                   class="btn btn-ghost btn-xs btn-square shrink-0 text-base-content/60 hover:text-base-content"
+                   title="Volver a la lista">
+                    <span class="icon-[tabler--arrow-left] text-sm"></span>
+                </a>
 
-            <div>
-                <h1 class="text-xl font-bold">{{ requisicion.folio }}</h1>
-                <span class="badge {{ requisicion.estado_ui.color }} mt-1">
-                    {{ requisicion.estado_ui.label }}
-                </span>
-                {% if requisicion.es_papeleria_stock %}
-                    <span class="badge badge-primary mt-1">
-                       Papelería De Stock
+                <div class="flex items-center gap-1.5 text-xs truncate">
+                    <span class="font-bold text-base-content font-mono text-sm">{{ requisicion.folio }}</span>
+                    <span class="badge badge-xs {{ requisicion.estado_ui.color }} font-medium">
+                        {{ requisicion.estado_ui.label }}
                     </span>
-                {% endif %}
+                    {% if requisicion.es_papeleria_stock %}
+                        <span class="badge badge-xs badge-primary font-medium">Stock</span>
+                    {% endif %}
+                </div>
             </div>
 
-            <div class="flex items-center gap-2">
+            <!-- BOTONES DE ACCIÓN RÁPIDA -->
+            <div class="flex items-center gap-1.5 shrink-0">
                 {% if puede_confirmar %}
-                    <form action="{% url 'papeleria:requisiciones__confirm' requisicion.pk %}" method="POST">
+                    <form action="{% url 'papeleria:requisiciones__confirm' requisicion.pk %}" method="POST" class="inline">
                         {% csrf_token %}
-                        <button class="btn btn-sm btn-success">Confirmar</button>
+                        <button type="submit" class="btn btn-success btn-xs gap-1 font-medium text-white shadow-2xs">
+                            <span class="icon-[tabler--check] text-xs"></span>
+                            <span>Confirmar</span>
+                        </button>
                     </form>
                 {% endif %}
 
                 {% if puede_enviar_al_aprobador %}
-                    <form action="{% url 'papeleria:requisiciones__request_confirm' requisicion.pk %}" method="POST">
+                    <form action="{% url 'papeleria:requisiciones__request_confirm' requisicion.pk %}" method="POST" class="inline">
                         {% csrf_token %}
-                        <button class="btn btn-sm btn-success">Solicitar Aprobación</button>
+                        <button type="submit" class="btn btn-success btn-xs gap-1 font-medium text-white shadow-2xs">
+                            <span class="icon-[tabler--send] text-xs"></span>
+                            <span>Solicitar Aprobación</span>
+                        </button>
                     </form>
                 {% endif %}
 
                 {% if puede_aprobar %}
-                    <button onclick="aprobar_requisicion_modal.showModal()" class="btn btn-success btn-sm">
-                        Aprobar
+                    <button type="button" onclick="aprobar_requisicion_modal.showModal()" class="btn btn-success btn-xs gap-1 font-medium text-white shadow-2xs">
+                        <span class="icon-[tabler--circle-check] text-xs"></span>
+                        <span>Aprobar</span>
                     </button>
                     <c-apps.papeleria.requisiciones.modal.aprobar :record="requisicion"/>
                 {% endif %}
 
                 {% if puede_autorizar %}
-                    <button onclick="autorizar_requisicion_modal.showModal()" class="btn btn-success btn-sm">
-                        Autorizar
+                    <button form="autorizar-form" type="submit" class="btn btn-success btn-xs gap-1 font-medium text-white shadow-2xs">
+                        <span class="icon-[tabler--shield-check] text-xs"></span>
+                        <span>Autorizar</span>
                     </button>
                     <c-apps.papeleria.requisiciones.modal.autorizar :record="requisicion"/>
                 {% endif %}
 
+                {% if puede_enviar_contraloria %}
+                    <form action="{% url 'papeleria:requisiciones__enviar_contraloria' %}" method="POST" class="inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="requisiciones[]" value="{{ requisicion.pk }}">
+                        <button type="submit" class="btn btn-success btn-xs gap-1 font-medium text-white shadow-2xs">
+                            <span class="icon-[tabler--send] text-xs"></span>
+                            <span>Envíar a Contraloría</span>
+                        </button>
+                    </form>
+                {% endif %}
+
                 {% if puede_cancelar %}
-                    <button onclick="rechazar_requisicion_modal.showModal()" class="btn btn-error btn-sm">
-                        Rechazar
+                    <button type="button" onclick="rechazar_requisicion_modal.showModal()" class="btn btn-error btn-xs gap-1 font-medium text-white shadow-2xs">
+                        <span class="icon-[tabler--x] text-xs"></span>
+                        <span>Rechazar</span>
                     </button>
                     <c-apps.papeleria.requisiciones.modal.rechazar :record="requisicion"/>
                 {% endif %}
 
                 <a href="{% url 'papeleria:requisiciones__excel' requisicion.pk %}"
-                   class="btn bg-[#20744a] text-white btn-sm">
-                    <span class="icon-[file-icons--microsoft-excel]"></span>
-                    Excel
+                   class="btn bg-[#20744a] hover:bg-[#1a5c3b] text-white btn-xs gap-1 font-medium shadow-2xs">
+                    <span class="icon-[file-icons--microsoft-excel] text-xs"></span>
+                    <span>Excel</span>
                 </a>
             </div>
-
         </div>
     </c-slot>
 
-    {% if requisicion.requisicion_relacionada %}
-        <p>Requisición relacionada:
-            <a class="link link-primary"
-               href="{% url 'papeleria:requisiciones__detail' requisicion.requisicion_relacionada.pk %}">
-                {{ requisicion.requisicion_relacionada }}
-            </a>
-        </p>
-    {% endif %}
+    <!-- LAYOUT PRINCIPAL DE SCROLL INDEPENDIENTE (DOS COLUMNAS PARALELAS) -->
+    <div class="flex flex-col lg:flex-row gap-4 h-full lg:h-[calc(100vh-7rem)] overflow-hidden">
 
+        <!-- ==================================================================== -->
+        <!-- SECCIÓN 1 (IZQUIERDA): RESUMEN + FLUJO + TABLA ARTÍCULOS + NOTAS -->
+        <!-- ==================================================================== -->
+        <div class="flex-1 flex flex-col h-full min-h-0 overflow-y-auto pr-0 lg:pr-1 space-y-3 custom-scrollbar">
 
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 my-6">
-
-        <div class="card bg-base-100 shadow">
-            <div class="card-body p-4">
-                <p class="text-sm opacity-60">Solicitante</p>
-                <p class="font-semibold">{{ requisicion.solicitante.contacto }}</p>
-            </div>
-        </div>
-
-        <div class="card bg-base-100 shadow">
-            <div class="card-body p-4">
-                <p class="text-sm opacity-60">Empresa</p>
-                <p class="font-semibold">{{ requisicion.empresa }} <span
-                        class="font-normal text-base-content text-muted">({{ requisicion.solicitante.contacto.area.nombre|default:'Área no asignada' }})</span>
-                </p>
-            </div>
-        </div>
-
-        <div class="card bg-base-100 shadow">
-            <div class="card-body p-4">
-                <p class="text-sm opacity-60">Total
-                    <span class="text-xs text-muted text-base-content/80">Estimado</span>
-                </p>
-                <p class="font-semibold">{{ requisicion.total|money }}</p>
-            </div>
-        </div>
-
-        <div class="card bg-base-100 shadow">
-            <div class="card-body p-4">
-                <p class="text-sm opacity-60">Fecha</p>
-                <p class="font-semibold">{{ requisicion.created_at|date:"d/m/Y" }}</p>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="card bg-base-100 shadow mb-6">
-        <div class="card-body">
-            <h2 class="font-bold mb-4">Flujo de aprobación</h2>
-
-            <ul class="steps steps-vertical md:steps-horizontal w-full">
-
-                <li class="step step-success">
-                    Solicitante
-                </li>
-
-                <li class="step {% if requisicion.aprobo_aprobador %}step-success{% endif %}">
-                    Aprobador
-                </li>
-
-                <li class="step {% if requisicion.aprobo_compras %}step-success{% endif %}">
-                    Compras
-                </li>
-
-                <li class="step {% if requisicion.aprobo_contraloria %}step-success{% endif %}">
-                    Contraloría
-                </li>
-
-            </ul>
-        </div>
-    </div>
-
-    {% if requisicion.estado == 'cancelada' %}
-        <div class="card bg-error text-error-content shadow mb-6">
-            <div class="card-body">
-                <h2 class="font-bold mb-4">Cancelada
-                    por: {{ requisicion.rechazador.contacto|default:requisicion.rechazador }}</h2>
-
-                <p class="font-bold">Razón de rechazo:</p>
-                <p class="text-muted text-error-content /80">
-                    {{ requisicion.razon_rechazo }}
-                </p>
-            </div>
-        </div>
-    {% endif %}
-
-    {% if puede_autorizar %}
-        <form novalidate id="autorizar-form" action="{% url 'papeleria:requisiciones__autorizar' requisicion.pk %}"
-              method="POST">
-            {% csrf_token %}
-
-            <div class="card bg-base-100 shadow">
-                <div class="card-body">
-                    <h2 class="font-bold mb-4">Autorización por Contraloría</h2>
-
-                    <div class="overflow-x-auto">
-                        <table class="table table-zebra w-full">
-                            <thead>
-                            <tr>
-                                <th>Artículo</th>
-                                <th>Notas</th>
-                                <th>Importe</th>
-                                <th>Cantidad solicitada</th>
-                                <th>Cantidad a autorizar</th>
-                                <th>Subtotal</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {% for d in requisicion.detalle_requisicion.all %}
-                                <tr>
-                                    <td>{{ d.articulo }}</td>
-                                    <td class="text-sm opacity-70">{{ d.notas|default:"—" }}</td>
-                                    <td>{{ d.articulo.importe|money }}</td>
-                                    <td>{{ d.cantidad }}</td>
-                                    <td>
-                                        <input
-                                                type="number"
-                                                name="autorizar_{{ d.id }}"
-                                                min="0"
-                                                max="{{ d.cantidad }}"
-                                                value="{{ d.cantidad }}"
-                                                class="input input-bordered input-sm w-24"
-                                                required
-                                        >
-                                    </td>
-                                    <td>{{ d.subtotal|money }}</td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
+            <!-- TARJETA DE RESUMEN Y METADATOS ENCABEZADO -->
+            <div class="card bg-base-100 border border-base-200 shadow-2xs shrink-0">
+                <div class="card-body p-3.5 space-y-2.5">
+                    <div class="text-[11px] font-bold text-primary uppercase tracking-wider border-b border-base-200 pb-1 flex items-center gap-1">
+                        <span class="icon-[tabler--file-info] size-3.5"></span> Resumen de la Solicitud
                     </div>
 
-                    <div class="alert alert-info text-sm mt-4">
-                        La cantidad liberada puede ser menor a la solicitada.
-                        Si es parcial, se generará una requisición complementaria.
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                        <!-- IMPORTE DESTACADO (4 COLS) -->
+                        <div class="md:col-span-4 bg-primary/5 border border-primary/20 rounded-lg p-2.5 flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-primary uppercase tracking-wider block">Total Estimado</span>
+                                <span class="text-[10px] text-base-content/60">Suma de subtotales</span>
+                            </div>
+                            <span class="text-base font-extrabold text-primary font-mono">{{ requisicion.total|money }}</span>
+                        </div>
+
+                        <!-- METADATOS (8 COLS) -->
+                        <div class="md:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                            <div class="border-r border-base-200/60 pr-2">
+                                <span class="text-base-content/60 block text-[10px]">Solicitante:</span>
+                                <span class="font-medium text-base-content truncate block">{{ requisicion.solicitante.contacto }}</span>
+                            </div>
+                            <div class="border-r border-base-200/60 pr-2">
+                                <span class="text-base-content/60 block text-[10px]">Empresa:</span>
+                                <span class="font-medium text-base-content truncate block">{{ requisicion.empresa }}</span>
+                            </div>
+                            <div class="border-r border-base-200/60 pr-2">
+                                <span class="text-base-content/60 block text-[10px]">Área / Depto:</span>
+                                <span class="font-medium text-base-content truncate block">
+                                    {{ requisicion.solicitante.contacto.area.nombre|default:'Sin Área' }}
+                                </span>
+                            </div>
+                            <div>
+                                <span class="text-base-content/60 block text-[10px]">Fecha Creación:</span>
+                                <span class="font-mono text-base-content block">{{ requisicion.created_at|date:"d/m/Y H:i" }}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </form>
-    {% else %}
-        <div class="card bg-base-100 shadow">
-            <div class="card-body">
-                <h2 class="font-bold mb-4">Artículos</h2>
 
-                <div class="overflow-x-auto">
-                    <table class="table table-zebra w-full">
-                        <thead>
-                        <tr>
-                            <th>Artículo</th>
-                            <th>Notas</th>
-                            <th>Importe</th>
-                            <th>Cantidad solicitada</th>
-                            <th>Cantidad autorizada</th>
-                            <th>Pendiente</th>
-                            <th>Subtotal</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for d in requisicion.detalle_requisicion.all %}
-                            <tr>
-                                <td>{{ d.articulo }}</td>
-                                <td>{{ d.notas }}</td>
-                                <td>{{ d.articulo.importe|money }}</td>
-                                <td>{{ d.cantidad }}</td>
-                                <td>{{ d.cantidad_autorizada }}</td>
-                                <td>{{ d.cantidad_pendiente }}</td>
-                                <td>{{ d.subtotal|money }}</td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
+            <!-- REQUISICIÓN RELACIONADA -->
+            {% if requisicion.requisicion_relacionada %}
+                <div class="alert alert-warning py-1.5 px-3 rounded-lg text-xs flex items-center justify-between shadow-2xs shrink-0">
+                    <div class="flex items-center gap-1.5">
+                        <span class="icon-[tabler--link] text-xs shrink-0"></span>
+                        <span>Requisición complementaria/relacionada:</span>
+                        <a class="font-mono font-bold hover:underline"
+                           href="{% url 'papeleria:requisiciones__detail' requisicion.requisicion_relacionada.pk %}">
+                            {{ requisicion.requisicion_relacionada }}
+                        </a>
+                    </div>
                 </div>
+            {% endif %}
 
+            <!-- FLUJO DE APROBACIÓN MINI -->
+            <div class="card bg-base-100 border border-base-200 shadow-2xs shrink-0">
+                <div class="card-body p-3 space-y-2">
+                    <div class="text-[11px] font-bold text-primary uppercase tracking-wider border-b border-base-200 pb-1 flex items-center gap-1">
+                        <span class="icon-[tabler--git-merge] size-3.5"></span> Flujo de Aprobación
+                    </div>
+
+                    <ul class="steps steps-horizontal w-full text-[10px]">
+                        <li class="step step-success font-medium">Solicitante</li>
+                        <li class="step {% if requisicion.aprobo_aprobador %}step-success{% endif %} font-medium">Aprobador</li>
+                        <li class="step {% if requisicion.aprobo_compras %}step-success{% endif %} font-medium">Compras</li>
+                        <li class="step {% if requisicion.aprobo_contraloria %}step-success{% endif %} font-medium">Contraloría</li>
+                    </ul>
+                </div>
             </div>
-        </div>
-    {% endif %}
 
-    {% if requisicion.notas %}
-        <div class="card bg-base-100 shadow my-6">
-            <div class="card-body">
-                <h2 class="font-bold mb-4">Notas Generales</h2>
+            <!-- MOTIVO DE CANCELACIÓN (SI APLICA) -->
+            {% if requisicion.estado == 'cancelada' %}
+                <div class="card bg-error/10 border border-error/30 text-error shadow-2xs shrink-0">
+                    <div class="card-body p-3 text-xs space-y-1">
+                        <div class="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[11px]">
+                            <span class="icon-[tabler--alert-circle] text-sm shrink-0"></span>
+                            <span>Requisición Cancelada por: {{ requisicion.rechazador.contacto|default:requisicion.rechazador }}</span>
+                        </div>
+                        <p class="text-error/90 pl-5 text-[11px]">
+                            {{ requisicion.razon_rechazo|default:"Sin motivo especificado." }}
+                        </p>
+                    </div>
+                </div>
+            {% endif %}
 
-                <p class="text-muted text-sm text-base-content/80">
-                    {{ requisicion.notas }}
-                </p>
+            <!-- TABLA DE ARTÍCULOS O FORMULARIO DE AUTORIZACIÓN -->
+            <div class="card bg-base-100 border border-base-200 shadow-2xs">
+                <div class="card-body p-3.5 space-y-3">
+                    <div class="flex items-center justify-between border-b border-base-200 pb-1">
+                        <div class="text-[11px] font-bold text-primary uppercase tracking-wider flex items-center gap-1">
+                            <span class="icon-[tabler--box] size-3.5"></span>
+                            {% if puede_autorizar %}Autorización por Contraloría{% else %}Artículos Solicitados{% endif %}
+                        </div>
+                        <span class="text-[10px] text-base-content/60 font-mono">
+                            {{ requisicion.detalle_requisicion.count }} ítems
+                        </span>
+                    </div>
+
+                    {% if puede_autorizar %}
+                        <form novalidate id="autorizar-form" action="{% url 'papeleria:requisiciones__autorizar' requisicion.pk %}" method="POST">
+                            {% csrf_token %}
+                            <div class="overflow-x-auto">
+                                <table class="table table-xs w-full">
+                                    <thead>
+                                        <tr class="text-[10px] uppercase text-base-content/60 border-b border-base-200">
+                                            <th>Artículo</th>
+                                            <th>Notas</th>
+                                            <th class="text-right">Importe</th>
+                                            <th class="text-center">Solicitado</th>
+                                            <th class="text-center w-24">A Autorizar</th>
+                                            <th class="text-right">Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-xs">
+                                    {% for d in requisicion.detalle_requisicion.all %}
+                                        <tr class="hover">
+                                            <td class="font-medium text-base-content">{{ d.articulo }}</td>
+                                            <td class="text-[11px] text-base-content/60 max-w-[150px] truncate">{{ d.notas|default:"—" }}</td>
+                                            <td class="text-right font-mono text-[11px]">{{ d.articulo.importe|money }}</td>
+                                            <td class="text-center font-mono font-bold">{{ d.cantidad }}</td>
+                                            <td class="text-center">
+                                                <input type="number"
+                                                       name="autorizar_{{ d.id }}"
+                                                       min="0"
+                                                       max="{{ d.cantidad }}"
+                                                       value="{{ d.cantidad }}"
+                                                       class="input input-xs input-bordered w-16 text-center font-mono font-bold focus:border-primary"
+                                                       required>
+                                            </td>
+                                            <td class="text-right font-mono font-semibold">{{ d.subtotal|money }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="bg-info/10 border border-info/20 rounded-md p-2 mt-3 text-[10px] text-info flex items-center gap-1.5">
+                                <span class="icon-[tabler--info-circle] text-xs shrink-0"></span>
+                                <span>Liberaciones parciales generarán automáticamente una requisición complementaria.</span>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="overflow-x-auto">
+                            <table class="table table-xs w-full">
+                                <thead>
+                                    <tr class="text-[10px] uppercase text-base-content/60 border-b border-base-200">
+                                        <th>Artículo</th>
+                                        <th>Notas</th>
+                                        <th class="text-right">Importe</th>
+                                        <th class="text-center">Solicitado</th>
+                                        <th class="text-center">Autorizado</th>
+                                        <th class="text-center">Pendiente</th>
+                                        <th class="text-right">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-xs">
+                                {% for d in requisicion.detalle_requisicion.all %}
+                                    <tr class="hover">
+                                        <td class="font-medium text-base-content">{{ d.articulo }}</td>
+                                        <td class="text-[11px] text-base-content/60 max-w-[150px] truncate">{{ d.notas|default:"—" }}</td>
+                                        <td class="text-right font-mono text-[11px]">{{ d.articulo.importe|money }}</td>
+                                        <td class="text-center font-mono">{{ d.cantidad }}</td>
+                                        <td class="text-center font-mono text-success font-semibold">{{ d.cantidad_autorizada }}</td>
+                                        <td class="text-center font-mono {% if d.cantidad_pendiente > 0 %}text-warning font-semibold{% else %}text-base-content/40{% endif %}">
+                                            {{ d.cantidad_pendiente }}
+                                        </td>
+                                        <td class="text-right font-mono font-semibold">{{ d.subtotal|money }}</td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
-        </div>
-    {% endif %}
 
-    <c-apps.papeleria.requisiciones.actividad/>
+            <!-- NOTAS GENERALES -->
+            {% if requisicion.notas %}
+                <div class="card bg-base-100 border border-base-200 shadow-2xs shrink-0">
+                    <div class="card-body p-3.5 space-y-1">
+                        <div class="text-[11px] font-bold text-primary uppercase tracking-wider flex items-center gap-1">
+                            <span class="icon-[tabler--notes] size-3.5"></span> Notas Generales
+                        </div>
+                        <p class="text-xs text-base-content/80 leading-relaxed bg-base-200/40 p-2 rounded border border-base-200">
+                            {{ requisicion.notas }}
+                        </p>
+                    </div>
+                </div>
+            {% endif %}
+
+        </div>
+
+        <!-- ==================================================================== -->
+        <!-- SECCIÓN 2 (DERECHA): BITÁCORA Y COMENTARIOS COMPLETA DE ARRIBA A ABAJO -->
+        <!-- ==================================================================== -->
+        <div class="w-full lg:w-96 flex flex-col h-full min-h-0 shrink-0 bg-base-100 border border-base-200 rounded-lg shadow-2xs overflow-hidden">
+            <c-apps.papeleria.requisiciones.actividad :requisicion="requisicion"/>
+        </div>
+
+    </div>
 </c-layouts.app>

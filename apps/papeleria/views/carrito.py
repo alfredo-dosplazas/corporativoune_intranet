@@ -1,44 +1,75 @@
 import json
-from email import message
 from urllib.parse import urlencode
 
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required, permission_required
-from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.shortcuts import redirect, render
 from django.urls import reverse
-from inertia import render
+from django.views import View
+from django.views.generic.base import TemplateView
+from django_filters.views import FilterView
+from django_tables2 import SingleTableMixin
+from extra_views import SearchableListMixin
 
-from apps.core.models import Empresa
-from apps.core.utils.navigation import paginate_queryset, make_breadcrumbs
+from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.mixins.responsive_view import ResponsiveViewModeMixin
+from apps.core.mixins.session_filter_state import SessionFilterStateMixin
+from apps.core.mixins.title import PageTitleMixin
 from apps.papeleria.cart import PapeleriaCart
-from apps.papeleria.forms.requisiciones import RequisicionForm
+from apps.papeleria.forms.carrito import CheckoutForm
 from apps.papeleria.models.articulos import Articulo
-from apps.papeleria.models.requisiciones import Requisicion, DetalleRequisicion
+from apps.papeleria.models.requisiciones import DetalleRequisicion
+from apps.papeleria.tables.carrito import ArticuloCarritoTable
 
 
-@login_required
-@permission_required('papeleria.view_articulo', raise_exception=True)
-def catalogo_view(request):
-    """Vista principal tipo MercadoLibre para seleccionar papelería"""
-    cart = PapeleriaCart(request)
-    cart_items, total = cart.get_items()
+class CatalogoListView(
+    PermissionRequiredMixin,
+    SessionFilterStateMixin,
+    ResponsiveViewModeMixin,
+    SearchableListMixin,
+    PageTitleMixin,
+    SingleTableMixin,
+    BreadcrumbsMixin,
+    FilterView
+):
+    permission_required = 'papeleria.view_articulo'
+    template_name = 'apps/papeleria/carrito/list.html'
+    page_title = 'Catalago De Papelería'
+    model = Articulo
+    table_class = ArticuloCarritoTable
+    paginate_by = 12
+    search_fields = ['codigo_vs_dp', 'numero_papeleria', 'nombre', 'descripcion']
+    filterset_fields = ['unidad', 'es_cuadro_basico']
 
-    articulos = Articulo.objects.filter(mostrar_en_sitio=True)
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Papelería', 'url': reverse('papeleria:index')},
+            {'title': 'Catalogo De Papelería'},
+        ]
 
-    return render(request, 'Papeleria/Catalogo/Index', {
-        'breadcrumbs': make_breadcrumbs([
-            ('Inicio', 'home'),
-            ('Papelería', 'papeleria:index'),
-            ('Requisiciones', 'papeleria:requisiciones__list'),
-            ('Catalogo De Artículos', None),
-        ]),
-        'paginated_data': paginate_queryset(articulos, request, page_size=12),
-        'cart': {
+    def get_queryset(self):
+        qs = super().get_queryset()
+
+        usuario = self.request.user
+
+        if not usuario.is_superuser and not usuario.groups.filter(name='ADMINISTRADOR PAPELERÍA').exists():
+            qs = qs.filter(mostrar_en_sitio=True)
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        cart = PapeleriaCart(self.request)
+        cart_items, total = cart.get_items()
+
+        context['cart'] = {
             'items': cart_items,
             'total': total,
             'total_count': sum(item['cantidad'] for item in cart_items),
         }
-    })
+        return context
 
 
 @login_required
@@ -54,7 +85,7 @@ def cart_add(request):
 
     params = urlencode({'page': page})
     url_base = reverse('papeleria:carrito__catalogo')
-    return redirect(f"{url_base}?{params}")
+    return redirect(f"{url_base}?{params}#cart-drawer")
 
 
 @login_required
@@ -67,7 +98,7 @@ def cart_remove(request):
         cart.remove(articulo_id)
 
     # Redirige a la vista previa del referrer o por defecto al catálogo
-    return redirect(request.META.get('HTTP_REFERER', 'papeleria:carrito__catalogo'))
+    return redirect(request.META.get('HTTP_REFERER', 'papeleria:carrito__catalogo') + '#cart-drawer')
 
 
 @login_required
@@ -85,43 +116,79 @@ def cart_update(request):
             cart.remove(articulo_id)
 
     params = urlencode({'page': page})
-    url_base = reverse('papeleria:carrito__catalogo')
+    url_base = reverse('papeleria:carrito__catalogo') + '#cart-drawer'
     return redirect(f"{url_base}?{params}")
 
 
-@login_required()
-def checkout_view(request):
-    cart = PapeleriaCart(request)
-    cart_items, total = cart.get_items()
+class CheckoutView(PermissionRequiredMixin, BreadcrumbsMixin, TemplateView):
+    permission_required = 'papeleria.acceder_papeleria'
+    template_name = 'apps/papeleria/carrito/checkout.html'
 
-    form = RequisicionForm(user=request.user)
+    def get_context_data(self, **kwargs):
+        cart = PapeleriaCart(self.request)
+        cart_items, total = cart.get_items()
 
-    if not cart_items:
-        return redirect('papeleria:carrito__catalogo')
+        if not cart_items:
+            return redirect('papeleria:carrito__catalogo')
 
-    if request.method == 'POST':
-        data = request.POST or json.loads(request.body)
-        form = RequisicionForm(data, user=request.user)
+        form = CheckoutForm(user=self.request.user)
+
+        context = super().get_context_data(**kwargs)
+
+        context.update({
+            'form': form,
+            'cart_items': cart_items,
+            'total': total,
+            'total_count': sum(item['cantidad'] for item in cart_items),
+        })
+        return context
+
+    def post(self, request, *args, **kwargs):
+        cart = PapeleriaCart(request)
+        cart_items, total = cart.get_items()
+
+        if not cart_items:
+            return redirect('papeleria:carrito__catalogo')
+
+        # Manejo de peticiones form-data o payload JSON
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST
+
+        form = CheckoutForm(data, user=request.user)
 
         if form.is_valid():
-            form.save()
-            requisicion = form.instance
+            requisicion = form.save()
 
-            for item in cart_items:
-                DetalleRequisicion.objects.create(
+            # Creación masiva del detalle a partir del carrito
+            detalles = [
+                DetalleRequisicion(
                     requisicion=requisicion,
-                    articulo_id=item['articulo']['id'],
+                    articulo_id=item['articulo'].id,
                     cantidad=item['cantidad'],
-                    precio_unitario=item['articulo']['importe'],
+                    precio_unitario=item['articulo'].importe,
                 )
+                for item in cart_items
+            ]
+            DetalleRequisicion.objects.bulk_create(detalles)
 
+            # Limpiar sesión del carrito
             cart.clear()
-            return redirect('papeleria:requisiciones__detail', form.instance.pk)
 
-    empresas = Empresa.objects.all()
-    return render(request, 'Papeleria/Catalogo/Checkout', {
-        'cart_items': cart_items,
-        'total': total,
-        'empresas': [{'id': e.id, 'nombre': e.nombre} for e in empresas],
-        'errors': form.errors,
-    })
+            return redirect('papeleria:requisiciones__detail', requisicion.pk)
+
+        return render(request, self.template_name, {
+            'form': form,
+            'cart_items': cart_items,
+            'total': total,
+            'total_count': sum(item['cantidad'] for item in cart_items),
+        })
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Papelería', 'url': reverse('papeleria:index')},
+            {'title': 'Catalogo De Papelería', 'url': reverse('papeleria:carrito__catalogo')},
+            {'title': 'Checkout'},
+        ]

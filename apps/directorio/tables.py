@@ -32,6 +32,7 @@ class ContactoColumn(Column):
         empresa = contacto.empresa
         theme_attr = f'data-theme="{empresa.theme}"' if empresa and empresa.theme else ""
 
+        # --- AVATAR / FOTO ---
         if contacto.foto:
             foto_html = f"""
                 <div {theme_attr} class="avatar bg-transparent">
@@ -49,10 +50,16 @@ class ContactoColumn(Column):
                 </div>
             """
 
-        estado_html = ""
-        if contacto.usuario and not contacto.usuario.is_active:
-            estado_html = '<span class="badge badge-error badge-xs font-semibold">Inactivo</span>'
+        # --- BADGES DE ESTADO (Inactivo / Archivado) ---
+        estado_badge = ""
+        if contacto.es_inactivo:
+            estado_badge = '<span class="badge badge-error badge-xs font-semibold">Inactivo</span>'
 
+        archivado_badge = ""
+        if contacto.esta_archivado:
+            archivado_badge = '<span class="badge badge-warning badge-xs ml-1">Archivado</span>'
+
+        # --- DETALLES DE ÁREA Y EMPRESA ---
         area_html = ""
         if contacto.area and self.mostrar_area:
             area_html = f'<div class="text-xs text-base-content/60 truncate">{contacto.area.nombre}</div>'
@@ -61,20 +68,18 @@ class ContactoColumn(Column):
         if empresa and self.mostrar_empresa:
             empresa_html = f'<span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50">{empresa.nombre_corto}</span>'
 
-        archivado_html = '<span class="badge badge-warning badge-xs ml-1">Archivado</span>' if contacto.esta_archivado else ''
-
         return mark_safe(f"""
             <a {theme_attr} href="{reverse('directorio:detail', args=(contacto.id,))}" class="bg-transparent group flex items-center gap-3 min-w-[220px]">
                 {foto_html}
                 <div class="min-w-0">
                     <div class="font-medium text-sm text-base-content group-hover:text-primary transition-colors truncate flex items-center">
                         <span class="truncate text-primary">{contacto.nombre_completo}</span>
-                        {archivado_html}
+                        {archivado_badge}
                     </div>
                     {area_html}
                     <div class="flex items-center gap-2 mt-0.5">
                         {empresa_html}
-                        {estado_html}
+                        {estado_badge}
                     </div>
                 </div>
             </a>

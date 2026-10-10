@@ -237,6 +237,7 @@ class Requisicion(models.Model):
         verbose_name = "Requisición"
         verbose_name_plural = "Requisiciones"
         permissions = [
+            ("acceder_papeleria", "Acceder Al Módulo de Papelería"),
             ("aprobar_requisicion", "Aprobar Requisiciones"),
             ("cancelar_requisicion", "Cancelar o Rechazar Requisiciones"),
             ("enviar_requisicion_contraloria", "Envíar requisiciones aprobadas por compras a contraloría"),

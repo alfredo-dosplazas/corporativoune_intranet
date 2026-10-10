@@ -1,0 +1,373 @@
+{% load django_tables2 %}
+
+<c-layouts.app>
+    <c-slot name="header">
+        <!-- BARRA DE ACCIONES -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+
+            <!-- TÍTULO DE LA VISTA -->
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="icon-[tabler--shopping-bag] text-primary text-base"></span>
+                <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">Catálogo de Papelería</h1>
+            </div>
+
+            <!-- BUSCADOR + BOTÓN FILTROS + CARRITO + CAMBIADOR DE VISTA -->
+            <div class="flex items-center gap-2 flex-1 justify-end max-w-2xl">
+
+                <!-- BUSCADOR RÁPIDO -->
+                <form method="get" action="" id="search-form" class="flex items-center gap-2 flex-1 max-w-sm">
+                    {% for key, value in request.GET.items %}
+                        {% if key != 'q' and key != 'page' and value %}
+                            <input type="hidden" name="{{ key }}" value="{{ value }}">
+                        {% endif %}
+                    {% endfor %}
+
+                    <div class="relative flex-1 flex items-center">
+                        <span class="absolute left-2.5 text-base-content/40 pointer-events-none z-10">
+                            <span class="icon-[tabler--search] text-xs block"></span>
+                        </span>
+
+                        <input type="text"
+                               name="q"
+                               value="{{ request.GET.q|default:'' }}"
+                               placeholder="Buscar por nombre, código..."
+                               class="input input-xs w-full pl-7 pr-3 bg-base-100 border-base-300 focus:border-primary focus:outline-none text-xs rounded-md h-7"/>
+                    </div>
+                </form>
+
+                <!-- BOTÓN MODAL FILTROS -->
+                <button type="button"
+                        onclick="modal_filtros.showModal()"
+                        class="btn btn-ghost btn-xs h-7 min-h-0 px-2 border border-base-300 bg-base-100 font-normal text-xs text-base-content/70 relative">
+                    <span class="icon-[tabler--adjustments-horizontal] text-xs"></span>
+                    <span class="hidden sm:inline">Filtros</span>
+                    {% if request.GET.categoria or request.GET.es_cuadro_basico %}
+                        <span class="badge badge-primary badge-xs size-2 p-0 rounded-full absolute -top-1 -right-1"></span>
+                    {% endif %}
+                </button>
+
+                <!-- BOTÓN CARRITO DE COMPRAS -->
+                <button type="button"
+                        onclick="toggleCartDrawer()"
+                        class="btn btn-primary btn-xs h-7 px-2.5 gap-1.5 font-medium relative shadow-2xs">
+                    <span class="icon-[tabler--shopping-cart] text-xs"></span>
+                    <span class="hidden sm:inline">Carrito</span>
+                    <span class="badge badge-sm badge-secondary text-[10px] h-4 px-1 min-w-[1rem]">
+                        {{ cart.total_count|default:"0" }}
+                    </span>
+                </button>
+
+                <!-- CAMBIADOR DE VISTA (LISTA / CARDS) -->
+                <div class="hidden sm:flex items-center gap-1.5 border-l border-base-300 pl-2 text-xs text-base-content/60">
+                    <div class="join border border-base-300 rounded p-0.5 bg-base-100">
+                        <a href="{% querystring "view"="list" %}"
+                           class="join-item btn btn-xs btn-ghost btn-square h-5 w-5 min-h-0 {% if view_mode == 'list' or not view_mode %}btn-active text-primary{% endif %}"
+                           title="Vista de lista">
+                            <span class="icon-[tabler--list] text-xs"></span>
+                        </a>
+
+                        <a href="{% querystring "view"="kanban" %}"
+                           class="join-item btn btn-xs btn-ghost btn-square h-5 w-5 min-h-0 {% if view_mode == 'kanban' %}btn-active text-primary{% endif %}"
+                           title="Vista de tarjetas">
+                            <span class="icon-[tabler--layout-grid] text-xs"></span>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- CHIPS DE FILTROS ACTIVOS -->
+        {% if request.GET.q or request.GET.unidad or request.GET.es_cuadro_basico %}
+            <div class="flex items-center gap-1.5 flex-wrap pt-1 border-t border-base-200/60 mt-1">
+                {% if request.GET.q %}
+                    <a href="{% querystring 'q'="" %}"
+                       class="badge badge-ghost border-base-300 badge-xs gap-1 text-[10px] h-4.5">
+                        <span>"{{ request.GET.q }}"</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+
+                {% if request.GET.es_cuadro_basico %}
+                    <a href="{% querystring 'es_cuadro_basico'="" %}"
+                       class="badge badge-success badge-outline badge-xs gap-1 text-[10px] h-4.5">
+                        <span>Cuadro básico</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+
+                <a href="{% url 'papeleria:carrito__catalogo' %}?clean_filter=1"
+                   class="text-[10px] text-primary hover:underline ml-1">Limpiar</a>
+            </div>
+        {% endif %}
+    </c-slot>
+
+    <!-- VISTA TABLA COMPACTA -->
+    <div class="{% if view_mode == 'kanban' %}hidden{% else %}hidden sm:flex flex-col flex-1 min-h-0 h-full w-full{% endif %}">
+        {% render_table table %}
+    </div>
+
+    <!-- VISTA CATÁLOGO EN GRID / CARDS (AMAZON/MERCADOLIBRE STYLE) -->
+    <div class="{% if view_mode == 'kanban' %}block{% else %}block sm:hidden{% endif %}">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 p-2">
+            {% for obj in object_list %}
+                <div class="card bg-base-100 border border-base-200 p-2.5 shadow-2xs hover:border-primary/40 transition-all flex flex-col justify-between group">
+
+                    <div>
+                        <!-- Imagen de producto -->
+                        <div class="aspect-square w-full bg-base-200/40 rounded-md overflow-hidden mb-2 relative flex items-center justify-center">
+                            {% if obj.imagen %}
+                                <img src="{{ obj.imagen.url }}"
+                                     alt="{{ obj.nombre }}"
+                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200">
+
+                                <button type="button"
+                                        data-lightbox-src="{{ obj.imagen.url }}"
+                                        data-lightbox-title="{{ obj.nombre }}"
+                                        class="btn btn-circle btn-xs bg-base-100/80 hover:bg-base-100 border-none absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span class="icon-[tabler--maximize] text-xs"></span>
+                                </button>
+                            {% else %}
+                                <span class="icon-[tabler--photo-off] text-base-content/30 text-xl"></span>
+                            {% endif %}
+
+                            {% if obj.es_cuadro_basico %}
+                                <span class="badge badge-success badge-xs text-[9px] absolute top-1 left-1 font-semibold">
+                                    Básico
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Nombre -->
+                        <h3 class="font-medium text-xs text-base-content leading-tight line-clamp-2">
+                            {{ obj.nombre }}
+                        </h3>
+
+                        <!-- Código -->
+                        {% if obj.codigo_vs_dp %}
+                            <p class="text-[10px] text-base-content/50 font-mono mt-0.5 truncate">
+                                {{ obj.codigo_vs_dp }}
+                            </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Precio, Unidad y Formulario para Agregar al Carrito -->
+                    <div class="mt-3 pt-2 border-t border-base-200/60 space-y-2">
+                        <div class="flex items-baseline justify-between">
+                            <span class="text-xs font-bold text-primary font-mono">
+                                ${{ obj.importe|floatformat:2 }}
+                            </span>
+                            {% if obj.unidad %}
+                                <span class="text-[10px] text-base-content/50 uppercase font-medium">
+                                    {{ obj.unidad }}
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Formulario POST Estándar de Django -->
+                        <form method="post" action="{% url 'papeleria:carrito__agregar' %}"
+                              class="flex items-center gap-1">
+                            {% csrf_token %}
+                            <input type="hidden" name="articulo_id" value="{{ obj.id }}">
+                            <input type="hidden" name="page" value="{{ page_obj.number|default:1 }}">
+
+                            <input type="number"
+                                   name="cantidad"
+                                   value="1"
+                                   min="1"
+                                   class="input input-xs input-bordered w-11 text-center p-0 font-mono text-xs rounded h-6"/>
+
+                            <button type="submit"
+                                    class="btn btn-primary btn-xs flex-1 gap-1 font-medium text-[11px] h-6 min-h-0">
+                                <span class="icon-[tabler--plus] text-xs"></span>
+                                <span>Agregar</span>
+                            </button>
+                        </form>
+                    </div>
+
+                </div>
+            {% empty %}
+                <div class="col-span-full text-center py-10 text-base-content/50 text-xs">
+                    <span class="icon-[tabler--box-off] text-2xl block mb-1"></span>
+                    No se encontraron artículos disponibles.
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- PAGINACIÓN -->
+        {% if is_paginated %}
+            <div class="flex items-center justify-between p-3 border-t border-base-200 bg-base-100 rounded-b-lg mt-2">
+                <span class="text-[11px] text-base-content/60">
+                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                </span>
+                <div class="join">
+                    {% if page_obj.has_previous %}
+                        <a href="{% querystring 'page'=page_obj.previous_page_number %}"
+                           class="join-item btn btn-xs border-base-300">Anterior</a>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                        <a href="{% querystring 'page'=page_obj.next_page_number %}"
+                           class="join-item btn btn-xs border-base-300">Siguiente</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- DRAWER LATERAL DE CARRITO (MERCADOLIBRE / AMAZON STYLE) -->
+    <div id="cart-drawer" class="fixed inset-0 z-50 overflow-hidden hidden" role="dialog" aria-modal="true">
+        <div class="absolute inset-0 bg-base-900/40 backdrop-blur-xs transition-opacity"
+             onclick="toggleCartDrawer()"></div>
+
+        <div class="fixed inset-y-0 right-0 pl-10 max-w-full flex">
+            <div class="w-screen max-w-md bg-base-100 border-l border-base-200 shadow-xl flex flex-col justify-between">
+
+                <!-- Header del Carrito -->
+                <div class="p-4 border-b border-base-200 flex items-center justify-between bg-base-200/30">
+                    <div class="flex items-center gap-2">
+                        <span class="icon-[tabler--shopping-cart] text-primary text-base"></span>
+                        <h2 class="font-bold text-sm text-base-content">Tu Carrito</h2>
+                    </div>
+                    <button type="button" onclick="toggleCartDrawer()"
+                            class="btn btn-ghost btn-xs btn-circle text-base-content/60">
+                        <span class="icon-[tabler--x] text-base"></span>
+                    </button>
+                </div>
+
+                <!-- Lista de Productos en Carrito -->
+                <div class="flex-1 overflow-y-auto p-4 divide-y divide-base-200/60">
+                    {% if cart.items %}
+                        {% for item in cart.items %}
+                            <div class="py-3 flex items-center justify-between gap-3">
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-medium text-xs text-base-content truncate">{{ item.articulo.nombre }}</h4>
+                                    <p class="text-[10px] text-base-content/50 font-mono">
+                                        ${{ item.articulo.importe|floatformat:2 }} c/u</p>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <!-- Formulario para Modificar Cantidad -->
+                                    <form method="post" action="{% url 'papeleria:carrito__actualizar' %}"
+                                          class="flex items-center gap-1">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="articulo_id" value="{{ item.articulo.id }}">
+                                        <input type="hidden" name="page" value="{{ page_obj.number|default:1 }}">
+
+                                        <div class="join border border-base-300 rounded">
+                                            <button type="submit" name="cantidad" value="{{ item.cantidad|add:-1 }}"
+                                                    class="join-item btn btn-xs btn-ghost h-6 w-6 min-h-0 px-0">-
+                                            </button>
+                                            <span class="join-item px-2 text-xs font-mono flex items-center justify-center bg-base-100">{{ item.cantidad }}</span>
+                                            <button type="submit" name="cantidad" value="{{ item.cantidad|add:1 }}"
+                                                    class="join-item btn btn-xs btn-ghost h-6 w-6 min-h-0 px-0">+
+                                            </button>
+                                        </div>
+                                    </form>
+
+                                    <span class="text-xs font-bold font-mono w-16 text-right">${{ item.subtotal|floatformat:2 }}</span>
+
+                                    <!-- Formulario para Eliminar -->
+                                    <form method="post" action="{% url 'papeleria:carrito__eliminar' %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="articulo_id" value="{{ item.articulo.id }}">
+                                        <button type="submit"
+                                                class="btn btn-ghost btn-xs btn-square text-error h-6 w-6 min-h-0">
+                                            <span class="icon-[tabler--trash] text-xs"></span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-16 text-base-content/50 text-xs">
+                            <span class="icon-[tabler--shopping-cart-off] text-3xl block mb-2 opacity-40"></span>
+                            El carrito está vacío. Agrega artículos desde el catálogo.
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Total y Checkout -->
+                <div class="p-4 border-t border-base-200 bg-base-200/20 space-y-3">
+                    <div class="flex items-center justify-between text-xs font-bold">
+                        <span class="text-base-content/70">Total Estimado:</span>
+                        <span class="text-sm text-primary font-mono">${{ cart.total|default:"0.00"|floatformat:2 }}</span>
+                    </div>
+
+                    {% if cart.items %}
+                        <a href="{% url 'papeleria:checkout' %}"
+                           class="btn btn-primary btn-sm w-full text-xs font-medium gap-1">
+                            <span>Crear Requisición / Checkout</span>
+                            <span class="icon-[tabler--arrow-right] text-xs"></span>
+                        </a>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE FILTROS -->
+    <dialog id="modal_filtros" class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box p-4 bg-base-100 border border-base-200">
+            <div class="flex items-center justify-between border-b border-base-200 pb-2 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="icon-[tabler--adjustments-horizontal] text-primary text-base"></span>
+                    <h3 class="font-bold text-sm">Filtros Avanzados</h3>
+                </div>
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost text-base-content/60">✕</button>
+                </form>
+            </div>
+
+            <form method="get" action="" id="advanced-filter-form" class="space-y-3 text-xs">
+                {% if request.GET.q %}
+                    <input type="hidden" name="q" value="{{ request.GET.q }}">
+                {% endif %}
+
+                <div class="space-y-2">
+                    {{ filter.form }}
+                </div>
+
+                <div class="modal-action border-t border-base-200 pt-3 mt-4 flex items-center justify-end gap-2">
+                    <a href="{% url 'papeleria:carrito__catalogo' %}?clean_filter=1"
+                       class="btn btn-ghost btn-xs text-xs font-normal">
+                        Limpiar filtros
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-xs px-4">
+                        Aplicar Filtros
+                    </button>
+                </div>
+            </form>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+    <!-- SCRIPT MANEJO DE VISTA -->
+    <script>
+        function toggleCartDrawer() {
+            const drawer = document.getElementById('cart-drawer');
+            const isOpen = !drawer.classList.contains('hidden');
+
+            if (isOpen) {
+                drawer.classList.add('hidden');
+                // Limpia el hash sin recargar la página
+                history.replaceState(null, null, ' ');
+            } else {
+                drawer.classList.remove('hidden');
+                // Agrega el hash en la URL
+                window.location.hash = 'cart-drawer';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.location.hash === '#cart-drawer') {
+                const drawer = document.getElementById('cart-drawer');
+                if (drawer) {
+                    drawer.classList.remove('hidden');
+                }
+            }
+        });
+    </script>
+</c-layouts.app>

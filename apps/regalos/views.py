@@ -4,6 +4,8 @@ from typing import Any
 
 import qrcode
 from PIL import ImageFont, Image, ImageDraw
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.http import JsonResponse, HttpResponse
@@ -70,7 +72,7 @@ class RegaloCreateView(
     page_title = 'Crear Regalo'
     model = Regalo
     form_class = RegaloForm
-    success_message = 'Regalo credo correctamente.'
+    success_message = 'Regalo creado correctamente.'
 
     def get_success_url(self) -> str:
         return reverse('regalos:update', args=[self.object.pk])
@@ -269,7 +271,36 @@ class RegaloPantallView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['empresas'] = Empresa.objects.exclude(logo='').order_by('nombre')
+
+        # Logos para el footer
+        context['empresas'] = Empresa.objects.exclude(logo='').order_by('nombre_corto')
+
+        # 1. Obtener los últimos 5 regalos entregados
+        regalos_entregados = Regalo.objects.filter(canjeado=True).order_by('-fecha_canje')[:5]
+
+        context['historial'] = [
+            {
+                'id': r.id,
+                'ganador': r.ganador_nombre or 'Sin Nombre',
+                'premio': r.nombre,
+                'numero': f"{r.numero:03d}",
+            }
+            for r in regalos_entregados
+        ]
+
+        # 2. Si ya hay ganadores, pasar el último al contexto inicial
+        if regalos_entregados.exists():
+            ultimo = regalos_entregados[0]
+            context['ultimo_ganador'] = {
+                'id': ultimo.id,
+                'ganador': ultimo.ganador_nombre or 'Sin Nombre',
+                'premio': ultimo.nombre,
+                'numero': f"{ultimo.numero:03d}",
+                'imagen_url': ultimo.imagen.url if ultimo.imagen else None,
+            }
+        else:
+            context['ultimo_ganador'] = None
+
         return context
 
 
@@ -304,7 +335,6 @@ class UltimoGanadorApiView(View):
             'historial': historial_data
         })
 
-
 class CanjearRegaloView(View):
     def get(self, request, codigo_qr):
         regalo = get_object_or_404(Regalo, codigo_qr=codigo_qr)
@@ -313,7 +343,6 @@ class CanjearRegaloView(View):
     def post(self, request, codigo_qr):
         regalo = get_object_or_404(Regalo, codigo_qr=codigo_qr)
 
-        # Evitamos re-canjear un regalo
         if not regalo.canjeado:
             ganador = request.POST.get('ganador_nombre')
             if ganador:
@@ -321,5 +350,34 @@ class CanjearRegaloView(View):
                 regalo.canjeado = True
                 regalo.fecha_canje = timezone.now()
                 regalo.save()
+
+                # 1. Obtener los últimos 5 regalos entregados para actualizar el historial
+                regalos_entregados = Regalo.objects.filter(canjeado=True).order_by('-fecha_canje')[:5]
+                historial_data = [
+                    {
+                        'id': r.id,
+                        'ganador': r.ganador_nombre or 'Sin Nombre',
+                        'premio': r.nombre,
+                        'numero': f"{r.numero:03d}",
+                    }
+                    for r in regalos_entregados
+                ]
+
+                # 2. Emitir evento por WebSockets vía RabbitMQ Channel Layer
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    "pantalla_eventos",
+                    {
+                        "type": "notificar_nuevo_ganador",  # Llama al método notificar_nuevo_ganador en el consumer
+                        "ultimo_ganador": {
+                            'id': regalo.id,
+                            'ganador': regalo.ganador_nombre or 'Sin Nombre',
+                            'premio': regalo.nombre,
+                            'numero': f"{regalo.numero:03d}",
+                            'imagen_url': regalo.imagen.url if regalo.imagen else None,
+                        },
+                        "historial": historial_data
+                    }
+                )
 
         return render(request, 'apps/regalos/canjear.html', {'regalo': regalo, 'exito': True})

@@ -1,86 +1,119 @@
 {% load django_tables2 %}
+
 <c-layouts.app>
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+        <!-- BARRA SUPERIOR DE ACCIONES Y NAVEGACIÓN -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
 
-            <!-- START -->
-            <div class="justify-self-start">
-                <h1 class="font-bold text-xl flex items-center gap-2">{{ requisicion }}</h1>
+            <!-- TÍTULO DE LA VISTA + BOTÓN DE RETORNO -->
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="{% url 'papeleria:requisiciones__list' %}"
+                   class="btn btn-ghost btn-xs btn-square text-base-content/70 hover:bg-base-200"
+                   title="Volver a la lista">
+                    <span class="icon-[tabler--arrow-left] text-base"></span>
+                </a>
+                <span class="icon-[et--document] text-primary text-base"></span>
+                <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">
+                    Requisición: <span class="font-mono text-primary font-bold">{{ requisicion.folio }}</span>
+                </h1>
             </div>
 
-            <!-- MIDDLE -->
-            <div class="justify-self-center w-full flex justify-center">
+            <!-- BOTONES DE ACCIÓN PRINCIPALES -->
+            <div class="flex items-center gap-2 justify-end">
 
-            </div>
+                <!-- BOTÓN CONFIRMAR -->
+                {% if puede_confirmar %}
+                    <button form="confirmar-form" type="submit"
+                            class="btn btn-success btn-xs gap-1 font-medium shadow-2xs">
+                        <span class="icon-[tabler--check] text-xs"></span>
+                        <span>Confirmar</span>
+                    </button>
 
+                    <form id="confirmar-form" action="{% url 'papeleria:requisiciones__confirm' requisicion.pk %}"
+                          method="POST" class="hidden">
+                        {% csrf_token %}
+                    </form>
+                {% endif %}
 
-            <!-- END -->
-            <div class="justify-self-end">
-                <div class="flex items-center gap-2">
-                    {% if puede_confirmar %}
-                        <form action="{% url 'papeleria:requisiciones__confirm' requisicion.pk %}" method="POST">
-                            {% csrf_token %}
-                            <button class="btn btn-sm btn-success">Confirmar</button>
-                        </form>
-                    {% endif %}
+                <!-- BOTÓN SOLICITAR APROBACIÓN -->
+                {% if puede_enviar_al_aprobador %}
+                    <button form="enviar-aprobador-form" type="submit"
+                            class="btn btn-info btn-xs gap-1 font-medium shadow-2xs">
+                        <span class="icon-[tabler--send] text-xs"></span>
+                        <span>Solicitar Aprobación</span>
+                    </button>
 
-                    {% if puede_enviar_al_aprobador %}
-                        <form action="{% url 'papeleria:requisiciones__confirm' requisicion.pk %}" method="POST">
-                            {% csrf_token %}
-                            <button class="btn btn-sm btn-success">Solicitar Aprobación</button>
-                        </form>
-                    {% endif %}
+                    <form id="enviar-aprobador-form"
+                          action="{% url 'papeleria:requisiciones__confirm' requisicion.pk %}" method="POST"
+                          class="hidden">
+                        {% csrf_token %}
+                    </form>
+                {% endif %}
 
-                    <button form="requisicion-form" class="btn btn-primary btn-sm">Guardar</button>
-                </div>
+                <!-- BOTÓN PRINCIPAL DE GUARDAR -->
+                <button type="submit"
+                        form="requisicion-form"
+                        class="btn btn-primary btn-xs gap-1 font-medium shadow-2xs">
+                    <span class="icon-[tabler--device-floppy] text-xs"></span>
+                    <span>Guardar Cambios</span>
+                </button>
             </div>
         </div>
-
     </c-slot>
 
-    {% if not user.is_superuser %}
-        <div class="stats stats-vertical md:stats-horizontal shadow mb-4 bg-base-100">
+    <!-- ESTRUCTURA PRINCIPAL DE SCROLL INDEPENDIENTE -->
+    <div class="flex flex-col lg:flex-row gap-4 h-full lg:h-[calc(100vh-7rem)] overflow-hidden">
 
-            <!-- Empresa -->
-            <div class="stat">
-                <div class="stat-title">Empresa</div>
-                <div class="stat-value text-base">
-                    {{ user.contacto.empresa }}
-                </div>
-            </div>
+        <!-- COLUMNA IZQUIERDA: TARJETA DE CONTEXTO + FORMULARIO PRINCIPAL (CON SU PROPIO SCROLL) -->
+        <div class="flex-1 flex flex-col h-full min-h-0 overflow-y-auto pr-0 lg:pr-1 space-y-3 custom-scrollbar">
 
-            <!-- Solicitante -->
-            <div class="stat">
-                <div class="stat-title">Solicitante</div>
-                <div class="stat-value text-base">
-                    {{ user.contacto.nombre_completo }}
-                </div>
-            </div>
+            <!-- TARJETA DE CONTEXTO INSTITUCIONAL -->
+            {% if not user.is_superuser %}
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0">
+                    <div class="bg-base-100 border border-base-200 rounded-md p-2 shadow-2xs">
+                        <span class="text-[10px] text-base-content/50 block font-medium uppercase tracking-wider">Empresa</span>
+                        <span class="font-semibold text-xs text-base-content block truncate">
+                            {{ user.contacto.empresa|default:"Sin Empresa" }}
+                        </span>
+                    </div>
 
-            <!-- Área -->
-            {% if user.contacto.area %}
-                <div class="stat">
-                    <div class="stat-title">Área</div>
-                    <div class="stat-value text-base">
-                        {{ user.contacto.area }}
+                    <div class="bg-base-100 border border-base-200 rounded-md p-2 shadow-2xs">
+                        <span class="text-[10px] text-base-content/50 block font-medium uppercase tracking-wider">Solicitante</span>
+                        <span class="font-semibold text-xs text-base-content block truncate">
+                            {{ user.contacto.nombre_completo|default:user.get_full_name }}
+                        </span>
+                    </div>
+
+                    <div class="bg-base-100 border border-base-200 rounded-md p-2 shadow-2xs">
+                        <span class="text-[10px] text-base-content/50 block font-medium uppercase tracking-wider">Área</span>
+                        <span class="font-semibold text-xs text-base-content block truncate">
+                            {{ user.contacto.area|default:"Sin Área" }}
+                        </span>
+                    </div>
+
+                    <div class="bg-base-100 border border-base-200 rounded-md p-2 shadow-2xs">
+                        <span class="text-[10px] text-base-content/50 block font-medium uppercase tracking-wider">Aprobador Asignado</span>
+                        <span class="font-semibold text-xs text-base-content block truncate">
+                            {% if user.contacto.area and user.contacto.area.aprobador_papeleria %}
+                                {{ user.contacto.area.aprobador_papeleria.contacto.nombre_completo }}
+                            {% else %}
+                                <span class="text-warning italic">No asignado</span>
+                            {% endif %}
+                        </span>
                     </div>
                 </div>
             {% endif %}
 
-            <!-- Aprobador -->
-            <div class="stat">
-                <div class="stat-title">Aprobador</div>
-                <div class="stat-value text-base">
-                    {% if user.contacto.area and user.contacto.area.aprobador_papeleria %}
-                        {{ user.contacto.area.aprobador_papeleria.contacto.nombre_completo }}
-                    {% else %}
-                        Aprobador de papelería no asignado
-                    {% endif %}
-                </div>
+            <!-- FORMULARIO DE LA REQUISICIÓN -->
+            <div class="flex-1">
+                <c-apps.papeleria.requisiciones.form/>
             </div>
-
         </div>
-    {% endif %}
 
-    <c-apps.papeleria.requisiciones.form/>
+        <!-- COLUMNA DERECHA: SECCIÓN DE ACTIVIDAD Y TIMELINE (SCROLL INDEPENDIENTE) -->
+        <div class="w-full lg:w-96 flex flex-col h-full min-h-0 bg-base-100 border border-base-200 rounded-lg shadow-2xs shrink-0 overflow-hidden">
+            <c-apps.papeleria.requisiciones.actividad :requisicion="requisicion"/>
+        </div>
+
+    </div>
 </c-layouts.app>

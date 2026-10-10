@@ -1,46 +1,226 @@
 {% load django_tables2 %}
+
 <c-layouts.app>
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+        <!-- BARRA DE ACCIONES Y FILTROS -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
 
-            <!-- START -->
-            <div class="justify-self-start">
-                <h1 class="text-primary font-bold text-xl flex items-center gap-2">
-                    <span class="icon-[et--document]"></span>
-                    Requisiciones
-                </h1>
-                <h2 class="text-muted text-sm mb-2">Solicite y gestione las solicitudes de papelería de la empresa</h2>
+            <!-- TITULO DE LA VISTA + BOTONES DE ACCIÓN PRINCIPALES -->
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="icon-[et--document] text-primary text-base"></span>
+                <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">Requisiciones</h1>
+
+                <!-- BOTÓN NUEVA SOLICITUD / CARRITO -->
                 {% if perms.papeleria.add_requisicion %}
-                    <a href="{% url 'papeleria:requisiciones__create' %}" class="btn btn-sm btn-primary">
-                        CREAR
+                    <a href="{% url 'papeleria:carrito__catalogo' %}"
+                       class="btn btn-primary btn-xs gap-1 font-medium shadow-2xs ml-1">
+                        <span class="icon-[tabler--plus] text-xs"></span>
+                        <span>Solicitar</span>
                     </a>
                 {% endif %}
 
+                <!-- ACCIÓN MASIVA: SOLICITAR APROBACIÓN CONTRALORÍA -->
                 {% if perms.papeleria.enviar_requisicion_contraloria and requisiciones_listas_contraloria|length %}
-                    <button class="btn btn-sm btn-secondary"
-                            onclick="solicitar_aprobacion_contraloria_modal.showModal()">
-                        Solicitar Aprobación Contraloría
+                    <button type="button"
+                            onclick="solicitar_aprobacion_contraloria_modal.showModal()"
+                            class="btn btn-secondary btn-xs gap-1 font-medium shadow-2xs">
+                        <span class="icon-[tabler--send] text-xs"></span>
+                        <span>Solicitar Contraloría</span>
+                        <span class="badge badge-sm border-0 bg-secondary-content/20 text-secondary-content text-[10px] px-1 h-4 min-h-0">
+                            {{ requisiciones_listas_contraloria|length }}
+                        </span>
                     </button>
+
                     <c-apps.papeleria.requisiciones.modal.solicitar-aprobacion-contraloria
                             :requisiciones_listas_contraloria="requisiciones_listas_contraloria"/>
                 {% endif %}
             </div>
 
-            <!-- MIDDLE -->
-            <div class="justify-self-center w-full flex justify-center">
+            <!-- BUSCADOR + BOTÓN MODAL FILTROS + CONTADORES -->
+            <div class="flex items-center gap-2 flex-1 justify-end max-w-2xl">
+
+                <!-- FORMULARIO DE BUSQUEDA RÁPIDA -->
+                <form method="get" action="" id="search-form" class="flex items-center gap-2 flex-1 max-w-sm">
+                    {% for key, value in request.GET.items %}
+                        {% if key != 'q' and key != 'page' and key != '_export' and value %}
+                            <input type="hidden" name="{{ key }}" value="{{ value }}">
+                        {% endif %}
+                    {% endfor %}
+
+                    <div class="relative flex-1 flex items-center">
+                        <span class="absolute left-2.5 text-base-content/40 pointer-events-none z-10">
+                            <span class="icon-[tabler--search] text-xs block"></span>
+                        </span>
+
+                        <input
+                                type="text"
+                                name="q"
+                                value="{{ request.GET.q|default:'' }}"
+                                placeholder="Buscar folio, usuario..."
+                                class="input input-xs w-full pl-7 pr-3 bg-base-100 border-base-300 focus:border-primary focus:outline-none text-xs rounded-md h-7"
+                        />
+                    </div>
+                </form>
+
+                <!-- BOTÓN QUE DISPARA EL MODAL DE FILTROS -->
+                <button type="button"
+                        onclick="modal_filtros.showModal()"
+                        class="btn btn-ghost btn-xs h-7 min-h-0 px-2 border border-base-300 bg-base-100 font-normal text-xs text-base-content/70 relative">
+                    <span class="icon-[tabler--adjustments-horizontal] text-xs"></span>
+                    <span class="hidden sm:inline">Filtros</span>
+                    {% if request.GET.estado or request.GET.empresa or request.GET.fecha %}
+                        <span class="badge badge-primary badge-xs size-2 p-0 rounded-full absolute -top-1 -right-1"></span>
+                    {% endif %}
+                </button>
+
+                <!-- MENÚ EXPORTAR / IMPRIMIR -->
+                <div class="dropdown dropdown-end">
+                    <button tabindex="0"
+                            class="btn btn-ghost btn-xs btn-square h-7 w-7 border border-base-300 bg-base-100">
+                        <span class="icon-[tabler--dots-vertical] text-xs"></span>
+                    </button>
+                    <ul tabindex="0"
+                        class="dropdown-content menu menu-xs bg-base-100 rounded-md border border-base-200 shadow-lg w-36 z-50 p-1">
+                        <li>
+                            <a href="{% querystring "_export"="xls" %}" target="_blank">
+                                <span class="icon-[tabler--file-spreadsheet]"></span> Excel
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- CONTADOR + CAMBIADOR DE VISTA -->
+                <div class="hidden sm:flex items-center gap-1.5 border-l border-base-300 pl-2 text-xs text-base-content/60">
+                    <span class="text-[11px] whitespace-nowrap">
+                        <span class="font-bold text-base-content">{{ table.page.paginator.count|default:"0" }}</span>
+                    </span>
+
+                    <div class="join border border-base-300 rounded p-0.5 bg-base-100">
+                        <!-- Botón Tabla / Lista -->
+                        <a href="{% querystring "view"="list" %}"
+                           class="join-item btn btn-xs btn-ghost btn-square h-5 w-5 min-h-0 {% if view_mode == 'list' %}btn-active text-primary{% endif %}"
+                           title="Vista de lista">
+                            <span class="icon-[tabler--list] text-xs"></span>
+                        </a>
+
+                        <!-- Botón Cards / Kanban -->
+                        <a href="{% querystring "view"="kanban" %}"
+                           class="join-item btn btn-xs btn-ghost btn-square h-5 w-5 min-h-0 {% if view_mode == 'kanban' %}btn-active text-primary{% endif %}"
+                           title="Vista de tarjetas">
+                            <span class="icon-[tabler--layout-kanban] text-xs"></span>
+                        </a>
+                    </div>
+                </div>
 
             </div>
-
-
-            <!-- END -->
-            <div class="justify-self-end">
-                <c-shared.searchbar/>
-            </div>
-
         </div>
 
+        <!-- CHIPS DE FILTROS ACTIVOS -->
+        {% if request.GET.estado or request.GET.q or request.GET.empresa %}
+            <div class="flex items-center gap-1.5 flex-wrap pt-1 border-t border-base-200/60 mt-1">
+                {% if request.GET.q %}
+                    <a href="{% querystring 'q'="" %}"
+                       class="badge badge-ghost border-base-300 badge-xs gap-1 text-[10px] h-4.5">
+                        <span>"{{ request.GET.q }}"</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+                {% if request.GET.estado %}
+                    <a href="{% querystring 'estado'="" %}"
+                       class="badge badge-info badge-outline badge-xs gap-1 text-[10px] h-4.5">
+                        <span>Estado: {{ request.GET.estado }}</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+                {% if request.GET.empresa %}
+                    <a href="{% querystring 'empresa'="" %}"
+                       class="badge badge-neutral badge-outline badge-xs gap-1 text-[10px] h-4.5">
+                        <span>Empresa: {{ request.GET.empresa }}</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+                <a href="{% url 'papeleria:requisiciones__list' %}?clean_filter=1"
+                   class="text-[10px] text-primary hover:underline ml-1">Limpiar</a>
+            </div>
+        {% endif %}
     </c-slot>
 
-    {% render_table table %}
+    <!-- VISTA PRINCIPAL: TABLA DENSIDAD ALTA (DESKTOP) -->
+    <div class="{% if view_mode == 'kanban' %}hidden{% else %}hidden sm:flex flex-col flex-1 min-h-0 h-full w-full{% endif %}">
+        {% render_table table %}
+    </div>
 
+    <!-- VISTA SECUNDARIA: CARDS / KANBAN (MOBILE O CUANDO SE SELECCIONA KANBAN) -->
+    <div class="{% if view_mode == 'kanban' %}block{% else %}block sm:hidden{% endif %}">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-2">
+            {% for requisicion in object_list %}
+                <c-apps.papeleria.requisiciones.card :requisicion="requisicion"/>
+            {% empty %}
+                <div class="col-span-full text-center py-8 text-base-content/50 text-xs">
+                    No se encontraron requisiciones registrado/as.
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- PAGINACIÓN PARA MODO TARJETAS -->
+        {% if table.page %}
+            <div class="flex items-center justify-between p-3 border-t border-base-200 bg-base-100 rounded-b-lg mt-2">
+                <span class="text-[11px] text-base-content/60">
+                    Página {{ table.page.number }} de {{ table.paginator.num_pages }}
+                </span>
+                <div class="join">
+                    {% if table.page.has_previous %}
+                        <a href="?page={{ table.page.previous_page_number }}"
+                           class="join-item btn btn-xs border-base-300">Anterior</a>
+                    {% endif %}
+                    {% if table.page.has_next %}
+                        <a href="?page={{ table.page.next_page_number }}" class="join-item btn btn-xs border-base-300">Siguiente</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- MODAL DE FILTROS AVANZADOS -->
+    <dialog id="modal_filtros" class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box p-4 bg-base-100 border border-base-200">
+
+            <!-- ENCABEZADO DEL MODAL -->
+            <div class="flex items-center justify-between border-b border-base-200 pb-2 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="icon-[tabler--adjustments-horizontal] text-primary text-base"></span>
+                    <h3 class="font-bold text-sm">Filtros Avanzados</h3>
+                </div>
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost text-base-content/60">✕</button>
+                </form>
+            </div>
+
+            <!-- FORMULARIO DE FILTROS (INTEGRADO CON DJANGO-FILTER) -->
+            <form method="get" action="" id="advanced-filter-form" class="space-y-3 text-xs">
+                {% if request.GET.q %}
+                    <input type="hidden" name="q" value="{{ request.GET.q }}">
+                {% endif %}
+
+                <div class="space-y-2">
+                    {{ filter.form }}
+                </div>
+
+                <!-- ACCIONES DEL MODAL -->
+                <div class="modal-action border-t border-base-200 pt-3 mt-4 flex items-center justify-end gap-2">
+                    <a href="{% url 'papeleria:requisiciones__list' %}?clean_filter=1"
+                       class="btn btn-ghost btn-xs text-xs font-normal">
+                        Limpiar filtros
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-xs px-4">
+                        Aplicar Filtros
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
 </c-layouts.app>

@@ -1,0 +1,26 @@
+{% load crispy_forms_tags %}
+
+{% if form.errors %}
+    <div id="form-errors-banner"
+         class="alert alert-error alert-soft p-3 text-xs mb-3 rounded-lg border border-error/30">
+        <div class="flex items-center gap-2">
+            <span class="icon-[tabler--alert-circle] text-base shrink-0 text-error"></span>
+            <div>
+                <span class="font-bold">Hay errores en el formulario</span>
+                <p class="text-[11px] opacity-90">Por favor revisa los campos marcados antes de guardar.</p>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<div class="bg-base-100 rounded-lg border border-base-200 shadow-2xs p-3">
+    {% crispy form %}
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Inicializar Dual Listbox para Grupos y Permisos
+        renderDualListbox('id_groups_dual', 'Grupos Disponibles', 'Grupos Asignados');
+        renderDualListbox('id_permissions_dual', 'Permisos Disponibles', 'Permisos Asignados');
+    });
+</script>

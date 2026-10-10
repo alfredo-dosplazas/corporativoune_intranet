@@ -21,7 +21,7 @@ class DetalleRequisicionInline(InlineFormSetFactory):
             total = view.requisicion.detalle_requisicion.count()
             kwargs['extra'] = total - 1
         else:
-            kwargs['extra'] = 1
+            kwargs['extra'] = 0
 
         return kwargs
 

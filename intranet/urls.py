@@ -8,6 +8,7 @@ from django_js_reverse.views import urls_json
 urlpatterns = [
                   path('admin/', admin.site.urls),
                   path('', include('apps.core.urls')),
+                  path('auth/', include('apps.custom_auth.urls')),
                   path('cumpleanios/', include('apps.cumpleanios.urls')),
                   path('destajos/', include('apps.destajos.urls')),
                   path('papeleria/', include('apps.papeleria.urls')),
@@ -22,6 +23,7 @@ urlpatterns = [
                   path('listas-precio/', include('apps.listas_precios.urls')),
                   path('resguardos/', include('apps.resguardos.urls')),
                   path('regalos/', include('apps.regalos.urls')),
+                  path('infopantallas/', include('apps.infopantallas.urls')),
                   path('', include('pwa.urls')),
                   path("jsreverse.json", urls_json, name="js_reverse"),
               ] + debug_toolbar_urls()

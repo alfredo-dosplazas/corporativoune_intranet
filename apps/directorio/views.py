@@ -143,26 +143,29 @@ class ContactoUpdateView(
     def get_success_url(self) -> str:
         return reverse('directorio:update', args=[self.object.pk])
 
+    def dispatch(self, request, *args, **kwargs):
+        ip = get_client_ip(request)
+
+        # 1. Seguridad por Rango IP Interno
+        if not ip_in_allowed_range(ip):
+            return HttpResponseForbidden(
+                "Acceso permitido solo desde la red interna."
+            )
+
+        contacto = self.get_object()
+
+        # 2. Validación de visibilidad usando el nuevo método del modelo
+        if not contacto.puede_editar(request.user):
+            return redirect('directorio:list')
+
+        return super().dispatch(request, *args, **kwargs)
+
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
             {'title': 'Directorio', 'url': reverse('directorio:list')},
             {'title': 'Editar'},
         ]
-
-
-def contacto_detail(request, pk):
-    contacto = get_object_or_404(Contacto, pk=pk)
-
-    props = {
-        'contacto': ContactoSerializer(contacto).data,
-        'breadcrumbs': [
-            {'label': 'Inicio', 'url': '/', 'icon': 'icon-[lucide--home]'},
-            {'label': 'Directorio', 'icon': 'icon-[lucide--users]', 'url': reverse('directorio:list')},
-            {'label': 'Detalle Del Contacto', 'icon': 'icon-[lucide--users]'},
-        ],
-    }
-    return render(request, 'Directorio/Contacto/Detail', props)
 
 
 def contacto_delete(request, pk):
@@ -173,88 +176,6 @@ def contacto_delete(request, pk):
     return redirect(reverse("directorio:list"))
 
 
-class ContactoExportMediaView(View):
-    """Genera Tarjetas (Horizontal) o Credenciales (Vertical) en PNG o PDF usando Playwright."""
-
-    def get(self, request, pk, tipo):
-        # tipo: 'tarjeta' (horizontal) o 'credencial' (vertical)
-        contacto = get_object_or_404(
-            Contacto.objects.select_related(
-                'empresa', 'puesto', 'area', 'sede_administrativa'
-            ).prefetch_related('telefonos', 'emails', 'empresas_relacionadas'),
-            pk=pk,
-        )
-
-        fmt = request.GET.get('fmt', 'png').lower()  # png o pdf
-        is_preview = request.GET.get('preview') == '1'
-
-        context = {
-            'contacto': contacto,
-            'tipo': tipo,
-            'base_url': request.build_absolute_uri('/'),
-        }
-
-        # Si es preview, solo renderizamos el HTML directamente en el navegador
-        if is_preview:
-            return render(
-                request, 'apps/directorio/export/card_render.html', context
-            )
-
-        # Configuración de dimensiones
-        if tipo == 'credencial':
-            # Credencial Vertical estilo Gafete (CR-80 Estándar: 3.375 x 2.125 pulgadas -> ratio a px)
-            viewport = {'width': 600, 'height': 960}
-            filename = f'credencial_{contacto.numero_empleado or contacto.pk}'
-        elif tipo == 'tarjeta':
-            # Tarjeta de Presentación Horizontal
-            viewport = {'width': 1050, 'height': 600}
-            filename = f'tarjeta_{contacto.nombre_completo.replace(" ", "_")}'
-        else:
-            return HttpResponseBadRequest('Tipo de exportación inválido.')
-
-        # Renderizar HTML interno para Playwright
-        html_content = render_to_string(
-            'apps/directorio/export/card_render.html', context, request=request
-        )
-
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page(
-                viewport=viewport, device_scale_factor=2
-            )  # Scale x2 para alta resolución (Retina)
-
-            page.set_content(html_content, wait_until='networkidle')
-
-            if fmt == 'png':
-                buffer = page.screenshot(type='png', full_page=True)
-                response = HttpResponse(buffer, content_type='image/png')
-                response['Content-Disposition'] = (
-                    f'attachment; filename="{filename}.png"'
-                )
-            elif fmt == 'pdf':
-                buffer = page.pdf(
-                    width=f'{viewport["width"]}px',
-                    height=f'{viewport["height"]}px',
-                    print_background=True,
-                    margin={
-                        'top': '0px',
-                        'right': '0px',
-                        'bottom': '0px',
-                        'left': '0px',
-                    },
-                )
-                response = HttpResponse(buffer, content_type='application/pdf')
-                response['Content-Disposition'] = (
-                    f'attachment; filename="{filename}.pdf"'
-                )
-            else:
-                browser.close()
-                return HttpResponseBadRequest('Formato no soportado')
-
-            browser.close()
-            return response
-
-
 class ContactoDetailView(BreadcrumbsMixin, DetailView):
     template_name = "apps/directorio/contacto/detail.html"
     model = Contacto
@@ -262,12 +183,16 @@ class ContactoDetailView(BreadcrumbsMixin, DetailView):
     def dispatch(self, request, *args, **kwargs):
         ip = get_client_ip(request)
 
+        # 1. Seguridad por Rango IP Interno
         if not ip_in_allowed_range(ip):
             return HttpResponseForbidden(
                 "Acceso permitido solo desde la red interna."
             )
 
-        if not puede_ver_contacto(request.user, self.get_object(), request):
+        contacto = self.get_object()
+
+        # 2. Validación de visibilidad usando el nuevo método del modelo
+        if not contacto.puede_ver(request.user, request):
             return redirect('directorio:list')
 
         return super().dispatch(request, *args, **kwargs)
@@ -276,7 +201,7 @@ class ContactoDetailView(BreadcrumbsMixin, DetailView):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
             {'title': 'Directorio', 'url': reverse('directorio:list')},
-            {'title': self.get_object()},
+            {'title': str(self.get_object())},
         ]
 
 

@@ -31,6 +31,8 @@ CSRF_TRUSTED_ORIGINS = env('CSRF_TRUSTED_ORIGINS').strip().split(',')
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+
     'dal',
     'dal_select2',
     'django.contrib.humanize',
@@ -40,6 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'channels',
     'django_cotton',
     'crispy_forms',
     'django_tables2',
@@ -58,6 +62,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
 
     'apps.ad',
+    'apps.custom_auth',
     'apps.asistencias',
     'apps.core',
     'apps.cumpleanios',
@@ -78,6 +83,7 @@ INSTALLED_APPS = [
     'apps.sae',
     'apps.interfaz_sae_coi',
     'apps.listas_precios',
+    'apps.infopantallas',
 
     'apps.vs_erp',
 ]
@@ -440,3 +446,19 @@ INTERNAL_IPS = [
     "127.0.0.1",
     "localhost",
 ]
+
+ASGI_APPLICATION = 'intranet.asgi.application'
+
+RABBITMQ_HOST = os.getenv('RABBITMQ_HOST', '127.0.0.1')
+RABBITMQ_PORT = os.getenv('RABBITMQ_PORT', '5672')
+RABBITMQ_USER = os.getenv('RABBITMQ_USER', 'guest')
+RABBITMQ_PASS = os.getenv('RABBITMQ_PASSWORD', 'guest')
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_rabbitmq.core.RabbitmqChannelLayer',
+        'CONFIG': {
+            'host': f'amqp://{RABBITMQ_USER}:{RABBITMQ_PASS}@{RABBITMQ_HOST}:{RABBITMQ_PORT}/',
+        },
+    },
+}

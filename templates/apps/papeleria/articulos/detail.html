@@ -1,63 +1,182 @@
 {% load money %}
 <c-layouts.app>
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+        <!-- BARRA SUPERIOR ERP: NAVEGACIÓN Y ACCIONES -->
+        <div class="flex items-center justify-between gap-2">
+            <!-- TITULO Y BREADCRUMBS -->
+            <div class="flex items-center gap-2 min-w-0">
+                <a href="{% url 'papeleria:articulos__list' %}"
+                   class="btn btn-ghost btn-xs btn-square shrink-0 text-base-content/60 hover:text-base-content"
+                   title="Volver a la lista">
+                    <span class="icon-[tabler--arrow-left] text-sm"></span>
+                </a>
 
-            <!-- START -->
-            <div class="justify-self-start">
-                <h1 class="font-bold text-xl flex items-center gap-2">{{ articulo }}</h1>
+                <div class="flex items-center gap-1.5 text-xs truncate">
+                    <span class="font-bold text-base-content truncate">{{ articulo.nombre }}</span>
+                    {% if articulo.codigo_vs_dp %}
+                        <span class="badge badge-xs badge-neutral font-mono text-[10px]">{{ articulo.codigo_vs_dp }}</span>
+                    {% endif %}
+                </div>
             </div>
 
-            <!-- MIDDLE -->
-            <div class="justify-self-center w-full flex justify-center">
-
-            </div>
-
-
-            <!-- END -->
-            <div class="justify-self-end">
+            <!-- BOTONES DE ACCIÓN RÁPIDA -->
+            <div class="flex items-center gap-2 shrink-0">
+                {% if perms.papeleria.change_articulo %}
+                    <a href="{% url 'papeleria:articulos__update' articulo.pk %}"
+                       class="btn btn-primary btn-xs gap-1 font-medium shadow-2xs">
+                        <span class="icon-[tabler--edit] text-xs"></span>
+                        <span>Editar Artículo</span>
+                    </a>
+                {% endif %}
             </div>
         </div>
-
     </c-slot>
 
-    <div class="card bg-base-100 shadow">
-        <div class="card-body">
-            <div class="flex flex-col items-center gap-4">
-                {% if articulo.imagen %}
-                    <a target="_blank" href="{{ articulo.imagen.url }}">
-                        <img class="w-32 h-auto cursor-zoom-in" src="{{ articulo.imagen.url }}"
-                             alt="{{ articulo.nombre }}">
-                    </a>
-                {% else %}
-                    <p class="text-muted text-sm text-base-content/80">Este artículo no tiene imagen.</p>
-                {% endif %}
+    <!-- DASHBOARD DETALLE DEL ARTÍCULO (GRID 12 COLS) -->
+    <div class="grid grid-cols-12 gap-3">
 
-                <h2 class="text-xl font-bold">{{ articulo.nombre }}</h2>
+        <!-- TARJETA 1: IDENTIFICACIÓN E IMAGEN (8 COLS / FULL EN MOVIL) -->
+        <div class="col-span-12 lg:col-span-8 card bg-base-100 border border-base-200 shadow-2xs">
+            <div class="card-body p-4 space-y-3">
+                <!-- Encabezado de Sección -->
+                <div class="text-[11px] font-bold text-primary uppercase tracking-wider border-b border-base-200 pb-1 flex items-center gap-1">
+                    <span class="icon-[tabler--barcode] size-3.5"></span> Datos del Artículo
+                </div>
 
-                <p><strong>Código VS DP: </strong>{{ articulo.codigo_vs_dp }}</p>
-                <p><strong>Número papelería: </strong>{{ articulo.numero_papeleria }}</p>
-                <p><strong>Unidad: </strong>{{ articulo.unidad }}</p>
-                <p><strong>Impuesto: </strong>{{ articulo.impuesto|percent }}</p>
-                <p><strong>Precio: </strong>{{ articulo.precio|money }}</p>
-                <p><strong>Importe: </strong>{{ articulo.importe|money }}</p>
+                <div class="flex flex-col sm:flex-row gap-4 items-start">
+                    <!-- Preview de Imagen Compacta -->
+                    <div class="shrink-0 w-full sm:w-32 h-32 bg-base-200/50 rounded-lg border border-base-200 flex items-center justify-center overflow-hidden">
+                        {% if articulo.imagen %}
+                            <a target="_blank" href="{{ articulo.imagen.url }}" title="Ver imagen completa">
+                                <img class="w-full h-full object-contain p-1 cursor-zoom-in hover:scale-105 transition-transform"
+                                     src="{{ articulo.imagen.url }}"
+                                     alt="{{ articulo.nombre }}">
+                            </a>
+                        {% else %}
+                            <div class="flex flex-col items-center gap-1 text-base-content/40 p-2 text-center">
+                                <span class="icon-[tabler--photo-off] size-6"></span>
+                                <span class="text-[10px]">Sin Imagen</span>
+                            </div>
+                        {% endif %}
+                    </div>
 
-                <p>
-                    <strong>Empresas: </strong>
-                    {% for empresa in articulo.empresas.all %}
-                        <span class="badge badge-primary" data-theme="{{ empresa.theme }}">{{ empresa }}</span>
-                    {% endfor %}
-                </p>
+                    <!-- Datos Principales -->
+                    <div class="space-y-2 flex-1 w-full text-xs">
+                        <div>
+                            <h2 class="text-sm font-bold text-base-content leading-tight">{{ articulo.nombre }}</h2>
+                            <p class="text-[11px] text-base-content/70 mt-1 leading-relaxed">
+                                {{ articulo.descripcion|default:"Sin descripción detallada." }}
+                            </p>
+                        </div>
 
-                {% if user.is_staff %}
-                    <p><strong>Mostrar en sitio: </strong>{{ articulo.mostrar_en_sitio|yesno:'Sí,No' }}</p>
-                    <p>
-                        <strong>¿Pertenece al cuadro básico?: </strong>{{ articulo.es_cuadro_basico|yesno:'Sí,No' }}
-                    </p>
-                {% endif %}
+                        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-base-200/60 text-[11px]">
+                            <div>
+                                <span class="text-base-content/60 block text-[10px] uppercase font-semibold">Código VS DP</span>
+                                <span class="font-mono text-base-content font-medium">{{ articulo.codigo_vs_dp|default:"—" }}</span>
+                            </div>
+                            <div>
+                                <span class="text-base-content/60 block text-[10px] uppercase font-semibold">Número Papelería</span>
+                                <span class="font-mono text-base-content font-medium">{{ articulo.numero_papeleria|default:"—" }}</span>
+                            </div>
+                        </div>
 
-                {{ articulo.info_vs.ultimopreciocompra }}
+                        <!-- Empresas Asignadas -->
+                        <div class="pt-2 border-t border-base-200/60">
+                            <span class="text-base-content/60 block text-[10px] uppercase font-semibold mb-1">Empresas con Acceso</span>
+                            <div class="flex flex-wrap gap-1">
+                                {% for empresa in articulo.empresas.all %}
+                                    <span class="badge badge-xs font-medium" data-theme="{{ empresa.theme }}">{{ empresa }}</span>
+                                {% empty %}
+                                    <span class="text-[10px] text-base-content/50 italic">Sin empresas asignadas</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <!-- TARJETA 2: COSTOS, PRECIOS E IMPUESTOS (4 COLS) -->
+        <div class="col-span-12 lg:col-span-4 card bg-base-100 border border-base-200 shadow-2xs">
+            <div class="card-body p-4 space-y-3">
+                <!-- Encabezado de Sección -->
+                <div class="text-[11px] font-bold text-primary uppercase tracking-wider border-b border-base-200 pb-1 flex items-center gap-1">
+                    <span class="icon-[tabler--tags] size-3.5"></span> Esquema de Precios
+                </div>
+
+                <div class="space-y-2.5 text-xs">
+                    <!-- Resumen de Importe Destacado -->
+                    <div class="bg-primary/5 border border-primary/20 rounded-lg p-2.5 flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-primary uppercase tracking-wider block">Importe Total</span>
+                            <span class="text-xs text-base-content/60">Precio + Impuesto</span>
+                        </div>
+                        <span class="text-base font-extrabold text-primary font-mono">{{ articulo.importe|money }}</span>
+                    </div>
+
+                    <!-- Detalle Fino de Costos -->
+                    <div class="space-y-1.5 pt-1 text-[11px]">
+                        <div class="flex justify-between items-center py-1 border-b border-base-200/50">
+                            <span class="text-base-content/70">Unidad de Medida</span>
+                            <span class="font-semibold text-base-content">{{ articulo.unidad }}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-1 border-b border-base-200/50">
+                            <span class="text-base-content/70">Precio Base</span>
+                            <span class="font-mono text-base-content">{{ articulo.precio|money }}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-1 border-b border-base-200/50">
+                            <span class="text-base-content/70">Tasa de Impuesto</span>
+                            <span class="font-mono text-base-content">{{ articulo.impuesto|percent }}</span>
+                        </div>
+                        {% if articulo.info_vs.ultimopreciocompra %}
+                            <div class="flex justify-between items-center py-1">
+                                <span class="text-base-content/70">Última Compra (VS)</span>
+                                <span class="font-mono text-success font-semibold">{{ articulo.info_vs.ultimopreciocompra|money }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TARJETA 3: ESTADO Y CONFIGURACIÓN DEL SISTEMA (12 COLS COMPACTO) -->
+        <div class="col-span-12 card bg-base-100 border border-base-200 shadow-2xs">
+            <div class="card-body p-3.5">
+                <div class="flex flex-wrap items-center justify-between gap-4 text-xs">
+                    <div class="flex items-center gap-6">
+                        <!-- Flag: Cuadro Básico -->
+                        <div class="flex items-center gap-2">
+                            <span class="icon-[tabler--list-check] text-base-content/60 size-4"></span>
+                            <span class="text-base-content/70 text-[11px]">Cuadro Básico:</span>
+                            {% if articulo.es_cuadro_basico %}
+                                <span class="badge badge-success badge-xs gap-1 font-medium">
+                                    <span class="icon-[tabler--check] size-3"></span> Sí
+                                </span>
+                            {% else %}
+                                <span class="badge badge-ghost badge-xs gap-1 text-base-content/60">No</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Flag: Mostrar en Sitio -->
+                        <div class="flex items-center gap-2">
+                            <span class="icon-[tabler--world] text-base-content/60 size-4"></span>
+                            <span class="text-base-content/70 text-[11px]">Visible en Portal:</span>
+                            {% if articulo.mostrar_en_sitio %}
+                                <span class="badge badge-info badge-xs gap-1 font-medium">
+                                    <span class="icon-[tabler--eye] size-3"></span> Visible
+                                </span>
+                            {% else %}
+                                <span class="badge badge-warning badge-xs gap-1 font-medium">Oculto</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="text-[10px] text-base-content/50 italic">
+                        ID Registro: <span class="font-mono">#{{ articulo.pk }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </c-layouts.app>

@@ -1,25 +1,39 @@
 {% load django_tables2 %}
+
 <c-layouts.app>
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+        <!-- BARRA SUPERIOR ERP: NAVEGACIÓN Y ACCIONES -->
+        <div class="flex items-center justify-between gap-2">
 
-            <!-- START -->
-            <div class="justify-self-start">
-                <h1 class="font-bold text-xl flex items-center gap-2">Crear Artículo</h1>
+            <!-- TITULO Y BREADCRUMBS -->
+            <div class="flex items-center gap-2 min-w-0">
+                <a href="{% url 'papeleria:articulos__list' %}"
+                   class="btn btn-ghost btn-xs btn-square shrink-0 text-base-content/60 hover:text-base-content"
+                   title="Volver a la lista">
+                    <span class="icon-[tabler--arrow-left] text-sm"></span>
+                </a>
+
+                <div class="flex items-center gap-1.5 text-xs truncate">
+                    <span class="font-bold text-base-content truncate">Nuevo Artículo</span>
+                </div>
             </div>
 
-            <!-- MIDDLE -->
-            <div class="justify-self-center w-full flex justify-center">
+            <!-- BOTONES DE ACCIÓN RÁPIDA -->
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="{% url 'papeleria:articulos__list' %}"
+                   class="btn btn-ghost btn-xs font-normal text-base-content/70">
+                    Cancelar
+                </a>
 
+                <button form="articulo-form"
+                        type="submit"
+                        class="btn btn-primary btn-xs gap-1 font-medium shadow-2xs">
+                    <span class="icon-[tabler--device-floppy] text-xs"></span>
+                    <span>Guardar Artículo</span>
+                </button>
             </div>
 
-
-            <!-- END -->
-            <div class="justify-self-end">
-                <button form="articulo-form" class="btn btn-primary btn-sm">Crear</button>
-            </div>
         </div>
-
     </c-slot>
 
     <c-apps.papeleria.articulos.form/>

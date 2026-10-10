@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.http.response import JsonResponse
 from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
@@ -93,14 +94,14 @@ class ArticuloUpdateView(
     PageTitleMixin,
     BreadcrumbsMixin,
     SuccessMessageMixin,
-    CreateView,
+    UpdateView,
 ):
     permission_required = 'papeleria.change_articulo'
     template_name = 'apps/papeleria/articulos/update.html'
     page_title = 'Actualizar Artículo'
     model = Articulo
     form_class = ArticuloForm
-    success_message = 'Artículo actual correctamente.'
+    success_message = 'Artículo actualizado correctamente.'
 
     def get_success_url(self) -> str:
         return reverse('papeleria:articulos__update', args=[self.object.pk])
@@ -114,22 +115,24 @@ class ArticuloUpdateView(
         ]
 
 
-@login_required()
-@permission_required('papeleria.change_articulo', raise_exception=True)
-def articulo_detail(request, pk):
-    articulo = get_object_or_404(Articulo, pk=pk)
-    props = {
-        'breadcrumbs': make_breadcrumbs([
-            ('Inicio', 'home'),
-            ('Papelería', 'papeleria:index'),
-            ('Artículos', 'papeleria:articulos__list'),
-            (str(articulo), None),
-        ]),
-        'unidades': [u.to_dict() for u in Unidad.objects.all()],
-        'articulo': articulo.to_dict(),
-    }
-    return render(request, 'Papeleria/Articulos/Detail', props)
+class ArticuloDetailView(
+    PermissionRequiredMixin,
+    PageTitleMixin,
+    BreadcrumbsMixin,
+    DetailView,
+):
+    permission_required = 'papeleria.view_articulo'
+    template_name = 'apps/papeleria/articulos/detail.html'
+    page_title = 'Detalle De Artículo'
+    model = Articulo
 
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Papelería', 'url': reverse('papeleria:index')},
+            {'title': 'Artículos', 'url': reverse('papeleria:articulos__list')},
+            {'title': self.get_object()},
+        ]
 
 @login_required()
 @permission_required('papeleria:delete_articulo')
@@ -139,3 +142,22 @@ def articulo_delete(request, pk):
     messages.success(request, 'Artículo eliminado correctamente.')
 
     return redirect('papeleria:articulos__list')
+
+
+@login_required
+def obtener_detalle_articulo_api(request, pk):
+    try:
+        articulo = Articulo.objects.get(pk=pk)
+        # Asumiendo que 'imagen' es un ImageField/FileField en Articulo
+        imagen_url = articulo.imagen.url if hasattr(articulo, 'imagen') and articulo.imagen else None
+
+        data = {
+            'id': articulo.id,
+            'nombre': articulo.nombre if hasattr(articulo, 'nombre') else str(articulo),
+            'codigo': getattr(articulo, 'codigo', ''),
+            'precio_unitario': float(getattr(articulo, 'precio', 0.0) or 0.0),
+            'imagen_url': imagen_url,
+        }
+        return JsonResponse({'success': True, 'articulo': data})
+    except Articulo.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Artículo no encontrado'}, status=404)

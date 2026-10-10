@@ -7,6 +7,8 @@ from django.db import models
 
 from apps.asistencias.models import RegistroAsistencia
 from apps.core.models import Empresa, RazonSocial
+from apps.core.utils.network import get_client_ip
+from apps.directorio.utils import obtener_sedes_permitidas, obtener_empresas_permitidas
 from apps.rrhh.models.areas import Area
 from apps.rrhh.models.puestos import Puesto
 from apps.rrhh.models.sedes import Sede
@@ -224,6 +226,118 @@ class Contacto(models.Model):
     @property
     def slack_url(self):
         return f"slack://user?team={settings.SLACK_TEAM_ID}&id={self.slack_id}"
+
+    @property
+    def es_inactivo(self) -> bool:
+        """
+        Determina si el contacto está inactivo en el sistema.
+        Se considera inactivo si:
+        1. Tiene fecha de egreso (ya fue dado de baja).
+        2. Tiene un usuario asignado y éste tiene is_active=False.
+        """
+        if self.fecha_egreso is not None:
+            return True
+        if self.usuario and not self.usuario.is_active:
+            return True
+        return False
+
+    def puede_ver(self, user, request=None):
+        """
+        Determina si un usuario (autenticado o anónimo por IP) tiene permiso para ver este contacto.
+        """
+        # 1. Superusuarios y Staff ven todo
+        if user.is_staff or user.is_superuser:
+            return True
+
+        # 2. Usuario Anónimo (Evaluación por IP del Request)
+        if not user.is_authenticated:
+            if not request:
+                return False
+
+            ip_cliente = get_client_ip(request)
+            if not ip_cliente:
+                return False
+
+            sedes_permitidas = obtener_sedes_permitidas(request)
+            empresas_permitidas = obtener_empresas_permitidas(request)
+
+            # Debe coincidir la empresa Y (sede administrativa O sede visible)
+            empresa_valida = self.empresa_id in empresas_permitidas
+            sede_valida = (
+                    self.sede_administrativa_id in sedes_permitidas or
+                    self.sedes_visibles.filter(id__in=sedes_permitidas).exists()
+            )
+            return empresa_valida and sede_valida
+
+        # 3. Usuario Autenticado sin perfil Contacto -> No puede ver
+        contacto_usuario = getattr(user, 'contacto', None)
+        if not contacto_usuario:
+            return False
+
+        # 5. Regla de Pertenencia (Misma Sede Admin, Sede Visible o Misma Empresa)
+        pertenece = (
+                contacto_usuario.sede_administrativa_id == self.sede_administrativa_id
+                or contacto_usuario.empresa_id == self.empresa_id
+                or self.sedes_visibles.filter(id=contacto_usuario.sede_administrativa_id).exists()
+        )
+
+        if not pertenece:
+            return False
+
+        # 6. Regla Especial para Ocultos o Archivados
+        if not self.mostrar_en_directorio or self.esta_archivado:
+            tiene_permiso_especial = (
+                    user.has_perm("directorio.change_contacto") or
+                    user.has_perm("directorio.delete_contacto")
+            )
+            return tiene_permiso_especial
+
+        return True
+
+    def puede_editar(self, user):
+        """
+        Determina si un usuario puede editar la información de este contacto.
+        """
+        if user.is_superuser:
+            return True
+
+        if not user.is_authenticated:
+            return False
+
+        contacto_usuario = getattr(user, 'contacto', None)
+        if not contacto_usuario:
+            return False
+
+        if not user.has_perm("directorio.change_contacto"):
+            return False
+
+        # Puede editar si administra la sede o la sede del contacto está en sus sedes visibles
+        return (
+                contacto_usuario.sede_administrativa_id == self.sede_administrativa_id or
+                self.sedes_visibles.filter(id=contacto_usuario.sede_administrativa_id).exists()
+        )
+
+    def puede_eliminar(self, user):
+        """
+        Determina si un usuario puede eliminar/archivar este contacto.
+        """
+        if user.is_superuser:
+            return True
+
+        if not user.is_authenticated:
+            return False
+
+        contacto_usuario = getattr(user, 'contacto', None)
+        if not contacto_usuario:
+            return False
+
+        if not user.has_perm("directorio.delete_contacto"):
+            return False
+
+        return (
+                contacto_usuario.sede_administrativa_id == self.sede_administrativa_id or
+                self.sedes_visibles.filter(id=contacto_usuario.sede_administrativa_id).exists()
+        )
 
     def clean(self):
         errors = {}

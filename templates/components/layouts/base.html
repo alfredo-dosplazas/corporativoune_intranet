@@ -19,7 +19,8 @@
     <!-- DateRangePicker & Moment -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment-with-locales.min.js"></script>
+    <script type="text/javascript"
+            src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment-with-locales.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
 
@@ -31,59 +32,204 @@
 
     {% progressive_web_app_meta %}
 </head>
-<body hx-headers='{"x-csrftoken": "{{ csrf_token }}"}' class="bg-base-200 text-base-content antialiased h-full overflow-hidden select-none">
+<body hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'
+      class="bg-base-200 text-base-content antialiased h-full overflow-hidden select-none">
 
-    <!-- Container Maestro de Altura Fija -->
-    <div class="h-full w-full flex flex-col overflow-hidden bg-base-200">
-        {{ slot }}
-    </div>
+<!-- Container Maestro de Altura Fija -->
+<div class="h-full w-full flex flex-col overflow-hidden bg-base-200">
+    {{ slot }}
+</div>
 
-    <!-- TOASTS Y SCRIPTS GENERALES -->
-    <div id="toast-container" class="toast toast-top toast-end z-50"></div>
+<!-- TOASTS Y SCRIPTS GENERALES -->
+<div id="toast-container" class="toast toast-top toast-end z-50"></div>
 
-    <script src="{% static 'js/toasts.js' %}"></script>
-    <script src="{% static 'js/copy_to_clipboard.js' %}"></script>
+<script src="{% static 'js/toasts.js' %}"></script>
+<script src="{% static 'js/copy_to_clipboard.js' %}"></script>
 
-    <!-- Django Admin Select2 & Autocomplete -->
-    <link href="{% static 'admin/css/vendor/select2/select2.css' %}" media="screen" rel="stylesheet">
-    <link href="{% static 'admin/css/autocomplete.css' %}" media="screen" rel="stylesheet">
-    <link href="{% static 'autocomplete_light/select2.css' %}" media="screen" rel="stylesheet">
-    <script src="{% static 'admin/js/vendor/select2/select2.full.js' %}"></script>
-    <script src="{% static 'autocomplete_light/autocomplete_light.js' %}"></script>
-    <script src="{% static 'autocomplete_light/select2.js' %}"></script>
-    <script src="{% static 'autocomplete_light/i18n/es.js' %}"></script>
+<!-- Django Admin Select2 & Autocomplete -->
+<link href="{% static 'admin/css/vendor/select2/select2.css' %}" media="screen" rel="stylesheet">
+<link href="{% static 'admin/css/autocomplete.css' %}" media="screen" rel="stylesheet">
+<link href="{% static 'autocomplete_light/select2.css' %}" media="screen" rel="stylesheet">
+<script src="{% static 'admin/js/vendor/select2/select2.full.js' %}"></script>
+<script src="{% static 'autocomplete_light/autocomplete_light.js' %}"></script>
+<script src="{% static 'autocomplete_light/select2.js' %}"></script>
+<script src="{% static 'autocomplete_light/i18n/es.js' %}"></script>
 
-    <script>
-        document.addEventListener('htmx:afterSettle', () => {
-            const selects = document.querySelectorAll('[data-autocomplete-light-function="select2"]');
-            selects.forEach((select) => { select.classList.add('hidden'); });
+<script>
+    $(document).ready(function () {
+        $('.select2-select').select2();
+    });
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll('.tom-select').forEach(function (el) {
+            if (!el.tomselect) {
+                new TomSelect(el, {
+                    plugins: ['remove_button'],
+                    maxItems: null,
+                    persist: false,
+                    create: false,
+                    placeholder: el.getAttribute('data-placeholder') || 'Seleccionar...'
+                });
+            }
         });
+    });
+</script>
 
-        function abrirPDF(url) {
-            const width = 900, height = 700;
-            const left = (screen.width / 2) - (width / 2);
-            const top = (screen.height / 2) - (height / 2);
-            window.open(url, 'PDFWindow', `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`);
+<script>
+    document.addEventListener('htmx:afterSettle', () => {
+        const selects = document.querySelectorAll('[data-autocomplete-light-function="select2"]');
+        selects.forEach((select) => {
+            select.classList.add('hidden');
+        });
+    });
+
+    function abrirPDF(url) {
+        const width = 900, height = 700;
+        const left = (screen.width / 2) - (width / 2);
+        const top = (screen.height / 2) - (height / 2);
+        window.open(url, 'PDFWindow', `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`);
+    }
+
+    function inicializarTomSelect() {
+        const select = document.getElementById('select-obras');
+        if (!select) return;
+        if (select.tomselect) select.tomselect.destroy();
+        new TomSelect(select, {
+            plugins: ['remove_button', 'clear_button'],
+            create: false,
+            maxItems: null,
+            hideSelected: true,
+            closeAfterSelect: false,
+            placeholder: 'Buscar obras...'
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', inicializarTomSelect);
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+        if (e.target.id === "contenedor-obras") inicializarTomSelect();
+    });
+</script>
+
+<script>
+    function renderDualListbox(selectId, labelIzquierda = "Disponibles", labelDerecha = "Asignados") {
+        const select = document.getElementById(selectId);
+        if (!select || select.dataset.dualListboxInitialized) return;
+
+        select.dataset.dualListboxInitialized = "true";
+        select.classList.add('hidden'); // Ocultar el select original de Django
+
+        // Crear la estructura contenedora dual
+        const container = document.createElement('div');
+        container.className = 'grid grid-cols-12 gap-2 text-xs w-full';
+
+        container.innerHTML = `
+        <!-- COLUMNA IZQUIERDA: DISPONIBLES -->
+        <div class="col-span-12 sm:col-span-5 flex flex-col gap-1.5">
+            <div class="flex items-center justify-between text-[11px] font-bold text-base-content/70 uppercase">
+                <span>${labelIzquierda}</span>
+                <span class="count-available font-mono text-primary">0</span>
+            </div>
+            <input type="text" placeholder="Buscar..." class="input-search-avail input input-xs border-base-300 focus:border-primary w-full h-7 text-xs" />
+            <!-- Se reemplaza 'select select-bordered' por clases de contenedor de lista vertical -->
+            <select multiple class="box-available w-full h-44 text-xs p-1 font-mono bg-base-100 border border-base-300 rounded-md focus:border-primary focus:outline-none"></select>
+        </div>
+
+        <!-- BOTONES CENTRALES DE TRANSFERENCIA -->
+        <div class="col-span-12 sm:col-span-2 flex sm:flex-col justify-center items-center gap-1 my-1 sm:my-0">
+            <button type="button" class="btn-add-all btn btn-ghost btn-xs border border-base-300 h-7 w-7 p-0" title="Agregar todos">
+                <span class="icon-[tabler--chevrons-right] text-sm"></span>
+            </button>
+            <button type="button" class="btn-add btn btn-primary btn-xs h-7 w-7 p-0 shadow-2xs" title="Agregar seleccionados">
+                <span class="icon-[tabler--chevron-right] text-sm"></span>
+            </button>
+            <button type="button" class="btn-remove btn btn-primary btn-xs h-7 w-7 p-0 shadow-2xs" title="Quitar seleccionados">
+                <span class="icon-[tabler--chevron-left] text-sm"></span>
+            </button>
+            <button type="button" class="btn-remove-all btn btn-ghost btn-xs border border-base-300 h-7 w-7 p-0" title="Quitar todos">
+                <span class="icon-[tabler--chevrons-left] text-sm"></span>
+            </button>
+        </div>
+
+        <!-- COLUMNA DERECHA: SELECCIONADOS -->
+        <div class="col-span-12 sm:col-span-5 flex flex-col gap-1.5">
+            <div class="flex items-center justify-between text-[11px] font-bold text-base-content/70 uppercase">
+                <span>${labelDerecha}</span>
+                <span class="count-selected font-mono text-primary">0</span>
+            </div>
+            <input type="text" placeholder="Buscar..." class="input-search-selected input input-xs border-base-300 focus:border-primary w-full h-7 text-xs" />
+            <!-- Se reemplaza 'select select-bordered' por clases de contenedor de lista vertical -->
+            <select multiple class="box-selected w-full h-44 text-xs p-1 font-mono bg-base-100 border border-base-300 rounded-md focus:border-primary focus:outline-none"></select>
+        </div>
+    `;
+
+        select.parentNode.insertBefore(container, select.nextSibling);
+
+        const boxAvail = container.querySelector('.box-available');
+        const boxSelected = container.querySelector('.box-selected');
+        const searchAvail = container.querySelector('.input-search-avail');
+        const searchSelected = container.querySelector('.input-search-selected');
+        const countAvail = container.querySelector('.count-available');
+        const countSelected = container.querySelector('.count-selected');
+
+        // Sincronizar datos del select original
+        function syncOptions() {
+            boxAvail.innerHTML = '';
+            boxSelected.innerHTML = '';
+
+            Array.from(select.options).forEach(opt => {
+                const newOpt = opt.cloneNode(true);
+                if (opt.selected) {
+                    boxSelected.appendChild(newOpt);
+                } else {
+                    boxAvail.appendChild(newOpt);
+                }
+            });
+            updateCounts();
         }
 
-        function inicializarTomSelect() {
-            const select = document.getElementById('select-obras');
-            if (!select) return;
-            if (select.tomselect) select.tomselect.destroy();
-            new TomSelect(select, {
-                plugins: ['remove_button', 'clear_button'],
-                create: false,
-                maxItems: null,
-                hideSelected: true,
-                closeAfterSelect: false,
-                placeholder: 'Buscar obras...'
+        function updateCounts() {
+            countAvail.textContent = boxAvail.options.length;
+            countSelected.textContent = boxSelected.options.length;
+        }
+
+        // Transferencia entre cajas
+        function transfer(fromBox, toBox, all = false) {
+            Array.from(fromBox.options).forEach(opt => {
+                if (all || opt.selected) {
+                    const origOpt = Array.from(select.options).find(o => o.value === opt.value);
+                    if (origOpt) origOpt.selected = (toBox === boxSelected);
+                }
+            });
+            syncOptions();
+            filterOptions(searchAvail, boxAvail);
+            filterOptions(searchSelected, boxSelected);
+        }
+
+        // Filtrado / Búsqueda en vivo
+        function filterOptions(input, box) {
+            const query = input.value.toLowerCase();
+            Array.from(box.options).forEach(opt => {
+                const match = opt.text.toLowerCase().includes(query);
+                opt.style.display = match ? '' : 'none';
             });
         }
 
-        document.addEventListener('DOMContentLoaded', inicializarTomSelect);
-        document.body.addEventListener('htmx:afterSwap', function (e) {
-            if (e.target.id === "contenedor-obras") inicializarTomSelect();
-        });
-    </script>
+        // Eventos
+        container.querySelector('.btn-add').addEventListener('click', () => transfer(boxAvail, boxSelected));
+        container.querySelector('.btn-add-all').addEventListener('click', () => transfer(boxAvail, boxSelected, true));
+        container.querySelector('.btn-remove').addEventListener('click', () => transfer(boxSelected, boxAvail));
+        container.querySelector('.btn-remove-all').addEventListener('click', () => transfer(boxSelected, boxAvail, true));
+
+        boxAvail.addEventListener('dblclick', () => transfer(boxAvail, boxSelected));
+        boxSelected.addEventListener('dblclick', () => transfer(boxSelected, boxAvail));
+
+        searchAvail.addEventListener('input', () => filterOptions(searchAvail, boxAvail));
+        searchSelected.addEventListener('input', () => filterOptions(searchSelected, boxSelected));
+
+        syncOptions();
+    }
+</script>
 </body>
 </html>

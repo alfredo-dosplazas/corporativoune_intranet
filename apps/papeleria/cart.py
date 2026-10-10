@@ -57,7 +57,7 @@ class PapeleriaCart:
             total += subtotal
 
             items.append({
-                "articulo": articulo.to_dict(),
+                "articulo": articulo,
                 "cantidad": cantidad,
                 "subtotal": float(subtotal),
             })
