@@ -4,11 +4,13 @@ import os
 from django.http import Http404, FileResponse, JsonResponse
 from django.shortcuts import render
 
+from apps.core.decorators import modulo_required
+
 RUTA_PANTALLA_1 = r'\\172.17.2.1\Infopantallas\Pantalla1'
 EXTENSIONES_IMAGENES = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
 EXTENSIONES_VIDEOS = {'.mp4', '.webm', '.mov'}
 
-
+@modulo_required('Infopantallas')
 def obtener_archivos_pantalla():
     """Lee la carpeta compartida y genera la estructura de la playlist."""
     playlist = []
@@ -39,15 +41,15 @@ def obtener_archivos_pantalla():
 
     return playlist
 
-
+@modulo_required('Infopantallas')
 def show_slides(request):
     """Vista principal que carga la interfaz del reproductor."""
     playlist = obtener_archivos_pantalla()
     return render(request, 'apps/infopantallas/pantalla.html', {
-        'playlist_inicial': playlist
+        'playlist_inicial': playlist,
     })
 
-
+@modulo_required('Infopantallas')
 def servir_media_pantalla(request, filename):
     """Servidor de streaming/archivos para la carpeta de red."""
     filepath = os.path.join(RUTA_PANTALLA_1, filename)
@@ -59,7 +61,7 @@ def servir_media_pantalla(request, filename):
     mime_type, _ = mimetypes.guess_type(filepath)
     return FileResponse(open(filepath, 'rb'), content_type=mime_type or 'application/octet-stream')
 
-
+@modulo_required('Infopantallas')
 def api_obtener_playlist(request):
     """Endpoint HTTP opcional si se requiere consultar por AJAX."""
     return JsonResponse({'playlist': obtener_archivos_pantalla()})
