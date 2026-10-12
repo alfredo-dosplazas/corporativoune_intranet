@@ -64,9 +64,9 @@ class DocumentoContabilizadoTable(tables.Table):
                 if hasattr(record.get('fecha'), 'strftime')
                 else str(record.get('fecha'))
             )
-            almacen_id = record.get('almacen_id', '')
+            almacen = record.get('almacen', '')
             base_url = reverse('interfaz_sae_coi:preview_poliza_corte')
-            url = f'{base_url}?fecha={fecha_str}&almacen={almacen_id}'
+            url = f'{base_url}?fecha={fecha_str}&almacen={almacen}'
 
         else:
             url = reverse(

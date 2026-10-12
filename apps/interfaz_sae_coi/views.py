@@ -28,6 +28,7 @@ from apps.interfaz_sae_coi.forms import DocumentoFilterForm
 from apps.interfaz_sae_coi.generators import PolizaVentaGenerator, PolizaCostoVentaGenerator, PolizaCorteCajaGenerator, \
     PolizaNotaCreditoGenerator, PolizaNotaDevolucionGenerator
 from apps.interfaz_sae_coi.models import DocumentoContabilizado
+from apps.interfaz_sae_coi.services.contabilizacion import CONTABILIZACION_STRATEGIES
 from apps.interfaz_sae_coi.services.corte_caja import obtener_cobros_del_dia
 from apps.interfaz_sae_coi.services.documentos_helpers import enrich_and_filter_contabilidad, sort_documentos
 from apps.interfaz_sae_coi.services.documentos_strategies import DOCUMENTO_STRATEGIES
@@ -260,7 +261,7 @@ def poliza_corte_preview_view(request):
         }
 
         return render(request, 'apps/interfaz_sae_coi/partials/modal_poliza_preview_generic.html', {
-            'titulo_documento': f'Corte de Caja ({fecha_str})',
+            'titulo_documento': f'Corte de Caja | {almacen} ({fecha_str})',
             'folio': fecha_str,
             'tipo_documento': 'CORTE_CAJA',
             'documento': doc_resumen,
@@ -401,10 +402,18 @@ def contabilizar_coi_view(request):
     Recibe el folio desde el formulario del modal, re-genera las pólizas en memoria
     para garantizar integridad y las guarda en Firebird COI.
     """
+    tipo_documento = request.POST.get('tipo_documento', 'FACTURA').upper()
     folio = request.POST.get('folio')
+    fecha = request.POST.get('fecha')
+    almacen = request.POST.get('almacen')
 
     if not folio:
         messages.error(request, 'No se especificó un folio para contabilizar.')
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+    strategy_handler = CONTABILIZACION_STRATEGIES.get(tipo_documento)
+    if not strategy_handler:
+        messages.error(request, f'Tipo de documento no soportado: {tipo_documento}')
         return redirect(request.META.get('HTTP_REFERER', '/'))
 
     with sae_session() as (db_sae, suffix):
@@ -420,42 +429,16 @@ def contabilizar_coi_view(request):
             messages.warning(request, f"El folio {folio} ya fue contabilizado previamente.")
             return redirect(request.META.get('HTTP_REFERER', '/'))
 
-        # Regenerar la estructura de la póliza antes de la inserción
-        factura = db_sae.query(
-            m.Factura.folio, m.Factura.fecha, m.Cliente.nombre.label('cliente'),
-            m.Cliente.rfc.label('rfc'), m.Cliente.clave.label('clave_cliente'),
-            m.Almacen.nombre.label('almacen'), m.Factura.subtotal,
-            m.Factura.total_impuesto4, m.Factura.total_descuento, m.Factura.total,
-            m.CFDI.uuid_sat.label('uuid_xml'), m.CoiXml.uuid_cfdi_sae.label('uuid_sae'),
-            m.Factura.status,
-        ).outerjoin(m.Cliente).outerjoin(m.Almacen).outerjoin(
-            m.CFDI, m.Factura.folio == m.CFDI.folio
-        ).outerjoin(
-            m.CoiXml, m.CFDI.uuid_sat == m.CoiXml.id_xml_sat
-        ).filter(m.Factura.folio == folio).first()
-
-        if not factura:
-            messages.error(request, 'Factura no encontrada.')
-            return redirect(request.META.get('HTTP_REFERER', '/'))
-
-        factura_dict = factura._asdict()
-
-        partidas_query = db_sae.query(
-            m.PartidaFactura.cantidad, m.PartidaFactura.costo, m.Producto.descripcion
-        ).join(m.Producto).filter(m.PartidaFactura.folio == folio).all()
-
-        partidas_list = [p._asdict() for p in partidas_query]
-
-        poliza_venta = PolizaVentaGenerator.generate(factura_dict)
-        poliza_costo = PolizaCostoVentaGenerator.generate(factura_dict, partidas_list)
-
-        polizas_a_procesar = [p for p in [poliza_venta, poliza_costo] if p]
-
     try:
         with coi_session() as (db_coi, suffix_empresa):
             polizas_creadas = []
 
             with transaction.atomic():
+                polizas_a_procesar = strategy_handler.procesar(
+                    db_sae, db_coi, m, get_coi_models(str(datetime.now().year)[-2:]),
+                    folio, suffix_empresa, request.user, fecha, almacen
+                )
+
                 for poliza_obj in polizas_a_procesar:
                     p_dict = poliza_obj.to_dict()
                     fecha_str = p_dict.get('fecha')
