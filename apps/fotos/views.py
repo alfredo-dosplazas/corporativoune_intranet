@@ -1,10 +1,9 @@
 import mimetypes
 
-from django.contrib.auth.decorators import login_required, permission_required
 from django.core.paginator import Paginator
 from django.http import Http404, FileResponse, HttpResponseForbidden
+from django.shortcuts import render
 from django.urls import reverse
-from inertia import render
 
 from apps.core.decorators import modulo_required
 from apps.core.utils.network import get_client_ip, ip_in_allowed_range
@@ -38,7 +37,6 @@ def _obtener_breadcrumbs(ruta):
     return crumbs
 
 
-@login_required
 @modulo_required("Fotos")
 def explorador_fotos(request, ruta=""):
     # 1. Control de Red Interna
@@ -97,17 +95,12 @@ def explorador_fotos(request, ruta=""):
     else:
         url_regresar = None
 
-    # 5. Props para el componente React/Inertia
-    props = {
+    # 5. Contexto adaptado para el Template HTML tradicional con el nuevo layout ERP
+    context = {
         "carpetas": carpetas,
         "fotos": list(page_obj.object_list),
-        "pagination": {
-            "current_page": page_obj.number,
-            "total_pages": paginator.num_pages,
-            "has_next": page_obj.has_next(),
-            "has_previous": page_obj.has_previous(),
-            "total_items": len(fotos),
-        },
+        "page_obj": page_obj,  # Pasamos page_obj directamente para aprovechar las ayudas de paginación del template
+        "paginator": paginator,
         "ruta_actual": ruta,
         "ruta_padre": ruta_padre,
         "url_regresar": url_regresar,
@@ -115,10 +108,9 @@ def explorador_fotos(request, ruta=""):
         "breadcrumbs_fotos": _obtener_breadcrumbs(ruta),
     }
 
-    return render(request, "Fotos/Explorador", props)
+    return render(request, "apps/fotos/explorador.html", context)
 
 
-@login_required
 @modulo_required('Fotos')
 def ver_foto(request, ruta):
     base_path = settings.FOTOS_ROOT.resolve()

@@ -1,11 +1,14 @@
 import json
+from typing import Any
 
+from django import http
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.db.models import Q
+from django.http import HttpResponseBase
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -91,6 +94,66 @@ class OrdenCreateView(
             {'title': 'Inicio', 'url': reverse('home')},
             {'title': 'Órdenes de Compra', 'url': reverse('compras:ordenes__list')},
             {'title': 'Crear'},
+        ]
+
+
+class OrdenDuplicateView(
+    PermissionRequiredMixin,
+    PageTitleMixin,
+    BreadcrumbsMixin,
+    SuccessMessageMixin,
+    NamedFormsetsMixin,
+    CreateWithInlinesView,
+):
+    permission_required = 'compras.add_orden'
+    template_name = 'apps/compras/ordenes/duplicate.html'
+    page_title = 'Duplicar Órden de Compra'
+    model = Orden
+    form_class = OrdenForm
+    inlines = [DetalleOrdenInline]
+    inlines_names = ['Detalle']
+    success_message = 'Órden de Compra duplicada correctamente.'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.orden = get_object_or_404(Orden, pk=kwargs['pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self) -> dict[str, Any]:
+        initial = super().get_initial()
+        initial.update({
+            'proveedor': self.orden.proveedor,
+            'razon_social': self.orden.razon_social,
+            'solicitante': self.orden.solicitante,
+            'autoriza': self.orden.autoriza,
+            'uso_cfdi': self.orden.uso_cfdi,
+            'metodo_pago': self.orden.metodo_pago,
+            'forma_pago': self.orden.forma_pago,
+            'retencion_isr': self.orden.retencion_isr,
+            'retencion_cedular': self.orden.retencion_cedular,
+            'retencion_3': self.orden.retencion_3,
+            'lugar_entrega': self.orden.lugar_entrega,
+            'utilizado_en': self.orden.utilizado_en,
+        })
+        return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['orden'] = self.orden
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def get_success_url(self) -> str:
+        return reverse('compras:ordenes__update', args=[self.object.pk])
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Órdenes de Compra', 'url': reverse('compras:ordenes__list')},
+            {'title': 'Duplicar'},
         ]
 
 

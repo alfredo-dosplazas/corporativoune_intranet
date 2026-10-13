@@ -33,6 +33,7 @@ class DetalleOrdenInline(InlineFormSetFactory):
         return [
             {
                 "descripcion": d.descripcion,
+                "precio_unitario": d.precio_unitario,
                 "cantidad": d.cantidad,
             }
             for d in view.orden.detalle_orden.all()

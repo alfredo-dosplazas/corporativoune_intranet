@@ -1,7 +1,7 @@
 {% comment %}
   Acepta 'prefix' de forma opcional (por defecto "table")
 {% endcomment %}
-<c-vars prefix="table" />
+<c-vars prefix="table"/>
 
 <c-table.actions :record="record" :prefix="prefix">
     <!-- 1. VER PDF -->
@@ -26,6 +26,16 @@
         </li>
     {% endif %}
 
+    {% if perms.compras.add_orden %}
+        <li>
+            <a href="{% url 'compras:ordenes__duplicate' record.pk %}"
+               class="flex items-center gap-1.5 py-1 text-xs">
+                <span class="icon-[akar-icons--copy] text-xs text-base-content/60 shrink-0"></span>
+                <span>Duplicar</span>
+            </a>
+        </li>
+    {% endif %}
+
     <!-- 3. ELIMINAR ÓRDEN -->
     {% if perms.compras.delete_orden %}
         <li class="my-0.5 border-t border-base-200"></li>
@@ -44,7 +54,8 @@
         <dialog id="orden_delete_modal_{{ prefix }}_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
             <div class="modal-box max-w-sm p-4 bg-base-100 border border-base-200 shadow-2xl">
                 <form method="dialog">
-                    <button class="btn btn-xs btn-circle btn-ghost absolute right-2.5 top-2.5 text-base-content/50">✕</button>
+                    <button class="btn btn-xs btn-circle btn-ghost absolute right-2.5 top-2.5 text-base-content/50">✕
+                    </button>
                 </form>
 
                 <div class="flex items-start gap-2.5 mb-3">
@@ -52,9 +63,11 @@
                         <span class="icon-[tabler--alert-triangle] text-base block"></span>
                     </div>
                     <div class="pr-4">
-                        <h3 class="text-xs font-bold text-base-content uppercase tracking-wider">¿Eliminar Orden de Compra?</h3>
+                        <h3 class="text-xs font-bold text-base-content uppercase tracking-wider">¿Eliminar Orden de
+                            Compra?</h3>
                         <p class="text-[11px] text-base-content/70 mt-0.5">
-                            Se eliminará permanentemente la orden <span class="font-bold text-base-content">#{{ record.folio|default:record.pk }}</span>.
+                            Se eliminará permanentemente la orden <span
+                                class="font-bold text-base-content">#{{ record.folio|default:record.pk }}</span>.
                         </p>
                     </div>
                 </div>

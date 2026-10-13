@@ -19,6 +19,7 @@ urlpatterns = [
 
     path('', views.ordenes.OrdenListView.as_view(), name='ordenes__list'),
     path('crear/', views.ordenes.OrdenCreateView.as_view(), name='ordenes__create'),
+    path('duplicar/<int:pk>/', views.ordenes.OrdenDuplicateView.as_view(), name='ordenes__duplicate'),
     path('editar/<int:pk>/', views.ordenes.OrdenUpdateView.as_view(), name='ordenes__detail'),
     path('<int:pk>/', views.ordenes.OrdenUpdateView.as_view(), name='ordenes__update'),
     path('eliminar/<int:pk>/', orden_delete, name='ordenes__delete'),
