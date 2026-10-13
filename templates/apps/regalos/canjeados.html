@@ -1,0 +1,71 @@
+<c-layouts.app>
+    <div class="container mx-auto p-6 max-w-5xl">
+
+        <!-- ENCABEZADO Y BOTÓN DE IMPRESIÓN -->
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+            <div>
+                <h1 class="text-3xl font-black text-primary">📋 Historial de Regalos Canjeados</h1>
+                <p class="text-sm text-base-content/70 mt-1">Lista completa de ganadores registrados en tiempo real.</p>
+            </div>
+            <button onclick="window.print()" class="btn btn-outline btn-primary gap-2 shadow-sm">
+                <span class="icon-[tabler--printer] text-lg"></span> Imprimir Lista
+            </button>
+        </div>
+
+        <!-- TABLA DE GANADORES -->
+        <div class="overflow-x-auto bg-base-100 rounded-2xl shadow-xl border border-base-300">
+            <table class="table table-zebra w-full" id="ganadores-table">
+                <thead>
+                    <tr class="bg-base-200 text-base-content font-bold">
+                        <th class="text-center w-24"># Folio</th>
+                        <th>Premio</th>
+                        <th>Ganador</th>
+                        <th class="text-right">Fecha y Hora de Canje</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for regalo in regalo_list %}
+                        <tr class="hover">
+                            <th class="text-center font-mono">
+                                <span class="badge badge-ghost font-bold">#{{ regalo.numero|stringformat:"03d" }}</span>
+                            </th>
+                            <td class="font-bold text-primary">{{ regalo.nombre }}</td>
+                            <td>
+                                <span class="badge badge-info/15 text-info font-medium gap-1 py-2 px-3 border-0">
+                                    <span class="icon-[tabler--user]"></span> {{ regalo.ganador_nombre|default:"Sin Nombre" }}
+                                </span>
+                            </td>
+                            <td class="text-right text-xs text-base-content/70 font-mono">
+                                {{ regalo.fecha_canje|date:"d/m/Y H:i" }}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-16 text-base-content/40 italic">
+                                <span class="icon-[tabler--gift-off] text-4xl mb-2 block mx-auto"></span>
+                                Aún no hay regalos canjeados en el sistema.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- SCRIPT DE WEBSOCKETS -->
+    <script>
+        const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+        const pantallaSocket = new WebSocket(`${wsScheme}://${window.location.host}/ws/regalos/pantalla/`);
+
+        pantallaSocket.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+
+            // Asegúrate de que este 'type' coincida con el que emites en tu backend/consumer
+            if (data.type === "NUEVO_GANADOR" || data.type === "notificar_nuevo_ganador") {
+                // Recargamos la página para ordenar y traer el nuevo registro de la base de datos limpiamente
+                window.location.reload();
+            }
+        };
+    </script>
+</c-layouts.app>

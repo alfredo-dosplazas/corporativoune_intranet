@@ -1,0 +1,114 @@
+{% load django_tables2 %}
+
+<c-layouts.app>
+    <c-slot name="header">
+        <!-- BARRA SUPERIOR DE ACCIONES Y NAVEGACIÓN -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+
+            <!-- TÍTULO DE LA VISTA + BOTÓN DE RETORNO -->
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="{% url 'papeleria:requisiciones__list' %}"
+                   class="btn btn-ghost btn-xs btn-square text-base-content/70 hover:bg-base-200"
+                   title="Volver a la lista">
+                    <span class="icon-[tabler--arrow-left] text-base"></span>
+                </a>
+                <span class="icon-[et--document] text-primary text-base"></span>
+                <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">
+                    Crear Nueva Requisición: Duplicada De <span class="font-mono text-primary font-bold">{{ requisicion.folio }}</span>
+                </h1>
+            </div>
+
+            <!-- BOTONES DE ACCIÓN PRINCIPALES -->
+            <div class="flex items-center gap-2 justify-end">
+
+                <!-- BOTÓN CONFIRMAR -->
+                {% if puede_confirmar %}
+                    <button form="confirmar-form" type="submit"
+                            class="btn btn-success btn-xs gap-1 font-medium shadow-2xs">
+                        <span class="icon-[tabler--check] text-xs"></span>
+                        <span>Confirmar</span>
+                    </button>
+
+                    <form id="confirmar-form" action="{% url 'papeleria:requisiciones__confirm' requisicion.pk %}"
+                          method="POST" class="hidden">
+                        {% csrf_token %}
+                    </form>
+                {% endif %}
+
+                <!-- BOTÓN SOLICITAR APROBACIÓN -->
+                {% if puede_enviar_al_aprobador %}
+                    <button form="enviar-aprobador-form" type="submit"
+                            class="btn btn-info btn-xs gap-1 font-medium shadow-2xs">
+                        <span class="icon-[tabler--send] text-xs"></span>
+                        <span>Solicitar Aprobación</span>
+                    </button>
+
+                    <form id="enviar-aprobador-form"
+                          action="{% url 'papeleria:requisiciones__confirm' requisicion.pk %}" method="POST"
+                          class="hidden">
+                        {% csrf_token %}
+                    </form>
+                {% endif %}
+
+                <!-- BOTÓN PRINCIPAL DE GUARDAR -->
+                <button type="submit"
+                        form="requisicion-form"
+                        class="btn btn-primary btn-xs gap-1 font-medium shadow-2xs">
+                    <span class="icon-[tabler--device-floppy] text-xs"></span>
+                    <span>Duplicar</span>
+                </button>
+            </div>
+        </div>
+    </c-slot>
+
+    <!-- ESTRUCTURA PRINCIPAL DE SCROLL INDEPENDIENTE -->
+    <div class="flex flex-col lg:flex-row gap-4 h-full lg:h-[calc(100vh-7rem)] overflow-hidden">
+
+        <!-- COLUMNA IZQUIERDA: TARJETA DE CONTEXTO + FORMULARIO PRINCIPAL (CON SU PROPIO SCROLL) -->
+        <div class="flex-1 flex flex-col h-full min-h-0 overflow-y-auto pr-0 lg:pr-1 space-y-3 custom-scrollbar">
+
+            <!-- TARJETA DE CONTEXTO INSTITUCIONAL -->
+            {% if not user.is_superuser %}
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0">
+                    <div class="bg-base-100 border border-base-200 rounded-md p-2 shadow-2xs">
+                        <span class="text-[10px] text-base-content/50 block font-medium uppercase tracking-wider">Empresa</span>
+                        <span class="font-semibold text-xs text-base-content block truncate">
+                            {{ user.contacto.empresa|default:"Sin Empresa" }}
+                        </span>
+                    </div>
+
+                    <div class="bg-base-100 border border-base-200 rounded-md p-2 shadow-2xs">
+                        <span class="text-[10px] text-base-content/50 block font-medium uppercase tracking-wider">Solicitante</span>
+                        <span class="font-semibold text-xs text-base-content block truncate">
+                            {{ user.contacto.nombre_completo|default:user.get_full_name }}
+                        </span>
+                    </div>
+
+                    <div class="bg-base-100 border border-base-200 rounded-md p-2 shadow-2xs">
+                        <span class="text-[10px] text-base-content/50 block font-medium uppercase tracking-wider">Área</span>
+                        <span class="font-semibold text-xs text-base-content block truncate">
+                            {{ user.contacto.area|default:"Sin Área" }}
+                        </span>
+                    </div>
+
+                    <div class="bg-base-100 border border-base-200 rounded-md p-2 shadow-2xs">
+                        <span class="text-[10px] text-base-content/50 block font-medium uppercase tracking-wider">Aprobador Asignado</span>
+                        <span class="font-semibold text-xs text-base-content block truncate">
+                            {% if user.contacto.area and user.contacto.area.aprobador_papeleria %}
+                                {{ user.contacto.area.aprobador_papeleria.contacto.nombre_completo }}
+                            {% else %}
+                                <span class="text-warning italic">No asignado</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- FORMULARIO DE LA REQUISICIÓN -->
+            <div class="flex-1">
+                <c-apps.papeleria.requisiciones.form/>
+            </div>
+        </div>
+
+    </div>
+</c-layouts.app>

@@ -1,3 +1,4 @@
+{% load requisiciones_extras %}
 {% comment %}
     Componente de Acciones para Requisiciones de Papelería
     Uso: <c-apps.papeleria.requisiciones.table.actions :record="requisicion" prefix="list|card" />
@@ -14,19 +15,30 @@
         class="dropdown-content menu menu-xs bg-base-100 rounded-md border border-base-200 shadow-lg w-44 z-50 p-1 space-y-0.5">
 
         <!-- VER DETALLE -->
-        <li>
-            <a href="{% url 'papeleria:requisiciones__detail' record.pk %}">
-                <span class="icon-[tabler--eye] text-xs text-base-content/70"></span>
-                <span>Ver Detalle</span>
-            </a>
-        </li>
+        {% if record|puede_ver:user %}
+            <li>
+                <a href="{% url 'papeleria:requisiciones__detail' record.pk %}">
+                    <span class="icon-[tabler--eye] text-xs text-base-content/70"></span>
+                    <span>Ver Detalle</span>
+                </a>
+            </li>
+        {% endif %}
 
         <!-- EDITAR (SOLO EN BORRADOR O SUPERUSUARIO) -->
-        {% if record.puede_editar and perms.papeleria.change_requisicion or record.solicitante == request.user and record.estado == 'borrador' %}
+        {% if record|puede_editar:user %}
             <li>
                 <a href="{% url 'papeleria:requisiciones__update' record.pk %}">
                     <span class="icon-[tabler--pencil] text-xs text-info"></span>
                     <span>Editar</span>
+                </a>
+            </li>
+        {% endif %}
+
+        {% if perms.papeleria.add_requisicion %}
+            <li>
+                <a href="{% url 'papeleria:requisiciones__duplicate' record.pk %}">
+                    <span class="icon-[akar-icons--copy] text-xs text-info"></span>
+                    <span>Duplicar</span>
                 </a>
             </li>
         {% endif %}
@@ -36,7 +48,7 @@
         <!-- ACCIONES DE FLUJO DE APROBACIÓN -->
 
         <!-- CONFIRMAR BORRADOR -->
-        {% if record.estado == 'borrador' %}
+        {% if record|puede_confirmar:user %}
             <li>
                 <form action="{% url 'papeleria:requisiciones__confirm' record.pk %}" method="POST" class="w-full">
                     {% csrf_token %}
@@ -49,7 +61,7 @@
         {% endif %}
 
         <!-- SOLICITAR APROBACIÓN -->
-        {% if record.estado == 'confirmada' %}
+        {% if record|puede_enviar_al_aprobador:user %}
             <li>
                 <form action="{% url 'papeleria:requisiciones__request_confirm' record.pk %}" method="POST"
                       class="w-full">
@@ -71,7 +83,7 @@
         </li>
 
         <!-- CANCELAR / RECHAZAR -->
-        {% if record.estado != 'cancelada' and record.estado != 'completada' %}
+        {% if record|puede_cancelar:user %}
             <div class="divider my-0.5"></div>
             <li>
                 <button type="button"
@@ -84,7 +96,7 @@
         {% endif %}
 
         <!-- ELIMINAR (SI ES BORRADOR O SUPERUSUARIO) -->
-        {% if record.estado == 'borrador' %}
+        {% if record|puede_eliminar:user %}
             <li>
                 <button type="button"
                         onclick="eliminar_requisicion_modal_{{ prefix|default:'default' }}_{{ record.pk }}.showModal()"
@@ -144,7 +156,7 @@
 {% endif %}
 
 <!-- MODAL ELIMINAR CON PREFIJO ÚNICO -->
-{% if record.estado == 'borrador' %}
+{% if record|puede_eliminar:user %}
     <dialog id="eliminar_requisicion_modal_{{ prefix|default:'default' }}_{{ record.pk }}"
             class="modal modal-bottom sm:modal-middle">
         <div class="modal-box p-4 bg-base-100 border border-base-200">

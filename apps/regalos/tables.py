@@ -9,7 +9,7 @@ class RegaloTable(TableWithActions):
     actions_template = 'components/apps/regalos/table/actions.html'
 
     # Sobrescribimos columnas con etiquetas personalizadas y estilos
-    imagen = tables.Column(verbose_name='Vista', orderable=False)
+    imagen = tables.Column(verbose_name='Vista', orderable=False, exclude_from_export=True)
     numero = tables.Column(verbose_name='# Premio',
                            attrs={"th": {"class": "w-24 text-center"}, "td": {"class": "text-center"}})
     nombre = tables.Column(verbose_name='Premio / Detalle')
@@ -31,6 +31,7 @@ class RegaloTable(TableWithActions):
             'numero',
             'nombre',
             'canjeado',
+            'destacado',
             'ganador_info',
         ]
         # Aplica clases globales de DaisyUI a la tabla si tu TableWithActions no las define
@@ -120,3 +121,15 @@ class RegaloTable(TableWithActions):
                 fecha
             )
         return format_html('<span class="text-base-content/30 text-[11px] italic">Sin canjear</span>')
+
+    def value_numero(self, record):
+        return record.numero
+
+    def value_nombre(self, record):
+        return record.nombre
+
+    def value_canjeado(self, record):
+        return 'Canjeado' if record.canjeado else 'Pendiente'
+
+    def value_ganador_info(self, record):
+        return f'{record.ganador_nombre} | {record.fecha_canje}'

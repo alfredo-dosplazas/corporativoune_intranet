@@ -1,6 +1,8 @@
 import json
 from collections import defaultdict
+from typing import Any
 
+from django import http
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
@@ -8,7 +10,7 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Q
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseBase
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.timezone import now
@@ -18,7 +20,7 @@ from django.views.generic import DeleteView, DetailView
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin
 from django_tables2.export import ExportMixin
-from extra_views import UpdateWithInlinesView, NamedFormsetsMixin, SearchableListMixin
+from extra_views import UpdateWithInlinesView, NamedFormsetsMixin, SearchableListMixin, CreateWithInlinesView
 from inertia import render
 
 from apps.core.decorators import remember_filter_state
@@ -98,6 +100,16 @@ class RequisicionDetailView(
     template_name = 'apps/papeleria/requisiciones/detail.html'
     page_title = 'Detalle De Requisición'
     model = Requisicion
+
+    def dispatch(self, request, *args, **kwargs):
+        requisicion: Requisicion = self.get_object()
+
+        if not requisicion.puede_ver(request.user):
+            messages.error(request, "No tienes permiso para ver esta requisición.")
+            return redirect("papeleria:requisiciones__list")
+
+        return super().dispatch(request, *args, **kwargs)
+
 
     def get_breadcrumbs(self):
         return [
@@ -349,6 +361,53 @@ def solicitar_autorizacion_contraloria(request):
 
     return redirect('papeleria:requisiciones__list')
 
+class RequisicionDuplicate(
+    PermissionRequiredMixin,
+    BreadcrumbsMixin,
+    SuccessMessageMixin,
+    NamedFormsetsMixin,
+    CreateWithInlinesView,
+):
+    permission_required = ['papeleria.add_requisicion']
+    template_name = "apps/papeleria/requisiciones/duplicate.html"
+    model = Requisicion
+    form_class = RequisicionForm
+    success_message = 'Requisición duplicada correctamente.'
+    inlines = [DetalleRequisicionInline]
+    inlines_names = ['Detalle']
+
+    def dispatch(self, request, *args, **kwargs):
+        self.requisicion = get_object_or_404(Requisicion, pk=kwargs['pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        requisicion: Requisicion = self.requisicion
+        context['requisicion'] = requisicion
+        return context
+
+    def get_initial(self) -> dict[str, Any]:
+        initial = super().get_initial()
+        initial['notas'] = f'Duplicada de {self.get_object()}'
+        return initial
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+    def get_success_url(self):
+        return reverse('papeleria:requisiciones__update', args=(self.get_object().id,))
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Papelería', 'url': reverse('papeleria:index')},
+            {'title': 'Requisiciones', 'url': reverse('papeleria:requisiciones__list')},
+            {'title': self.get_object(),
+             'url': reverse('papeleria:requisiciones__detail', args=(self.get_object().id,))},
+            {'title': 'Duplicar'},
+        ]
 
 class RequisicionUpdateView(
     PermissionRequiredMixin,
@@ -413,7 +472,11 @@ class RequisicionRechazarView(PermissionRequiredMixin, View):
         compras = requisicion.compras
         contraloria = requisicion.contraloria
 
-        razon = request.POST['razon']
+        razon = request.POST.get('razon_rechazo')
+
+        if not razon:
+            messages.error(request, "Debes incluir una razón de rechazo.")
+            return redirect("papeleria:requisiciones__list")
 
         if not requisicion.puede_cancelar(self.request.user):
             messages.error(request, "No tienes permiso para rechazar esta requisición.")
@@ -771,7 +834,7 @@ class RequisicionExcelView(PermissionRequiredMixin, View):
     permission_required = ['papeleria.view_requisicion']
 
     def dispatch(self, request, *args, **kwargs):
-        self.requisicion = get_object_or_404(Requisicion, pk=kwargs['pk'])
+        self.requisicion: Requisicion = get_object_or_404(Requisicion, pk=kwargs['pk'])
 
         if not self.requisicion.puede_ver(request.user):
             return HttpResponseForbidden()

@@ -8,9 +8,10 @@ class RegaloForm(forms.ModelForm):
     class Meta:
         model = Regalo
         fields = [
+            'imagen',
             'numero',
             'nombre',
-            'imagen',
+            'destacado',
         ]
 
     def __init__(self, *args, **kwargs):

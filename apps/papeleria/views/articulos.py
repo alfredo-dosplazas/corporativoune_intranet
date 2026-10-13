@@ -88,7 +88,6 @@ class ArticuloCreateView(
             {'title': 'Crear'},
         ]
 
-
 class ArticuloUpdateView(
     PermissionRequiredMixin,
     PageTitleMixin,

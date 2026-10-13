@@ -1,10 +1,11 @@
+import asyncio
 import zipfile
 from io import BytesIO
 from typing import Any
 
 import qrcode
 from PIL import ImageFont, Image, ImageDraw
-from asgiref.sync import async_to_sync
+from asgiref.sync import async_to_sync, sync_to_async
 from channels.layers import get_channel_layer
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
@@ -13,7 +14,7 @@ from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from django.views import View
-from django.views.generic import DetailView, TemplateView, CreateView
+from django.views.generic import DetailView, TemplateView, CreateView, ListView
 from django.views.generic.edit import UpdateView, DeleteView
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin
@@ -51,7 +52,7 @@ class RegaloListView(
     paginate_by = 12
     search_fields = ['numero', 'nombre', 'ganador_nombre']
     export_name = 'Regalos'
-    filterset_fields = ['canjeado']
+    filterset_fields = ['canjeado', 'destacado']
 
     def get_breadcrumbs(self):
         return [
@@ -272,11 +273,10 @@ class RegaloPantallView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Logos para el footer
         context['empresas'] = Empresa.objects.exclude(logo='').order_by('nombre_corto')
 
-        # 1. Obtener los últimos 5 regalos entregados
-        regalos_entregados = Regalo.objects.filter(canjeado=True).order_by('-fecha_canje')[:5]
+        # Obtener los últimos 6 regalos entregados
+        regalos_entregados = Regalo.objects.filter(canjeado=True).order_by('-fecha_canje')[:6]
 
         context['historial'] = [
             {
@@ -284,11 +284,13 @@ class RegaloPantallView(TemplateView):
                 'ganador': r.ganador_nombre or 'Sin Nombre',
                 'premio': r.nombre,
                 'numero': f"{r.numero:03d}",
+                'destacado': r.destacado,
+                'imagen_url': r.imagen.url if r.imagen else None,
             }
             for r in regalos_entregados
         ]
 
-        # 2. Si ya hay ganadores, pasar el último al contexto inicial
+        # Mantener compatibilidad por si se usa de forma individual
         if regalos_entregados.exists():
             ultimo = regalos_entregados[0]
             context['ultimo_ganador'] = {
@@ -297,6 +299,7 @@ class RegaloPantallView(TemplateView):
                 'premio': ultimo.nombre,
                 'numero': f"{ultimo.numero:03d}",
                 'imagen_url': ultimo.imagen.url if ultimo.imagen else None,
+                'destacado': ultimo.destacado,
             }
         else:
             context['ultimo_ganador'] = None
@@ -335,13 +338,33 @@ class UltimoGanadorApiView(View):
             'historial': historial_data
         })
 
+
+async def notificar_nuevo_ganador(regalo, historial_data):
+    channel_layer = get_channel_layer()
+    await channel_layer.group_send(
+        "pantalla_eventos",
+        {
+            "type": "notificar_nuevo_ganador",
+            "ultimo_ganador": {
+                'id': regalo.id,
+                'ganador': regalo.ganador_nombre or 'Sin Nombre',
+                'premio': regalo.nombre,
+                'numero': f"{regalo.numero:03d}",
+                'imagen_url': regalo.imagen.url if regalo.imagen else None,
+                'destacado': regalo.destacado,
+            },
+            "historial": historial_data
+        }
+    )
+
+
 class CanjearRegaloView(View):
-    def get(self, request, codigo_qr):
-        regalo = get_object_or_404(Regalo, codigo_qr=codigo_qr)
+    async def get(self, request, codigo_qr):
+        regalo = await sync_to_async(get_object_or_404)(Regalo, codigo_qr=codigo_qr)
         return render(request, 'apps/regalos/canjear.html', {'regalo': regalo})
 
-    def post(self, request, codigo_qr):
-        regalo = get_object_or_404(Regalo, codigo_qr=codigo_qr)
+    async def post(self, request, codigo_qr):
+        regalo = await sync_to_async(get_object_or_404)(Regalo, codigo_qr=codigo_qr)
 
         if not regalo.canjeado:
             ganador = request.POST.get('ganador_nombre')
@@ -349,35 +372,53 @@ class CanjearRegaloView(View):
                 regalo.ganador_nombre = ganador
                 regalo.canjeado = True
                 regalo.fecha_canje = timezone.now()
-                regalo.save()
+                await sync_to_async(regalo.save)()
 
-                # 1. Obtener los últimos 5 regalos entregados para actualizar el historial
-                regalos_entregados = Regalo.objects.filter(canjeado=True).order_by('-fecha_canje')[:5]
-                historial_data = [
-                    {
-                        'id': r.id,
-                        'ganador': r.ganador_nombre or 'Sin Nombre',
-                        'premio': r.nombre,
-                        'numero': f"{r.numero:03d}",
-                    }
-                    for r in regalos_entregados
-                ]
+                # 1. Obtener los últimos 6 regalos entregados de forma segura con sync_to_async
+                def consultar_historial():
+                    regalos_entregados = Regalo.objects.filter(canjeado=True).order_by('-fecha_canje')[:6]
+                    return [
+                        {
+                            'id': r.id,
+                            'ganador': r.ganador_nombre or 'Sin Nombre',
+                            'premio': r.nombre,
+                            'numero': f"{r.numero:03d}",
+                            'destacado': r.destacado,
+                            'imagen_url': r.imagen.url if r.imagen else None,
+                        }
+                        for r in regalos_entregados
+                    ]
 
-                # 2. Emitir evento por WebSockets vía RabbitMQ Channel Layer
+                historial_data = await sync_to_async(consultar_historial)()
+
+                # 2. Emitir evento por WebSockets de forma nativa (sin async_to_sync ni asyncio.run)
                 channel_layer = get_channel_layer()
-                async_to_sync(channel_layer.group_send)(
+                await channel_layer.group_send(
                     "pantalla_eventos",
                     {
-                        "type": "notificar_nuevo_ganador",  # Llama al método notificar_nuevo_ganador en el consumer
+                        "type": "notificar_nuevo_ganador",
                         "ultimo_ganador": {
                             'id': regalo.id,
                             'ganador': regalo.ganador_nombre or 'Sin Nombre',
                             'premio': regalo.nombre,
                             'numero': f"{regalo.numero:03d}",
                             'imagen_url': regalo.imagen.url if regalo.imagen else None,
+                            'destacado': regalo.destacado,
                         },
                         "historial": historial_data
                     }
                 )
 
         return render(request, 'apps/regalos/canjear.html', {'regalo': regalo, 'exito': True})
+
+class RegalosCanjeadosView(BreadcrumbsMixin, ListView):
+    template_name = 'apps/regalos/canjeados.html'
+    model = Regalo
+    queryset = Regalo.objects.filter(canjeado=True).order_by('fecha_canje')
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Regalos', 'url': reverse('regalos:list')},
+            {'title': 'Canjeados'},
+        ]

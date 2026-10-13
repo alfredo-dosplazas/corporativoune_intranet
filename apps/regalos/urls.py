@@ -11,6 +11,7 @@ urlpatterns = [
     path('eliminar/<int:pk>/', views.RegaloDeleteView.as_view(), name='delete'),
     path('pdf/', views.RegaloPDFView.as_view(), name='pdf'),
     path('zip-qrs/', views.RegaloZipQrView.as_view(), name='zip_qrs'),
+    path('canjeados/', views.RegalosCanjeadosView.as_view(), name='canjeados'),
 
     path('canjear/<uuid:codigo_qr>/', views.CanjearRegaloView.as_view(), name='canjear_regalo'),
     path('pantalla/', views.RegaloPantallView.as_view(), name='pantalla_gigante'),

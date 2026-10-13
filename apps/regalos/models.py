@@ -13,8 +13,13 @@ class Regalo(models.Model):
     ganador_nombre = models.CharField(max_length=150, blank=True, null=True, editable=False)
     canjeado = models.BooleanField(default=False, editable=True)
     fecha_canje = models.DateTimeField(null=True, blank=True, editable=False)
-
     imagen = models.ImageField(upload_to='regalos', blank=True, null=True)
+
+    destacado = models.BooleanField(
+        default=False,
+        verbose_name="Premio Destacado / Especial",
+        help_text="Si está activo, se mostrará con un diseño espectacular y sonido al canjearse en pantallas."
+    )
 
     def get_canjeo_url(self):
         return f'{settings.APP_URL}{reverse('regalos:canjear_regalo', args=[self.codigo_qr])}'

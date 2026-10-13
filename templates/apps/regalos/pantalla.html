@@ -1,351 +1,95 @@
 <c-layouts.base>
-    <!-- Biblioteca de confeti -->
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <div class="min-h-screen bg-base-200 p-6 flex flex-col justify-between">
 
-    <!-- ESTILOS Y ANIMACIONES DE CAJA -->
-    <style>
-        @keyframes boxShake {
-            0%, 100% {
-                transform: rotate(0deg) scale(1);
-            }
-            20% {
-                transform: rotate(-4deg) scale(1.05);
-            }
-            40% {
-                transform: rotate(4deg) scale(1.05);
-            }
-            60% {
-                transform: rotate(-3deg) scale(1.03);
-            }
-            80% {
-                transform: rotate(3deg) scale(1.03);
-            }
-        }
+        <!-- ENCABEZADO -->
+        <header class="text-center mb-6">
+            <h1 class="text-4xl font-black text-primary tracking-wider uppercase drop-shadow">
+                🎁 Panel de Canjes en Vivo 🎄
+            </h1>
+            <p class="text-base-content/70 text-sm mt-1">Mostrando los últimos premios entregados</p>
+        </header>
 
-        @keyframes openLidScreen {
-            0% {
-                transform: translateY(0) rotate(0deg);
-                opacity: 1;
-            }
-            50% {
-                transform: translateY(-160px) rotate(-30deg);
-                opacity: 0.9;
-            }
-            100% {
-                transform: translateY(-400px) rotate(-60deg);
-                opacity: 0;
-            }
-        }
+        <!-- CONTENEDOR PRINCIPAL: GRILLA DE ÚLTIMOS 6 REGALOS -->
+        <main class="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-center max-w-7xl mx-auto w-full">
 
-        @keyframes zoomReveal {
-            0% {
-                transform: scale(0.2) translateY(100px);
-                opacity: 0;
-            }
-            80% {
-                transform: scale(1.05) translateY(-10px);
-                opacity: 1;
-            }
-            100% {
-                transform: scale(1) translateY(0);
-                opacity: 1;
-            }
-        }
+            {% for item in historial %}
+                <!-- Si es el primer elemento (el más reciente) y es destacado, aplicamos estilo épico -->
+                <div class="card bg-base-100 shadow-xl border {% if forloop.first and item.destacado %}border-warning ring-4 ring-warning/50 animate-pulse bg-gradient-to-b from-warning/10 to-base-100{% else %}border-base-300{% endif %} overflow-hidden transition-all duration-500 relative">
 
-        @keyframes pulseGlow {
-            0%, 100% {
-                filter: drop-shadow(0 0 15px hsl(var(--p) / 0.3));
-            }
-            50% {
-                filter: drop-shadow(0 0 35px hsl(var(--p) / 0.7));
-            }
-        }
-
-        .animate-box-shake {
-            animation: boxShake 1.2s infinite ease-in-out;
-        }
-
-        .animate-lid-screen {
-            animation: openLidScreen 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-        }
-
-        .animate-zoom-reveal {
-            animation: zoomReveal 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-
-        .animate-glow {
-            animation: pulseGlow 3s infinite;
-        }
-    </style>
-
-    <!-- CONTENEDOR PRINCIPAL FIJO EN THEME "dos-plazas" -->
-    <div id="main-container" data-theme="dos-plazas"
-         class="h-screen w-screen overflow-hidden bg-base-300 text-base-content flex flex-col justify-between p-4 md:p-6 relative select-none">
-
-        <!-- DECORACIÓN DE FONDO CORPORATIVA -->
-        <div class="absolute -top-12 -left-12 text-9xl opacity-5 pointer-events-none">🎄</div>
-        <div class="absolute -bottom-12 -right-12 text-9xl opacity-5 pointer-events-none">🎁</div>
-
-        <!-- ESTRUCTURA SUPERIOR: CANVAS PRINCIPAL + HISTORIAL -->
-        <div class="flex-1 flex flex-row gap-6 min-h-0 relative z-10 items-center justify-center">
-
-            <!-- ÁREA PRINCIPAL DE PRESENTACIÓN -->
-            <div class="flex-1 flex flex-col justify-center items-center relative h-full">
-
-                <!-- 1. ESTADO DE ESPERA (Se oculta si ya existe un ganador previo) -->
-                <div id="esperando"
-                     class="{% if ultimo_ganador %}hidden{% else %}flex{% endif %} flex-col items-center justify-center text-center space-y-6 max-w-4xl">
-                    <div class="text-7xl md:text-9xl animate-bounce">
-                        🎄 🎁 🎅
-                    </div>
-                    <h1 class="text-5xl md:text-7xl font-black tracking-tight text-primary uppercase drop-shadow-md">
-                        Gran Rifa Navideña
-                    </h1>
-                    <div class="bg-base-100/60 backdrop-blur-md px-8 py-4 rounded-2xl border border-base-content/10 shadow-xl">
-                        <p class="text-xl md:text-3xl text-base-content/90 font-medium tracking-wide">
-                            Escanea el código QR de tu boleto para destapar tu regalo en vivo 🎟️
-                        </p>
-                    </div>
-                </div>
-
-                <!-- 2. SECUENCIA DE REGALO EN VIVO (CAJA ANIMADA) -->
-                <div id="animacion-caja" class="hidden flex-col items-center justify-center space-y-6">
-                    <h2 class="text-3xl md:text-5xl font-black text-secondary uppercase tracking-wider animate-pulse">
-                        ¡Alguien está abriendo un premio! 🎁
-                    </h2>
-
-                    <div class="relative w-64 h-64 md:w-80 md:h-80 animate-box-shake">
-                        <!-- TAPA DE LA CAJA -->
-                        <div id="screen-lid"
-                             class="absolute -top-6 -left-3 w-72 md:w-86 h-20 bg-primary rounded-xl shadow-2xl z-20 flex items-center justify-center border-b-4 border-primary-content/20">
-                            <div class="w-16 h-full bg-secondary"></div>
-                            <div class="absolute -top-8 w-24 h-12 bg-secondary rounded-full border-2 border-secondary-content/20 shadow-md"></div>
+                    <!-- DISTINTIVO VISUAL SI ES DESTACADO -->
+                    {% if item.destacado %}
+                        <div class="absolute top-0 right-0 bg-warning text-warning-content text-xs font-black px-3 py-1 rounded-bl-xl shadow uppercase tracking-widest z-10 flex items-center gap-1">
+                            <span class="icon-[tabler--star-filled]"></span> ¡Gran Premio!
                         </div>
-
-                        <!-- CUERPO DE LA CAJA -->
-                        <div class="w-64 h-60 md:w-80 md:h-72 bg-primary rounded-b-3xl shadow-2xl flex items-center justify-center relative overflow-hidden border-2 border-primary-content/20 z-10">
-                            <div class="w-16 h-full bg-secondary"></div>
-                            <div class="absolute w-full h-16 bg-secondary"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 3. TARJETA DE PREMIO REVELADO (Muestra datos iniciales si existen) -->
-                <div id="tarjeta-premio"
-                     class="{% if ultimo_ganador %}flex{% else %}hidden{% endif %} flex-col items-center justify-center w-full max-w-3xl h-full max-h-[82vh] space-y-3">
-
-                    <div class="badge badge-primary text-base md:text-lg p-3 md:p-4 font-black tracking-widest uppercase shadow-lg animate-pulse shrink-0">
-                        🎉 ¡FELICIDADES! 🎉
-                    </div>
-
-                    <h1 id="ganador-nombre"
-                        class="text-3xl md:text-5xl lg:text-6xl font-black text-primary tracking-tight text-center truncate max-w-full drop-shadow-md shrink-0">
-                        {{ ultimo_ganador.ganador|default:"--" }}
-                    </h1>
-
-                    <!-- TARJETA REVELADA CON MARCA DE AGUA Y COLORES DEL TEMA -->
-                    <div class="card bg-base-100 text-base-content shadow-2xl border-4 border-primary w-full max-w-2xl flex-1 min-h-0 overflow-hidden animate-zoom-reveal animate-glow">
-                        <div class="card-body items-center text-center p-4 md:p-6 flex flex-col justify-between h-full">
-
-                            <h2 id="premio-nombre"
-                                class="text-2xl md:text-4xl font-black text-secondary leading-tight line-clamp-2 shrink-0">
-                                {{ ultimo_ganador.premio|default:"--" }}
-                            </h2>
-
-                            <figure id="premio-imagen-container"
-                                    class="{% if ultimo_ganador.imagen_url %}flex{% else %}hidden{% endif %} flex-1 min-h-0 w-full bg-base-200/50 rounded-2xl p-2 md:p-4 my-2 border border-base-300">
-                                <img id="premio-imagen" src="{{ ultimo_ganador.imagen_url|default:'' }}" alt="Premio"
-                                     class="h-full max-h-[30vh] md:max-h-[38vh] w-auto object-contain mx-auto rounded-lg shadow-sm"/>
-                            </figure>
-
-                            <div class="flex items-center justify-center gap-3 shrink-0 mt-1">
-                                <div class="badge badge-neutral text-sm md:text-base p-3 font-bold border border-base-300">
-                                    Boleto #<span id="premio-numero"
-                                                  class="text-primary font-mono ml-1 font-bold">{{ ultimo_ganador.numero|default:"--" }}</span>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- SECCIÓN DERECHA: HISTORIAL DE GANADORES -->
-            <div id="panel-historial"
-                 class="hidden lg:flex flex-col w-80 bg-base-100/60 backdrop-blur-md rounded-3xl p-4 border border-base-content/10 shadow-xl shrink-0 z-20 h-full max-h-[82vh]">
-                <h3 class="text-base font-black text-primary uppercase tracking-wider text-center border-b border-base-content/10 pb-3 mb-3 flex items-center justify-center gap-2">
-                    <span>🎁</span> Últimos Ganadores
-                </h3>
-
-                <div id="lista-historial" class="flex flex-col space-y-2 overflow-y-auto flex-1 pr-1">
-                    {% if historial %}
-                        {% for item in historial %}
-                            <div class="bg-base-100 text-base-content p-2.5 rounded-xl border border-base-200 shadow-2xs flex items-center justify-between gap-2 {% if forloop.first %}border-primary bg-primary/5{% endif %}">
-                                <div class="min-w-0 flex-1">
-                                    <p class="font-bold text-xs truncate text-primary">{{ item.ganador }}</p>
-                                    <p class="text-[11px] text-base-content/70 truncate">{{ item.premio }}</p>
-                                </div>
-                                <span class="badge badge-neutral text-[10px] font-mono shrink-0">#{{ item.numero }}</span>
-                            </div>
-                        {% endfor %}
-                    {% else %}
-                        <p class="text-xs text-center text-base-content/50 py-4">Aún no hay ganadores...</p>
                     {% endif %}
+
+                    <div class="card-body p-5 text-center">
+                        <div class="badge {% if forloop.first and item.destacado %}badge-warning font-bold{% else %}badge-ghost{% endif %} mx-auto font-mono">
+                            #{{ item.numero }}
+                        </div>
+
+                        <h2 class="text-xl font-black text-primary mt-2 line-clamp-1">
+                            {{ item.premio }}
+                        </h2>
+
+                        <p class="text-xs text-base-content/70">
+                            Ganador: <strong class="text-info">{{ item.ganador }}</strong>
+                        </p>
+
+                        <!-- IMAGEN DEL PREMIO -->
+                        <div class="mt-3 h-36 w-full bg-base-200 rounded-xl overflow-hidden flex items-center justify-center border border-base-300">
+                            {% if item.imagen_url %}
+                                <img src="{{ item.imagen_url }}" alt="{{ item.premio }}" class="h-full w-full object-contain p-2" />
+                            {% else %}
+                                <span class="icon-[tabler--gift] text-4xl text-base-content/30"></span>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
-            </div>
+            {% empty %}
+                <div class="col-span-full text-center py-20 text-base-content/40">
+                    <span class="icon-[tabler--gift-off] text-6xl mb-2"></span>
+                    <p class="text-lg font-medium">Aún no hay regalos canjeados.</p>
+                </div>
+            {% endfor %}
 
-        </div>
+        </main>
 
-        <!-- FOOTER CORPORATIVO PERMANENTE -->
-        <footer class="mt-4 pt-3 border-t border-base-content/10 bg-base-100/50 backdrop-blur-md rounded-2xl px-6 py-2.5 flex items-center justify-between gap-4 z-20 shrink-0">
-            <div class="flex items-center gap-2 text-xs font-bold text-base-content/70 uppercase tracking-wider shrink-0">
-                <span class="icon-[tabler--building-community] text-primary text-base"></span>
-                <span>Grupo Corporativo</span>
-            </div>
-
-            <div class="flex items-center justify-center gap-6 md:gap-8 overflow-x-auto py-1 opacity-80 hover:opacity-100 transition-opacity">
-                {% if empresas %}
-                    {% for emp in empresas %}
-                        {% if emp.logo %}
-                            <img src="{{ emp.logo.url }}" alt="{{ emp.nombre }}"
-                                 class="h-6 md:h-8 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
-                                 title="{{ emp.nombre }}"/>
-                        {% else %}
-                            <span class="text-xs font-bold text-base-content/60">{{ emp.nombre }}</span>
-                        {% endif %}
-                    {% endfor %}
-                {% else %}
-                    <span class="text-xs font-semibold text-base-content/50">Dos Plazas</span>
-                    <span class="text-xs font-semibold text-base-content/50">•</span>
-                    <span class="text-xs font-semibold text-base-content/50">Dominum</span>
-                    <span class="text-xs font-semibold text-base-content/50">•</span>
-                    <span class="text-xs font-semibold text-base-content/50">EnCorto</span>
+        <!-- FOOTER / EMPRESAS -->
+        <footer class="mt-8 flex justify-center items-center gap-6 opacity-70">
+            {% for empresa in empresas %}
+                {% if empresa.logo %}
+                    <img src="{{ empresa.logo.url }}" alt="{{ empresa.nombre_corto }}" class="h-8 object-contain" />
                 {% endif %}
-            </div>
-
-            <div class="text-[11px] font-mono text-base-content/50 shrink-0">
-                Eventos 2026
-            </div>
+            {% endfor %}
         </footer>
 
     </div>
 
-    <!-- LÓGICA DE JAVASCRIPT & WEBSOCKETS -->
+    <!-- AUDIO PARA PREMIOS DESTACADOS (Opcional, usando un beep o sonido libre) -->
+    <audio id="sound-destacado" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+    <!-- SCRIPT DE WEBSOCKETS PARA ACTUALIZACIÓN EN TIEMPO REAL -->
     <script>
-        function lanzarConfeti() {
-            const count = 250;
-            const defaults = {origin: {y: 0.7}};
+        const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+        const pantallaSocket = new WebSocket(`${wsScheme}://${window.location.host}/ws/regalos/pantalla/`);
 
-            function fire(particleRatio, opts) {
-                confetti(Object.assign({}, defaults, opts, {
-                    particleCount: Math.floor(count * particleRatio)
-                }));
-            }
+        pantallaSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
 
-            fire(0.25, {spread: 30, startVelocity: 60});
-            fire(0.2, {spread: 70});
-            fire(0.35, {spread: 110, decay: 0.91, scalar: 0.8});
-            fire(0.1, {spread: 130, startVelocity: 30, decay: 0.92, scalar: 1.2});
-            fire(0.1, {spread: 130, startVelocity: 50});
-        }
-
-        function renderizarHistorial(historial) {
-            const contenedor = document.getElementById('lista-historial');
-            if (!historial || historial.length === 0) {
-                contenedor.innerHTML = '<p class="text-xs text-center text-base-content/50 py-4">Aún no hay ganadores...</p>';
-                return;
-            }
-
-            contenedor.innerHTML = historial.map((item, index) => `
-                <div class="bg-base-100 text-base-content p-2.5 rounded-xl border border-base-200 shadow-2xs flex items-center justify-between gap-2 ${index === 0 ? 'border-primary bg-primary/5' : ''}">
-                    <div class="min-w-0 flex-1">
-                        <p class="font-bold text-xs truncate text-primary">${item.ganador}</p>
-                        <p class="text-[11px] text-base-content/70 truncate">${item.premio}</p>
-                    </div>
-                    <span class="badge badge-neutral text-[10px] font-mono shrink-0">#${item.numero}</span>
-                </div>
-            `).join('');
-        }
-
-        function ejecutarAnimacionApertura(ganador) {
-            const esperando = document.getElementById('esperando');
-            const animacionCaja = document.getElementById('animacion-caja');
-            const tarjeta = document.getElementById('tarjeta-premio');
-            const lid = document.getElementById('screen-lid');
-
-            esperando.classList.add('hidden');
-            tarjeta.classList.add('hidden');
-            tarjeta.classList.remove('flex');
-
-            animacionCaja.classList.remove('hidden');
-            animacionCaja.classList.add('flex');
-
-            setTimeout(() => {
-                lid.classList.add('animate-lid-screen');
-            }, 1500);
-
-            setTimeout(() => {
-                animacionCaja.classList.add('hidden');
-                animacionCaja.classList.remove('flex');
-
-                document.getElementById('ganador-nombre').innerText = ganador.ganador;
-                document.getElementById('premio-nombre').innerText = ganador.premio;
-                document.getElementById('premio-numero').innerText = ganador.numero;
-
-                const containerImg = document.getElementById('premio-imagen-container');
-                if (ganador.imagen_url) {
-                    const img = document.getElementById('premio-imagen');
-                    img.src = ganador.imagen_url;
-                    containerImg.classList.remove('hidden');
-                    containerImg.classList.add('flex');
-                } else {
-                    containerImg.classList.add('hidden');
-                    containerImg.classList.remove('flex');
-                }
-
-                tarjeta.classList.remove('hidden');
-                tarjeta.classList.add('flex');
-
-                lanzarConfeti();
-            }, 2100);
-        }
-
-        // --- CONEXIÓN Y MANEJO DE WEBSOCKETS ---
-        function conectarWebSocket() {
-            const wsScheme = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-            const socketUrl = wsScheme + window.location.host + '/ws/regalos/pantalla/';
-
-            const socket = new WebSocket(socketUrl);
-
-            socket.onopen = function () {
-                console.log("Conectado a la Tómbola Digital vía WebSockets.");
-            };
-
-            socket.onmessage = function (event) {
-                const data = JSON.parse(event.data);
-
-                if (data.type === 'NUEVO_GANADOR') {
-                    if (data.historial) {
-                        renderizarHistorial(data.historial);
-                    }
-                    if (data.ultimo_ganador) {
-                        ejecutarAnimacionApertura(data.ultimo_ganador);
+            if (data.type === "NUEVO_GANADOR") {
+                // Si el nuevo ganador es destacado, reproducir sonido especial
+                if (data.ultimo_ganador && data.ultimo_ganador.destacado) {
+                    const audio = document.getElementById('sound-destacado');
+                    if (audio) {
+                        audio.play().catch(err => console.log("Audio play blocked:", err));
                     }
                 }
-            };
 
-            socket.onclose = function (e) {
-                console.warn('Conexión de WebSocket cerrada. Reintentando en 3 segundos...', e.reason);
-                setTimeout(conectarWebSocket, 3000);
-            };
-
-            socket.onerror = function (err) {
-                console.error('Error en WebSocket:', err);
-                socket.close();
-            };
-        }
-
-        document.addEventListener('DOMContentLoaded', conectarWebSocket);
+                // Recargar la página o actualizar dinámicamente el DOM con el historial recibido en data.historial
+                // (Para simplificar y asegurar sincronización perfecta de los 6 elementos, puedes hacer un reload o pintar el HTML dinámicamente)
+                window.location.reload();
+            }
+        };
     </script>
 </c-layouts.base>

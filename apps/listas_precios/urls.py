@@ -8,5 +8,6 @@ urlpatterns = [
     path('', views.ListaPrecioView.as_view(), name='index'),
 
     path('exportar-excel/', views.ExportarListasExcelView.as_view(), name='exportar_excel'),
+    path('exportar-txt/', views.ExportarListasTxtView.as_view(), name='exportar_txt'),
     path('lineas-autocomplete/', LineaAutocompleteView.as_view(), name='lineas_autocomplete'),
 ]

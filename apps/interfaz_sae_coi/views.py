@@ -62,13 +62,13 @@ class DocumentosContabilizarSaeView(
         ]
 
     def get_queryset(self):
-        """
-        Devuelve la lista pura de Python obtenida de SQLAlchemy.
-        SingleTableMixin se encarga del slicing y paginación automáticamente.
-        """
         today = now().date()
 
-        # Extraer parámetros de búsqueda y filtros
+        # Obtener página actual para paginación a nivel de base de datos
+        page = int(self.request.GET.get('page', 1))
+        limit = self.paginate_by  # 25
+        offset = (page - 1) * limit
+
         filters = {
             'q': self.request.GET.get('q', '').strip(),
             'dia': self.request.GET.get('dia', None),
@@ -77,12 +77,13 @@ class DocumentosContabilizarSaeView(
             'almacen': self.request.GET.get('almacen', ''),
             'tipo_documento': self.request.GET.get('tipo_documento', 'ventas'),
             'estado_conta': self.request.GET.get('estado_conta', 'todos'),
+            'limit': limit,
+            'offset': offset,
         }
 
         order_by = self.request.GET.get('order_by', 'fecha')
         order_dir = self.request.GET.get('order_dir', 'desc')
 
-        # Consulta directa a Firebird / SQLAlchemy dinámico
         with sae_session() as (db_sae, suffix):
             m = get_sae_models(suffix)
 
@@ -91,10 +92,10 @@ class DocumentosContabilizarSaeView(
                 DOCUMENTO_STRATEGIES['ventas']
             )
 
-            # 1. Búsqueda y filtrado dentro de la estrategia de SQLAlchemy
+            # 1. Búsqueda con LIMIT y OFFSET en SQLAlchemy
             documentos_raw = strategy.fetch_documentos(db_sae, m, filters)
 
-            # 2. Cruce con COI / Django
+            # 2. Cruce con COI / Django (solo para los 25 de esta página)
             documentos_procesados = enrich_and_filter_contabilidad(
                 documentos_raw,
                 suffix,
@@ -104,16 +105,13 @@ class DocumentosContabilizarSaeView(
                 DocumentoContabilizado
             )
 
-            # 3. Ordenamiento en memoria (devuelve list)
+            # 3. Ordenamiento de estos 25 registros
             documentos_ordenados = sort_documentos(documentos_procesados, order_by, order_dir)
 
         return documentos_ordenados
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        # 1. Obtener la lista procesada de documentos
-        object_list = self.get_queryset()
 
         with sae_session() as (db_sae, suffix):
             m = get_sae_models(suffix)
@@ -122,8 +120,6 @@ class DocumentosContabilizarSaeView(
         almacenes_choices = [(almacen, almacen) for almacen in almacenes_db]
         filter_form = DocumentoFilterForm(self.request.GET or None, almacenes_choices=almacenes_choices)
 
-        # 4. Asignar las variables requeridas por django-tables2 y el template
-        context['object_list'] = object_list
         context['form'] = filter_form
         context['almacenes'] = almacenes_db + ['Sin Almacén / GENERAL']
         context['tipos_documentos'] = TIPOS_DOCUMENTOS

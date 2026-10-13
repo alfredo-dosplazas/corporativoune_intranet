@@ -34,6 +34,7 @@ class DetalleRequisicionInline(InlineFormSetFactory):
             {
                 "articulo": d.articulo,
                 "cantidad": d.cantidad,
+                "precio_unitario": d.precio_unitario,
             }
             for d in view.requisicion.detalle_requisicion.all()
         ]

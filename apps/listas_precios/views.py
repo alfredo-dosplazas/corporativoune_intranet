@@ -1,3 +1,4 @@
+import csv
 import json
 import openpyxl
 from django.contrib.auth.mixins import PermissionRequiredMixin
@@ -319,4 +320,115 @@ class ExportarListasExcelView(PermissionRequiredMixin, View):
             )
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             wb.save(response)
+            return response
+
+
+class ExportarListasTxtView(PermissionRequiredMixin, View):
+    permission_required = 'listas_precios.ver_listas_precios'
+
+    def get(self, request, *args, **kwargs):
+        # 1. Obtener filtros (soporta múltiples líneas)
+        lineas_raw = request.GET.getlist('linea') or request.GET.get('lineas', '').split(',')
+        lineas_filtro = [l.strip() for l in lineas_raw if l.strip()]
+        q_filtro = request.GET.get('q', '').strip()
+
+        # 2. Generar nombre de archivo dinámico con extensión .txt
+        if lineas_filtro:
+            nombre_lineas = "_".join(lineas_filtro)[:40]
+            filename = f"listas_precios_{nombre_lineas}.txt"
+        else:
+            filename = "listas_precios_todas_las_lineas.txt"
+
+        with sae_session() as (db_sae, suffix):
+            m = get_sae_models(suffix)
+
+            # Obtener todas las listas de precios de SAE
+            listas_sae = db_sae.query(m.Precio.clave, m.Precio.descripcion).filter(m.Precio.status == 'A').all()
+
+            # Base Query de Productos
+            query_prods = db_sae.query(
+                m.Producto.clave,
+                m.Producto.descripcion,
+                m.Producto.linea,
+                m.PrecioPorProducto.precio.label('precio_base_sae')
+            ).outerjoin(
+                m.PrecioPorProducto,
+                (m.Producto.clave == m.PrecioPorProducto.cve_art) & (m.PrecioPorProducto.cve_precio == 3)
+            ).filter(m.Producto.status == 'A')
+
+            # Aplicar filtro de múltiples líneas o búsqueda
+            if lineas_filtro:
+                query_prods = query_prods.filter(m.Producto.linea.in_(lineas_filtro))
+            if q_filtro:
+                query_prods = query_prods.filter(
+                    (m.Producto.clave.ilike(f"%{q_filtro}%")) | (m.Producto.descripcion.ilike(f"%{q_filtro}%"))
+                )
+
+            productos_db = query_prods.order_by(m.Producto.linea, m.Producto.clave).all()
+
+            # Mapear Overrides de precios
+            claves_prods = [p.clave.strip() for p in productos_db if p.clave]
+            overrides_db = {
+                o.cve_art.strip(): float(o.precio_lista_custom)
+                for o in ProductoPrecioOverride.objects.filter(cve_art__in=claves_prods)
+            }
+
+            # Mapear Reglas de Línea
+            reglas = LineaReglaPrecio.objects.all()
+            reglas_dict = {
+                f"{r.cve_lin.strip()}_{r.num_lista}": {
+                    'desc': float(r.porcentaje_descuento or 0),
+                    'util': float(r.porcentaje_utilidad or 0)
+                }
+                for r in reglas
+            }
+
+            # 3. Configurar respuesta HTTP como texto plano separado por tabulaciones (TSV)
+            response = HttpResponse(content_type='text/plain; charset=utf-8')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+            # Usar csv.writer configurado con delimitador de tabulación ('\t')
+            writer = csv.writer(response, delimiter='\t')
+
+            # Encabezados de Columnas (limpiando saltos de línea en descripciones si los hay)
+            headers = ['Clave', 'Descripción', 'Línea', 'Precio Base SAE', 'Precio Base Custom']
+            for l in listas_sae:
+                desc_limpia = l.descripcion.replace('\n', ' ').replace('\r', ' ') if l.descripcion else ""
+                headers.append(f"Lista {l.clave} - {desc_limpia}")
+
+            writer.writerow(headers)
+
+            # Llenar Filas
+            for p in productos_db:
+                cve = p.clave.strip() if p.clave else ""
+                linea = p.linea.strip() if p.linea else ""
+                precio_sae = float(p.precio_base_sae) if p.precio_base_sae is not None else 0.0
+                precio_custom = overrides_db.get(cve, None)
+                precio_base_final = precio_custom if precio_custom is not None else precio_sae
+
+                row = [
+                    cve,
+                    (p.descripcion.strip() if p.descripcion else "").replace('\n', ' ').replace('\r', ' '),
+                    linea,
+                    f"{precio_sae:.2f}",
+                    f"{precio_custom:.2f}" if precio_custom is not None else ""
+                ]
+
+                # Calcular el precio final para cada lista con las reglas de la línea
+                for l in listas_sae:
+                    num_lista = l.clave
+                    regla = reglas_dict.get(f"{linea}_{num_lista}", {'desc': 0.0, 'util': 0.0})
+
+                    # Corrección de la fórmula matemática que venía incompleta en tu ejemplo
+                    desc_pct = regla['desc'] / 100.0
+                    util_pct = regla['util'] / 100.0
+
+                    # Aplicando la lógica general de descuento y utilidad
+                    precio_calculado = (precio_base_final * (1 - desc_pct)) / (1 - util_pct) if (
+                                                                                                            1 - util_pct) != 0 else precio_base_final
+
+                    row.append(f"{round(precio_calculado, 2):.2f}")
+
+                writer.writerow(row)
+
             return response

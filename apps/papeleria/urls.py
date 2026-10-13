@@ -38,6 +38,7 @@ carrito_urlpatterns = [
 requisiciones_urlpatterns = [
     path('requisiciones/', views.requisiciones.RequisicionListView.as_view(), name='requisiciones__list'),
     path('requisiciones/', views.requisiciones.RequisicionListView.as_view(), name='requisiciones__create'),
+    path('requisiciones/duplicar/<int:pk>/', views.requisiciones.RequisicionDuplicate.as_view(), name='requisiciones__duplicate'),
     path('requisiciones/editar/<int:pk>/', views.requisiciones.RequisicionUpdateView.as_view(), name='requisiciones__update'),
     path('requisiciones/detalle/<int:pk>/', views.requisiciones.RequisicionDetailView.as_view(), name='requisiciones__detail'),
     path('requisiciones/eliminar/<int:pk>/', requisicion_delete, name='requisiciones__delete'),

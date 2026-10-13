@@ -13,6 +13,9 @@
     </div>
 {% endif %}
 
+{{ form.errors }}
+{{ Detalle.errors }}
+
 <form id="requisicion-form" method="post" novalidate class="space-y-3">
     {% csrf_token %}
 
@@ -85,6 +88,7 @@
                                 <div class="avatar">
                                     <div class="w-7 h-7 rounded border border-base-200 bg-base-200/40 flex items-center justify-center overflow-hidden">
                                         <img src="
+
 
 
 
@@ -318,9 +322,20 @@
         });
 
         if (window.jQuery) {
-            jQuery(document).on('change select2:select', 'select[name*="-articulo"]', function () {
-                const row = this.closest('tr.form-row');
-                cargarDatosArticulo(row, this.value);
+            jQuery(document).ready(function ($) {
+                // 1. Ejecutar para los selects que YA están en la página al cargar
+                $('select[name*="-articulo"]').each(function () {
+                    if (this.value) { // Opcional: solo si ya tienen un valor seleccionado
+                        const row = this.closest('tr.form-row');
+                        cargarDatosArticulo(row, this.value);
+                    }
+                });
+
+                // 2. Mantener tu escucha para cuando el usuario cambie el valor o use Select2
+                $(document).on('change select2:select', 'select[name*="-articulo"]', function () {
+                    const row = this.closest('tr.form-row');
+                    cargarDatosArticulo(row, this.value);
+                });
             });
         }
 

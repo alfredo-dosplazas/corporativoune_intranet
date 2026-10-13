@@ -29,7 +29,6 @@ class Requisicion(models.Model):
         ("autorizada_compras", "AUTORIZADA POR COMPRAS"),
         ("enviada_contraloria", "ENVIADA A CONTRALORÍA"),
         ("autorizada_contraloria", "AUTORIZADA POR CONTRALORÍA"),
-        ("esperando_entrega_articulo", "ESPERANDO ENTREGA DE ARTÍCULO"),
         ("completada", "COMPLETADA"),
         ("cancelada", "CANCELADA"),
     ]

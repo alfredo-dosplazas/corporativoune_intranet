@@ -42,7 +42,7 @@
     <!-- MODAL PARA VER EL CÓDIGO QR -->
     {% if perms.regalos.view_regalo %}
         <dialog id="qr_modal_{{ prefix }}_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
-            <div class="modal-box max-w-xs w-full p-5 bg-base-100 text-center border border-base-200 shadow-2xl overflow-x-hidden">
+            <div class="modal-box w-full p-5 bg-base-100 text-center border border-base-200 shadow-2xl overflow-x-hidden">
                 <form method="dialog">
                     <button class="btn btn-xs btn-circle btn-ghost absolute right-2.5 top-2.5 text-base-content/50">✕
                     </button>
@@ -51,14 +51,15 @@
                 <div class="mb-3 px-2">
                     <span class="badge badge-primary badge-outline text-[10px] font-bold">Premio #{{ record.numero }}</span>
                     <!-- Ajuste: break-words y line-clamp para evitar desbordamiento con nombres largos -->
-                    <h3 class="text-sm font-bold text-base-content mt-1 break-words line-clamp-2 leading-tight" title="{{ record.nombre }}">
+                    <h3 class="text-sm font-bold text-base-content mt-1 break-words line-clamp-2 leading-tight"
+                        title="{{ record.nombre }}">
                         {{ record.nombre }}
                     </h3>
                 </div>
 
                 <!-- CONTENEDOR DEL QR -->
                 <div class="bg-white p-3 rounded-xl border border-base-200 inline-block shadow-inner my-2 max-w-full">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ record.codigo_qr }}"
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ record.get_canjeo_url }}"
                          alt="QR Regalo"
                          class="w-44 h-44 max-w-full object-contain mx-auto"/>
                 </div>
@@ -66,6 +67,10 @@
                 <!-- Ajuste: break-all para asegurar que el código QR/UUID no desborde horizontalmente -->
                 <p class="text-[10px] font-mono text-base-content/60 mt-1 select-all break-all px-2">
                     {{ record.codigo_qr }}
+                </p>
+
+                <p class="text-[10px] font-mono text-base-content/60 mt-1 select-all break-all px-2">
+                    <a class="link link-primary" href="{{ record.get_canjeo_url }}">{{ record.get_canjeo_url }}</a>
                 </p>
 
                 <div class="mt-4 pt-3 border-t border-base-200 flex justify-center gap-2">

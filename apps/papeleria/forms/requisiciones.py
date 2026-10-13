@@ -97,23 +97,22 @@ class RequisicionForm(forms.ModelForm):
             )
         )
 
-        # Si el usuario NO es administrador, deshabilitamos campos de auditoría/control
+        # Autocompletar valores iniciales si es una creación nueva
+        if not self.instance.pk and self.user:
+            contacto = getattr(self.user, 'contacto', None)
+            empresa = getattr(contacto, 'empresa', None) if contacto else None
+            config = getattr(empresa, 'configuracion_papeleria', None) if empresa else None
+
+            self.initial.update({
+                'solicitante': self.user,
+                'empresa': empresa,
+                'aprobador': getattr(getattr(contacto, 'area', None), 'aprobador_papeleria', None),
+                'compras': getattr(config, 'compras', None),
+                'contraloria': getattr(config, 'contraloria', None),
+                'estado': 'borrador',
+            })
+
         if not self.is_admin:
-            # Autocompletar valores iniciales si es una creación nueva
-            if not self.instance.pk and self.user:
-                contacto = getattr(self.user, 'contacto', None)
-                empresa = getattr(contacto, 'empresa', None) if contacto else None
-                config = getattr(empresa, 'configuracion_papeleria', None) if empresa else None
-
-                self.initial.update({
-                    'solicitante': self.user,
-                    'empresa': empresa,
-                    'aprobador': getattr(getattr(contacto, 'area', None), 'aprobador_papeleria', None),
-                    'compras': getattr(config, 'compras', None),
-                    'contraloria': getattr(config, 'contraloria', None),
-                    'estado': 'borrador',
-                })
-
             # Deshabilitar/Ocultar controles de administración para usuarios regulares
             for field in [
                 'solicitante', 'empresa', 'aprobador', 'compras', 'contraloria',
@@ -194,7 +193,7 @@ class DetalleRequisicionForm(forms.ModelForm):
         }
 
     def clean_cantidad(self):
-        cantidad = self.cleaned_data.get('cantidad')
+        cantidad = self.cleaned_data.get('cantidad', 0)
         if cantidad is not None and cantidad < 1:
             raise ValidationError("La cantidad debe ser mayor a 0")
         return cantidad
