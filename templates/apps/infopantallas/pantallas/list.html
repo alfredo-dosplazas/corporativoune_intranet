@@ -1,0 +1,16 @@
+<c-layouts.app>
+    <a href="{% url 'infopantallas:create' %}">Crear</a>
+
+    <ul>
+        {% for pantalla in pantalla_list %}
+            <li>{{ pantalla }} - <a href="{% url 'infopantallas:update' pantalla.pk %}">Editar</a> <a
+                    href="{% url 'infopantallas:show_slides' pantalla.pk %}">Ver pantalla</a>
+                <form action="{% url 'infopantallas:delete' pantalla.pk %}" method="post">
+                    {% csrf_token %}
+                    <button>Eliminar</button>
+                </form>
+            </li>
+        {% endfor %}
+
+    </ul>
+</c-layouts.app>
