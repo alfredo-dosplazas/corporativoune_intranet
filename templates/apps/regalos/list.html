@@ -11,7 +11,7 @@
                 <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">Regalos</h1>
 
                 {% if perms.regalos.add_regalo %}
-                    <a href="{% url 'regalos:create' %}"
+                    <a href="{% url 'regalos:create' evento.slug %}"
                        class="btn btn-primary btn-xs gap-1 font-medium shadow-2xs ml-1">
                         <span class="icon-[tabler--plus] text-xs"></span>
                         <span>Nuevo</span>
@@ -142,7 +142,7 @@
                         <span class="icon-[tabler--x] text-[9px]"></span>
                     </a>
                 {% endif %}
-                <a href="{% url 'regalos:list' %}?clean_filter=1"
+                <a href="{% url 'regalos:list' evento.slug %}?clean_filter=1"
                    class="text-[10px] text-primary hover:underline ml-1">Limpiar</a>
             </div>
         {% endif %}
@@ -212,7 +212,7 @@
 
                 <!-- ACCIONES DEL MODAL -->
                 <div class="modal-action border-t border-base-200 pt-3 mt-4 flex items-center justify-end gap-2">
-                    <a href="{% url 'regalos:list' %}?clean_filter=1"
+                    <a href="{% url 'regalos:list' evento.slug %}?clean_filter=1"
                        class="btn btn-ghost btn-xs text-xs font-normal">
                         Limpiar filtros
                     </a>

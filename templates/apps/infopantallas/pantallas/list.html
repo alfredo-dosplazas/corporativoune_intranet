@@ -4,7 +4,7 @@
     <ul>
         {% for pantalla in pantalla_list %}
             <li>{{ pantalla }} - <a href="{% url 'infopantallas:update' pantalla.pk %}">Editar</a> <a
-                    href="{% url 'infopantallas:show_slides' pantalla.pk %}">Ver pantalla</a>
+                    href="{% url 'infopantallas:show_slides' pantalla.codigo_identificador %}">Ver pantalla</a>
                 <form action="{% url 'infopantallas:delete' pantalla.pk %}" method="post">
                     {% csrf_token %}
                     <button>Eliminar</button>

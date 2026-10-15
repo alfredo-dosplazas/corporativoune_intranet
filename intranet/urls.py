@@ -24,6 +24,7 @@ urlpatterns = [
                   path('resguardos/', include('apps.resguardos.urls')),
                   path('regalos/', include('apps.regalos.urls')),
                   path('infopantallas/', include('apps.infopantallas.urls')),
+                  path('', include('apps.explorador.urls')),
                   path('', include('pwa.urls')),
                   path("jsreverse.json", urls_json, name="js_reverse"),
               ] + debug_toolbar_urls()

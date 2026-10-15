@@ -1,0 +1,472 @@
+<c-layouts.app>
+    {% load static %}
+
+    <!-- Dependencias UMD de Univer.js para Excel -->
+    <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/rxjs@7.8.1/dist/bundles/rxjs.umd.min.js"></script>
+    <script src="https://unpkg.com/@wendellhu/redi@1.1.2/dist/umd/index.js"></script>
+    <script src="https://unpkg.com/@wendellhu/redi@1.1.2/dist/umd/react-bindings/index.js"></script>
+
+    <script src="https://unpkg.com/@univerjs/core/lib/umd/index.js"></script>
+    <script src="https://unpkg.com/@univerjs/design/lib/umd/index.js"></script>
+    <script src="https://unpkg.com/@univerjs/ui/lib/umd/index.js"></script>
+    <script src="https://unpkg.com/@univerjs/docs/lib/umd/index.js"></script>
+    <script src="https://unpkg.com/@univerjs/docs-ui/lib/umd/index.js"></script>
+    <script src="https://unpkg.com/@univerjs/sheets/lib/umd/index.js"></script>
+    <script src="https://unpkg.com/@univerjs/sheets-ui/lib/umd/index.js"></script>
+    <script src="https://unpkg.com/@univerjs/engine-render/lib/umd/index.js"></script>
+    <script src="https://unpkg.com/@univerjs/engine-formula/lib/umd/index.js"></script>
+    <script src="https://unpkg.com/@univerjs/sheets-formula/lib/umd/index.js"></script>
+    <script src="https://unpkg.com/@univerjs/sheets-formula-ui/lib/umd/index.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/@univerjs/design/lib/index.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@univerjs/ui/lib/index.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@univerjs/docs-ui/lib/index.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@univerjs/sheets-ui/lib/index.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@univerjs/sheets-formula-ui/lib/index.css" />
+
+    <div class="p-6 bg-base-100 rounded-3xl shadow-sm border border-base-200">
+
+        <!-- ENCABEZADO Y BREADCRUMBS -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div>
+                <h1 class="text-xl font-bold text-base-content flex items-center gap-2">
+                    <span class="icon-[ph--hard-drives-fill] text-primary size-6"></span>
+                    Explorador de Red Seguro (Solo Lectura)
+                </h1>
+                <nav class="flex items-center gap-1 text-xs mt-2 overflow-x-auto">
+                    {% for crumb in breadcrumbs %}
+                        {% if not forloop.first %}
+                            <span class="icon-[ph--caret-right-bold] text-base-content/30 size-3"></span>{% endif %}
+                        <a href="{{ crumb.url }}"
+                           class="px-2 py-1 rounded-lg hover:bg-base-200 {% if forloop.last %}font-bold text-primary bg-primary/10{% else %}text-base-content/70{% endif %}">
+                            {{ crumb.title }}
+                        </a>
+                    {% endfor %}
+                </nav>
+            </div>
+
+            {% if smb_info %}
+                <div class="badge badge-neutral gap-2 py-3 px-4 text-xs font-mono">
+                    <span class="size-2 rounded-full bg-success"></span>
+                    AD: {{ smb_info.dominio }}\{{ smb_info.usuario }}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- SECCIÓN DE CARPETAS -->
+        {% if carpetas %}
+            <div class="mb-6">
+                <h2 class="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-3">Carpetas de Red</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {% for carpeta in carpetas %}
+                        {% if ruta_actual %}
+                            {% url 'explorador_red_path' ruta=ruta_actual|add:"/"|add:carpeta.nombre as folder_url %}
+                        {% else %}
+                            {% url 'explorador_red_path' ruta=carpeta.nombre as folder_url %}
+                        {% endif %}
+
+                        <a href="{{ folder_url }}"
+                           class="flex items-center justify-between p-3.5 bg-base-200/40 hover:bg-base-200 border border-base-200 rounded-2xl transition-all group">
+                            <div class="flex items-center gap-3 truncate">
+                                <span class="icon-[ph--folder-fill] text-warning size-6 shrink-0"></span>
+                                <span class="text-xs font-semibold text-base-content truncate group-hover:text-primary">{{ carpeta.nombre }}</span>
+                            </div>
+                            <span class="icon-[ph--caret-right-bold] text-base-content/30 group-hover:translate-x-0.5 transition-transform size-4"></span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- SECCIÓN DE ARCHIVOS -->
+        {% if archivos %}
+            <div>
+                <h2 class="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-3">Archivos</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {% for archivo in archivos %}
+                        {% if ruta_actual %}
+                            {% url 'explorador_red_archivo' ruta=ruta_actual|add:"/"|add:archivo.nombre as file_url %}
+                            {% url 'explorador_red_univer' ruta=ruta_actual|add:"/"|add:archivo.nombre as univer_url %}
+                            {% url 'explorador_red_word' ruta=ruta_actual|add:"/"|add:archivo.nombre as word_url %}
+                            {% url 'explorador_red_ppt' ruta=ruta_actual|add:"/"|add:archivo.nombre as ppt_url %}
+                        {% else %}
+                            {% url 'explorador_red_archivo' ruta=archivo.nombre as file_url %}
+                            {% url 'explorador_red_univer' ruta=archivo.nombre as univer_url %}
+                            {% url 'explorador_red_word' ruta=archivo.nombre as word_url %}
+                            {% url 'explorador_red_ppt' ruta=archivo.nombre as ppt_url %}
+                        {% endif %}
+
+                        <div class="flex flex-col justify-between p-4 bg-base-100 border border-base-200 rounded-2xl shadow-2xs hover:border-primary/50 transition-all">
+                            <div class="flex items-start gap-3 mb-3">
+                                <div class="p-2.5 rounded-xl shrink-0
+                                {% if archivo.tipo == 'excel' %}bg-success/10 text-success
+                                {% elif archivo.tipo == 'word' %}bg-info/10 text-info
+                                {% elif archivo.tipo == 'powerpoint' %}bg-warning/10 text-warning
+                                {% elif archivo.tipo == 'pdf' %}bg-error/10 text-error
+                                {% elif archivo.tipo == 'imagen' %}bg-secondary/10 text-secondary
+                                {% else %}bg-neutral/10 text-neutral{% endif %}">
+                                <span class="
+                                    {% if archivo.tipo == 'excel' %}icon-[ph--file-xls-fill]
+                                    {% elif archivo.tipo == 'word' %}icon-[ph--file-doc-fill]
+                                    {% elif archivo.tipo == 'powerpoint' %}icon-[ph--file-ppt-fill]
+                                    {% elif archivo.tipo == 'pdf' %}icon-[ph--file-pdf-fill]
+                                    {% elif archivo.tipo == 'imagen' %}icon-[ph--file-image-fill]
+                                    {% else %}icon-[ph--file-fill]
+                                    {% endif %} size-6"></span>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-xs font-bold text-base-content truncate" title="{{ archivo.nombre }}">{{ archivo.nombre }}</p>
+                                    <span class="text-[10px] uppercase font-mono text-base-content/50">{{ archivo.extension }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Botones Inteligentes según el Tipo de Archivo -->
+                            <div class="flex items-center gap-1.5 pt-2 border-t border-base-200 justify-end">
+                                {% if archivo.tipo == 'excel' %}
+                                    <button type="button"
+                                            onclick="abrirVisorUniver('{{ univer_url }}', '{{ archivo.nombre }}')"
+                                            class="btn btn-success btn-xs text-success-content gap-1 font-medium w-full justify-center">
+                                        <span class="icon-[ph--table-bold] size-3.5"></span> Ver Hoja
+                                    </button>
+                                {% elif archivo.tipo == 'word' %}
+                                    <button type="button"
+                                            onclick="abrirVisorWord('{{ word_url }}', '{{ archivo.nombre }}')"
+                                            class="btn btn-info btn-xs text-info-content gap-1 font-medium w-full justify-center">
+                                        <span class="icon-[ph--file-doc-bold] size-3.5"></span> Leer Documento
+                                    </button>
+                                {% elif archivo.tipo == 'powerpoint' %}
+                                    <button type="button"
+                                            onclick="abrirVisorPPT('{{ ppt_url }}', '{{ archivo.nombre }}')"
+                                            class="btn btn-warning btn-xs text-warning-content gap-1 font-medium w-full justify-center">
+                                        <span class="icon-[ph--presentation-bold] size-3.5"></span> Ver Presentación
+                                    </button>
+                                {% else %}
+                                    <button type="button"
+                                            onclick="abrirVisorModal('{{ file_url }}', '{{ archivo.nombre }}', '{{ archivo.tipo }}')"
+                                            class="btn btn-primary btn-xs text-primary-content gap-1 font-medium w-full justify-center">
+                                        <span class="icon-[ph--eye-bold] size-3.5"></span> Visualizar
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% elif not carpetas %}
+            <div class="text-center py-12 text-base-content/40">
+                <span class="icon-[ph--folder-open-bold] size-12 mx-auto mb-2 opacity-50"></span>
+                <p class="text-sm font-medium">Esta carpeta de red está vacía o no tienes elementos visibles.</p>
+            </div>
+        {% endif %}
+
+    </div>
+
+    <!-- MODAL GENERAL (PDFs e Imágenes) -->
+    <dialog id="modal-visor-red" class="modal">
+        <div class="modal-box w-11/12 max-w-5xl h-[85vh] flex flex-col p-0 rounded-3xl bg-base-100 shadow-2xl">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-base-200 bg-base-200/50">
+                <h3 id="modal-titulo-archivo" class="font-bold text-sm text-base-content truncate">Visor</h3>
+                <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost" onclick="cerrarVisorGeneral()">✕</button></form>
+            </div>
+            <div id="modal-contenido-visor" class="flex-1 w-full h-full p-4 overflow-auto flex items-center justify-center bg-base-200/20"></div>
+        </div>
+        <form method="dialog" class="modal-backdrop"><button onclick="cerrarVisorGeneral()">cerrar</button></form>
+    </dialog>
+
+    <!-- MODAL UNIVER (Excel) -->
+    <dialog id="modal-visor-univer" class="modal">
+        <div class="modal-box w-11/12 max-w-7xl h-[92vh] flex flex-col p-0 rounded-3xl bg-base-100 shadow-2xl">
+            <div class="flex items-center justify-between px-6 py-3 border-b border-base-200 bg-base-200/50">
+                <div class="flex items-center gap-2">
+                    <span class="icon-[ph--file-xls-bold] text-success size-5"></span>
+                    <h3 id="univer-titulo-archivo" class="font-bold text-sm text-base-content truncate">Hoja de Cálculo (Solo Lectura)</h3>
+                </div>
+                <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost" onclick="destruirUniver()">✕</button></form>
+            </div>
+            <div id="univer-container" class="flex-1 w-full h-full bg-white relative"></div>
+        </div>
+        <form method="dialog" class="modal-backdrop"><button onclick="destruirUniver()">cerrar</button></form>
+    </dialog>
+
+    <!-- MODAL WORD -->
+    <dialog id="modal-visor-word" class="modal">
+        <div class="modal-box w-11/12 max-w-4xl h-[90vh] flex flex-col p-0 rounded-3xl bg-base-100 shadow-2xl">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-base-200 bg-base-200/50">
+                <div class="flex items-center gap-2">
+                    <span class="icon-[ph--file-doc-bold] text-info size-5"></span>
+                    <h3 id="word-titulo-archivo" class="font-bold text-sm text-base-content truncate">Lector de Documento</h3>
+                </div>
+                <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost">✕</button></form>
+            </div>
+            <div id="word-container" class="flex-1 w-full h-full overflow-y-auto p-8 bg-base-200/30 select-none"></div>
+        </div>
+        <form method="dialog" class="modal-backdrop"><button>cerrar</button></form>
+    </dialog>
+
+    <!-- MODAL POWERPOINT -->
+    <dialog id="modal-visor-ppt" class="modal">
+        <div class="modal-box w-11/12 max-w-5xl h-[90vh] flex flex-col p-0 rounded-3xl bg-base-100 shadow-2xl">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-base-200 bg-base-200/50">
+                <div class="flex items-center gap-2">
+                    <span class="icon-[ph--file-ppt-bold] text-warning size-5"></span>
+                    <h3 id="ppt-titulo-archivo" class="font-bold text-sm text-base-content truncate">Visor de Diapositivas</h3>
+                </div>
+                <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost">✕</button></form>
+            </div>
+            <div id="ppt-container" class="flex-1 w-full h-full overflow-y-auto p-6 bg-base-200/30 select-none space-y-6"></div>
+        </div>
+        <form method="dialog" class="modal-backdrop"><button>cerrar</button></form>
+    </dialog>
+
+    <!-- SCRIPTS DE SEGURIDAD Y CONTROL DE VISORES -->
+    <script>
+        // 1. Bloquear menú contextual (clic derecho)
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+        // 2. Bloquear atajos para F12, inspección, guardado e impresión
+        document.addEventListener('keydown', e => {
+            if (
+                e.key === 'F12' ||
+                (e.ctrlKey && (e.key === 'u' || e.key === 'U' || e.key === 's' || e.key === 'S' || e.key === 'p' || e.key === 'P')) ||
+                (e.ctrlKey && e.shiftKey && (e.key === 'i' || e.key === 'I' || e.key === 'j' || e.key === 'J' || e.key === 'c' || e.key === 'C'))
+            ) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        });
+
+        let univerApp = null;
+
+        function destruirUniver() {
+            if (univerApp) {
+                try { univerApp.dispose(); } catch(e) {}
+                univerApp = null;
+            }
+            document.getElementById('univer-container').innerHTML = '';
+        }
+
+        function cerrarVisorGeneral() {
+            document.getElementById('modal-contenido-visor').innerHTML = '';
+        }
+
+        // Visor de Word (.docx)
+        async function abrirVisorWord(apiUrl, nombre) {
+            const modal = document.getElementById('modal-visor-word');
+            const titulo = document.getElementById('word-titulo-archivo');
+            const container = document.getElementById('word-container');
+
+            titulo.textContent = nombre;
+            container.innerHTML = '<div class="flex items-center justify-center h-full"><span class="loading loading-spinner loading-lg text-info"></span></div>';
+            modal.showModal();
+
+            try {
+                const response = await fetch(apiUrl);
+                const resJson = await response.json();
+
+                if (resJson.status !== 'success') {
+                    container.innerHTML = `<p class="text-error p-6 text-center">Error al leer el documento: ${resJson.error || 'Desconocido'}</p>`;
+                    return;
+                }
+
+                container.innerHTML = '';
+                const wrapper = document.createElement('div');
+                wrapper.className = 'max-w-2xl mx-auto bg-white p-10 rounded-2xl shadow-sm border border-base-200 space-y-4 text-base-content select-none';
+
+                resJson.elementos.forEach(el => {
+                    if (el.tipo === 'h1') {
+                        const h1 = document.createElement('h1');
+                        h1.className = 'text-xl font-bold tracking-tight mt-4 mb-2';
+                        h1.textContent = el.texto;
+                        wrapper.appendChild(h1);
+                    } else if (el.tipo === 'h2') {
+                        const h2 = document.createElement('h2');
+                        h2.className = 'text-lg font-bold tracking-tight mt-3 mb-2';
+                        h2.textContent = el.texto;
+                        wrapper.appendChild(h2);
+                    } else if (el.tipo === 'p') {
+                        const p = document.createElement('p');
+                        p.className = 'text-xs leading-relaxed text-base-content/80';
+                        p.textContent = el.texto;
+                        wrapper.appendChild(p);
+                    } else if (el.tipo === 'tabla') {
+                        const tableWrapper = document.createElement('div');
+                        tableWrapper.className = 'overflow-x-auto my-4';
+                        let tableHtml = '<table class="table table-xs border border-base-200"><tbody>';
+                        el.datos.forEach(fila => {
+                            tableHtml += '<tr>';
+                            fila.forEach(celda => {
+                                tableHtml += `<td class="border border-base-200 px-2 py-1">${celda || ''}</td>`;
+                            });
+                            tableHtml += '</tr>';
+                        });
+                        tableHtml += '</tbody></table>';
+                        tableWrapper.innerHTML = tableHtml;
+                        wrapper.appendChild(tableWrapper);
+                    }
+                });
+
+                container.appendChild(wrapper);
+
+            } catch (err) {
+                container.innerHTML = `<p class="text-error p-6 text-center">No se pudo conectar con el servidor.</p>`;
+            }
+        }
+
+        // Visor de PowerPoint (.pptx)
+        async function abrirVisorPPT(apiUrl, nombre) {
+            const modal = document.getElementById('modal-visor-ppt');
+            const titulo = document.getElementById('ppt-titulo-archivo');
+            const container = document.getElementById('ppt-container');
+
+            titulo.textContent = nombre;
+            container.innerHTML = '<div class="flex items-center justify-center h-full"><span class="loading loading-spinner loading-lg text-warning"></span></div>';
+            modal.showModal();
+
+            try {
+                const response = await fetch(apiUrl);
+                const resJson = await response.json();
+
+                if (resJson.status !== 'success') {
+                    container.innerHTML = `<p class="text-error p-6 text-center">Error al leer la presentación: ${resJson.error || 'Desconocido'}</p>`;
+                    return;
+                }
+
+                container.innerHTML = '';
+                resJson.diapositivas.forEach(slide => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-white p-6 rounded-2xl shadow-sm border border-base-200 space-y-3';
+
+                    const header = document.createElement('div');
+                    header.className = 'text-xs font-bold text-warning uppercase tracking-wider border-b border-base-200 pb-2';
+                    header.textContent = `Diapositiva ${slide.numero}`;
+                    card.appendChild(header);
+
+                    if (slide.textos.length > 0) {
+                        slide.textos.forEach(txt => {
+                            const p = document.createElement('p');
+                            p.className = 'text-xs leading-relaxed text-base-content/80';
+                            p.textContent = txt;
+                            card.appendChild(p);
+                        });
+                    } else {
+                        const empty = document.createElement('p');
+                        empty.className = 'text-xs text-base-content/40 italic';
+                        empty.textContent = '(Diapositiva sin contenido de texto)';
+                        card.appendChild(empty);
+                    }
+
+                    container.appendChild(card);
+                });
+
+            } catch (err) {
+                container.innerHTML = `<p class="text-error p-6 text-center">No se pudo conectar con el servidor.</p>`;
+            }
+        }
+
+        // Visor Univer para Excel (.xlsx)
+        async function abrirVisorUniver(apiUrl, nombre) {
+            destruirUniver();
+            const modal = document.getElementById('modal-visor-univer');
+            const titulo = document.getElementById('univer-titulo-archivo');
+            const container = document.getElementById('univer-container');
+
+            titulo.textContent = nombre;
+            container.innerHTML = '<div class="flex items-center justify-center h-full"><span class="loading loading-spinner loading-lg text-success"></span></div>';
+            modal.showModal();
+
+            try {
+                const response = await fetch(apiUrl);
+                const resJson = await response.json();
+
+                if (resJson.status !== 'success') {
+                    container.innerHTML = `<p class="text-error p-6 text-center">Error al cargar el archivo: ${resJson.error || 'Desconocido'}</p>`;
+                    return;
+                }
+
+                container.innerHTML = '';
+
+                const { Univer, LocaleType, UniverInstanceType } = UniverCore;
+                const { UniverRenderEnginePlugin } = UniverEngineRender;
+                const { UniverFormulaEnginePlugin } = UniverEngineFormula;
+                const { UniverUIPlugin } = UniverUi;
+                const { UniverDocsPlugin } = UniverDocs;
+                const { UniverDocsUIPlugin } = UniverDocsUi;
+                const { UniverSheetsPlugin } = UniverSheets;
+                const { UniverSheetsUIPlugin } = UniverSheetsUi;
+                const { UniverSheetsFormulaPlugin } = UniverSheetsFormula;
+                const { UniverSheetsFormulaUIPlugin } = UniverSheetsFormulaUi;
+
+                const univer = new Univer({ locale: LocaleType.EN_US });
+
+                univer.registerPlugin(UniverRenderEnginePlugin);
+                univer.registerPlugin(UniverFormulaEnginePlugin);
+                univer.registerPlugin(UniverUIPlugin, { container: 'univer-container', header: false, toolbar: true });
+                univer.registerPlugin(UniverDocsPlugin);
+                univer.registerPlugin(UniverDocsUIPlugin);
+                univer.registerPlugin(UniverSheetsPlugin);
+                univer.registerPlugin(UniverSheetsUIPlugin);
+                univer.registerPlugin(UniverSheetsFormulaPlugin);
+                univer.registerPlugin(UniverSheetsFormulaUIPlugin);
+
+                const sheetsObj = {};
+                const sheetNames = Object.keys(resJson.sheets);
+
+                sheetNames.forEach((sname, idx) => {
+                    const cellDataFormatted = {};
+                    const filas = resJson.sheets[sname];
+                    Object.keys(filas).forEach(rIdx => {
+                        const rowObj = {};
+                        Object.keys(filas[rIdx]).forEach(cIdx => {
+                            rowObj[cIdx] = filas[rIdx][cIdx];
+                        });
+                        cellDataFormatted[rIdx] = rowObj;
+                    });
+                    sheetsObj[`sheet-${idx}`] = { id: `sheet-${idx}`, name: sname, cellData: cellDataFormatted };
+                });
+
+                univer.createUnit(UniverInstanceType.UNIVER_SHEET, {
+                    id: 'workbook-red-id',
+                    name: nombre,
+                    sheetOrder: sheetNames.map((_, idx) => `sheet-${idx}`),
+                    sheets: sheetsObj
+                });
+
+                univerApp = univer;
+            } catch (err) {
+                container.innerHTML = `<p class="text-error p-6 text-center">Error al conectar con el servidor para renderizar Univer.</p>`;
+            }
+        }
+
+        // Visor General (PDFs e Imágenes)
+        function abrirVisorModal(url, nombre, tipo) {
+            const modal = document.getElementById('modal-visor-red');
+            const titulo = document.getElementById('modal-titulo-archivo');
+            const contenedor = document.getElementById('modal-contenido-visor');
+
+            titulo.textContent = nombre;
+            contenedor.innerHTML = '<span class="loading loading-spinner loading-lg text-primary"></span>';
+            modal.showModal();
+
+            setTimeout(() => {
+                contenedor.innerHTML = '';
+                if (tipo === 'imagen') {
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.alt = nombre;
+                    img.className = 'max-h-full max-w-full object-contain rounded-xl select-none pointer-events-none';
+                    img.oncontextmenu = () => false;
+                    contenedor.appendChild(img);
+                } else if (tipo === 'pdf') {
+                    const iframe = document.createElement('iframe');
+                    iframe.src = url + '#toolbar=0&navpanes=0&scrollbar=0';
+                    iframe.className = 'w-full h-full rounded-xl border border-base-300 bg-white';
+                    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+                    contenedor.appendChild(iframe);
+                }
+            }, 150);
+        }
+    </script>
+</c-layouts.app>

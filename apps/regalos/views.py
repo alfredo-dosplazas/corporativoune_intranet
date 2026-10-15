@@ -7,10 +7,13 @@ import qrcode
 from PIL import ImageFont, Image, ImageDraw
 from asgiref.sync import async_to_sync, sync_to_async
 from channels.layers import get_channel_layer
+from django import http
+from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.http import JsonResponse, HttpResponse
-from django.shortcuts import render, get_object_or_404
+from django.db.models import Model
+from django.http import JsonResponse, HttpResponse, HttpResponseBase
+from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.views import View
@@ -28,9 +31,97 @@ from apps.core.mixins.session_filter_state import SessionFilterStateMixin
 from apps.core.mixins.title import PageTitleMixin
 from apps.core.models import Empresa
 from apps.qrs.utils import generar_qr_base64
-from apps.regalos.forms import RegaloForm
-from apps.regalos.models import Regalo
-from apps.regalos.tables import RegaloTable
+from apps.regalos.forms import RegaloForm, EventoForm
+from apps.regalos.models import Regalo, Evento
+from apps.regalos.tables import RegaloTable, EventoTable
+from apps.rrhh.models.sedes import Sede
+
+
+class RegaloModuloView(
+    PermissionRequiredMixin,
+    BreadcrumbsMixin,
+    TemplateView,
+):
+    permission_required = 'regalos.acceder_modulo_regalos'
+    template_name = 'apps/regalos/index.html'
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Regalos'},
+        ]
+
+
+class EventoListView(
+    PermissionRequiredMixin,
+    SessionFilterStateMixin,
+    ResponsiveViewModeMixin,
+    SearchableListMixin,
+    PageTitleMixin,
+    BreadcrumbsMixin,
+    ExportMixin,
+    SingleTableMixin,
+    FilterView
+):
+    permission_required = 'regalos.view_evento'
+    template_name = 'apps/regalos/eventos/list.html'
+    page_title = 'Eventos'
+    model = Evento
+    table_class = EventoTable
+    paginate_by = 12
+    search_fields = ['nombre', 'slug']
+    export_name = 'Eventos'
+    filterset_fields = ['activo']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        contacto = getattr(user, 'contacto', None)
+
+        if contacto is None:
+            messages.error(self.request, 'Este usuario no tiene un contacto')
+            return redirect('home')
+
+        eventos = Evento.objects.filter(sede=contacto.sede_administrativa)
+
+        qs = qs.filter(pk__in=eventos.values_list('pk'))
+        return qs
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Eventos'},
+        ]
+
+
+class EventoCreateView(
+    PermissionRequiredMixin,
+    PageTitleMixin,
+    BreadcrumbsMixin,
+    SuccessMessageMixin,
+    CreateView,
+):
+    permission_required = 'regalos.add_evento'
+    template_name = 'apps/regalos/eventos/create.html'
+    page_title = 'Crear Evento'
+    model = Evento
+    form_class = EventoForm
+    success_message = 'Evento creado correctamente.'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def get_success_url(self) -> str:
+        return reverse('regalos:eventos__update', args=[self.object.pk])
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Eventos', 'url': reverse('regalos:eventos__list')},
+            {'title': 'Crear'},
+        ]
 
 
 class RegaloListView(
@@ -54,9 +145,20 @@ class RegaloListView(
     export_name = 'Regalos'
     filterset_fields = ['canjeado', 'destacado']
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['evento'] = self.evento
+        return context
+
+    def get_queryset(self):
+        self.evento = get_object_or_404(Evento, slug=self.kwargs['evento_slug'])
+        return Regalo.objects.filter(evento=self.evento).order_by('numero')
+
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Eventos', 'url': reverse('regalos:eventos__list')},
+            {'title': self.evento, 'url': reverse('regalos:eventos__detail', args=[self.evento.pk])},
             {'title': 'Regalos'},
         ]
 
@@ -75,13 +177,30 @@ class RegaloCreateView(
     form_class = RegaloForm
     success_message = 'Regalo creado correctamente.'
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        kwargs['evento'] = self.evento
+        return kwargs
+
+    def dispatch(self, request, *args, **kwargs):
+        user = self.request.user
+        sede = Sede.objects.filter(contactos_administrados__usuario=user).first()
+        self.evento = get_object_or_404(Evento, slug=self.kwargs['evento_slug'], sede=sede)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['evento'] = self.evento
+        return context
+
     def get_success_url(self) -> str:
         return reverse('regalos:update', args=[self.object.pk])
 
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'Regalos', 'url': reverse('regalos:list')},
+            {'title': 'Regalos', 'url': reverse('regalos:list', args=[self.evento.slug])},
             {'title': 'Crear'},
         ]
 
@@ -99,6 +218,18 @@ class RegaloUpdateView(
     model = Regalo
     form_class = RegaloForm
     success_message = 'Regalo editado correctamente.'
+
+    def dispatch(self, request, *args, **kwargs):
+        user = self.request.user
+        sede = Sede.objects.filter(contactos_administrados__usuario=user).first()
+        self.evento = get_object_or_404(Evento, slug=self.kwargs['evento_slug'], sede=sede)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        kwargs['evento'] = self.evento
+        return kwargs
 
     def get_success_url(self) -> str:
         return reverse('regalos:update', args=[self.object.pk])
@@ -410,6 +541,7 @@ class CanjearRegaloView(View):
                 )
 
         return render(request, 'apps/regalos/canjear.html', {'regalo': regalo, 'exito': True})
+
 
 class RegalosCanjeadosView(BreadcrumbsMixin, ListView):
     template_name = 'apps/regalos/canjeados.html'

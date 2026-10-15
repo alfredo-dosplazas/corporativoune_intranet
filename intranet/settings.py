@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
 
     'apps.ad',
+    'apps.explorador',
     'apps.custom_auth',
     'apps.asistencias',
     'apps.core',
@@ -247,6 +248,8 @@ STATICFILES_DIRS = [
 
 COTTON_DIR = 'components'
 
+DP_SERVER_ROOT = Path(env('DP_SERVER_ROOT'))
+FP_SERVER_ROOT = Path(env('FP_SERVER_ROOT'))
 FOTOS_ROOT = Path(env('FOTOS_ROOT'))
 PROYECTOS_ROOT = Path(env('PROYECTOS_ROOT'))
 

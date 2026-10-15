@@ -112,18 +112,20 @@ class PantallaDeleteView(
 
 @modulo_required('Infopantallas')
 def show_slides(request, pantalla_id):
-    """Carga la interfaz del reproductor para una pantalla específica."""
-    pantalla = get_object_or_404(Pantalla, id=pantalla_id, activa=True)
+    """Carga la interfaz del reproductor para una pantalla específica (por ID o Slug)."""
 
-    # Opcional: Validar si el usuario tiene permiso sobre la empresa de la pantalla
-    # (puedes apoyarte en tus relaciones de contacto, sedes o empresas permitidas)
+    # Verificamos si el parámetro recibido es puramente numérico (ID)
+    if str(pantalla_id).isdigit():
+        pantalla = get_object_or_404(Pantalla, id=int(pantalla_id), activa=True)
+    else:
+        # Si no es numérico, lo buscamos por el campo slug (codigo_identificador)
+        pantalla = get_object_or_404(Pantalla, codigo_identificador=pantalla_id, activa=True)
 
     playlist = pantalla.obtener_playlist()
     return render(request, 'apps/infopantallas/pantalla.html', {
         'pantalla': pantalla,
         'playlist_inicial': playlist,
     })
-
 
 @modulo_required('Infopantallas')
 def servir_media_pantalla(request, pantalla_id, filename):

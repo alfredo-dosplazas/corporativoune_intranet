@@ -2,7 +2,21 @@ from django.utils.html import format_html
 from django_tables2 import tables
 
 from apps.core.tables import TableWithActions
-from apps.regalos.models import Regalo
+from apps.regalos.models import Regalo, Evento
+
+
+class EventoTable(TableWithActions):
+    actions_template = 'components/apps/regalos/eventos/table/actions.html'
+
+    class Meta:
+        model = Evento
+        fields = [
+            'nombre',
+            'empresa',
+            'sede',
+            'activo',
+            'fecha_evento',
+        ]
 
 
 class RegaloTable(TableWithActions):
@@ -34,10 +48,6 @@ class RegaloTable(TableWithActions):
             'destacado',
             'ganador_info',
         ]
-        # Aplica clases globales de DaisyUI a la tabla si tu TableWithActions no las define
-        attrs = {
-            'class': 'table table-xs sm:table-sm w-full border-separate border-spacing-y-1'
-        }
 
     # 1. Render de la Imagen con Thumbnail/Avatar circular o redondeado
     def render_imagen(self, value, record):

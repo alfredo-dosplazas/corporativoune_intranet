@@ -1,0 +1,86 @@
+{% comment %}
+  Acepta 'prefix' de forma opcional (por defecto "table")
+{% endcomment %}
+<c-vars prefix="table"/>
+
+<c-table.actions :record="record" :prefix="prefix">
+
+    {% if perms.regalos.view_regalo %}
+        <li>
+            <a href="{% url 'regalos:list' record.slug %}"
+               class="flex items-center gap-1.5 py-1 text-xs">
+                <span class="icon-[akar-icons--gift] text-xs text-base-content/60 shrink-0"></span>
+                <span>Regalos</span>
+            </a>
+        </li>
+    {% endif %}
+
+    {% if perms.regalos.change_evento %}
+        <li>
+            <a href="{% url 'regalos:eventos__update' record.pk %}"
+               class="flex items-center gap-1.5 py-1 text-xs">
+                <span class="icon-[tabler--edit] text-xs text-base-content/60 shrink-0"></span>
+                <span>Editar</span>
+            </a>
+        </li>
+    {% endif %}
+
+    {% if perms.regalos.delete_evento %}
+        <li class="my-0.5 border-t border-base-200"></li>
+        <li>
+            <button type="button"
+                    class="flex items-center gap-1.5 py-1 text-xs text-error hover:bg-error/10"
+                    onclick="evento_delete_modal_{{ prefix }}_{{ record.pk }}.showModal()">
+                <span class="icon-[tabler--trash] text-xs shrink-0"></span>
+                <span>Eliminar</span>
+            </button>
+        </li>
+    {% endif %}
+
+    <!-- MODAL DE ELIMINACIÓN -->
+    {% if perms.regalos.delete_evento %}
+        <dialog id="evento_delete_modal_{{ prefix }}_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
+            <div class="modal-box max-w-sm w-full p-4 bg-base-100 border border-base-200 shadow-2xl overflow-x-hidden">
+                <form method="dialog">
+                    <button class="btn btn-xs btn-circle btn-ghost absolute right-2.5 top-2.5 text-base-content/50">✕
+                    </button>
+                </form>
+
+                <div class="flex items-start gap-2.5 mb-3">
+                    <div class="p-2 bg-error/10 text-error rounded-full shrink-0">
+                        <span class="icon-[tabler--alert-triangle] text-base block"></span>
+                    </div>
+                    <div class="pr-4 min-w-0 flex-1">
+                        <h3 class="text-xs font-bold text-base-content uppercase tracking-wider">¿Eliminar Evento?</h3>
+                        <p class="text-[11px] text-base-content/70 mt-0.5 break-words">
+                            Se eliminará permanentemente el evento
+                            <span class="font-bold text-base-content break-words">{{ record.nombre|default:record.pk }}</span>.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-base-200/50 border border-base-200 rounded p-2 text-[10px] text-base-content/70 mb-4 flex gap-1.5 items-center">
+                    <span class="icon-[tabler--info-circle] text-warning text-xs shrink-0"></span>
+                    <span>Esta acción no se puede deshacer y borrará los datos asociados.</span>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-base-200">
+                    <form method="dialog">
+                        <button class="btn btn-ghost btn-xs font-normal">Cancelar</button>
+                    </form>
+                    <form action="{% url 'regalos:eventos__delete' record.pk %}" method="post">
+                        {% csrf_token %}
+                        <button class="btn btn-error btn-xs gap-1 font-medium text-white shadow-2xs">
+                            <span class="icon-[tabler--trash] text-xs"></span>
+                            <span>Confirmar</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <form method="dialog" class="modal-backdrop bg-neutral/40 backdrop-blur-2xs">
+                <button>close</button>
+            </form>
+        </dialog>
+    {% endif %}
+</c-table.actions>
