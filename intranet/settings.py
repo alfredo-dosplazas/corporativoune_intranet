@@ -465,3 +465,6 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+ONLYOFFICE_SERVER_URL = env('ONLYOFFICE_SERVER_URL', default='http://localhost/')  # O la IP/dominio de tu servidor OnlyOffice
+ONLYOFFICE_SECRET_KEY = env('ONLYOFFICE_SECRET_KEY')

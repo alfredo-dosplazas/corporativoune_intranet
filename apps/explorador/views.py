@@ -2,10 +2,9 @@ import os
 import json
 import mimetypes
 from pathlib import Path
+import jwt
+import datetime
 import win32net
-import openpyxl
-import docx
-import pptx  # <- Requiere instalar python-pptx (pip install python-pptx)
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
@@ -16,10 +15,7 @@ from apps.ad.models import CredencialADUsuario
 from apps.evidencias_moldes.win_impersonate import impersonate_user
 
 IMAGENES_EXT = (".jpg", ".jpeg", ".png", ".webp")
-EXCEL_EXT = (".xlsx", ".xls", ".csv")
-WORD_EXT = (".docx", ".doc")
-POWERPOINT_EXT = (".pptx", ".ppt")
-PDF_EXT = (".pdf",)
+OFIMATICA_EXT = (".xlsx", ".xls", ".csv", ".docx", ".doc", ".pptx", ".ppt", ".pdf")
 
 
 class RedExploradorView(PermissionRequiredMixin, TemplateView):
@@ -37,8 +33,7 @@ class RedExploradorView(PermissionRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         ruta_relativa = (self.kwargs.get("ruta") or "").strip("/")
 
-        # Unificado correctamente a DP_SERVER_ROOT
-        server_root_str = str(settings.DP_SERVER_ROOT).rstrip("\\/")
+        server_root_str = str(settings.FP_SERVER_ROOT).rstrip("\\/")
         ad_user, ad_pass, ad_domain = self._obtener_credenciales_ad(self.request.user)
 
         carpetas = []
@@ -78,14 +73,8 @@ class RedExploradorView(PermissionRequiredMixin, TemplateView):
                             tipo_archivo = "generico"
                             if ext in IMAGENES_EXT:
                                 tipo_archivo = "imagen"
-                            elif ext in EXCEL_EXT:
-                                tipo_archivo = "excel"
-                            elif ext in WORD_EXT:
-                                tipo_archivo = "word"
-                            elif ext in POWERPOINT_EXT:
-                                tipo_archivo = "powerpoint"
-                            elif ext in PDF_EXT:
-                                tipo_archivo = "pdf"
+                            elif ext in OFIMATICA_EXT:
+                                tipo_archivo = "ofimatica"
 
                             archivos.append({
                                 "nombre": item.name,
@@ -98,7 +87,8 @@ class RedExploradorView(PermissionRequiredMixin, TemplateView):
             error_str = str(e)
             if "1326" in error_str:
                 raise PermissionDenied("Las credenciales de Active Directory son incorrectas o vencieron.")
-            raise PermissionDenied(f"Tu usuario de Active Directory no tiene permisos o acceso a esta ruta: {error_str}")
+            raise PermissionDenied(
+                f"Tu usuario de Active Directory no tiene permisos o acceso a esta ruta: {error_str}")
 
         partes = [p for p in ruta_relativa.replace("\\", "/").split("/") if p]
         breadcrumbs = [{"title": "Red Local", "url": "/explorador-red/"}]
@@ -112,28 +102,139 @@ class RedExploradorView(PermissionRequiredMixin, TemplateView):
             "archivos": sorted(archivos, key=lambda x: x["nombre"].lower()),
             "ruta_actual": ruta_relativa,
             "breadcrumbs": breadcrumbs,
-            "smb_info": {"usuario": ad_user, "dominio": ad_domain}
+            "smb_info": {"usuario": ad_user, "dominio": ad_domain},
+            "ONLYOFFICE_SERVER_URL": settings.ONLYOFFICE_SERVER_URL,
         })
         return context
 
 
 @login_required
+def token_onlyoffice_view(request, ruta):
+    """Genera el token JWT firmado para OnlyOffice (Word, Excel, PPT y PDF)."""
+    base_path = Path(str(settings.FP_SERVER_ROOT)).resolve()
+    file_path = (base_path / ruta).resolve()
+
+    if not str(file_path).startswith(str(base_path)) or not file_path.exists():
+        return JsonResponse({"error": "Archivo no encontrado o acceso denegado"}, status=403)
+
+    try:
+        cred = request.user.credencial_ad
+        ad_user, ad_pass, ad_domain = cred.ad_username, cred.get_password(), cred.ad_domain
+        with impersonate_user(ad_user, ad_pass, ad_domain):
+            pass
+    except Exception:
+        return JsonResponse({"error": "Sin permisos de red"}, status=403)
+
+    filename = file_path.name
+    ext = file_path.suffix.lower().replace(".", "")
+    file_stat = file_path.stat()
+
+    download_payload = {
+        "ruta": ruta,
+        "ad_user": ad_user,
+        "ad_domain": ad_domain,
+        "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=5)
+    }
+    download_token = jwt.encode(download_payload, settings.ONLYOFFICE_SECRET_KEY, algorithm="HS256")
+    file_download_url = request.build_absolute_uri(f"/explorador-red/archivo/{ruta}/?dl_token={download_token}")
+
+    document_config = {
+        "fileType": ext,
+        "key": f"{request.user.username}-{filename}-{file_stat.st_mtime}".replace(" ", "_"),
+        "title": filename,
+        "url": file_download_url,
+        "permissions": {
+            "edit": False,
+            "download": False,
+            "print": False
+        }
+    }
+
+    editor_config = {
+        "mode": "view",
+        "lang": "es",
+        "user": {
+            "id": str(request.user.id),
+            "name": request.user.get_full_name() or request.user.username
+        },
+        "customization": {
+            "autosave": False,
+            "download": False,
+            "print": False,
+            "compactHeader": True,
+            # "toolbarNoTabs": True
+        },
+        "coEditing": {
+            "mode": "strict",  # Configura el visor en modo estático/offline
+            "change": False  # Desactiva la negociación de co-edición en vivo
+        }
+    }
+
+    payload = {
+        "document": document_config,
+        "editorConfig": editor_config,
+        "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=10)
+    }
+
+    token = jwt.encode(payload, settings.ONLYOFFICE_SECRET_KEY, algorithm="HS256")
+
+    return JsonResponse({
+        "status": "success",
+        "token": token,
+        "documentServerUrl": getattr(settings, 'ONLYOFFICE_SERVER_URL', 'http://localhost/'),
+        "documentConfig": {
+            "document": document_config,
+            "editorConfig": editor_config
+        }
+    })
+
+
 def ver_archivo_red(request, ruta):
-    """Endpoint estricto solo para visualizar PDFs e Imágenes (inline, sin descarga)."""
-    base_path = Path(str(settings.DP_SERVER_ROOT)).resolve()
+    """Endpoint seguro para servir binarios."""
+    dl_token = request.GET.get("dl_token")
+    base_path = Path(str(settings.FP_SERVER_ROOT)).resolve()
     file_path = (base_path / ruta).resolve()
 
     if not str(file_path).startswith(str(base_path)):
         raise Http404("Acceso denegado")
 
+    ad_user, ad_domain = None, None
+    if dl_token:
+        try:
+            payload = jwt.decode(dl_token, settings.ONLYOFFICE_SECRET_KEY, algorithms=["HS256"])
+            ad_user = payload["ad_user"]
+            ad_domain = payload["ad_domain"]
+            cred = CredencialADUsuario.objects.get(ad_username=ad_user, ad_domain=ad_domain)
+            ad_pass = cred.get_password()
+        except Exception:
+            raise PermissionDenied("Token inválido o expirado.")
+    else:
+        try:
+            cred = request.user.credencial_ad
+            ad_user, ad_pass, ad_domain = cred.ad_username, cred.get_password(), cred.ad_domain
+        except Exception:
+            raise PermissionDenied("Sin permisos.")
+
     try:
-        cred = request.user.credencial_ad
-        with impersonate_user(cred.ad_username, cred.get_password(), cred.ad_domain):
+        with impersonate_user(ad_user, ad_pass, ad_domain):
             if not file_path.exists() or not file_path.is_file():
                 raise Http404("El archivo no existe")
 
-            content_type, _ = mimetypes.guess_type(file_path)
-            content_type = content_type or "application/octet-stream"
+            ext = file_path.suffix.lower()
+
+            if ext == ".pptx":
+                content_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            elif ext == ".ppt":
+                content_type = "application/vnd.ms-powerpoint"
+            elif ext == ".docx":
+                content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            elif ext == ".xlsx":
+                content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            elif ext == ".pdf":
+                content_type = "application/pdf"
+            else:
+                content_type, _ = mimetypes.guess_type(file_path)
+                content_type = content_type or "application/octet-stream"
 
             response = FileResponse(open(file_path, "rb"), content_type=content_type, as_attachment=False)
             response["Content-Disposition"] = f'inline; filename="{file_path.name}"'
@@ -143,133 +244,3 @@ def ver_archivo_red(request, ruta):
 
     except (PermissionError, OSError):
         raise PermissionDenied("No tienes permisos NTFS en la red para acceder a este archivo.")
-
-
-@login_required
-def datos_excel_univer(request, ruta):
-    """Lee el archivo Excel de red y retorna su estructura en JSON para Univer.js (Solo lectura)."""
-    base_path = Path(str(settings.DP_SERVER_ROOT)).resolve()
-    file_path = (base_path / ruta).resolve()
-
-    if not str(file_path).startswith(str(base_path)):
-        return JsonResponse({"error": "Acceso denegado"}, status=403)
-
-    try:
-        cred = request.user.credencial_ad
-        with impersonate_user(cred.ad_username, cred.get_password(), cred.ad_domain):
-            if not file_path.exists() or not file_path.is_file():
-                return JsonResponse({"error": "El archivo no existe"}, status=404)
-
-            wb = openpyxl.load_workbook(file_path, data_only=True)
-            sheets_data = {}
-
-            for sheetname in wb.sheetnames:
-                sheet = wb[sheetname]
-                cell_data = {}
-                for r_idx, row in enumerate(sheet.iter_rows(values_only=True)):
-                    row_dict = {}
-                    for c_idx, val in enumerate(row):
-                        if val is not None:
-                            row_dict[c_idx] = {"v": str(val)}
-                    if row_dict:
-                        cell_data[r_idx] = row_dict
-                sheets_data[sheetname] = cell_data
-
-            return JsonResponse({
-                "status": "success",
-                "filename": file_path.name,
-                "sheets": sheets_data
-            })
-
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
-
-
-@login_required
-def datos_word_seguro(request, ruta):
-    """Extrae párrafos y tablas del documento Word de red para lectura web segura."""
-    base_path = Path(str(settings.DP_SERVER_ROOT)).resolve()
-    file_path = (base_path / ruta).resolve()
-
-    if not str(file_path).startswith(str(base_path)):
-        return JsonResponse({"error": "Acceso denegado"}, status=403)
-
-    try:
-        cred = request.user.credencial_ad
-        with impersonate_user(cred.ad_username, cred.get_password(), cred.ad_domain):
-            if not file_path.exists() or not file_path.is_file():
-                return JsonResponse({"error": "El archivo no existe"}, status=404)
-
-            doc = docx.Document(file_path)
-            elementos = []
-
-            for element in doc.element.body:
-                if element.tag.endswith('p'):
-                    p = docx.text.paragraph.Paragraph(element, doc)
-                    if p.text.strip():
-                        estilo = p.style.name.lower()
-                        tipo = "p"
-                        if "heading 1" in estilo:
-                            tipo = "h1"
-                        elif "heading 2" in estilo:
-                            tipo = "h2"
-                        elif "heading 3" in estilo:
-                            tipo = "h3"
-                        elementos.append({"tipo": tipo, "texto": p.text})
-                elif element.tag.endswith('tbl'):
-                    table = docx.table.Table(element, doc)
-                    tabla_datos = []
-                    for row in table.rows:
-                        fila_datos = [cell.text.strip() for cell in row.cells]
-                        tabla_datos.append(fila_datos)
-                    if tabla_datos:
-                        elementos.append({"tipo": "tabla", "datos": tabla_datos})
-
-            return JsonResponse({
-                "status": "success",
-                "filename": file_path.name,
-                "elementos": elementos
-            })
-
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
-
-
-@login_required
-def datos_powerpoint_seguro(request, ruta):
-    """Extrae las diapositivas y textos de presentaciones PowerPoint para visualización web segura."""
-    base_path = Path(str(settings.DP_SERVER_ROOT)).resolve()
-    file_path = (base_path / ruta).resolve()
-
-    if not str(file_path).startswith(str(base_path)):
-        return JsonResponse({"error": "Acceso denegado"}, status=403)
-
-    try:
-        cred = request.user.credencial_ad
-        with impersonate_user(cred.ad_username, cred.get_password(), cred.ad_domain):
-            if not file_path.exists() or not file_path.is_file():
-                return JsonResponse({"error": "El archivo no existe"}, status=404)
-
-            prs = pptx.Presentation(file_path)
-            diapositivas = []
-
-            for idx, slide in enumerate(prs.slides, start=1):
-                textos_slide = []
-                for shape in slide.shapes:
-                    if shape.has_text_frame:
-                        for paragraph in shape.text_frame.paragraphs:
-                            if paragraph.text.strip():
-                                textos_slide.append(paragraph.text.strip())
-                diapositivas.append({
-                    "numero": idx,
-                    "textos": textos_slide
-                })
-
-            return JsonResponse({
-                "status": "success",
-                "filename": file_path.name,
-                "diapositivas": diapositivas
-            })
-
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)

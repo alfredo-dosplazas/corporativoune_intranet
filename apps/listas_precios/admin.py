@@ -9,6 +9,7 @@ from apps.listas_precios.resources import ProductoPrecioOverrideResource
 class LineaReglaPrecioAdmin(admin.ModelAdmin):
     list_display = ['cve_lin', 'num_lista', 'porcentaje_descuento', 'porcentaje_utilidad']
 
+
 @admin.register(ProductoPrecioOverride)
 class ProductoPrecioOverrideAdmin(ImportExportModelAdmin):
     list_display = ['cve_art', 'precio_lista_custom', 'actualizado_en']

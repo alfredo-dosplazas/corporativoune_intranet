@@ -1,3 +1,10 @@
 from django.db import models
 
-# Create your models here.
+class Permission(models.Model):
+    class Meta:
+        managed = False
+        default_permissions = ()
+
+        permissions = (
+            ('acceder_explorador', 'Acceder al Explorador de Archivos'),
+        )
