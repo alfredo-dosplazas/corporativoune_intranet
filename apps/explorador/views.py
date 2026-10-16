@@ -136,7 +136,7 @@ def token_onlyoffice_view(request, ruta):
         "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=5)
     }
     download_token = jwt.encode(download_payload, settings.ONLYOFFICE_SECRET_KEY, algorithm="HS256")
-    file_download_url = request.build_absolute_uri(f"/explorador-red/archivo/{ruta}/?dl_token={download_token}")
+    file_download_url = f"{settings.APP_URL}/explorador-red/archivo/{ruta}/?dl_token={download_token}"
 
     document_config = {
         "fileType": ext,

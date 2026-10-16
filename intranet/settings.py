@@ -441,7 +441,9 @@ PWA_APP_SCREENSHOTS = [
     }
 ]
 
-APP_URL = env('APP_URL', default='http://localhost:8000')
+APP_HOST = env('APP_HOST', default='http://localhost')
+APP_PORT = env('APP_PORT', default=None)
+APP_URL = f'{APP_HOST}:{APP_PORT}' if APP_PORT else APP_HOST
 
 FIELD_ENCRYPTION_KEY = env('FIELD_ENCRYPTION_KEY')
 
