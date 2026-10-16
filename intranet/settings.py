@@ -325,6 +325,14 @@ LOGGING = {
         },
     },
 
+    # --- AGREGAR ESTO ---
+    # El root logger actúa por defecto para cualquier archivo que no esté listado abajo
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    # --------------------
+
     "loggers": {
         "core.network": {
             "handlers": ["console"],

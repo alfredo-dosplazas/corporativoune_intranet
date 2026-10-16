@@ -4,24 +4,22 @@ import ctypes
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 import win32security
+import win32wnet
+import win32netcon
 import pywintypes
 
 logger = logging.getLogger(__name__)
-
-LOGON32_LOGON_NEW_CREDENTIALS = 9
-LOGON32_PROVIDER_WINNT50 = 3
 
 advapi32 = ctypes.windll.advapi32
 kernel32 = ctypes.windll.kernel32
 
 
 def validar_credenciales_ad(username, password, domain="."):
-    # 1. Bypass para entorno local de desarrollo
     if settings.DEBUG:
         logger.info(f"[DEV] Omitiendo validación AD para {domain}\\{username} (DEBUG=True)")
         return
 
-    # Normalizar formato UPN (usuario@dominio.com)
+    # Normalizar formato UPN (usuario@dominio.com) o Dominio\Usuario
     if domain and domain != "." and "@" not in username and "\\" not in username:
         user_or_upn = f"{username}@{domain}"
         domain_param = ""
@@ -56,42 +54,70 @@ def validar_credenciales_ad(username, password, domain="."):
 
 @contextlib.contextmanager
 def impersonate_user(username, password, domain="."):
-    # 1. Bypass en entorno de desarrollo local
+    """
+    Context manager que valida las credenciales y establece una conexión de red
+    explícita (equivalente a net use) para que el hilo acceda al recurso remoto.
+    """
     if settings.DEBUG:
         logger.info(f"[DEV] Omitiendo impersonación AD para {username} (DEBUG=True)")
         yield
         return
 
-    # 2. En producción ejecuta la impersonación real
+    # 1. Validar que las credenciales sean correctas ante el AD
     validar_credenciales_ad(username, password, domain)
 
-    token = ctypes.c_void_p()
-
+    # 2. Formatear el usuario completo para la red
     if domain and domain != "." and "@" not in username and "\\" not in username:
-        user_or_upn = f"{username}@{domain}"
-        domain_param = ""
+        user_full = f"{username}@{domain}"
     elif "\\" in username:
-        domain_param, user_or_upn = username.split("\\", 1)
+        user_full = username
     else:
-        user_or_upn = username
-        domain_param = domain
+        user_full = username
 
-    success = advapi32.LogonUserW(
-        user_or_upn,
-        domain_param,
-        password,
-        LOGON32_LOGON_NEW_CREDENTIALS,
-        LOGON32_PROVIDER_WINNT50,
-        ctypes.byref(token),
-    )
+    # Obtener la ruta raíz configurada (ej: \\dac-remoto.frescopack.local\compartido)
+    remote_root = str(settings.FP_SERVER_ROOT)
 
-    if not success:
-        error_code = ctypes.GetLastError()
-        raise PermissionDenied(f"No se pudo crear la sesión de red (Código Windows: {error_code}).")
+    # 3. Conexión de red explícita (Equivalente a net use temporal)
+    # Esto evita el error 1219 de sesiones múltiples reutilizando o abriendo un canal autenticado limpio.
+    conexion_exitosa = False
+    try:
+        win32wnet.WNetAddConnection2(
+            win32netcon.RESOURCETYPE_DISK,
+            None,  # No mapeamos letra de unidad local (usamos UNC directo)
+            remote_root,  # Recurso compartido de red
+            None,  # Contraseña (va integrada en el bloque de credenciales abajo)
+            user_full,  # Usuario con formato UPN o DOMINIO\usuario
+            password  # Password
+        )
+        conexion_exitosa = True
+    except pywintypes.error as e:
+        # Si el error es 1219 (ya conectado con otro usuario), intentamos desconectar y reconectar
+        if e.winerror == 1219:
+            try:
+                win32wnet.WNetCancelConnection2(remote_root, 0, True)
+                win32wnet.WNetAddConnection2(
+                    win32netcon.RESOURCETYPE_DISK,
+                    None,
+                    remote_root,
+                    None,
+                    user_full,
+                    password
+                )
+                conexion_exitosa = True
+            except Exception as inner_e:
+                logger.error(f"No se pudo restablecer la conexión de red: {inner_e}")
+                raise PermissionError("Conflicto de sesión de red en el servidor.")
+        else:
+            logger.error(f"Error al conectar recurso de red WNetAddConnection2: {e}")
+            raise PermissionError(f"No se pudo autenticar en el recurso de red (Código: {e.winerror})")
 
     try:
-        advapi32.ImpersonateLoggedOnUser(token)
+        # Cede el control a la vista de Django para listar/leer archivos
         yield
     finally:
-        advapi32.RevertToSelf()
-        kernel32.CloseHandle(token)
+        # 4. Limpieza de la conexión de red al terminar el bloque
+        if conexion_exitosa:
+            try:
+                win32wnet.WNetCancelConnection2(remote_root, 0, True)
+            except Exception:
+                pass

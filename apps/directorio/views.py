@@ -80,8 +80,8 @@ class DirectorioListView(
 
         contactos_sedes_permitidas = (
             Contacto.objects.filter(
+                Q(usuario__is_active=True) | Q(usuario__isnull=True),
                 esta_archivado=False,
-                usuario__is_active=True,
                 mostrar_en_directorio=True,
                 sede_administrativa_id__in=sedes_permitidas
             )

@@ -12,7 +12,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404, JsonResponse
 from django.views.generic import TemplateView
 from apps.ad.models import CredencialADUsuario
-from apps.evidencias_moldes.win_impersonate import impersonate_user
+from apps.explorador.smb_manager import smb_session_user
 
 IMAGENES_EXT = (".jpg", ".jpeg", ".png", ".webp")
 OFIMATICA_EXT = (".xlsx", ".xls", ".csv", ".docx", ".doc", ".pptx", ".ppt", ".pdf")
@@ -40,7 +40,7 @@ class RedExploradorView(PermissionRequiredMixin, TemplateView):
         archivos = []
 
         try:
-            with impersonate_user(ad_user, ad_pass, ad_domain):
+            with smb_session_user(ad_user, ad_pass, ad_domain):
                 if not ruta_relativa:
                     server_name = server_root_str.replace("\\", "")
                     try:
@@ -110,7 +110,7 @@ class RedExploradorView(PermissionRequiredMixin, TemplateView):
 
 @login_required
 def token_onlyoffice_view(request, ruta):
-    """Genera el token JWT firmado para OnlyOffice (Word, Excel, PPT y PDF)."""
+    """Genera el token JWT firmado para OnlyOffice con opción de impresión habilitada."""
     base_path = Path(str(settings.FP_SERVER_ROOT)).resolve()
     file_path = (base_path / ruta).resolve()
 
@@ -120,7 +120,7 @@ def token_onlyoffice_view(request, ruta):
     try:
         cred = request.user.credencial_ad
         ad_user, ad_pass, ad_domain = cred.ad_username, cred.get_password(), cred.ad_domain
-        with impersonate_user(ad_user, ad_pass, ad_domain):
+        with smb_session_user(ad_user, ad_pass, ad_domain):
             pass
     except Exception:
         return JsonResponse({"error": "Sin permisos de red"}, status=403)
@@ -146,7 +146,7 @@ def token_onlyoffice_view(request, ruta):
         "permissions": {
             "edit": False,
             "download": False,
-            "print": False
+            "print": True
         }
     }
 
@@ -160,13 +160,12 @@ def token_onlyoffice_view(request, ruta):
         "customization": {
             "autosave": False,
             "download": False,
-            "print": False,
+            "print": True,  # <--- Habilitado también en la barra de herramientas del visor
             "compactHeader": True,
-            # "toolbarNoTabs": True
         },
         "coEditing": {
-            "mode": "strict",  # Configura el visor en modo estático/offline
-            "change": False  # Desactiva la negociación de co-edición en vivo
+            "mode": "strict",
+            "change": False
         }
     }
 
@@ -190,7 +189,7 @@ def token_onlyoffice_view(request, ruta):
 
 
 def ver_archivo_red(request, ruta):
-    """Endpoint seguro para servir binarios."""
+    """Endpoint seguro para servir binarios usando la sesión de red autenticada."""
     dl_token = request.GET.get("dl_token")
     base_path = Path(str(settings.FP_SERVER_ROOT)).resolve()
     file_path = (base_path / ruta).resolve()
@@ -216,7 +215,7 @@ def ver_archivo_red(request, ruta):
             raise PermissionDenied("Sin permisos.")
 
     try:
-        with impersonate_user(ad_user, ad_pass, ad_domain):
+        with smb_session_user(ad_user, ad_pass, ad_domain):
             if not file_path.exists() or not file_path.is_file():
                 raise Http404("El archivo no existe")
 
