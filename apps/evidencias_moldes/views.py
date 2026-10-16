@@ -21,7 +21,7 @@ from apps.ad.models import CredencialADUsuario
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.mixins.session_filter_state import SessionFilterStateMixin
 from apps.evidencias_moldes.notifications import enviar_notificacion_evidencia_moldes
-from apps.explorador.smb_manager import smb_session_user  # Usamos el gestor SMB
+from apps.evidencias_moldes.smb_manager import smb_session
 from apps.fotos.utils import get_thumbnail
 
 IMAGENES_EXT = (".jpg", ".jpeg", ".png", ".webp")
@@ -136,7 +136,7 @@ class ExploradorEvidenciasMoldesView(
         ad_user, ad_pass, ad_domain = self._obtener_credenciales_ad(request.user)
 
         try:
-            with smb_session_user(ad_user, ad_pass, ad_domain):
+            with smb_session(ad_user, ad_pass, ad_domain):
                 for uploaded_file in archivos_validos:
                     # 1. Limpieza de nombre manteniendo el original
                     nombre_base, extension = os.path.splitext(uploaded_file.name)
@@ -206,7 +206,7 @@ class ExploradorEvidenciasMoldesView(
         ad_user, ad_pass, ad_domain = self._obtener_credenciales_ad(self.request.user)
 
         try:
-            with smb_session_user(ad_user, ad_pass, ad_domain):
+            with smb_session(ad_user, ad_pass, ad_domain):
                 if not current_path.exists() or not current_path.is_dir():
                     raise Http404("La carpeta solicitada no existe.")
 
@@ -288,7 +288,7 @@ def ver_foto(request, ruta):
         raise PermissionDenied("Tu usuario de Django no tiene asignada una credencial de Active Directory.")
 
     try:
-        with smb_session_user(ad_user, ad_pass, ad_domain):
+        with smb_session(ad_user, ad_pass, ad_domain):
             if not path.exists() or not path.is_file():
                 raise Http404("Archivo no encontrado")
 
@@ -332,7 +332,7 @@ def guardar_excel(request, ruta):
         return JsonResponse({"error": "Sin credenciales de AD asignadas"}, status=403)
 
     try:
-        with smb_session_user(ad_user, ad_pass, ad_domain):
+        with smb_session(ad_user, ad_pass, ad_domain):
             with open(archivo_path, "wb+") as destination:
                 for chunk in excel_file.chunks():
                     destination.write(chunk)
