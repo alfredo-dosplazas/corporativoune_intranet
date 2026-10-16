@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404, JsonResponse
+from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.generic import TemplateView
 from apps.ad.models import CredencialADUsuario
 from apps.explorador.smb_manager import smb_session_user
@@ -187,7 +188,7 @@ def token_onlyoffice_view(request, ruta):
         }
     })
 
-
+@xframe_options_exempt
 def ver_archivo_red(request, ruta):
     """Endpoint seguro para servir binarios usando la sesión de red autenticada."""
     dl_token = request.GET.get("dl_token")
@@ -239,6 +240,8 @@ def ver_archivo_red(request, ruta):
             response["Content-Disposition"] = f'inline; filename="{file_path.name}"'
             response["X-Content-Type-Options"] = "nosniff"
             response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+
+            response["Content-Security-Policy"] = "frame-ancestors 'self' https://documentos.corporativoune.mx;"
             return response
 
     except (PermissionError, OSError):
