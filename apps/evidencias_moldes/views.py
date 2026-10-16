@@ -3,6 +3,7 @@ import os
 import re
 from datetime import datetime
 from io import BytesIO
+from pathlib import Path
 from PIL import Image
 
 from django.conf import settings
@@ -20,7 +21,7 @@ from apps.ad.models import CredencialADUsuario
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.mixins.session_filter_state import SessionFilterStateMixin
 from apps.evidencias_moldes.notifications import enviar_notificacion_evidencia_moldes
-from apps.evidencias_moldes.win_impersonate import impersonate_user
+from apps.explorador.smb_manager import smb_session_user  # Usamos el gestor SMB
 from apps.fotos.utils import get_thumbnail
 
 IMAGENES_EXT = (".jpg", ".jpeg", ".png", ".webp")
@@ -105,7 +106,7 @@ class ExploradorEvidenciasMoldesView(
             return HttpResponseForbidden("No tienes permiso para subir evidencias.")
 
         ruta = (self.kwargs.get("ruta") or "").strip("/")
-        base_path = settings.PROYECTOS_ROOT.resolve()
+        base_path = Path(str(settings.PROYECTOS_ROOT)).resolve()
         destino_dir = (base_path / ruta).resolve()
 
         if not str(destino_dir).startswith(str(base_path)) or not destino_dir.exists():
@@ -135,7 +136,7 @@ class ExploradorEvidenciasMoldesView(
         ad_user, ad_pass, ad_domain = self._obtener_credenciales_ad(request.user)
 
         try:
-            with impersonate_user(ad_user, ad_pass, ad_domain):
+            with smb_session_user(ad_user, ad_pass, ad_domain):
                 for uploaded_file in archivos_validos:
                     # 1. Limpieza de nombre manteniendo el original
                     nombre_base, extension = os.path.splitext(uploaded_file.name)
@@ -144,15 +145,14 @@ class ExploradorEvidenciasMoldesView(
 
                     archivo_destino = destino_dir / nombre_final
 
-                    # 2. Estrategia de Versionado si ya existe y no queremos romper nada
+                    # 2. Estrategia de Versionado
                     contador = 1
                     while archivo_destino.exists():
-                        # Si quieres intentar sobrescribir directamente, remueve este bloque while
                         nombre_propuesto = f"{nombre_limpio} ({contador}){extension}"
                         archivo_destino = destino_dir / nombre_propuesto
                         contador += 1
 
-                    # 3. Intentar escritura con manejo de bloqueo SMB
+                    # 3. Escritura del archivo en red
                     try:
                         with open(archivo_destino, "wb+") as destination:
                             for chunk in uploaded_file.chunks():
@@ -165,10 +165,10 @@ class ExploradorEvidenciasMoldesView(
                             f"El archivo '{nombre_final}' no se pudo actualizar porque actualmente está siendo editado por otro usuario en la red."
                         )
 
+        except PermissionDenied:
+            raise
         except (PermissionError, OSError) as e:
-            if "1326" in str(e):
-                raise PermissionDenied("Las credenciales de Active Directory son incorrectas o vencieron.")
-            raise PermissionDenied("Tu usuario de Active Directory no tiene permisos NTFS para esta carpeta.")
+            raise PermissionDenied(f"Error al acceder o subir archivos al recurso de red: {str(e)}")
 
         if archivos_guardados:
             url_carpeta = request.build_absolute_uri(
@@ -189,7 +189,7 @@ class ExploradorEvidenciasMoldesView(
         context = super().get_context_data(**kwargs)
         ruta = (self.kwargs.get("ruta") or "").strip("/")
 
-        base_path = settings.PROYECTOS_ROOT.resolve()
+        base_path = Path(str(settings.PROYECTOS_ROOT)).resolve()
         current_path = (base_path / ruta).resolve()
 
         if not str(current_path).startswith(str(base_path)):
@@ -206,7 +206,7 @@ class ExploradorEvidenciasMoldesView(
         ad_user, ad_pass, ad_domain = self._obtener_credenciales_ad(self.request.user)
 
         try:
-            with impersonate_user(ad_user, ad_pass, ad_domain):
+            with smb_session_user(ad_user, ad_pass, ad_domain):
                 if not current_path.exists() or not current_path.is_dir():
                     raise Http404("La carpeta solicitada no existe.")
 
@@ -225,10 +225,10 @@ class ExploradorEvidenciasMoldesView(
                     elif item.suffix.lower() in EXCEL_EXT:
                         excels.append(item.name)
 
+        except PermissionDenied:
+            raise
         except (PermissionError, OSError) as e:
-            if "1326" in str(e):
-                raise PermissionDenied("Las credenciales de Active Directory son incorrectas o vencieron.")
-            raise PermissionDenied("Tu usuario de Active Directory no tiene permisos NTFS para esta carpeta.")
+            raise PermissionDenied(f"No tienes permisos de red para consultar esta carpeta: {str(e)}")
 
         reverse_order = sort_by == "name_desc"
         carpetas.sort(key=lambda x: x.lower(), reverse=reverse_order)
@@ -272,7 +272,7 @@ class ExploradorEvidenciasMoldesView(
 @login_required
 @permission_required("evidencias_moldes.ver_foto", raise_exception=True)
 def ver_foto(request, ruta):
-    base_path = settings.PROYECTOS_ROOT.resolve()
+    base_path = Path(str(settings.PROYECTOS_ROOT)).resolve()
     path = (base_path / ruta).resolve()
 
     if not str(path).startswith(str(base_path)):
@@ -288,7 +288,7 @@ def ver_foto(request, ruta):
         raise PermissionDenied("Tu usuario de Django no tiene asignada una credencial de Active Directory.")
 
     try:
-        with impersonate_user(ad_user, ad_pass, ad_domain):
+        with smb_session_user(ad_user, ad_pass, ad_domain):
             if not path.exists() or not path.is_file():
                 raise Http404("Archivo no encontrado")
 
@@ -302,10 +302,10 @@ def ver_foto(request, ruta):
             response["Cache-Control"] = "private, max-age=3600"
             return response
 
+    except PermissionDenied:
+        raise
     except (PermissionError, OSError) as e:
-        if "1326" in str(e):
-            raise PermissionDenied("Las credenciales de Active Directory son incorrectas o vencieron.")
-        raise PermissionDenied("Tu usuario de Active Directory no tiene permiso para consultar este archivo.")
+        raise PermissionDenied(f"Tu usuario de Active Directory no tiene permiso para consultar este archivo: {str(e)}")
 
 
 @login_required
@@ -315,7 +315,7 @@ def guardar_excel(request, ruta):
     if request.method != "POST":
         return JsonResponse({"error": "Método no permitido"}, status=405)
 
-    base_path = settings.PROYECTOS_ROOT.resolve()
+    base_path = Path(str(settings.PROYECTOS_ROOT)).resolve()
     archivo_path = (base_path / ruta).resolve()
 
     if not str(archivo_path).startswith(str(base_path)):
@@ -332,12 +332,14 @@ def guardar_excel(request, ruta):
         return JsonResponse({"error": "Sin credenciales de AD asignadas"}, status=403)
 
     try:
-        with impersonate_user(ad_user, ad_pass, ad_domain):
+        with smb_session_user(ad_user, ad_pass, ad_domain):
             with open(archivo_path, "wb+") as destination:
                 for chunk in excel_file.chunks():
                     destination.write(chunk)
 
         return JsonResponse({"status": "success", "message": "Excel guardado correctamente en servidor."})
 
+    except PermissionDenied as e:
+        return JsonResponse({"error": str(e)}, status=403)
     except (PermissionError, OSError) as e:
-        return JsonResponse({"error": f"Error de permisos NTFS: {str(e)}"}, status=403)
+        return JsonResponse({"error": f"Error de permisos NTFS/SMB: {str(e)}"}, status=403)
