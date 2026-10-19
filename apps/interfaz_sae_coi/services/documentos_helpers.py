@@ -1,5 +1,8 @@
 import re
 from datetime import datetime, date
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def normalize_folio(folio: str) -> str:
@@ -77,11 +80,10 @@ def enrich_and_filter_contabilidad(
                     coi_map[ref_str.strip()] = info
                     coi_map[normalize_folio(ref_str)] = info
 
-    print("--- DEPURACIÓN FOLIOS BUSQUEDA ---")
-    print("Suffix:", suffix, repr(suffix))
-    print("Folios de búsqueda generados:", folios_busqueda)
+    # --- LOG PARA VER QUÉ BUSCA SAE ---
+    logger.warning(f"--- [PROD DEBUG] Suffix: {suffix} | Folios busqueda SAE: {folios_busqueda} ---")
 
-    # 1. Búsqueda en Django por sufijo exacto o normalizado
+    # 1. Búsqueda en Django
     django_query = documento_model.objects.filter(
         empresa_suffix__in=[suffix, suffix_clean]
     )
@@ -89,9 +91,9 @@ def enrich_and_filter_contabilidad(
     if folios_busqueda:
         django_query = django_query.filter(folio_sae__in=folios_busqueda)
 
-    print("Query SQL generada:", django_query.query)
-    print("Resultados encontrados en Django:", list(django_query.values_list('folio_sae', flat=True)))
-    print("---------------------------------")
+    # --- LOG PARA VER QUÉ ENCUENTRA DJANGO ---
+    encontrados_django = list(django_query.values_list('folio_sae', flat=True))
+    logger.warning(f"--- [PROD DEBUG] Encontrados en Django para '{suffix}': {encontrados_django} ---")
 
     django_docs = {}
     for doc in django_query:
