@@ -1,6 +1,18 @@
 from datetime import datetime, date
 
 
+def normalize_folio(folio: str) -> str:
+    """
+    Limpia los folios reemplazando espacios especiales (NBSP / \xa0)
+    y quitando espacios en blanco innecesarios.
+    """
+    if not folio:
+        return ""
+    # Reemplaza espacios de no ruptura (\xa0) y múltiples espacios consecutivos
+    clean = str(folio).replace('\xa0', ' ').strip()
+    return re.sub(r'\s+', ' ', clean)
+
+
 def enrich_and_filter_contabilidad(
         documentos_raw: list[dict],
         suffix: str,
@@ -13,15 +25,26 @@ def enrich_and_filter_contabilidad(
     Valida la contabilización contra las tablas de Aspel COI y la BD de Django.
     Filtra los documentos según el estado solicitado (todos, contabilizados, no_contabilizados).
     """
-    folios_raw = []
-    for f in documentos_raw:
-        if f.get('folio'):
-            folios_raw.append(str(f['folio']))
-        if f.get('folio_cp'):
-            folios_raw.append(str(f['folio_cp']))
+    # Normalizar sufijo a 2 dígitos (ej: '23' o '01')
+    suffix_clean = str(suffix).zfill(2) if str(suffix).isdigit() else str(suffix)
 
-    folios_clean = [f.strip() for f in folios_raw]
-    folios_busqueda = list(set(folios_raw + folios_clean))
+    folios_raw = []
+    folios_normalized = []
+
+    for f in documentos_raw:
+        folio = str(f.get('folio') or '')
+        folio_cp = str(f.get('folio_cp') or '')
+
+        if folio:
+            folios_raw.append(folio)
+            folios_raw.append(folio.strip())
+            folios_normalized.append(normalize_folio(folio))
+        if folio_cp:
+            folios_raw.append(folio_cp)
+            folios_raw.append(folio_cp.strip())
+            folios_normalized.append(normalize_folio(folio_cp))
+
+    folios_busqueda = list(set(folios_raw + folios_normalized))
 
     coi_map = {}
     with coi_session_func() as (db_coi, suffix_coi):
@@ -48,49 +71,55 @@ def enrich_and_filter_contabilidad(
                     'fecha_conta': reg.fecha_conta.isoformat() if reg.fecha_conta else None
                 }
                 if reg.referencia:
-                    coi_map[reg.referencia] = info
-                    coi_map[reg.referencia.strip()] = info
+                    ref_str = str(reg.referencia)
+                    coi_map[ref_str] = info
+                    coi_map[ref_str.strip()] = info
+                    coi_map[normalize_folio(ref_str)] = info
 
-    # Búsqueda robusta en Django abarcando variaciones de los folios
-    django_query = documento_model.objects.filter(empresa_suffix=suffix)
+    # 1. Búsqueda en Django por sufijo exacto o normalizado
+    django_query = documento_model.objects.filter(
+        empresa_suffix__in=[suffix, suffix_clean]
+    )
+
     if folios_busqueda:
-        # Buscamos coincidencias exactas o limpias
         django_query = django_query.filter(folio_sae__in=folios_busqueda)
 
     django_docs = {}
     for doc in django_query:
         if doc.folio_sae:
-            django_docs[doc.folio_sae] = doc
-            django_docs[doc.folio_sae.strip()] = doc
-            # Opcional: si guardas sin ceros a la izquierda
-            django_docs[doc.folio_sae.strip().lstrip('0')] = doc
+            folio_str = str(doc.folio_sae)
+            django_docs[folio_str] = doc
+            django_docs[folio_str.strip()] = doc
+            django_docs[normalize_folio(folio_str)] = doc
 
     documentos_procesados = []
     for doc_dict in documentos_raw:
         folio_db = str(doc_dict.get('folio') or '')
         folio_cp_db = str(doc_dict.get('folio_cp') or '')
 
-        folio_clean_key = folio_db.strip()
-        folio_lstrip_key = folio_clean_key.lstrip('0')
+        folio_clean = folio_db.strip()
+        folio_norm = normalize_folio(folio_db)
 
-        folio_cp_clean_key = folio_cp_db.strip() if folio_cp_db else ''
-        folio_cp_lstrip_key = folio_cp_clean_key.lstrip('0') if folio_cp_clean_key else ''
+        folio_cp_clean = folio_cp_db.strip() if folio_cp_db else ''
+        folio_cp_norm = normalize_folio(folio_cp_db) if folio_cp_db else ''
 
-        # Buscar en COI
-        info_coi_main = coi_map.get(folio_db) or coi_map.get(folio_clean_key)
-        info_coi_cp = coi_map.get(folio_cp_db) or coi_map.get(folio_cp_clean_key) if folio_cp_db else None
+        # Buscar en COI (intentar coincidencia exacta, limpia o normalizada)
+        info_coi_main = coi_map.get(folio_db) or coi_map.get(folio_clean) or coi_map.get(folio_norm)
+        info_coi_cp = (
+                coi_map.get(folio_cp_db) or coi_map.get(folio_cp_clean) or coi_map.get(folio_cp_norm)
+        ) if folio_cp_db else None
 
-        # Buscar en Django de forma flexible
+        # Buscar en Django (intentar coincidencia exacta, limpia o normalizada)
         info_django_main = (
                 django_docs.get(folio_db) or
-                django_docs.get(folio_clean_key) or
-                django_docs.get(folio_lstrip_key)
+                django_docs.get(folio_clean) or
+                django_docs.get(folio_norm)
         )
 
         info_django_cp = (
                 django_docs.get(folio_cp_db) or
-                django_docs.get(folio_cp_clean_key) or
-                django_docs.get(folio_cp_lstrip_key)
+                django_docs.get(folio_cp_clean) or
+                django_docs.get(folio_cp_norm)
         ) if folio_cp_db else None
 
         is_main_contabilizado = bool(
