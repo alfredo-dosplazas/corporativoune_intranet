@@ -1,0 +1,180 @@
+{% load money %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Corte de Caja - {{ almacen_nombre }}</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 1.5cm;
+            @bottom-right {
+                content: "Página " counter(page) " de " counter(pages);
+                font-size: 9px;
+                color: #666;
+            }
+        }
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #333333;
+            font-size: 11px;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 18px;
+            color: #1e293b;
+            margin: 0 0 5px 0;
+        }
+        .header p {
+            margin: 2px 0;
+            color: #64748b;
+            font-size: 12px;
+        }
+        .info-box {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .info-box table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .info-box td {
+            padding: 4px;
+            font-size: 12px;
+        }
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table.data-table th, table.data-table td {
+            border: 1px solid #cbd5e1;
+            padding: 8px;
+            text-align: left;
+        }
+        table.data-table th {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-weight: bold;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+        table.data-table td {
+            font-size: 10px;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .totals-section {
+            width: 300px;
+            float: right;
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .totals-section table {
+            width: 100%;
+        }
+        .totals-section td {
+            padding: 4px;
+            font-size: 12px;
+        }
+        .grand-total {
+            font-weight: bold;
+            font-size: 14px;
+            color: #1e293b;
+            border-top: 1px solid #cbd5e1;
+            padding-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ENCABEZADO -->
+    <div class="header">
+        <h1>{{ empresa_nombre }}</h1>
+        <p><strong>Reporte de Corte de Caja / Movimientos de Cobranza</strong></p>
+    </div>
+
+    <!-- DATOS GENERALES -->
+    <div class="info-box">
+        <table>
+            <tr>
+                <td width="50%"><strong>Almacén:</strong> {{ almacen_nombre }}</td>
+                <td width="50%"><strong>Periodo de Corte:</strong> {{ periodo_corte }}</td>
+            </tr>
+            <tr>
+                <td><strong>Fecha de Generación:</strong> {% now "d/m/Y H:i" %}</td>
+                <td><strong>Moneda:</strong> Peso Mexicano (MXN)</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- TABLA DE MOVIMIENTOS -->
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Referencia</th>
+                <th>Cliente</th>
+                <th>Concepto / Forma Pago</th>
+                <th>Tipo Movimiento</th>
+                <th class="text-right">Importe (Abonos)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for mov in movimientos %}
+            <tr>
+               <td>{{ mov.fecha|date:"d/m/Y" }}</td>
+                <td>{{ mov.refer }}</td>
+                <td>{{ mov.cliente_nombre }}</td>
+                <td>{{ mov.concepto_descr }}</td>
+                <td>
+                    {% if mov.tipo_mov == 'C' %}
+                        <span style="color: #b91c1c; font-weight: bold;">CARGO</span>
+                    {% else %}
+                        <span style="color: #065f46; font-weight: bold;">ABONO</span>
+                    {% endif %}
+                </td>
+                <td class="text-right">{{ mov.importe|money }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align: center; color: #94a3b8; padding: 20px;">
+                    No se encontraron movimientos registrados para este almacén en la fecha seleccionada.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- TOTALIZACIONES -->
+    <div class="totals-section">
+        <table>
+            <tr>
+                <td>Total Cargos:</td>
+                <td class="text-right">{{ total_cargos|money }}</td>
+            </tr>
+            <tr>
+                <td>Total Abonos:</td>
+                <td class="text-right">{{ total_abonos|money }}</td>
+            </tr>
+            <tr>
+                <td class="grand-total">Balance Neto:</td>
+                <td class="grand-total text-right">{{ balance_neto|money }}</td>
+            </tr>
+        </table>
+    </div>
+
+</body>
+</html>
