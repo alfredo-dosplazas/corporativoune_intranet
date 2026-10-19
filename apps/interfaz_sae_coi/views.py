@@ -64,48 +64,57 @@ class DocumentosContabilizarSaeView(
     def get_queryset(self):
         today = now().date()
 
-        # Obtener página actual para paginación a nivel de base de datos
         page = int(self.request.GET.get('page', 1))
         limit = self.paginate_by  # 25
         offset = (page - 1) * limit
 
-        filters = {
-            'q': self.request.GET.get('q', '').strip(),
-            'dia': self.request.GET.get('dia', None),
-            'mes': self.request.GET.get('mes', str(today.month)),
-            'anio': self.request.GET.get('anio', str(today.year)),
-            'almacen': self.request.GET.get('almacen', ''),
-            'tipo_documento': self.request.GET.get('tipo_documento', 'ventas'),
-            'estado_conta': self.request.GET.get('estado_conta', 'todos'),
-            'limit': limit,
-            'offset': offset,
-        }
-
-        order_by = self.request.GET.get('order_by', 'fecha')
-        order_dir = self.request.GET.get('order_dir', 'desc')
+        estado_conta = self.request.GET.get('estado_conta', 'todos')
 
         with sae_session() as (db_sae, suffix):
             m = get_sae_models(suffix)
+
+            # 1. Obtener folios contabilizados en Django para este suffix
+            folios_contabilizados_django = list(
+                DocumentoContabilizado.objects.filter(
+                    empresa_suffix=suffix,
+                    status='ENVIADO_COI'
+                ).values_list('folio_sae', flat=True)
+            )
+
+            filters = {
+                'q': self.request.GET.get('q', '').strip(),
+                'dia': self.request.GET.get('dia', None),
+                'mes': self.request.GET.get('mes', str(today.month)),
+                'anio': self.request.GET.get('anio', str(today.year)),
+                'almacen': self.request.GET.get('almacen', ''),
+                'tipo_documento': self.request.GET.get('tipo_documento', 'ventas'),
+                'estado_conta': estado_conta,
+                'folios_contabilizados': folios_contabilizados_django,  # Se pasa a la estrategia SAE
+                'limit': limit,
+                'offset': offset,
+            }
+
+            order_by = self.request.GET.get('order_by', 'fecha')
+            order_dir = self.request.GET.get('order_dir', 'desc')
 
             strategy = DOCUMENTO_STRATEGIES.get(
                 filters['tipo_documento'],
                 DOCUMENTO_STRATEGIES['ventas']
             )
 
-            # 1. Búsqueda con LIMIT y OFFSET en SQLAlchemy
+            # 2. Fetch documentos SAE
             documentos_raw = strategy.fetch_documentos(db_sae, m, filters)
 
-            # 2. Cruce con COI / Django (solo para los 25 de esta página)
+            # 3. Cruce con COI / Django para los registros traídos
             documentos_procesados = enrich_and_filter_contabilidad(
                 documentos_raw,
                 suffix,
-                filters['estado_conta'],
+                estado_conta,
                 coi_session,
                 get_coi_models,
                 DocumentoContabilizado
             )
 
-            # 3. Ordenamiento de estos 25 registros
             documentos_ordenados = sort_documentos(documentos_procesados, order_by, order_dir)
 
         return documentos_ordenados
