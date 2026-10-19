@@ -77,6 +77,10 @@ def enrich_and_filter_contabilidad(
                     coi_map[ref_str.strip()] = info
                     coi_map[normalize_folio(ref_str)] = info
 
+    print("--- DEPURACIÓN FOLIOS BUSQUEDA ---")
+    print("Suffix:", suffix, repr(suffix))
+    print("Folios de búsqueda generados:", folios_busqueda)
+
     # 1. Búsqueda en Django por sufijo exacto o normalizado
     django_query = documento_model.objects.filter(
         empresa_suffix__in=[suffix, suffix_clean]
@@ -84,6 +88,10 @@ def enrich_and_filter_contabilidad(
 
     if folios_busqueda:
         django_query = django_query.filter(folio_sae__in=folios_busqueda)
+
+    print("Query SQL generada:", django_query.query)
+    print("Resultados encontrados en Django:", list(django_query.values_list('folio_sae', flat=True)))
+    print("---------------------------------")
 
     django_docs = {}
     for doc in django_query:
