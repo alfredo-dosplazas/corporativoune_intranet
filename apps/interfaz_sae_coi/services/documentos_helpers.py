@@ -1,12 +1,13 @@
 from datetime import datetime, date
 
+
 def enrich_and_filter_contabilidad(
-    documentos_raw: list[dict],
-    suffix: str,
-    estado_conta: str,
-    coi_session_func,
-    get_coi_models_func,
-    documento_model
+        documentos_raw: list[dict],
+        suffix: str,
+        estado_conta: str,
+        coi_session_func,
+        get_coi_models_func,
+        documento_model
 ) -> list[dict]:
     """
     Valida la contabilización contra las tablas de Aspel COI y la BD de Django.
@@ -15,9 +16,9 @@ def enrich_and_filter_contabilidad(
     folios_raw = []
     for f in documentos_raw:
         if f.get('folio'):
-            folios_raw.append(f['folio'])
+            folios_raw.append(str(f['folio']))
         if f.get('folio_cp'):
-            folios_raw.append(f['folio_cp'])
+            folios_raw.append(str(f['folio_cp']))
 
     folios_clean = [f.strip() for f in folios_raw]
     folios_busqueda = list(set(folios_raw + folios_clean))
@@ -50,28 +51,47 @@ def enrich_and_filter_contabilidad(
                     coi_map[reg.referencia] = info
                     coi_map[reg.referencia.strip()] = info
 
-    django_docs = {
-        doc.folio_sae: doc
-        for doc in documento_model.objects.filter(
-            empresa_suffix=suffix,
-            folio_sae__in=folios_busqueda
-        )
-    }
+    # Búsqueda robusta en Django abarcando variaciones de los folios
+    django_query = documento_model.objects.filter(empresa_suffix=suffix)
+    if folios_busqueda:
+        # Buscamos coincidencias exactas o limpias
+        django_query = django_query.filter(folio_sae__in=folios_busqueda)
+
+    django_docs = {}
+    for doc in django_query:
+        if doc.folio_sae:
+            django_docs[doc.folio_sae] = doc
+            django_docs[doc.folio_sae.strip()] = doc
+            # Opcional: si guardas sin ceros a la izquierda
+            django_docs[doc.folio_sae.strip().lstrip('0')] = doc
 
     documentos_procesados = []
     for doc_dict in documentos_raw:
-        folio_db = doc_dict.get('folio') or ''
-        folio_cp_db = doc_dict.get('folio_cp') or ''
+        folio_db = str(doc_dict.get('folio') or '')
+        folio_cp_db = str(doc_dict.get('folio_cp') or '')
 
         folio_clean_key = folio_db.strip()
-        folio_cp_clean_key = folio_cp_db.strip()
+        folio_lstrip_key = folio_clean_key.lstrip('0')
 
+        folio_cp_clean_key = folio_cp_db.strip() if folio_cp_db else ''
+        folio_cp_lstrip_key = folio_cp_clean_key.lstrip('0') if folio_cp_clean_key else ''
+
+        # Buscar en COI
         info_coi_main = coi_map.get(folio_db) or coi_map.get(folio_clean_key)
-        info_django_main = django_docs.get(folio_db) or django_docs.get(folio_clean_key)
-
         info_coi_cp = coi_map.get(folio_cp_db) or coi_map.get(folio_cp_clean_key) if folio_cp_db else None
-        info_django_cp = django_docs.get(folio_cp_db) or django_docs.get(
-            folio_cp_clean_key) if folio_cp_db else None
+
+        # Buscar en Django de forma flexible
+        info_django_main = (
+                django_docs.get(folio_db) or
+                django_docs.get(folio_clean_key) or
+                django_docs.get(folio_lstrip_key)
+        )
+
+        info_django_cp = (
+                django_docs.get(folio_cp_db) or
+                django_docs.get(folio_cp_clean_key) or
+                django_docs.get(folio_cp_lstrip_key)
+        ) if folio_cp_db else None
 
         is_main_contabilizado = bool(
             (info_coi_main and info_coi_main['contabiliz']) or
@@ -92,7 +112,7 @@ def enrich_and_filter_contabilidad(
                     polizas_info_list.append(
                         f"Póliza {info_coi_main['poliza']} ({info_coi_main['periodo']}/{info_coi_main['ejercicio']})"
                     )
-                elif info_django_main:
+                elif info_django_main and info_django_main.status == 'ENVIADO_COI':
                     polizas_info_list.append(f"{info_django_main.poliza_generada or 'Procesada por Django'}")
 
             if is_cp_contabilizado:
@@ -100,11 +120,11 @@ def enrich_and_filter_contabilidad(
                     polizas_info_list.append(
                         f"CP: Póliza {info_coi_cp['poliza']} ({info_coi_cp['periodo']}/{info_coi_cp['ejercicio']})"
                     )
-                elif info_django_cp:
+                elif info_django_cp and info_django_cp.status == 'ENVIADO_COI':
                     polizas_info_list.append(f"CP: {info_django_cp.poliza_generada or 'Procesada por Django'}")
 
             doc_dict['origen_conta'] = 'COI' if (info_coi_main or info_coi_cp) else 'DJANGO'
-            doc_dict['poliza_info'] = " | ".join(polizas_info_list)
+            doc_dict['poliza_info'] = " | ".join(polizas_info_list) if polizas_info_list else 'Enviado a COI'
         else:
             doc_dict['origen_conta'] = None
             doc_dict['poliza_info'] = None
