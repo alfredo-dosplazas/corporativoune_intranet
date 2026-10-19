@@ -220,6 +220,9 @@ def poliza_corte_preview_view(request):
     fecha_str = request.GET.get('fecha')
     almacen = request.GET.get('almacen', '')
 
+    with coi_session() as (db_coi, suffix_coi):
+        pass
+
     if not fecha_str:
         return render_modal_error(request, 'La fecha es requerida para consultar el corte de caja.')
 
@@ -247,7 +250,7 @@ def poliza_corte_preview_view(request):
 
         contabilizados = set(
             DocumentoContabilizado.objects.filter(
-                folio_sae__in=refs, empresa_suffix=suffix, status='ENVIADO_COI'
+                folio_sae__in=refs, empresa_suffix=suffix_coi, status='ENVIADO_COI'
             ).values_list('folio_sae', flat=True)
         )
 
@@ -288,6 +291,9 @@ def poliza_corte_preview_view(request):
 @login_required
 @permission_required('interfaz_sae_coi.view_documentos', raise_exception=True)
 def poliza_nc_preview_view(request, folio):
+    with coi_session() as (db_coi, suffix_coi):
+        pass
+
     with sae_session() as (db_sae, suffix):
         m = get_sae_models(suffix)
 
@@ -323,7 +329,7 @@ def poliza_nc_preview_view(request, folio):
         p_dict['titulo'] = "Póliza Nota de Crédito"
 
         ya_contabilizado = DocumentoContabilizado.objects.filter(
-            folio_sae=folio, empresa_suffix=suffix, status='ENVIADO_COI'
+            folio_sae=folio, empresa_suffix=suffix_coi, status='ENVIADO_COI'
         ).exists()
 
         return render(request, 'apps/interfaz_sae_coi/partials/modal_poliza_preview_generic.html', {
@@ -343,6 +349,9 @@ def poliza_nc_preview_view(request, folio):
 @login_required
 @permission_required('interfaz_sae_coi.view_documentos', raise_exception=True)
 def poliza_nd_preview_view(request, folio):
+    with coi_session() as (db_coi, suffix_coi):
+        pass
+
     with sae_session() as (db_sae, suffix):
         m = get_sae_models(suffix)
 
@@ -391,7 +400,7 @@ def poliza_nd_preview_view(request, folio):
         p_dict['titulo'] = "Póliza Nota de Devolución"
 
         ya_contabilizado = DocumentoContabilizado.objects.filter(
-            folio_sae=folio, empresa_suffix=suffix, status='ENVIADO_COI'
+            folio_sae=folio, empresa_suffix=suffix_coi, status='ENVIADO_COI'
         ).exists()
 
         return render(request, 'apps/interfaz_sae_coi/partials/modal_poliza_preview_generic.html', {
@@ -427,12 +436,15 @@ def contabilizar_coi_view(request):
         messages.error(request, f'Tipo de documento no soportado: {tipo_documento}')
         return redirect(request.META.get('HTTP_REFERER', '/'))
 
+    with coi_session() as (db_coi, suffix_coi):
+        pass
+
     with sae_session() as (db_sae, suffix):
         m = get_sae_models(suffix)
 
         ya_enviado = DocumentoContabilizado.objects.filter(
             folio_sae=folio,
-            empresa_suffix=suffix,
+            empresa_suffix=suffix_coi,
             status='ENVIADO_COI'
         ).exists()
 
