@@ -1,16 +1,11 @@
 from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.http import JsonResponse
 from django.urls import reverse
-from django.views import View
 from django.views.generic import TemplateView
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
-from apps.monitoreo_servicios.forms import ReporteServiciosForm
 from apps.monitoreo_servicios.services.access_points import obtener_estado_access_points
-from apps.monitoreo_servicios.services.cctv import obtener_estado_cctv
 from apps.monitoreo_servicios.services.idrac import obtener_estado_idrac
 from apps.monitoreo_servicios.services.pbx import obtener_estado_pbx
-from apps.monitoreo_servicios.tasks.reportes import enviar_reporte_servicios
 
 
 class MonitoreoServicioView(PermissionRequiredMixin, BreadcrumbsMixin, TemplateView):
@@ -26,6 +21,8 @@ class MonitoreoServicioView(PermissionRequiredMixin, BreadcrumbsMixin, TemplateV
         ]
 
     def get_context_data(self, **kwargs):
+        from apps.monitoreo_servicios.services.cctv import obtener_estado_cctv
+
         context = super().get_context_data(**kwargs)
 
         cctv = obtener_estado_cctv()
@@ -52,19 +49,3 @@ class MonitoreoServicioView(PermissionRequiredMixin, BreadcrumbsMixin, TemplateV
         context.update(idrac)
 
         return context
-
-
-class MonitoreoServicioCreateView(PermissionRequiredMixin, View):
-    permission_required = ['monitoreo_servicios.add_reporteservicios']
-
-    def post(self, request):
-        form = ReporteServiciosForm(request.POST)
-
-        if form.is_valid():
-            form.instance.generado_por = request.user
-            form.save()
-            enviar_reporte_servicios.delay(form.instance.id)
-        else:
-            return JsonResponse({'message': form.errors})
-
-        return JsonResponse({'message': 'OK'})

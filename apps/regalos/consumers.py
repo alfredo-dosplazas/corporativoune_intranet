@@ -2,22 +2,22 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 class PantallaRegalosConsumer(AsyncWebsocketConsumer):
-    GROUP_NAME = "pantalla_eventos"
-
     async def connect(self):
-        # Unir la conexión actual al grupo broadcast de la pantalla
+        self.evento_slug = self.scope['url_route']['kwargs']['evento_slug']
+        self.group_name = f"pantalla_evento_{self.evento_slug}"
+
         await self.channel_layer.group_add(
-            self.GROUP_NAME,
+            self.group_name,
             self.channel_name
         )
         await self.accept()
 
     async def disconnect(self, close_code):
-        # Salir del grupo al desconectarse
-        await self.channel_layer.group_discard(
-            self.GROUP_NAME,
-            self.channel_name
-        )
+        if hasattr(self, 'group_name'):
+            await self.channel_layer.group_discard(
+                self.group_name,
+                self.channel_name
+            )
 
     async def notificar_nuevo_ganador(self, event):
         await self.send(text_data=json.dumps({

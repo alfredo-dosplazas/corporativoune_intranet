@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from apps.core.models import Modulo, Empresa, ModuloEmpresa, RazonSocial, EmpresaIPRange, EmpresaSoporteSistemas, \
-    ModuloIPRange
+    ModuloIPRange, ListaNotificacionCorreo, DestinatarioCorreo
 from apps.papeleria.models.configuracion import ConfiguracionEmpresaPapeleria
 
 
@@ -54,3 +54,13 @@ class ModuloAdmin(admin.ModelAdmin):
     inlines = [ModuloIpRangeInline]
     search_fields = ['nombre']
     list_display = ('nombre', 'descripcion', 'url_name', 'permisos')
+
+
+class DestinatarioCorreoInline(admin.TabularInline):
+    model = DestinatarioCorreo
+
+
+@admin.register(ListaNotificacionCorreo)
+class ListaNotificacionCorreoAdmin(admin.ModelAdmin):
+    inlines = [DestinatarioCorreoInline]
+    list_display = ['nombre', 'descripcion']

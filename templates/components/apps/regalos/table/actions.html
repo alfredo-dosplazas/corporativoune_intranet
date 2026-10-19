@@ -18,7 +18,7 @@
     <!-- 2. EDITAR REGALO -->
     {% if perms.regalos.change_regalo %}
         <li>
-            <a href="{% url 'regalos:update' record.evento.slug record.pk %}"
+            <a href="{% url 'regalos:update' record.pk %}"
                class="flex items-center gap-1.5 py-1 text-xs">
                 <span class="icon-[tabler--edit] text-xs text-base-content/60 shrink-0"></span>
                 <span>Editar</span>
@@ -74,7 +74,7 @@
                 </p>
 
                 <div class="mt-4 pt-3 border-t border-base-200 flex justify-center gap-2">
-                    <a href="{% url 'regalos:pdf' %}{% querystring pk=record.pk %}" target="_blank"
+                    <a href="{% url 'regalos:pdf' record.evento.slug %}{% querystring pk=record.pk %}" target="_blank"
                        class="btn btn-primary btn-xs gap-1">
                         <span class="icon-[tabler--printer] text-xs"></span>
                         <span>Imprimir Ticket</span>

@@ -245,3 +245,34 @@ class ModuloIPRange(models.Model):
 
     def __str__(self):
         return f"{self.modulo.nombre} - {self.cidr}"
+
+
+class ListaNotificacionCorreo(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    descripcion = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.nombre
+
+    class Meta:
+        verbose_name = "Lista de Notificación de Correo"
+        verbose_name_plural = "Listas de Notificación de Correo"
+
+
+class DestinatarioCorreo(models.Model):
+    lista = models.ForeignKey(
+        ListaNotificacionCorreo,
+        on_delete=models.CASCADE,
+        related_name='destinatarios'
+    )
+    email = models.EmailField()
+    nombre = models.CharField(max_length=150, blank=True, null=True)
+    activo = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.nombre or self.email} ({self.lista.nombre})"
+
+    class Meta:
+        unique_together = ['lista', 'email']
+        verbose_name = "Destinatario de Correo"
+        verbose_name_plural = "Destinatarios de Correo"

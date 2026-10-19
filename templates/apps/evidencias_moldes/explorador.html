@@ -1,6 +1,9 @@
-{% load static %}
-
 <c-layouts.app>
+    {% load static %}
+
+    <!-- Script oficial del servidor OnlyOffice instalado localmente -->
+    <script src="{{ ONLYOFFICE_SERVER_URL }}web-apps/apps/api/documents/api.js"></script>
+
     <!-- Lightgallery CSS desde CDN -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/css/lightgallery-bundle.min.css">
 
@@ -23,7 +26,6 @@
             background-color: Oklch(var(--p) / 0.05) !important;
         }
 
-        /* Ajustes para miniaturas cuadradas en vista cuadrícula */
         .img-thumb-container {
             width: 100%;
             height: 140px;
@@ -61,8 +63,6 @@
                             </span>
                         {% else %}
                             <a href="
-
-
                                     {{ crumb.url }}{% if query_string_preserved %}?{{ query_string_preserved }}{% endif %}"
                                class="px-2.5 py-1 rounded-lg hover:bg-base-200 text-base-content/70 hover:text-base-content font-medium transition-colors shrink-0 flex items-center gap-1">
                                 {% if forloop.first %}
@@ -89,7 +89,6 @@
 
     <!-- Barra de Herramientas -->
     <div class="sticky top-2 z-20 mb-6 bg-base-100/95 backdrop-blur-md p-2.5 rounded-2xl border border-base-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
-
         <div class="flex items-center gap-2 w-full md:w-auto">
             {% if perms.evidencias_moldes.subir_evidencia %}
                 <button onclick="toggleZonaCarga()"
@@ -152,7 +151,7 @@
 
             <div class="h-4 w-px bg-base-300 mx-0.5"></div>
 
-            <!-- Botones de Cambio de Vista (Cuadrícula / Lista) -->
+            <!-- Botones de Cambio de Vista -->
             <div class="flex items-center bg-base-200/80 p-0.5 rounded-lg">
                 <a href="?q={{ query_busqueda }}&sort={{ sort_by }}&view=grid"
                    title="Vista Cuadrícula"
@@ -201,8 +200,6 @@
                             <h4 class="text-xs font-bold uppercase tracking-wider text-base-content/80">
                                 Archivos preparados (<span id="total-archivos-num">0</span>)
                             </h4>
-                            <span id="peso-total-label"
-                                  class="badge badge-sm badge-neutral text-[10px] font-mono">0 MB</span>
                         </div>
                         <button type="button" onclick="limpiarSeleccion()"
                                 class="btn btn-ghost btn-xs text-error font-medium hover:bg-error/10">
@@ -214,12 +211,7 @@
                          class="max-h-48 overflow-y-auto divide-y divide-base-200 bg-base-200/30 rounded-xl border border-base-200 p-2 mb-4">
                     </div>
 
-                    <div class="flex items-center justify-between pt-2">
-                        <p class="text-[11px] text-base-content/50 flex items-center gap-1">
-                            <span class="icon-[ph--info-bold] size-3.5 text-primary"></span>
-                            Verifica los archivos antes de confirmar la carga.
-                        </p>
-
+                    <div class="flex items-center justify-end pt-2">
                         <button type="submit" id="btn-submit-upload"
                                 class="btn btn-primary btn-sm text-primary-content rounded-xl px-6 gap-2 shadow-xs">
                             <span id="btn-icon" class="icon-[ph--paper-plane-right-bold] size-4"></span>
@@ -231,7 +223,7 @@
         </div>
     {% endif %}
 
-    <!-- EXPLORADOR DE ARCHIVOS (CARPETAS, EXCEL, E IMÁGENES) -->
+    <!-- EXPLORADOR DE ARCHIVOS -->
     <div id="vista-explorer-container">
 
         <!-- CARPETAS -->
@@ -257,14 +249,14 @@
                                 <span class="icon-[ph--folder-fill] text-warning size-6 shrink-0"></span>
                                 <span class="text-xs font-semibold text-base-content truncate group-hover:text-primary">{{ carpeta }}</span>
                             </div>
-                            <span class="icon-[ph--caret-right-bold] text-base-content/20 group-hover:text-base-content/60 size-4 shrink-0 transition-transform group-hover:translate-x-0.5"></span>
+                            <span class="icon-[ph--caret-right-bold] text-base-content/25 group-hover:text-base-content/60 size-4 shrink-0 transition-transform group-hover:translate-x-0.5"></span>
                         </a>
                     {% endfor %}
                 </div>
             </div>
         {% endif %}
 
-        <!-- HOJAS DE CÁLCULO (EXCEL) -->
+        <!-- HOJAS DE CÁLCULO (EXCEL) - CON ACCESO A ONLYOFFICE -->
         {% if excels %}
             <div class="mb-6">
                 <h2 class="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-3 flex items-center gap-1.5">
@@ -275,13 +267,17 @@
                 <div class="{% if modo_vista == 'list' %}flex flex-col gap-2{% else %}grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3{% endif %}">
                     {% for excel in excels %}
                         {% if ruta_actual %}
-                            {% url 'evidencias_moldes:show' ruta=ruta_actual|add:"/"|add:excel as excel_url %}
+                            {% url 'evidencias_moldes:token_onlyoffice' ruta=ruta_actual|add:"/"|add:excel as oo_url %}
+                            {% url 'evidencias_moldes:show' ruta=ruta_actual|add:"/"|add:excel as excel_download_url %}
                         {% else %}
-                            {% url 'evidencias_moldes:show' ruta=excel as excel_url %}
+                            {% url 'evidencias_moldes:token_onlyoffice' ruta=excel as oo_url %}
+                            {% url 'evidencias_moldes:show' ruta=excel as excel_download_url %}
                         {% endif %}
 
-                        <div class="onedrive-card group flex {% if modo_vista == 'list' %}flex-row items-center justify-between p-2.5{% else %}flex-col p-3.5{% endif %} bg-base-100 border border-base-200 rounded-2xl transition-all">
-                            <div class="flex items-center gap-3 min-w-0 {% if modo_vista != 'list' %}mb-3{% endif %}">
+                        <div class="onedrive-card group flex {% if modo_vista == 'list' %}flex-row items-center justify-between p-2.5{% else %}flex-col p-3.5{% endif %} bg-base-100 border border-base-200 rounded-2xl transition-all cursor-pointer"
+                             onclick="abrirVisorOnlyOffice('{{ oo_url }}', '{{ excel }}')">
+
+                            <div class="flex items-center gap-3 min-w-0 {% if modo_vista != 'list' %}mb-3{% endif %} flex-1">
                                 <div class="p-2 bg-success/10 rounded-xl shrink-0">
                                     <span class="icon-[ph--file-xls-fill] text-success size-6 block"></span>
                                 </div>
@@ -290,25 +286,23 @@
                                        title="{{ excel }}">
                                         {{ excel }}
                                     </p>
-                                    <span class="text-[10px] text-base-content/50 uppercase font-mono">Hoja de Cálculo</span>
+                                    <span class="text-[10px] text-base-content/50 uppercase font-mono">Excel Editor</span>
                                 </div>
                             </div>
 
                             <!-- Acciones -->
-                            <div class="flex items-center gap-1.5 {% if modo_vista != 'list' %}mt-auto pt-2.5 border-t border-base-200/80{% endif %}">
-                                <a href="{{ excel_url }}" download="{{ excel }}"
-                                   class="btn btn-success btn-xs gap-1.5 text-[11px] rounded-lg text-success-content font-medium shadow-2xs">
-                                    <span class="icon-[ph--download-simple-bold] size-3.5"></span>
-                                    <span>Descargar</span>
-                                </a>
+                            <div class="flex items-center gap-1.5 {% if modo_vista != 'list' %}mt-auto pt-2.5 border-t border-base-200/80 w-full justify-between{% endif %}"
+                                 onclick="event.stopPropagation();">
+                                <button type="button" onclick="abrirVisorOnlyOffice('{{ oo_url }}', '{{ excel }}')"
+                                        class="btn btn-success btn-xs gap-1.5 text-[11px] rounded-lg text-success-content font-medium shadow-2xs">
+                                    <span class="icon-[ph--pencil-line-bold] size-3.5"></span>
+                                    <span>Editar</span>
+                                </button>
 
-                                {% if perms.evidencias_moldes.subir_evidencia %}
-                                    <button type="button" onclick="subirNuevaVersion('{{ excel }}')"
-                                            class="btn btn-ghost btn-xs rounded-lg p-1 text-base-content/60 hover:text-primary"
-                                            title="Subir nueva versión modificada">
-                                        <span class="icon-[ph--arrows-counter-clockwise-bold] size-4"></span>
-                                    </button>
-                                {% endif %}
+                                <a href="{{ excel_download_url }}" download="{{ excel }}"
+                                   class="btn btn-ghost btn-xs gap-1 text-[11px] rounded-lg text-base-content/70 hover:text-success">
+                                    <span class="icon-[ph--download-simple-bold] size-3.5"></span>
+                                </a>
                             </div>
                         </div>
                     {% endfor %}
@@ -316,7 +310,7 @@
             </div>
         {% endif %}
 
-        <!-- FOTOS / GALERÍA CON LIGHTBOX Y PREVIEW -->
+        <!-- FOTOS / GALERÍA -->
         {% if fotos %}
             <div class="mb-6">
                 <h2 class="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-3 flex items-center gap-1.5">
@@ -333,8 +327,6 @@
                         {% endif %}
 
                         <div class="onedrive-card group relative flex {% if modo_vista == 'list' %}flex-row items-center justify-between p-2.5{% else %}flex-col p-2{% endif %} bg-base-100 border border-base-200 rounded-2xl transition-all overflow-hidden">
-
-                            <!-- Thumbnail / Vista Previa -->
                             <div class="relative cursor-pointer overflow-hidden rounded-xl bg-base-200/50 flex items-center justify-center {% if modo_vista == 'list' %}size-12 shrink-0 mr-3{% else %}w-full aspect-square mb-2.5{% endif %}"
                                  onclick="abrirLightbox('{{ foto_url }}', '{{ foto }}')">
                                 <img src="{{ foto_url }}?thumb=true"
@@ -342,19 +334,14 @@
                                      loading="lazy"
                                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                      onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
-
-                                <!-- Fallback si falla la carga de la imagen o no es formato soportado -->
                                 <div class="hidden flex-col items-center justify-center text-info p-2">
                                     <span class="icon-[ph--image-fill] size-6"></span>
                                 </div>
-
-                                <!-- Hover Overlay para indicar vista previa -->
                                 <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white backdrop-blur-[1px]">
                                     <span class="icon-[ph--magnifying-glass-plus-bold] size-6"></span>
                                 </div>
                             </div>
 
-                            <!-- Detalles del Archivo -->
                             <div class="min-w-0 flex-1 {% if modo_vista != 'list' %}px-1 mb-2{% endif %}">
                                 <p class="text-xs font-semibold text-base-content truncate group-hover:text-primary transition-colors"
                                    title="{{ foto }}">
@@ -363,7 +350,6 @@
                                 <span class="text-[10px] text-base-content/50 uppercase font-mono block">Imagen</span>
                             </div>
 
-                            <!-- Acciones -->
                             <div class="flex items-center gap-1.5 {% if modo_vista != 'list' %}mt-auto pt-2 border-t border-base-200/80 w-full justify-between{% endif %}">
                                 <button type="button"
                                         onclick="abrirLightbox('{{ foto_url }}', '{{ foto }}')"
@@ -371,7 +357,6 @@
                                     <span class="icon-[ph--eye-bold] size-3.5"></span>
                                     <span class="{% if modo_vista == 'list' %}hidden sm:inline{% endif %}">Ver</span>
                                 </button>
-
                                 <a href="{{ foto_url }}" download="{{ foto }}"
                                    class="btn btn-info btn-xs gap-1 text-[11px] rounded-lg text-info-content font-medium shadow-2xs">
                                     <span class="icon-[ph--download-simple-bold] size-3.5"></span>
@@ -384,27 +369,20 @@
             </div>
         {% endif %}
 
-        <!-- MODAL LIGHTBOX PARA VISUALIZACIÓN DE IMÁGENES -->
+        <!-- MODAL LIGHTBOX PARA IMÁGENES -->
         <dialog id="modal_lightbox" class="modal backdrop-blur-md">
             <div class="modal-box max-w-5xl bg-base-100/95 p-4 rounded-2xl border border-base-300 shadow-2xl relative flex flex-col items-center">
-                <!-- Botón Cerrar -->
                 <form method="dialog" class="absolute right-3 top-3 z-10">
                     <button class="btn btn-sm btn-circle btn-ghost text-base-content/70 hover:bg-base-200">✕</button>
                 </form>
-
-                <!-- Título de la imagen -->
                 <div class="w-full pr-10 mb-3 flex items-center gap-2">
                     <span class="icon-[ph--image-bold] text-info size-5"></span>
                     <h3 id="lightbox-titulo" class="font-bold text-sm text-base-content truncate"></h3>
                 </div>
-
-                <!-- Contenedor de la Imagen Full HD -->
                 <div class="relative w-full max-h-[75vh] flex items-center justify-center overflow-hidden rounded-xl bg-black/5 p-2">
                     <img id="lightbox-img" src="" alt=""
                          class="max-h-[70vh] w-auto max-w-full object-contain rounded-lg shadow-md transition-all">
                 </div>
-
-                <!-- Barra inferior con acciones -->
                 <div class="flex items-center justify-end w-full gap-2 mt-4 pt-3 border-t border-base-200">
                     <a id="lightbox-download" href="" download
                        class="btn btn-primary btn-sm rounded-xl px-4 text-xs font-semibold gap-2">
@@ -415,6 +393,25 @@
             </div>
             <form method="dialog" class="modal-backdrop bg-black/60">
                 <button>Cerrar</button>
+            </form>
+        </dialog>
+
+        <!-- MODAL VISOR / EDITOR ONLYOFFICE (EXCEL) -->
+        <dialog id="modal_onlyoffice" class="modal backdrop-blur-md">
+            <div class="modal-box max-w-[95vw] w-full h-[92vh] max-h-[92vh] bg-base-100 p-3 rounded-2xl border border-base-300 shadow-2xl flex flex-col">
+                <div class="flex items-center justify-between pb-3 px-2 border-b border-base-200 shrink-0">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="icon-[ph--file-xls-fill] text-success size-5 shrink-0"></span>
+                        <h3 id="oo-titulo-archivo" class="font-bold text-sm text-base-content truncate">Editor de
+                            Excel</h3>
+                    </div>
+                    <button onclick="cerrarVisorOnlyOffice()" class="btn btn-sm btn-circle btn-ghost">✕</button>
+                </div>
+                <div id="onlyoffice-editor-container"
+                     class="w-full flex-1 mt-2 rounded-xl overflow-hidden bg-base-200/50"></div>
+            </div>
+            <form method="dialog" class="modal-backdrop bg-black/60">
+                <button onclick="cerrarVisorOnlyOffice()">Cerrar</button>
             </form>
         </dialog>
 
@@ -431,214 +428,60 @@
 
     </div>
 
-    <!-- MODAL DE CONFIRMACIÓN CON COMPONENTES DAISYUI -->
-    <dialog id="modal_confirmar_subida" class="modal">
-        <div class="modal-box max-w-sm rounded-2xl p-5">
-            <div class="flex items-center gap-3 mb-3">
-                <div class="p-2.5 bg-primary/10 text-primary rounded-xl">
-                    <span class="icon-[ph--cloud-arrow-up-bold] size-6"></span>
-                </div>
-                <div>
-                    <h3 class="font-bold text-sm text-base-content">¿Confirmar carga de archivos?</h3>
-                    <p class="text-xs text-base-content/60 mt-0.5">Se enviarán a la carpeta actual.</p>
-                </div>
-            </div>
-
-            <p class="text-xs text-base-content/70 my-4 bg-base-200/50 p-3 rounded-xl border border-base-200">
-                Estás a punto de subir <strong id="modal-cantidad-archivos" class="text-primary">0 archivos</strong>.
-                Asegúrate de que los cambios guardados localmente sean los definitivos.
-            </p>
-
-            <div class="modal-action gap-2">
-                <form method="dialog">
-                    <button class="btn btn-sm btn-ghost rounded-xl text-xs">Cancelar</button>
-                </form>
-                <button type="button" onclick="ejecutarEnvioFormulario()"
-                        class="btn btn-sm btn-primary text-primary-content rounded-xl px-4 text-xs font-semibold">
-                    Sí, subir archivos
-                </button>
-            </div>
-        </div>
-    </dialog>
-
-    <!-- JS de Lightgallery CDN con Plugins (Thumbnail + Zoom) -->
-    <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/lightgallery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/plugins/thumbnail/lg-thumbnail.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/plugins/zoom/lg-zoom.min.js"></script>
-
+    <!-- SCRIPT DE CONTROL PARA ONLYOFFICE Y LIGHTBOX -->
     <script>
-        // Inicializar Lightgallery al cargar el DOM
-        document.addEventListener('DOMContentLoaded', function () {
-            const lgContainer = document.getElementById('lightgallery');
-            if (lgContainer) {
-                lightGallery(lgContainer, {
-                    plugins: [lgThumbnail, lgZoom],
-                    selector: '.onedrive-card',
-                    speed: 300,
-                    download: true,
-                    mobileSettings: {
-                        controls: true,
-                        showCloseIcon: true,
-                        download: true
-                    }
-                });
-            }
-        });
+        let docEditorInstance = null;
 
-        let archivosAcumulados = [];
-
-        function toggleZonaCarga() {
-            const panel = document.getElementById('panel-zona-carga');
-            panel.classList.toggle('hidden');
-        }
-
-        const dropZone = document.getElementById('drop-zone');
-        if (dropZone) {
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropZone.addEventListener(eventName, (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    dropZone.classList.add('drop-zone-active');
-                }, false);
-            });
-
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropZone.addEventListener(eventName, (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    dropZone.classList.remove('drop-zone-active');
-                }, false);
-            });
-
-            dropZone.addEventListener('drop', (e) => {
-                const dt = e.dataTransfer;
-                manejarArchivosSeleccionados(dt.files);
-            });
-        }
-
-        function manejarArchivosSeleccionados(files) {
-            if (!files || files.length === 0) return;
-            for (let i = 0; i < files.length; i++) {
-                archivosAcumulados.push(files[i]);
-            }
-            renderizarResumen();
-        }
-
-        function quitarArchivo(index) {
-            archivosAcumulados.splice(index, 1);
-            renderizarResumen();
-        }
-
-        function limpiarSeleccion() {
-            archivosAcumulados = [];
-            document.getElementById('file-input').value = "";
-            renderizarResumen();
-        }
-
-        function formatearTamano(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-        }
-
-        function renderizarResumen() {
-            const contenedorResumen = document.getElementById('resumen-subida');
-            const listaContainer = document.getElementById('lista-archivos-preview');
-            const totalNum = document.getElementById('total-archivos-num');
-            const pesoLabel = document.getElementById('peso-total-label');
-
-            if (archivosAcumulados.length === 0) {
-                contenedorResumen.classList.add('hidden');
-                return;
-            }
-
-            contenedorResumen.classList.remove('hidden');
-            totalNum.innerText = archivosAcumulados.length;
-
-            let totalBytes = 0;
-            listaContainer.innerHTML = "";
-
-            archivosAcumulados.forEach((file, idx) => {
-                totalBytes += file.size;
-                const ext = file.name.split('.').pop().toLowerCase();
-
-                let iconoClass = 'icon-[ph--file-bold] text-base-content/60';
-                if (['xlsx', 'xls', 'csv'].includes(ext)) {
-                    iconoClass = 'icon-[ph--file-xls-fill] text-success';
-                } else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
-                    iconoClass = 'icon-[ph--image-fill] text-info';
-                }
-
-                const item = document.createElement('div');
-                item.className = "flex items-center justify-between p-2 hover:bg-base-100 rounded-lg transition-colors text-xs";
-                item.innerHTML = `
-                    <div class="flex items-center gap-2.5 min-w-0 pr-2">
-                        <span class="${iconoClass} size-5 shrink-0"></span>
-                        <div class="min-w-0">
-                            <p class="font-medium text-base-content truncate">${file.name}</p>
-                            <p class="text-[10px] text-base-content/50">${formatearTamano(file.size)}</p>
-                        </div>
-                    </div>
-                    <button type="button" onclick="quitarArchivo(${idx})" class="btn btn-ghost btn-xs btn-circle text-error/70 hover:text-error" title="Quitar">
-                        ✕
-                    </button>
-                `;
-                listaContainer.appendChild(item);
-            });
-
-            pesoLabel.innerText = formatearTamano(totalBytes);
-        }
-
-        function confirmarYSubir(event) {
-            event.preventDefault();
-            if (archivosAcumulados.length === 0) return;
-
-            document.getElementById('modal-cantidad-archivos').innerText = `${archivosAcumulados.length} archivo(s)`;
-            document.getElementById('modal_confirmar_subida').showModal();
-        }
-
-        function ejecutarEnvioFormulario() {
-            document.getElementById('modal_confirmar_subida').close();
-
-            const btnSubmit = document.getElementById('btn-submit-upload');
-            const btnIcon = document.getElementById('btn-icon');
-            const btnText = document.getElementById('btn-text');
-
-            btnSubmit.disabled = true;
-            btnSubmit.classList.add('btn-disabled');
-            btnIcon.className = "loading loading-spinner loading-xs";
-            btnText.innerText = "Subiendo al servidor...";
-
-            const dt = new DataTransfer();
-            archivosAcumulados.forEach(file => dt.items.add(file));
-            document.getElementById('file-input').files = dt.files;
-
-            document.getElementById('form-subida').submit();
-        }
-
-        function subirNuevaVersion(nombreExcel) {
-            const panel = document.getElementById('panel-zona-carga');
-            panel.classList.remove('hidden');
-            panel.scrollIntoView({behavior: 'smooth'});
-            document.getElementById('file-input').click();
-        }
-
-        function abrirLightbox(urlImagen, nombreImagen) {
-            const modal = document.getElementById('modal_lightbox');
-            const img = document.getElementById('lightbox-img');
-            const titulo = document.getElementById('lightbox-titulo');
-            const btnDownload = document.getElementById('lightbox-download');
-
-            // Asignar recursos
-            img.src = urlImagen;
-            titulo.innerText = nombreImagen;
-            btnDownload.href = urlImagen;
-            btnDownload.setAttribute('download', nombreImagen);
-
-            // Mostrar Modal de DaisyUI
+        function abrirVisorOnlyOffice(tokenUrl, nombreArchivo) {
+            document.getElementById('oo-titulo-archivo').innerText = nombreArchivo;
+            const modal = document.getElementById('modal_onlyoffice');
             modal.showModal();
+
+            fetch(tokenUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const containerId = "onlyoffice-editor-container";
+                        console.log(data);
+                        document.getElementById(containerId).innerHTML = "";
+
+                        if (window.DocsAPI && window.DocsAPI.DocEditor) {
+                            // Se pasa data.documentConfig directamente, el cual ya contiene el token interno
+                            docEditorInstance = new window.DocsAPI.DocEditor(containerId, data.documentConfig);
+                        } else {
+                            console.error("OnlyOffice API no está disponible.");
+                        }
+                    } else {
+                        alert(data.error || "No se pudo abrir el editor.");
+                        modal.close();
+                    }
+                })
+                .catch(err => {
+                    console.error("Error al obtener token de OnlyOffice:", err);
+                    alert("Error de conexión al servidor de documentos.");
+                    modal.close();
+                });
+        }
+
+        function cerrarVisorOnlyOffice() {
+            if (docEditorInstance) {
+                try {
+                    docEditorInstance.destroyEditor();
+                } catch (e) {
+                }
+                docEditorInstance = null;
+            }
+            document.getElementById('onlyoffice-editor-container').innerHTML = "";
+            document.getElementById('modal_onlyoffice').close();
+            window.location.reload(); // Recargar para ver cambios guardados
+        }
+
+        function abrirLightbox(url, titulo) {
+            document.getElementById('lightbox-titulo').innerText = titulo;
+            const img = document.getElementById('lightbox-img');
+            img.src = url;
+            document.getElementById('lightbox-download').href = url;
+            document.getElementById('modal_lightbox').showModal();
         }
     </script>
 </c-layouts.app>

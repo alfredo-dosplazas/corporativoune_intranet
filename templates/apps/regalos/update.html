@@ -5,7 +5,7 @@
 
             <!-- TÍTULO Y BREADCRUMBS -->
             <div class="flex items-center gap-2 min-w-0">
-                <a href="{% url 'regalos:list' %}"
+                <a href="{% url 'regalos:list' evento.slug %}"
                    class="btn btn-ghost btn-xs btn-square shrink-0 text-base-content/60 hover:text-base-content"
                    title="Volver a la lista">
                     <span class="icon-[tabler--arrow-left] text-sm"></span>
@@ -18,7 +18,7 @@
 
             <!-- BOTONES DE ACCIÓN RÁPIDA -->
             <div class="flex items-center gap-2 shrink-0">
-                <a href="{% url 'regalos:list' %}"
+                <a href="{% url 'regalos:list' evento.slug %}"
                    class="btn btn-ghost btn-xs font-normal text-base-content/70">
                     Cancelar
                 </a>

@@ -3,7 +3,6 @@ from django.conf import settings
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -66,4 +65,30 @@ class SlackClient:
                     error_code
                 )
 
+            return False
+
+    def send_file(self, target_id: str, file_content, filename: str, initial_comment: str = "") -> bool:
+        """
+        Envía un archivo (PDF, imagen, etc.) a un canal o usuario de Slack.
+        """
+        try:
+            # Si es usuario, abrimos DM primero para obtener el channel_id correcto
+            if target_id.startswith("U"):
+                response = self.client.conversations_open(users=target_id)
+                channel_id = response["channel"]["id"]
+            else:
+                channel_id = target_id
+
+            # Usamos files_upload_v2 (recomendado en las versiones recientes de slack_sdk)
+            self.client.files_upload_v2(
+                channel=channel_id,
+                file=file_content,
+                filename=filename,
+                title=filename,
+                initial_comment=initial_comment,
+            )
+            return True
+
+        except SlackApiError as e:
+            logger.error("Error enviando archivo a Slack (%s): %s", target_id, e.response.get("error"))
             return False

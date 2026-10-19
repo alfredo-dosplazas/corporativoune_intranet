@@ -1,7 +1,13 @@
-import mimetypes
+import contextlib
+import json
 import os
 import re
-from datetime import datetime
+import urllib
+
+import jwt
+import datetime
+import tempfile
+import mimetypes
 from io import BytesIO
 from PIL import Image
 
@@ -14,13 +20,15 @@ from django.core.paginator import Paginator
 from django.http import Http404, FileResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.views.decorators.clickjacking import xframe_options_exempt
+from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import TemplateView
 
 from apps.ad.models import CredencialADUsuario
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.mixins.session_filter_state import SessionFilterStateMixin
 from apps.evidencias_moldes.notifications import enviar_notificacion_evidencia_moldes
-from apps.evidencias_moldes.smb_manager import smb_pysmb_session  # <--- Nuestro nuevo gestor multihilo
+from apps.evidencias_moldes.smb_manager import smb_pysmb_session
 from apps.fotos.utils import get_thumbnail
 
 IMAGENES_EXT = (".jpg", ".jpeg", ".png", ".webp")
@@ -131,7 +139,6 @@ class ExploradorEvidenciasMoldesView(
 
                     ruta_rel_archivo = f"{ruta}/{nombre_final}" if ruta else nombre_final
 
-                    # Control de versionado limpio con pysmb
                     contador = 1
                     while smb.check_exists(ruta_rel_archivo):
                         nombre_propuesto = f"{nombre_limpio} ({contador}){extension}"
@@ -226,6 +233,7 @@ class ExploradorEvidenciasMoldesView(
             "query_string_preserved": extra_params.urlencode(),
             "breadcrumbs": self.get_breadcrumbs(),
             "smb_info": {"usuario": ad_user, "dominio": ad_domain},
+            "ONLYOFFICE_SERVER_URL": getattr(settings, "ONLYOFFICE_SERVER_URL", ""),
         })
         return context
 
@@ -241,16 +249,11 @@ def ver_foto(request, ruta):
 
     try:
         with smb_pysmb_session(ad_user, ad_pass, ad_domain) as smb:
-            if request.GET.get("thumb"):
-                # Si manejas thumbnails remotos, ajusta la ruta aquí
-                pass
-
             local_tmp_path = smb.get_file_stream(ruta)
 
             content_type, _ = mimetypes.guess_type(ruta)
             content_type = content_type or "application/octet-stream"
 
-            # Abrir archivo temporal para enviarlo por FileResponse y limpiarlo después
             f_open = open(local_tmp_path, "rb")
             response = FileResponse(f_open, content_type=content_type, as_attachment=False)
             response["Cache-Control"] = "private, max-age=3600"
@@ -260,6 +263,193 @@ def ver_foto(request, ruta):
         raise
     except Exception as e:
         raise PermissionDenied(f"No se pudo cargar el archivo desde la red: {str(e)}")
+
+
+@login_required
+def token_onlyoffice_moldes_view(request, ruta):
+    """Genera token JWT firmado para OnlyOffice con EDICIÓN HABILITADA SOLO PARA EXCEL."""
+    ext = os.path.splitext(ruta)[1].lower()
+    if ext not in EXCEL_EXT:
+        return JsonResponse({"error": "Solo se permite visualizar y editar archivos Excel."}, status=400)
+
+    try:
+        cred = request.user.credencial_ad
+        ad_user, ad_pass, ad_domain = cred.ad_username, cred.get_password(), cred.ad_domain
+        with smb_pysmb_session(ad_user, ad_pass, ad_domain) as smb:
+            if not smb.check_exists(ruta):
+                return JsonResponse({"error": "El archivo de Excel no existe."}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": f"Sin permisos de red: {str(e)}"}, status=403)
+
+    filename = os.path.basename(ruta)
+    ext_clean = ext.replace(".", "")
+
+    # Token para descargar el binario desde OnlyOffice
+    download_payload = {
+        "ruta": ruta,
+        "ad_user": ad_user,
+        "ad_domain": ad_domain,
+        "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15)
+    }
+    download_token = jwt.encode(download_payload, settings.ONLYOFFICE_SECRET_KEY, algorithm="HS256")
+
+    # URLs completas de descarga y guardado (callback)
+    file_download_url = f"{settings.APP_URL}/evidencias-moldes/archivo-red/{ruta}/?dl_token={download_token}"
+    callback_url = f"{settings.APP_URL}{reverse('evidencias_moldes:onlyoffice_guardar_excel', args=[ruta])}?dl_token={download_token}"
+
+    puede_editar = request.user.has_perm("evidencias_moldes.subir_evidencia")
+
+    # Clave de documento limpia (solo alfanuméricos, guiones y guiones bajos)
+    raw_key = f"moldes_{request.user.id}_{filename}_{int(datetime.datetime.now().timestamp())}"
+    doc_key = re.sub(r'[^a-zA-Z0-9_\-]', '_', raw_key)
+
+    document_config = {
+        "fileType": ext_clean,
+        "key": doc_key,
+        "title": filename,
+        "url": file_download_url,
+        "permissions": {
+            "edit": puede_editar,
+            "download": True,
+            "print": True
+        }
+    }
+
+    editor_config = {
+        "mode": "edit" if puede_editar else "view",
+        "lang": "es",
+        "callbackUrl": callback_url,
+        "user": {
+            "id": str(request.user.id),
+            "name": request.user.get_full_name() or request.user.username
+        },
+        "customization": {
+            "autosave": True,
+            "download": True,
+            "print": True,
+            "compactHeader": True,
+        }
+    }
+
+    # Payload completo que OnlyOffice valida
+    payload = {
+        "document": document_config,
+        "editorConfig": editor_config,
+        "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=30)
+    }
+
+    # Generar token JWT principal
+    token = jwt.encode(payload, settings.ONLYOFFICE_SECRET_KEY, algorithm="HS256")
+
+    # Estructura final requerida por OnlyOffice DocsAPI
+    full_config = {
+        "document": document_config,
+        "editorConfig": editor_config,
+        "token": token  # IMPORTANTE: Se adjunta dentro del objeto config
+    }
+
+    return JsonResponse({
+        "status": "success",
+        "token": token,
+        "documentServerUrl": getattr(settings, 'ONLYOFFICE_SERVER_URL', 'http://localhost/'),
+        "documentConfig": full_config
+    })
+
+@csrf_exempt
+def onlyoffice_callback_view(request, ruta):
+    """Maneja el guardado automático cuando se edita desde OnlyOffice."""
+    if request.method != "POST":
+        return JsonResponse({"error": "Método no permitido"}, status=405)
+
+    dl_token = request.GET.get("dl_token")
+    if not dl_token:
+        return JsonResponse({"error": 1}, status=403)
+
+    try:
+        payload = jwt.decode(dl_token, settings.ONLYOFFICE_SECRET_KEY, algorithms=["HS256"])
+        ad_user = payload["ad_user"]
+        ad_domain = payload["ad_domain"]
+        cred = CredencialADUsuario.objects.get(ad_username=ad_user, ad_domain=ad_domain)
+        ad_pass = cred.get_password()
+    except Exception:
+        return JsonResponse({"error": 1}, status=403)
+
+    try:
+        body_data = json.loads(request.body.decode("utf-8"))
+        status = body_data.get("status")
+        download_url = body_data.get("url")
+
+        # Status 2 o 6: El documento ha sido cerrado y está listo para guardarse
+        if status in (2, 6) and download_url:
+            req = urllib.request.Request(download_url)
+            with urllib.request.urlopen(req) as response:
+                content = response.read()
+
+            temp_file = tempfile.NamedTemporaryFile(delete=False)
+            temp_file.write(content)
+            temp_file.close()
+
+            with smb_pysmb_session(ad_user, ad_pass, ad_domain) as smb:
+                with open(temp_file.name, "rb") as f_in:
+                    def chunk_generator():
+                        while chunk := f_in.read(65536):
+                            yield chunk
+                    smb.save_file(ruta, chunk_generator())
+
+            with contextlib.suppress(Exception):
+                os.unlink(temp_file.name)
+
+        # OnlyOffice requiere estrictamente {"error": 0} para confirmar éxito
+        return JsonResponse({"error": 0})
+    except Exception as e:
+        return JsonResponse({"error": 1, "message": str(e)}, status=400)
+
+@xframe_options_exempt
+def ver_archivo_red_moldes(request, ruta):
+    """Endpoint seguro para servir el archivo a OnlyOffice vía SMB."""
+    dl_token = request.GET.get("dl_token")
+
+    if dl_token:
+        try:
+            payload = jwt.decode(dl_token, settings.ONLYOFFICE_SECRET_KEY, algorithms=["HS256"])
+            ad_user = payload["ad_user"]
+            ad_domain = payload["ad_domain"]
+            cred = CredencialADUsuario.objects.get(ad_username=ad_user, ad_domain=ad_domain)
+            ad_pass = cred.get_password()
+        except Exception:
+            raise PermissionDenied("Token inválido o expirado.")
+    else:
+        try:
+            cred = request.user.credencial_ad
+            ad_user, ad_pass, ad_domain = cred.ad_username, cred.get_password(), cred.ad_domain
+        except Exception:
+            raise PermissionDenied("Sin permisos de usuario.")
+
+    try:
+        with smb_pysmb_session(ad_user, ad_pass, ad_domain) as smb:
+            local_tmp_path = smb.get_file_stream(ruta)
+
+            ext = os.path.splitext(ruta)[1].lower()
+            if ext == ".xlsx":
+                content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            elif ext == ".xls":
+                content_type = "application/vnd.ms-excel"
+            elif ext == ".csv":
+                content_type = "text/csv"
+            else:
+                content_type, _ = mimetypes.guess_type(ruta)
+                content_type = content_type or "application/octet-stream"
+
+            response = FileResponse(open(local_tmp_path, "rb"), content_type=content_type, as_attachment=False)
+            response["Content-Disposition"] = f'inline; filename="{os.path.basename(ruta)}"'
+            response["X-Content-Type-Options"] = "nosniff"
+            response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            return response
+
+    except PermissionDenied:
+        raise
+    except Exception as e:
+        raise PermissionDenied(f"No tienes permisos de red para acceder a este archivo: {str(e)}")
 
 
 @login_required
