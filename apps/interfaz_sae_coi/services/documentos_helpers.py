@@ -169,9 +169,12 @@ def enrich_and_filter_contabilidad(
             doc_dict['origen_conta'] = None
             doc_dict['poliza_info'] = None
 
-        if estado_conta == 'contabilizados' and not doc_dict['contabilizado']:
+        estado_lower = str(estado_conta).lower().strip()
+
+        if estado_lower in ['contabilizados', 'contabilizado', 'enviado_coi'] and not doc_dict['contabilizado']:
             continue
-        if estado_conta == 'no_contabilizados' and doc_dict['contabilizado']:
+        if estado_lower in ['no_contabilizados', 'no_contabilizado', 'pendientes', 'pendiente', 'no_contabilizadas',
+                            'pendiente_coi'] and doc_dict['contabilizado']:
             continue
 
         documentos_procesados.append(doc_dict)
