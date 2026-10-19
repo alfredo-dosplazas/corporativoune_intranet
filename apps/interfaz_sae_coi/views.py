@@ -70,13 +70,16 @@ class DocumentosContabilizarSaeView(
 
         estado_conta = self.request.GET.get('estado_conta', 'todos')
 
+        with coi_session() as (db_coi, suffix_coi):
+            pass
+
         with sae_session() as (db_sae, suffix):
             m = get_sae_models(suffix)
 
             # 1. Obtener folios contabilizados en Django para este suffix
             folios_contabilizados_django = list(
                 DocumentoContabilizado.objects.filter(
-                    empresa_suffix=suffix,
+                    empresa_suffix=suffix_coi,
                     status='ENVIADO_COI'
                 ).values_list('folio_sae', flat=True)
             )
@@ -108,7 +111,7 @@ class DocumentosContabilizarSaeView(
             # 3. Cruce con COI / Django para los registros traídos
             documentos_procesados = enrich_and_filter_contabilidad(
                 documentos_raw,
-                suffix,
+                suffix_coi,
                 estado_conta,
                 coi_session,
                 get_coi_models,
