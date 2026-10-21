@@ -22,7 +22,7 @@ class ProductoPrecioOverride(models.Model):
     """
     Guarda la actualización/override del Precio de Lista (Lista 3) cuando en SAE es 0 o está desactualizado.
     """
-    cve_art = models.CharField(max_length=20, unique=True, db_index=True)  # Clave del producto SAE
+    cve_art = models.CharField(max_length=255, unique=True, db_index=True)  # Clave del producto SAE
     precio_lista_custom = models.DecimalField(max_digits=12, decimal_places=4)
     actualizado_en = models.DateTimeField(auto_now=True)
 
