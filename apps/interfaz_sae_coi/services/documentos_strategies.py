@@ -40,6 +40,16 @@ class VentasStrategy(BaseDocumentoStrategy):
     """Estrategia para Facturación de Ventas."""
 
     def fetch_documentos(self, db_sae, m, filters: dict) -> tuple[list[dict], int]:
+        cfdi_sub = db_sae.query(
+            func.min(m.CFDI.uuid_sat).label('uuid_sat'),
+            func.trim(m.CFDI.folio).label('folio_trim')
+        ).group_by(func.trim(m.CFDI.folio)).subquery()
+
+        coi_xml_sub = db_sae.query(
+            func.min(m.CoiXml.uuid_cfdi_sae).label('uuid_sae'),
+            m.CoiXml.id_xml_sat
+        ).group_by(m.CoiXml.id_xml_sat).subquery()
+
         query = db_sae.query(
             m.Factura.folio,
             m.Factura.fecha,
@@ -50,16 +60,16 @@ class VentasStrategy(BaseDocumentoStrategy):
             m.Factura.total_descuento,
             m.Factura.total,
             m.Factura.status,
-            m.CFDI.uuid_sat.label('uuid_xml'),
-            m.CoiXml.uuid_cfdi_sae.label('uuid_sae'),
+            cfdi_sub.c.uuid_sat.label('uuid_xml'),
+            coi_xml_sub.c.uuid_sae.label('uuid_sae'),
         ).join(
             m.Cliente
         ).outerjoin(
             m.Almacen, m.Factura.num_alma == m.Almacen.clave
         ).outerjoin(
-            m.CFDI, func.trim(m.Factura.folio) == func.trim(m.CFDI.folio)
+            cfdi_sub, func.trim(m.Factura.folio) == cfdi_sub.c.folio_trim
         ).outerjoin(
-            m.CoiXml, m.CFDI.uuid_sat == m.CoiXml.id_xml_sat
+            coi_xml_sub, cfdi_sub.c.uuid_sat == coi_xml_sub.c.id_xml_sat
         )
 
         if hasattr(m.Factura, 'tip_doc'):
@@ -72,8 +82,8 @@ class VentasStrategy(BaseDocumentoStrategy):
                 or_(
                     m.Factura.folio.ilike(sp),
                     m.Cliente.nombre.ilike(sp),
-                    m.CFDI.uuid_sat.ilike(sp),
-                    m.CoiXml.id_xml_sat.ilike(sp),
+                    cfdi_sub.c.uuid_sat.ilike(sp),
+                    coi_xml_sub.c.uuid_sae.ilike(sp),
                 )
             )
 
@@ -86,10 +96,8 @@ class VentasStrategy(BaseDocumentoStrategy):
 
         query = self.apply_common_filters(query, m.Factura.fecha, filters)
 
-        # 1. Total exacto en BD antes de limitar
         total_count = query.count()
 
-        # 2. Ordenamiento y Paginación SQL
         query = query.order_by(m.Factura.fecha.desc(), m.Factura.folio.desc())
 
         if not filters.get('export_all') and filters.get('limit') is not None:
@@ -105,6 +113,16 @@ class NotasCreditoStrategy(BaseDocumentoStrategy):
     def fetch_documentos(self, db_sae, m, filters: dict) -> tuple[list[dict], int]:
         ModeloNC = m.NotaCredito
 
+        cfdi_sub = db_sae.query(
+            func.min(m.CFDI.uuid_sat).label('uuid_sat'),
+            func.trim(m.CFDI.folio).label('folio_trim')
+        ).group_by(func.trim(m.CFDI.folio)).subquery()
+
+        coi_xml_sub = db_sae.query(
+            func.min(m.CoiXml.uuid_cfdi_sae).label('uuid_sae'),
+            m.CoiXml.id_xml_sat
+        ).group_by(m.CoiXml.id_xml_sat).subquery()
+
         query = db_sae.query(
             ModeloNC.folio,
             ModeloNC.fecha,
@@ -114,16 +132,16 @@ class NotasCreditoStrategy(BaseDocumentoStrategy):
             ModeloNC.total_impuesto4,
             ModeloNC.total,
             ModeloNC.status,
-            m.CFDI.uuid_sat.label('uuid_xml'),
-            m.CoiXml.uuid_cfdi_sae.label('uuid_sae'),
+            cfdi_sub.c.uuid_sat.label('uuid_xml'),
+            coi_xml_sub.c.uuid_sae.label('uuid_sae'),
         ).join(
             m.Cliente
         ).outerjoin(
             m.Almacen, ModeloNC.num_alma == m.Almacen.clave
         ).outerjoin(
-            m.CFDI, func.trim(ModeloNC.folio) == func.trim(m.CFDI.folio)
+            cfdi_sub, func.trim(ModeloNC.folio) == cfdi_sub.c.folio_trim
         ).outerjoin(
-            m.CoiXml, m.CFDI.uuid_sat == m.CoiXml.id_xml_sat
+            coi_xml_sub, cfdi_sub.c.uuid_sat == coi_xml_sub.c.id_xml_sat
         )
 
         if hasattr(ModeloNC, 'tip_doc'):
@@ -136,8 +154,8 @@ class NotasCreditoStrategy(BaseDocumentoStrategy):
                 or_(
                     ModeloNC.folio.ilike(sp),
                     m.Cliente.nombre.ilike(sp),
-                    m.CFDI.uuid_sat.ilike(sp),
-                    m.CoiXml.id_xml_sat.ilike(sp),
+                    cfdi_sub.c.uuid_sat.ilike(sp),
+                    coi_xml_sub.c.uuid_sae.ilike(sp),
                 )
             )
 
@@ -150,10 +168,8 @@ class NotasCreditoStrategy(BaseDocumentoStrategy):
 
         query = self.apply_common_filters(query, ModeloNC.fecha, filters)
 
-        # 1. Total exacto en BD antes de limitar
         total_count = query.count()
 
-        # 2. Ordenamiento y Paginación SQL
         query = query.order_by(ModeloNC.fecha.desc(), ModeloNC.folio.desc())
 
         if not filters.get('export_all') and filters.get('limit') is not None:
@@ -169,6 +185,16 @@ class NotasDevolucionStrategy(BaseDocumentoStrategy):
     def fetch_documentos(self, db_sae, m, filters: dict) -> tuple[list[dict], int]:
         ModeloND = m.NotaDevolucion
 
+        cfdi_sub = db_sae.query(
+            func.min(m.CFDI.uuid_sat).label('uuid_sat'),
+            func.trim(m.CFDI.folio).label('folio_trim')
+        ).group_by(func.trim(m.CFDI.folio)).subquery()
+
+        coi_xml_sub = db_sae.query(
+            func.min(m.CoiXml.uuid_cfdi_sae).label('uuid_sae'),
+            m.CoiXml.id_xml_sat
+        ).group_by(m.CoiXml.id_xml_sat).subquery()
+
         query = db_sae.query(
             ModeloND.folio,
             ModeloND.fecha,
@@ -178,16 +204,16 @@ class NotasDevolucionStrategy(BaseDocumentoStrategy):
             ModeloND.total_impuesto4,
             ModeloND.total,
             ModeloND.status,
-            m.CFDI.uuid_sat.label('uuid_xml'),
-            m.CoiXml.uuid_cfdi_sae.label('uuid_sae'),
+            cfdi_sub.c.uuid_sat.label('uuid_xml'),
+            coi_xml_sub.c.uuid_sae.label('uuid_sae'),
         ).join(
             m.Cliente
         ).outerjoin(
             m.Almacen, ModeloND.num_alma == m.Almacen.clave
         ).outerjoin(
-            m.CFDI, func.trim(ModeloND.folio) == func.trim(m.CFDI.folio)
+            cfdi_sub, func.trim(ModeloND.folio) == cfdi_sub.c.folio_trim
         ).outerjoin(
-            m.CoiXml, m.CFDI.uuid_sat == m.CoiXml.id_xml_sat
+            coi_xml_sub, cfdi_sub.c.uuid_sat == coi_xml_sub.c.id_xml_sat
         )
 
         if hasattr(ModeloND, 'tip_doc'):
@@ -200,8 +226,8 @@ class NotasDevolucionStrategy(BaseDocumentoStrategy):
                 or_(
                     ModeloND.folio.ilike(sp),
                     m.Cliente.nombre.ilike(sp),
-                    m.CFDI.uuid_sat.ilike(sp),
-                    m.CoiXml.id_xml_sat.ilike(sp),
+                    cfdi_sub.c.uuid_sat.ilike(sp),
+                    coi_xml_sub.c.uuid_sae.ilike(sp),
                 )
             )
 
@@ -214,10 +240,8 @@ class NotasDevolucionStrategy(BaseDocumentoStrategy):
 
         query = self.apply_common_filters(query, ModeloND.fecha, filters)
 
-        # 1. Total exacto en BD antes de limitar
         total_count = query.count()
 
-        # 2. Ordenamiento y Paginación SQL
         query = query.order_by(ModeloND.fecha.desc(), ModeloND.folio.desc())
 
         if not filters.get('export_all') and filters.get('limit') is not None:
@@ -281,10 +305,8 @@ class CorteCajaStrategy(BaseDocumentoStrategy):
             else:
                 query = query.filter(subq.c.almacen_nombre == almacen)
 
-        # 1. Total exacto de grupos antes de limitar
         total_count = query.count()
 
-        # 2. Ordenamiento y Paginación SQL
         query = query.order_by(subq.c.fecha.desc())
 
         if not filters.get('export_all') and filters.get('limit') is not None:
