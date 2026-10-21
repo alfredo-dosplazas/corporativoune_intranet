@@ -23,6 +23,7 @@ from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.mixins.responsive_view import ResponsiveViewModeMixin
 from apps.core.mixins.session_filter_state import SessionFilterStateMixin
 from apps.core.mixins.title import PageTitleMixin
+from apps.core.paginators import SqlPaginator
 from apps.interfaz_sae_coi.constants import TIPOS_DOCUMENTOS
 from apps.interfaz_sae_coi.forms import DocumentoFilterForm
 from apps.interfaz_sae_coi.generators import PolizaVentaGenerator, PolizaCostoVentaGenerator, PolizaCorteCajaGenerator, \
@@ -61,12 +62,16 @@ class DocumentosContabilizarSaeView(
             {'title': 'Interfaz SAE COI'},
         ]
 
-    def get_queryset(self):
+    def get_queryset_data(self, export_all=False):
         today = now().date()
 
-        page = int(self.request.GET.get('page', 1))
-        limit = self.paginate_by  # 25
-        offset = (page - 1) * limit
+        try:
+            page = max(1, int(self.request.GET.get('page', 1)))
+        except (ValueError, TypeError):
+            page = 1
+
+        limit = self.paginate_by
+        offset = (page - 1) * limit if not export_all else None
 
         estado_conta = self.request.GET.get('estado_conta', 'todos')
 
@@ -92,9 +97,10 @@ class DocumentosContabilizarSaeView(
                 'almacen': self.request.GET.get('almacen', ''),
                 'tipo_documento': self.request.GET.get('tipo_documento', 'ventas'),
                 'estado_conta': estado_conta,
-                'folios_contabilizados': folios_contabilizados_django,  # Se pasa a la estrategia SAE
+                'folios_contabilizados': folios_contabilizados_django,
                 'limit': limit,
                 'offset': offset,
+                'export_all': export_all
             }
 
             order_by = self.request.GET.get('order_by', 'fecha')
@@ -105,10 +111,10 @@ class DocumentosContabilizarSaeView(
                 DOCUMENTO_STRATEGIES['ventas']
             )
 
-            # 2. Fetch documentos SAE
-            documentos_raw = strategy.fetch_documentos(db_sae, m, filters)
+            # 2. Fetch documentos SAE (debe retornar: documentos_raw, total_count)
+            documentos_raw, total_count = strategy.fetch_documentos(db_sae, m, filters)
 
-            # 3. Cruce con COI / Django para los registros traídos
+            # 3. Cruce con COI / Django para los registros traídos en el lote
             documentos_procesados = enrich_and_filter_contabilidad(
                 documentos_raw,
                 suffix_coi,
@@ -120,7 +126,25 @@ class DocumentosContabilizarSaeView(
 
             documentos_ordenados = sort_documentos(documentos_procesados, order_by, order_dir)
 
-        return documentos_ordenados
+            return documentos_ordenados, total_count
+
+    def get_queryset(self):
+        data, _ = self.get_queryset_data(export_all=False)
+        return data
+
+    def get_table_pagination(self, table):
+        """
+        Inyecta el SqlPaginator con el conteo precalculado desde SQL/Estrategia.
+        """
+        _, total_count = self.get_queryset_data(export_all=False)
+
+        def paginator_factory(object_list, per_page):
+            return SqlPaginator(object_list, per_page, total_count=total_count)
+
+        return {
+            'paginator_class': paginator_factory,
+            'per_page': self.paginate_by,
+        }
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

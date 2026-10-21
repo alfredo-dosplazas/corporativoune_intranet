@@ -1,0 +1,57 @@
+{% load django_tables2 %}
+{% load export_url from django_tables2 %}
+
+<c-layouts.app class="flex flex-col h-screen overflow-hidden">
+    <c-slot name="header">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="icon-[tabler--packages] text-primary text-base"></span>
+                <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">
+                    Inventario por Almacén (Artículo, Cantidad y Costo)
+                </h1>
+            </div>
+
+            <!-- Búsqueda y Filtros -->
+            <div class="flex items-center gap-2 flex-1 justify-end max-w-2xl">
+                <form method="get" action="" class="flex items-center gap-2 flex-1 max-w-sm">
+                    <input type="text"
+                           name="q"
+                           value="{{ request.GET.q|default:'' }}"
+                           placeholder="Buscar clave o descripción..."
+                           class="input input-xs w-full bg-base-100 border-base-300 h-7 text-xs"/>
+
+                    <select name="almacen" class="select select-xs bg-base-100 border-base-300 h-7 text-xs"
+                            onchange="this.form.submit()">
+                        <option value="">Todos los almacenes</option>
+                        {% for alm in almacenes %}
+                            <option value="{{ alm.clave }}"
+                                    {% if request.GET.almacen == alm.clave|stringformat:"s" %}selected{% endif %}>
+                                {{ alm.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </form>
+
+                <!-- Menú Exportar -->
+                <div class="dropdown dropdown-end">
+                    <button tabindex="0"
+                            class="btn btn-ghost btn-xs btn-square h-7 w-7 border border-base-300 bg-base-100">
+                        <span class="icon-[tabler--dots-vertical] text-xs"></span>
+                    </button>
+                    <ul tabindex="0"
+                        class="dropdown-content menu menu-xs bg-base-100 rounded-md border border-base-200 shadow-lg w-36 z-50 p-1">
+                        <li><a href="{% querystring "_export"="xls" %}"><span
+                                class="icon-[tabler--file-spreadsheet]"></span> Excel</a></li>
+                        <li><a href="{% querystring "_export"="pdf" %}"><span
+                                class="icon-[tabler--file-type-pdf]"></span> PDF</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </c-slot>
+
+    <!-- Tabla -->
+    <div class="flex flex-col flex-1 min-h-0 h-full w-full overflow-y-auto p-2">
+        {% render_table table %}
+    </div>
+</c-layouts.app>

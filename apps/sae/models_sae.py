@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from sqlalchemy import Column, String, Date, Float, Integer, ForeignKey, BLOB
+from sqlalchemy import Column, String, Date, Float, Integer, ForeignKey, BLOB, Double
 from sqlalchemy.orm import relationship, aliased
 
 from apps.sae.db import Base
@@ -12,10 +12,12 @@ class PrecioMixin:
     descripcion = Column('DESCRIPCION', String(25))
     status = Column('STATUS', String(1))
 
+
 class PrecioPorProductoMixin:
     cve_art = Column('CVE_ART', String(10), primary_key=True)
     cve_precio = Column('CVE_PRECIO', Integer, primary_key=True)
     precio = Column('PRECIO', Float)
+
 
 class LineaMixin:
     clave = Column('CVE_LIN', String(5), primary_key=True)
@@ -56,6 +58,13 @@ class AlmacenMixin:
     nombre = Column('DESCR', String(10))
 
 
+class MultialmacenMixin:
+    cve_art = Column('CVE_ART', String(10), primary_key=True)
+    cve_alm = Column('CVE_ALM', Integer, primary_key=True)
+    exist = Column('EXIST', Float)
+    status = Column('STATUS', String(1))
+
+
 class FacturaMixin:
     folio = Column('CVE_DOC', String(20), primary_key=True)
     fecha = Column('FECHA_DOC', Date)
@@ -94,6 +103,10 @@ class ArticuloMixin:
     descripcion = Column('DESCR', String(254))
     linea = Column('LIN_PROD', String(5))
     status = Column('STATUS', String(1))
+
+    exist = Column('EXIST', Integer())
+    costo_prom = Column('COSTO_PROM', Double())
+    ult_costo = Column('ULT_COSTO', Double())
 
 
 class PartidaFacturaMixin:
@@ -159,6 +172,7 @@ def get_sae_models(suffix="01"):
         __tablename__ = f'ALMACENES{suffix}'
         __table_args__ = {'extend_existing': True}
 
+
     class Cliente(ClienteMixin, Base):
         __tablename__ = f'CLIE{suffix}'
         __table_args__ = {'extend_existing': True}
@@ -223,6 +237,21 @@ def get_sae_models(suffix="01"):
             primaryjoin=f'foreign(Producto.linea) == Linea.clave',
             uselist=False,
             backref=f"productos_{suffix}"
+        )
+
+    class Multialmacen(MultialmacenMixin, Base):
+        __tablename__ = f'MULT{suffix}'
+        __table_args__ = {'extend_existing': True}
+
+        producto = relationship(
+            Producto,
+            primaryjoin=f'foreign(Multialmacen.cve_art) == Producto.clave',
+            backref=f"multialmacenes_{suffix}"
+        )
+        almacen = relationship(
+            Almacen,
+            primaryjoin=f'foreign(Multialmacen.cve_alm) == Almacen.clave',
+            backref=f"multialmacenes_{suffix}"
         )
 
     class PartidaCompra(PartidaCompraMixin, Base):
@@ -292,6 +321,7 @@ def get_sae_models(suffix="01"):
         Producto=Producto,
         CuenDet=CuenDet,
         Concepto=ConceptoPorCobrar,
+        Multialmacen=Multialmacen,
     )
 
     _MODEL_CACHE[suffix] = models

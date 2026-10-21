@@ -12,9 +12,9 @@ class BaseDocumentoStrategy(ABC):
     """
 
     @abstractmethod
-    def fetch_documentos(self, db_sae, m, filters: dict) -> list[dict]:
+    def fetch_documentos(self, db_sae, m, filters: dict) -> tuple[list[dict], int]:
         """
-        Consulta y retorna una lista de diccionarios con la estructura estandarizada de documentos.
+        Consulta y retorna una tupla con (lista de diccionarios con documentos, total_count).
         """
         pass
 
@@ -39,7 +39,7 @@ class BaseDocumentoStrategy(ABC):
 class VentasStrategy(BaseDocumentoStrategy):
     """Estrategia para Facturación de Ventas."""
 
-    def fetch_documentos(self, db_sae, m, filters: dict) -> list[dict]:
+    def fetch_documentos(self, db_sae, m, filters: dict) -> tuple[list[dict], int]:
         query = db_sae.query(
             m.Factura.folio,
             m.Factura.fecha,
@@ -85,15 +85,24 @@ class VentasStrategy(BaseDocumentoStrategy):
                 query = query.filter(m.Almacen.nombre == almacen)
 
         query = self.apply_common_filters(query, m.Factura.fecha, filters)
+
+        # 1. Total exacto en BD antes de limitar
+        total_count = query.count()
+
+        # 2. Ordenamiento y Paginación SQL
         query = query.order_by(m.Factura.fecha.desc(), m.Factura.folio.desc())
 
-        return [f._asdict() for f in query.all()]
+        if not filters.get('export_all') and filters.get('limit') is not None:
+            query = query.limit(filters['limit']).offset(filters['offset'])
+
+        resultados = [f._asdict() for f in query.all()]
+        return resultados, total_count
 
 
 class NotasCreditoStrategy(BaseDocumentoStrategy):
     """Estrategia para Notas de Crédito."""
 
-    def fetch_documentos(self, db_sae, m, filters: dict) -> list[dict]:
+    def fetch_documentos(self, db_sae, m, filters: dict) -> tuple[list[dict], int]:
         ModeloNC = m.NotaCredito
 
         query = db_sae.query(
@@ -140,15 +149,24 @@ class NotasCreditoStrategy(BaseDocumentoStrategy):
                 query = query.filter(m.Almacen.nombre == almacen)
 
         query = self.apply_common_filters(query, ModeloNC.fecha, filters)
+
+        # 1. Total exacto en BD antes de limitar
+        total_count = query.count()
+
+        # 2. Ordenamiento y Paginación SQL
         query = query.order_by(ModeloNC.fecha.desc(), ModeloNC.folio.desc())
 
-        return [f._asdict() for f in query.all()]
+        if not filters.get('export_all') and filters.get('limit') is not None:
+            query = query.limit(filters['limit']).offset(filters['offset'])
+
+        resultados = [f._asdict() for f in query.all()]
+        return resultados, total_count
 
 
 class NotasDevolucionStrategy(BaseDocumentoStrategy):
     """Estrategia para Notas de Devolución."""
 
-    def fetch_documentos(self, db_sae, m, filters: dict) -> list[dict]:
+    def fetch_documentos(self, db_sae, m, filters: dict) -> tuple[list[dict], int]:
         ModeloND = m.NotaDevolucion
 
         query = db_sae.query(
@@ -195,15 +213,24 @@ class NotasDevolucionStrategy(BaseDocumentoStrategy):
                 query = query.filter(m.Almacen.nombre == almacen)
 
         query = self.apply_common_filters(query, ModeloND.fecha, filters)
+
+        # 1. Total exacto en BD antes de limitar
+        total_count = query.count()
+
+        # 2. Ordenamiento y Paginación SQL
         query = query.order_by(ModeloND.fecha.desc(), ModeloND.folio.desc())
 
-        return [f._asdict() for f in query.all()]
+        if not filters.get('export_all') and filters.get('limit') is not None:
+            query = query.limit(filters['limit']).offset(filters['offset'])
+
+        resultados = [f._asdict() for f in query.all()]
+        return resultados, total_count
 
 
 class CorteCajaStrategy(BaseDocumentoStrategy):
     """Estrategia para Agrupación de Cobranza / Corte de Caja."""
 
-    def fetch_documentos(self, db_sae, m, filters: dict) -> list[dict]:
+    def fetch_documentos(self, db_sae, m, filters: dict) -> tuple[list[dict], int]:
         folio_clean = func.trim(m.CuenDet.no_factura)
 
         almacen_expr = func.coalesce(
@@ -245,8 +272,6 @@ class CorteCajaStrategy(BaseDocumentoStrategy):
         ).group_by(
             subq.c.fecha,
             subq.c.almacen_nombre
-        ).order_by(
-            subq.c.fecha.desc()
         )
 
         almacen = filters.get('almacen')
@@ -255,6 +280,15 @@ class CorteCajaStrategy(BaseDocumentoStrategy):
                 query = query.filter(subq.c.almacen_nombre == 'GENERAL')
             else:
                 query = query.filter(subq.c.almacen_nombre == almacen)
+
+        # 1. Total exacto de grupos antes de limitar
+        total_count = query.count()
+
+        # 2. Ordenamiento y Paginación SQL
+        query = query.order_by(subq.c.fecha.desc())
+
+        if not filters.get('export_all') and filters.get('limit') is not None:
+            query = query.limit(filters['limit']).offset(filters['offset'])
 
         documentos_raw = []
         for r in query.all():
@@ -273,7 +307,7 @@ class CorteCajaStrategy(BaseDocumentoStrategy):
             dict_res['status'] = 'A'
             documentos_raw.append(dict_res)
 
-        return documentos_raw
+        return documentos_raw, total_count
 
 
 class ComprasStrategy(BaseDocumentoStrategy):
@@ -282,9 +316,8 @@ class ComprasStrategy(BaseDocumentoStrategy):
     Sigue el estándar para integrarse sin modificar la vista.
     """
 
-    def fetch_documentos(self, db_sae, m, filters: dict) -> list[dict]:
-        # Estructura lista para cuando se implementen las consultas a m.Compra / m.Proveedor
-        return []
+    def fetch_documentos(self, db_sae, m, filters: dict) -> tuple[list[dict], int]:
+        return [], 0
 
 
 # Registro central para resolución de estrategias dinámicas

@@ -8,6 +8,21 @@ from apps.rrhh.models.sedes import Sede
 from intranet import settings
 
 
+class Invitado(models.Model):
+    evento = models.ForeignKey('Evento', on_delete=models.CASCADE, related_name='invitados', verbose_name="Evento")
+    nombre_completo = models.CharField(max_length=200, verbose_name="Nombre del Invitado")
+
+    asistio = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "Invitado"
+        verbose_name_plural = "Invitados"
+        unique_together = ('evento', 'nombre_completo')
+
+    def __str__(self):
+        return f"{self.nombre_completo} - {self.evento.nombre}"
+
+
 class Evento(models.Model):
     nombre = models.CharField(max_length=200, verbose_name="Nombre del Evento (Ej. Rifa Fin de Año Corporativo)")
     slug = models.SlugField(unique=True, max_length=250, help_text="Identificador único para URLs y WebSockets")
@@ -23,14 +38,18 @@ class Evento(models.Model):
 
 
 class Regalo(models.Model):
-    # Relación obligatoria con el Evento
     evento = models.ForeignKey(Evento, on_delete=models.CASCADE, related_name='regalos', verbose_name="Evento")
 
     codigo_qr = models.CharField(max_length=50, unique=True, default=uuid.uuid4)
     numero = models.IntegerField(
         verbose_name="Número de Boleto / Rifa")  # Ojo: ya no es globalmente unique=True, sino único por evento
     nombre = models.CharField(max_length=200, verbose_name="Premio / Regalo")
+
+    invitado = models.ForeignKey(Invitado, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='regalos_ganados')
+
     ganador_nombre = models.CharField(max_length=150, blank=True, null=True, editable=False)
+
     canjeado = models.BooleanField(default=False, editable=True)
     fecha_canje = models.DateTimeField(null=True, blank=True, editable=False)
     imagen = models.ImageField(upload_to='regalos', blank=True, null=True)
@@ -41,7 +60,6 @@ class Regalo(models.Model):
     )
 
     class Meta:
-        # Un número de boleto puede repetirse en diferentes eventos, pero no dentro del mismo evento
         unique_together = ('evento', 'numero')
 
     def get_canjeo_url(self):

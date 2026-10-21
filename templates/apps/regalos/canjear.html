@@ -1,108 +1,101 @@
 <c-layouts.base>
-    <!-- CSS DE LA CAJA ANIMADA -->
-    <style>
-        /* Animación de temblor en espera */
-        @keyframes boxShake {
-            0%, 100% { transform: rotate(0deg) scale(1); }
-            20% { transform: rotate(-3deg) scale(1.02); }
-            40% { transform: rotate(3deg) scale(1.02); }
-            60% { transform: rotate(-2deg) scale(1.01); }
-            80% { transform: rotate(2deg) scale(1.01); }
-        }
+    <!-- SCRIPT DE LOTTIE-WEB OFICIAL (CONTROL TOTAL POR JS) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 
-        /* Animación de apertura de la tapa */
-        @keyframes openLid {
-            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-            50% { transform: translateY(-120px) rotate(-25deg); opacity: 0.9; }
-            100% { transform: translateY(-300px) rotate(-45deg); opacity: 0; }
-        }
+    <div class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-base-300 via-base-200 to-base-300 relative overflow-hidden">
 
-        /* Emerger el premio */
-        @keyframes emergePremio {
-            0% { transform: scale(0.3) translateY(100px); opacity: 0; }
-            70% { transform: scale(1.1) translateY(-10px); }
-            100% { transform: scale(1) translateY(0); opacity: 1; }
-        }
+        <!-- DECORACIONES DE FONDO -->
+        <div class="absolute -top-12 -left-12 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-12 -right-12 w-48 h-48 bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        .animate-box-shake { animation: boxShake 2.5s infinite ease-in-out; }
-        .animate-lid-open { animation: openLid 0.9s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
-        .animate-emerge { animation: emergePremio 0.8s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; opacity: 0; }
-    </style>
-
-    <div class="min-h-screen flex items-center justify-center p-4 bg-base-200">
-        <div class="card w-full max-w-md bg-base-100 shadow-2xl border border-base-300 overflow-hidden">
-            <div class="card-body text-center p-6">
+        <div class="card w-full max-w-md bg-base-100/95 backdrop-blur-xl shadow-2xl border border-base-300/80 overflow-hidden relative z-10">
+            <div class="card-body text-center p-6 md:p-8">
 
                 {% if not regalo.canjeado %}
-                    <!-- FORMULARIO DE INGRESO DE NOMBRE -->
-                    <div class="inline-block mx-auto text-6xl mb-2 animate-bounce">🎁</div>
-                    <h1 class="card-title text-2xl font-black justify-center text-primary">
+                    <!-- ENCABEZADO DE INGRESO -->
+                    <div class="inline-flex p-4 bg-primary/10 rounded-2xl mb-2 mx-auto text-primary shadow-inner">
+                        <span class="text-4xl">🎁</span>
+                    </div>
+
+                    <h1 class="card-title text-3xl font-black justify-center text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">
                         ¡Gran Rifa Navideña!
                     </h1>
-                    <p class="text-base-content/80 font-medium">
-                        Boleto <span class="badge badge-warning badge-lg font-bold font-mono">#{{ regalo.numero|stringformat:"03d" }}</span>
-                    </p>
-                    <p class="text-sm text-base-content/70 mt-2">
-                        Escribe tu nombre para destapar tu regalo en vivo:
+                    <p class="text-base-content/80 font-semibold mt-1">
+                        Boleto <span
+                            class="badge badge-warning badge-lg font-black font-mono shadow-sm">#{{ regalo.numero|stringformat:"03d" }}</span>
                     </p>
 
-                    <form method="POST" class="mt-4 space-y-4">
-                        {% csrf_token %}
-                        <div class="form-control">
-                            <input
-                                type="text"
-                                name="ganador_nombre"
-                                placeholder="Tu nombre y apellido"
-                                required
-                                class="input input-bordered input-primary w-full text-center text-lg font-bold"
-                            />
+                    {% if invitados %}
+                        <p class="text-xs text-base-content/70 mt-4 font-bold uppercase tracking-wider">
+                            Selecciona o busca tu nombre para canjear:
+                        </p>
+
+                        <!-- FORMULARIO DE CANJE -->
+                        <form id="form-canjear" method="POST" class="mt-4 space-y-5">
+                            {% csrf_token %}
+                            <div class="form-control text-left w-full">
+                                {{ form }}
+                            </div>
+
+                            <button type="button" onclick="mostrarConfirmacion()"
+                                    class="btn btn-primary w-full text-lg font-black shadow-lg shadow-primary/30 hover:scale-[1.02] transition-transform">
+                                ¡Destapar Mi Regalo! 🚀
+                            </button>
+                        </form>
+                    {% else %}
+                        <!-- MENSAJE DE EVENTO COMPLETADO -->
+                        <div class="alert alert-info mt-6 shadow-md text-left border border-info/30">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                 class="stroke-current shrink-0 w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <h3 class="font-bold">¡Todos los invitados han participado!</h3>
+                                <div class="text-xs opacity-80">No hay más invitados pendientes por canjear regalo en
+                                    este evento.
+                                </div>
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-primary w-full text-lg shadow-lg">
-                            ¡Destapar Mi Regalo! 🚀
-                        </button>
-                    </form>
+                    {% endif %}
 
                 {% else %}
-                    <!-- ANIMACIÓN DE LA CAJA ABRIÉNDOSE EN EL MÓVIL -->
-                    <div class="relative min-h-[380px] flex flex-col justify-center items-center my-2">
+                    <!-- SECCIÓN DE APERTURA Y REVELACIÓN DEL REGALO -->
+                    <div class="relative min-h-[420px] flex flex-col justify-center items-center my-2">
 
-                        <!-- CAJA DE REGALO INTERACTIVA -->
-                        <div id="gift-box-container" class="relative w-48 h-48 cursor-pointer animate-box-shake" onclick="revelarPremioMovil()">
+                        <!-- CONTENEDOR DE LA ANIMACIÓN LOTTIE-WEB -->
+                        <div id="gift-box-container"
+                             class="cursor-pointer flex flex-col items-center group transition-transform hover:scale-105"
+                             onclick="revelarPremioMovil()">
 
-                            <!-- TAPA DEL REGALO -->
-                            <div id="gift-lid" class="absolute -top-4 -left-2 w-52 h-14 bg-red-600 rounded-lg shadow-lg z-20 flex items-center justify-center border-b-4 border-red-800">
-                                <div class="w-12 h-full bg-yellow-400"></div>
-                                <div class="absolute -top-6 w-16 h-8 bg-yellow-400 rounded-full border-2 border-yellow-500 shadow-sm"></div>
+                            <!-- Contenedor donde lottie-web renderizará la animación en pausa -->
+                            <div id="lottie-gift" style="width: 220px; height: 220px;"></div>
+
+                            <div id="click-prompt" class="badge badge-primary badge-lg font-black uppercase tracking-widest px-6 py-3 shadow-lg shadow-primary/20 animate-bounce mt-2">
+                                👇 ¡Toca para abrir! 👇
                             </div>
-
-                            <!-- CUERPO DE LA CAJA -->
-                            <div class="w-48 h-44 bg-red-500 rounded-b-2xl shadow-2xl flex items-center justify-center relative overflow-hidden border-2 border-red-700 z-10">
-                                <div class="w-12 h-full bg-yellow-400"></div>
-                                <div class="absolute w-full h-12 bg-yellow-400"></div>
-                            </div>
-
-                            <p class="mt-4 text-xs font-bold text-neutral-content/60 animate-pulse">
-                                👇 ¡Toca la caja para abrir!
-                            </p>
                         </div>
 
                         <!-- REVELACIÓN DEL PREMIO (OCULTO INICIALMENTE) -->
-                        <div id="premio-revealed" class="hidden flex-col items-center justify-center space-y-3 w-full">
-                            <div class="badge badge-success badge-lg text-white font-bold tracking-wider">
+                        <div id="premio-revealed"
+                             class="hidden flex-col items-center justify-center space-y-4 w-full animate-fade-in">
+                            <div class="badge badge-success badge-lg text-white font-black tracking-wider px-6 py-4 shadow-lg shadow-success/30 uppercase">
                                 🎉 ¡PREMIO DESBLOQUEADO! 🎉
                             </div>
 
-                            <h2 class="text-2xl font-black text-primary leading-tight mt-2">
+                            <h2 class="text-3xl font-black text-primary leading-tight mt-1 drop-shadow-sm">
                                 {{ regalo.nombre }}
                             </h2>
 
-                            <p class="text-sm font-semibold text-base-content/70">
-                                Ganador: <strong class="text-info">{{ regalo.ganador_nombre }}</strong>
-                            </p>
+                            <div class="bg-base-200/80 py-2 px-6 rounded-full border border-base-300 shadow-sm">
+                                <span class="text-xs text-base-content/60 font-bold uppercase tracking-wider">Ganador(a):</span>
+                                <strong class="text-info text-base ml-1 font-black">{{ regalo.ganador_nombre }}</strong>
+                            </div>
 
                             {% if regalo.imagen %}
-                                <figure class="rounded-2xl overflow-hidden bg-base-200 p-2 border border-base-300 w-full max-h-56">
-                                    <img src="{{ regalo.imagen.url }}" alt="{{ regalo.nombre }}" class="rounded-xl max-h-52 object-contain mx-auto" />
+                                <figure class="rounded-2xl overflow-hidden bg-base-200 p-3 border border-base-300 w-full max-h-56 shadow-inner">
+                                    <img src="{{ regalo.imagen.url }}" alt="{{ regalo.nombre }}"
+                                         class="rounded-xl max-h-48 object-contain mx-auto hover:scale-105 transition-transform duration-300"/>
                                 </figure>
                             {% endif %}
                         </div>
@@ -114,30 +107,120 @@
         </div>
     </div>
 
+    <!-- MODAL DE CONFIRMACIÓN DAISYUI -->
+    <dialog id="modal-confirmar" class="modal">
+        <div class="modal-box text-center border border-warning/30 backdrop-blur-xl">
+            <div class="inline-flex p-3 bg-warning/10 text-warning rounded-full mb-3">
+                <span class="text-3xl">⚠️</span>
+            </div>
+            <h3 class="font-black text-xl text-warning">Confirmar Canje</h3>
+            <p class="py-2 text-sm text-base-content/80 font-medium">
+                Estás a punto de asignar este regalo al participante:
+            </p>
+            <div class="badge badge-primary badge-lg font-black p-4 my-2 text-lg shadow-md" id="span-nombre-ganador">
+                -
+            </div>
+            <p class="text-xs text-base-content/60 mt-2">
+                Una vez confirmado, el regalo se registrará en vivo en la pantalla del evento.
+            </p>
+            <div class="modal-action justify-center gap-3 mt-6">
+                <button type="button" class="btn btn-ghost border border-base-300" onclick="cerrarConfirmacion()">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-success text-white font-black shadow-lg shadow-success/20"
+                        onclick="enviarFormulario()">
+                    Sí, Canjear Ahora 🚀
+                </button>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+    <!-- SCRIPT DE INTERACCIÓN -->
     <script>
+        let animacionRegalo;
+
+        // Inicializar Lottie en pausa al cargar la página
+        document.addEventListener("DOMContentLoaded", function () {
+            const contenedor = document.getElementById('lottie-gift');
+            if (contenedor) {
+                animacionRegalo = lottie.loadAnimation({
+                    container: contenedor,
+                    renderer: 'svg',
+                    loop: false,
+                    autoplay: false, // Pausada por defecto
+                    path: 'https://lottie.host/0f731e26-b070-4897-8746-aa468049e827/FhDrqdRK7d.json'
+                });
+            }
+
+            {% if regalo.canjeado and exito %}
+                setTimeout(revelarPremioMovil, 500);
+            {% endif %}
+        });
+
+        function mostrarConfirmacion() {
+            const inputNombre = document.getElementById('ganador_nombre') || document.querySelector('[name="ganador_nombre"]');
+            const spanNombre = document.getElementById('span-nombre-ganador');
+            const modal = document.getElementById('modal-confirmar');
+
+            if (!inputNombre || !inputNombre.value.trim()) {
+                if (inputNombre) inputNombre.reportValidity();
+                else alert('Por favor, selecciona un invitado.');
+                return;
+            }
+
+            let nombreTexto = inputNombre.value;
+            const select2Container = document.querySelector('.select2-selection__rendered');
+            if (select2Container && select2Container.textContent.trim() && select2Container.textContent.trim() !== 'Busca un invitado...') {
+                nombreTexto = select2Container.textContent.trim();
+            }
+
+            spanNombre.textContent = nombreTexto;
+            modal.showModal();
+        }
+
+        function cerrarConfirmacion() {
+            const modal = document.getElementById('modal-confirmar');
+            modal.close();
+        }
+
+        function enviarFormulario() {
+            document.getElementById('form-canjear').submit();
+        }
+
+        let yaAbierto = false;
+
         function revelarPremioMovil() {
-            const lid = document.getElementById('gift-lid');
+            if (yaAbierto) return;
+            yaAbierto = true;
+
+            const clickPrompt = document.getElementById('click-prompt');
             const boxContainer = document.getElementById('gift-box-container');
             const premio = document.getElementById('premio-revealed');
 
-            if (!lid || !boxContainer || !premio) return;
+            if (!boxContainer || !premio) return;
 
-            // Animar tapa
-            boxContainer.classList.remove('animate-box-shake');
-            lid.classList.add('animate-lid-open');
+            if (clickPrompt) clickPrompt.style.display = 'none';
 
+            // Reproducir la animación de Lottie de forma exacta
+            if (animacionRegalo) {
+                animacionRegalo.play();
+            }
+
+            // Cuando termine la animación (o tras 1.5s), ocultamos la caja y mostramos el premio
             setTimeout(() => {
-                boxContainer.classList.add('hidden');
-                premio.classList.remove('hidden');
-                premio.classList.add('flex', 'animate-emerge');
-            }, 600);
-        }
+                boxContainer.style.transform = "scale(0.8)";
+                boxContainer.style.opacity = "0";
+                boxContainer.style.transition = "all 0.4s ease-in-out";
 
-        // Si ya fue canjeado con anterioridad, abre la caja automáticamente a los 500ms
-        {% if regalo.canjeado and exito %}
-            window.addEventListener('DOMContentLoaded', () => {
-                setTimeout(revelarPremioMovil, 500);
-            });
-        {% endif %}
+                setTimeout(() => {
+                    boxContainer.classList.add('hidden');
+                    premio.classList.remove('hidden');
+                    premio.classList.add('flex');
+                }, 300);
+            }, 1400);
+        }
     </script>
 </c-layouts.base>

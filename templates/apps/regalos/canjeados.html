@@ -1,11 +1,24 @@
 <c-layouts.app>
+    <!-- ESTILO PARA ANIMACIÓN DE NUEVAS FILAS -->
+    <style>
+        @keyframes highlightRow {
+            0% { background-color: rgba(var(--p) / 0.25); transform: scale(1.01); }
+            100% { background-color: transparent; transform: scale(1); }
+        }
+        .animate-new-row {
+            animation: highlightRow 2.5s ease-out forwards;
+        }
+    </style>
+
     <div class="container mx-auto p-6 max-w-5xl">
 
         <!-- ENCABEZADO Y BOTÓN DE IMPRESIÓN -->
         <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
             <div>
                 <h1 class="text-3xl font-black text-primary">📋 Historial de Regalos Canjeados</h1>
-                <p class="text-sm text-base-content/70 mt-1">Lista completa de ganadores registrados en tiempo real.</p>
+                <p class="text-sm text-base-content/70 mt-1">
+                    Lista completa de ganadores de <strong class="text-primary">{{ evento.nombre }}</strong> registrados en tiempo real.
+                </p>
             </div>
             <button onclick="window.print()" class="btn btn-outline btn-primary gap-2 shadow-sm">
                 <span class="icon-[tabler--printer] text-lg"></span> Imprimir Lista
@@ -23,9 +36,9 @@
                         <th class="text-right">Fecha y Hora de Canje</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="tabla-body">
                     {% for regalo in regalo_list %}
-                        <tr class="hover">
+                        <tr class="hover transition-all">
                             <th class="text-center font-mono">
                                 <span class="badge badge-ghost font-bold">#{{ regalo.numero|stringformat:"03d" }}</span>
                             </th>
@@ -40,7 +53,7 @@
                             </td>
                         </tr>
                     {% empty %}
-                        <tr>
+                        <tr id="fila-vacia">
                             <td colspan="4" class="text-center py-16 text-base-content/40 italic">
                                 <span class="icon-[tabler--gift-off] text-4xl mb-2 block mx-auto"></span>
                                 Aún no hay regalos canjeados en el sistema.
@@ -53,19 +66,60 @@
 
     </div>
 
-    <!-- SCRIPT DE WEBSOCKETS -->
+    <!-- SCRIPT DE WEBSOCKETS CON INSERCIÓN DINÁMICA -->
     <script>
+        const eventoSlug = "{{ evento.slug }}";
         const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
-        const pantallaSocket = new WebSocket(`${wsScheme}://${window.location.host}/ws/regalos/pantalla/`);
+        const pantallaSocket = new WebSocket(`${wsScheme}://${window.location.host}/ws/regalos/pantalla/${eventoSlug}/`);
 
         pantallaSocket.onmessage = function (e) {
             const data = JSON.parse(e.data);
 
-            // Asegúrate de que este 'type' coincida con el que emites en tu backend/consumer
             if (data.type === "NUEVO_GANADOR" || data.type === "notificar_nuevo_ganador") {
-                // Recargamos la página para ordenar y traer el nuevo registro de la base de datos limpiamente
-                window.location.reload();
+                const ganador = data.ultimo_ganador;
+                if (!ganador) return;
+
+                const tablaBody = document.getElementById('tabla-body');
+                const filaVacia = document.getElementById('fila-vacia');
+
+                // Si es el primer canje, removemos el mensaje de 'Aún no hay regalos'
+                if (filaVacia) {
+                    filaVacia.remove();
+                }
+
+                // Generar fecha y hora actual en formato local
+                const ahora = new Date();
+                const fechaFormateada = ahora.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+                                       ' ' + ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+                // Crear nueva fila con la animación
+                const nuevaFila = document.createElement('tr');
+                nuevaFila.className = 'hover animate-new-row transition-all';
+                nuevaFila.innerHTML = `
+                    <th class="text-center font-mono">
+                        <span class="badge badge-ghost font-bold">#${ganador.numero}</span>
+                    </th>
+                    <td class="font-bold text-primary">${ganador.premio}</td>
+                    <td>
+                        <span class="badge badge-info/15 text-info font-medium gap-1 py-2 px-3 border-0">
+                            <span class="icon-[tabler--user]"></span> ${ganador.ganador}
+                        </span>
+                    </td>
+                    <td class="text-right text-xs text-base-content/70 font-mono">
+                        ${fechaFormateada}
+                    </td>
+                `;
+
+                // Insertar al principio de la tabla (arriba de todo)
+                tablaBody.insertBefore(nuevaFila, tablaBody.firstChild);
             }
+        };
+
+        pantallaSocket.onclose = function(e) {
+            console.log('WebSocket cerrado. Intentando reconectar...');
+            setTimeout(function() {
+                window.location.reload();
+            }, 5000);
         };
     </script>
 </c-layouts.app>

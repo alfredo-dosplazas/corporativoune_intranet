@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Inventario</title>
+    <style>
+        @page {
+            size: letter landscape;
+            margin: 1.5cm 1cm;
+            @bottom-right {
+                content: "Página " counter(page) " de " counter(pages);
+                font-size: 8pt;
+                font-family: Arial, sans-serif;
+            }
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 9pt;
+            color: #333;
+        }
+        .header {
+            border-bottom: 2px solid #1F497D;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+        .header h2 {
+            margin: 0;
+            color: #1F497D;
+        }
+        .header p {
+            margin: 3px 0 0 0;
+            font-size: 8pt;
+            color: #666;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th {
+            background-color: #1F497D;
+            color: white;
+            padding: 6px;
+            text-align: left;
+            font-size: 8.5pt;
+        }
+        td {
+            padding: 5px;
+            border-bottom: 1px solid #E0E0E0;
+        }
+        tr:nth-child(even) {
+            background-color: #F9F9F9;
+        }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .total-row {
+            font-weight: bold;
+            background-color: #E8EEF5 !important;
+            border-top: 2px solid #1F497D;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>Reporte de Inventario por Almacén</h2>
+        <p>Empresa: {{ empresa_nombre }} | Fecha de Reporte: {{ fecha_reporte }}</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 12%;">Almacén</th>
+                <th style="width: 10%;">Clave</th>
+                <th>Descripción</th>
+                <th style="width: 8%;" class="text-center">Línea</th>
+                <th style="width: 10%;" class="text-right">Cantidad</th>
+                <th style="width: 12%;" class="text-right">Costo Unit.</th>
+                <th style="width: 12%;" class="text-right">Valor Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in articulos %}
+            <tr>
+                <td>{{ item.almacen_nombre }}</td>
+                <td>{{ item.clave }}</td>
+                <td>{{ item.descripcion }}</td>
+                <td class="text-center">{{ item.linea }}</td>
+                <td class="text-right">{{ item.cantidad|floatformat:2 }}</td>
+                <td class="text-right">${{ item.costo_unitario|floatformat:2 }}</td>
+                <td class="text-right">${{ item.costo_total|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <td colspan="4" class="text-right">TOTALES:</td>
+                <td class="text-right">{{ total_piezas|floatformat:2 }}</td>
+                <td></td>
+                <td class="text-right">${{ valor_total_inventario|floatformat:2 }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+</body>
+</html>

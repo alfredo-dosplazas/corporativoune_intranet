@@ -65,6 +65,11 @@
                     <ul tabindex="0"
                         class="dropdown-content menu menu-xs bg-base-100 rounded-md border border-base-200 shadow-lg w-36 z-50 p-1">
                         <li>
+                            <a href="{% url 'regalos:import_regalos' evento.slug %}">
+                                <span class="icon-[ant-design--upload-outlined]"></span> Importar
+                            </a>
+                        </li>
+                        <li>
                             <a href="{% url 'regalos:pdf' evento.slug %}" target="_blank">
                                 <span class="icon-[arcticons--print]"></span> Imprimir
                             </a>

@@ -15,6 +15,16 @@
         </li>
     {% endif %}
 
+    {% if perms.regalos.view_invitado %}
+        <li>
+            <a href="{% url 'regalos:invitados__list' record.slug %}"
+               class="flex items-center gap-1.5 py-1 text-xs">
+                <span class="icon-[hugeicons--suit-01] text-xs text-base-content/60 shrink-0"></span>
+                <span>Invitados</span>
+            </a>
+        </li>
+    {% endif %}
+
     {% if perms.regalos.change_evento %}
         <li>
             <a href="{% url 'regalos:eventos__update' record.pk %}"

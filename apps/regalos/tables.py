@@ -4,6 +4,16 @@ from django_tables2 import tables
 from apps.core.tables import TableWithActions
 from apps.regalos.models import Regalo, Evento
 
+class InvitadoTable(TableWithActions):
+    actions_template = 'components/apps/regalos/invitados/table/actions.html'
+
+    class Meta:
+        model = Evento
+        fields = [
+            'nombre_completo',
+            'asistio',
+        ]
+
 
 class EventoTable(TableWithActions):
     actions_template = 'components/apps/regalos/eventos/table/actions.html'

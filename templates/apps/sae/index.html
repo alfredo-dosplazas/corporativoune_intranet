@@ -1,0 +1,80 @@
+<c-layouts.app class="flex flex-col h-screen overflow-hidden">
+    <c-slot name="header">
+        <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="icon-[tabler--layout-grid] text-primary text-base"></span>
+                <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">
+                    Módulos e Interfases SAE
+                </h1>
+            </div>
+            <span class="text-xs text-base-content/60">
+                Disponibles: <span class="font-semibold text-primary">{{ modulos|length }}</span>
+            </span>
+        </div>
+    </c-slot>
+
+    <!-- Contenedor principal scrollable -->
+    <div class="flex-1 overflow-y-auto p-4 sm:p-6 bg-base-200/30">
+        <div class="max-w-7xl mx-auto space-y-4">
+
+            <!-- Encabezado de sección / Descripción -->
+            <div class="flex flex-col gap-1">
+                <h2 class="text-sm font-bold text-base-content">Módulos Disponibles</h2>
+                <p class="text-xs text-base-content/60">
+                    Selecciona una herramienta para consultar reportes, inventarios y movimientos del sistema Aspel SAE.
+                </p>
+            </div>
+
+            <!-- Grilla de Tarjetas de Módulos -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {% for modulo in modulos %}
+                    <a href="{{ modulo.url }}"
+                       class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-200 group flex flex-col justify-between p-4 rounded-lg">
+
+                        <div class="space-y-3">
+                            <!-- Icono + Badge -->
+                            <div class="flex items-center justify-between">
+                                <div class="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-content transition-colors duration-200">
+                                    <span class="{{ modulo.icon }} text-lg"></span>
+                                </div>
+                                {% if modulo.badge %}
+                                    <span class="badge badge-sm badge-ghost border-base-300 text-[10px] font-medium text-base-content/70">
+                                        {{ modulo.badge }}
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Título y Descripción -->
+                            <div>
+                                <h3 class="font-bold text-xs sm:text-sm text-base-content group-hover:text-primary transition-colors flex items-center gap-1">
+                                    {{ modulo.title }}
+                                    <span class="icon-[tabler--chevron-right] text-xs opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200"></span>
+                                </h3>
+                                <p class="text-xs text-base-content/60 mt-1 line-clamp-2 leading-relaxed">
+                                    {{ modulo.description }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Footer de Tarjeta -->
+                        <div class="pt-3 mt-3 border-t border-base-100 flex items-center justify-between text-[11px] text-primary font-medium">
+                            <span>Acceder al módulo</span>
+                            <span class="icon-[tabler--arrow-right] text-xs group-hover:translate-x-1 transition-transform"></span>
+                        </div>
+                    </a>
+                {% empty %}
+                    <!-- Estado cuando no hay módulos permitidos -->
+                    <div class="col-span-full flex flex-col items-center justify-center py-12 text-center bg-base-100 rounded-lg border border-dashed border-base-300 p-6">
+                        <span class="icon-[tabler--shield-lock] text-3xl text-base-content/30 mb-2"></span>
+                        <h3 class="font-bold text-xs text-base-content">Sin acceso a módulos SAE</h3>
+                        <p class="text-xs text-base-content/60 max-w-sm mt-1">
+                            No tienes permisos asignados para consultar los módulos del sistema SAE. Contacta con el
+                            administrador.
+                        </p>
+                    </div>
+                {% endfor %}
+            </div>
+
+        </div>
+    </div>
+</c-layouts.app>

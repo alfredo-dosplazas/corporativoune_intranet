@@ -3,7 +3,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
-from django.views.defaults import bad_request
+from django.views.defaults import bad_request, permission_denied
 from django_js_reverse.views import urls_json
 
 urlpatterns = [
@@ -25,12 +25,14 @@ urlpatterns = [
                   path('resguardos/', include('apps.resguardos.urls')),
                   path('regalos/', include('apps.regalos.urls')),
                   path('infopantallas/', include('apps.infopantallas.urls')),
+                  path('sae/', include('apps.sae.urls')),
                   path('', include('apps.explorador.urls')),
                   path('', include('pwa.urls')),
                   path("jsreverse.json", urls_json, name="js_reverse"),
               ] + debug_toolbar_urls()
 
 handler400 = bad_request
+handler403 = permission_denied
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
