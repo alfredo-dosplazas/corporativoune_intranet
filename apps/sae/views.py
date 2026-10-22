@@ -145,7 +145,8 @@ class InventarioView(
         except (ValueError, TypeError):
             page = 1
 
-        active_fields_str = "_".join(sorted(self.get_active_fields()))
+        active_fields = self.get_active_fields()
+        active_fields_str = "_".join(sorted(active_fields))
         cache_key = f"sae_inv_{almacen_cve}_{q}_{active_fields_str}_p{page if not export_all else 'all'}"
         cached_res = cache.get(cache_key)
 
@@ -233,18 +234,23 @@ class InventarioView(
 
             resultados = query.all()
 
+            requires_images = 'imagen' in active_fields
+
             data = []
             for item in resultados:
                 exist = float(item.existencia or 0.0)
                 costo_u = float(item.costo_promedio or 0.0)
 
-                img_name = f"{item.cve_imagen}.jpg".strip() if item.cve_imagen else ''
                 img_url = ""
+                full_path = ""
 
-                if item.cve_imagen:
+                if requires_images and item.cve_imagen:
+                    img_name = f"{item.cve_imagen}.jpg".strip()
                     full_path = os.path.join(base_img_path, img_name)
-                    if os.path.exists(full_path):
-                        img_url = reverse('sae:inventario__imagen', kwargs={'suffix': suffix, 'filename': img_name})
+
+                    if not export_all:
+                        if os.path.exists(full_path):
+                            img_url = reverse('sae:inventario__imagen', kwargs={'suffix': suffix, 'filename': img_name})
 
                 data.append({
                     'almacen_clave': item.almacen_clave,
