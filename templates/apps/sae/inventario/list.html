@@ -7,19 +7,21 @@
             <div class="flex items-center gap-2 shrink-0">
                 <span class="icon-[tabler--packages] text-primary text-base"></span>
                 <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">
-                    Inventario por Almacén (Artículo, Cantidad y Costo)
+                    Inventario
                 </h1>
             </div>
 
             <!-- Búsqueda y Filtros -->
             <div class="flex items-center gap-2 flex-1 justify-end max-w-2xl">
                 <form method="get" action="" class="flex items-center gap-2 flex-1 max-w-sm">
+                    <!-- Búsqueda por texto -->
                     <input type="text"
                            name="q"
                            value="{{ request.GET.q|default:'' }}"
                            placeholder="Buscar clave o descripción..."
                            class="input input-xs w-full bg-base-100 border-base-300 h-7 text-xs"/>
 
+                    <!-- Selector de almacén -->
                     <select name="almacen" class="select select-xs bg-base-100 border-base-300 h-7 text-xs"
                             onchange="this.form.submit()">
                         <option value="">Todos los almacenes</option>
@@ -30,6 +32,12 @@
                             </option>
                         {% endfor %}
                     </select>
+
+                    {% for field_key, field_name in campos_disponibles.items %}
+                        {% if field_key in campos_activos %}
+                            <input type="hidden" name="campos" value="{{ field_key }}">
+                        {% endif %}
+                    {% endfor %}
                 </form>
 
                 <!-- Menú Exportar -->
@@ -49,6 +57,36 @@
             </div>
         </div>
     </c-slot>
+
+    <div class="dropdown dropdown-end">
+        <label tabindex="0" class="btn btn-sm btn-outline gap-2">
+            <span class="icon-[tabler--columns] size-4"></span>
+            Columnas
+        </label>
+        <form method="get" tabindex="0"
+              class="dropdown-content z-50 menu p-3 shadow-lg bg-base-100 rounded-box w-64 gap-2 border border-base-200">
+            <!-- Preservar otros filtros actuales (búsqueda, almacén, etc.) -->
+            {% if request.GET.almacen %}
+                <input type="hidden" name="almacen" value="{{ request.GET.almacen }}">{% endif %}
+            {% if request.GET.q %}<input type="hidden" name="q" value="{{ request.GET.q }}">{% endif %}
+
+            <span class="font-bold text-xs text-base-content/70 uppercase">Mostrar Columnas</span>
+            <div class="divider my-0"></div>
+
+            <div class="max-h-60 overflow-y-auto flex flex-col gap-1.5">
+                {% for field_key, field_name in campos_disponibles.items %}
+                    <label class="label cursor-pointer justify-start gap-2 py-0.5 hover:bg-base-200 rounded px-1">
+                        <input type="checkbox" name="campos" value="{{ field_key }}"
+                               class="checkbox checkbox-xs checkbox-primary"
+                               {% if field_key in campos_activos %}checked{% endif %}>
+                        <span class="label-text text-xs">{{ field_name }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="btn btn-xs btn-primary mt-2 w-full">Aplicar</button>
+        </form>
+    </div>
 
     <!-- Tabla -->
     <div class="flex flex-col flex-1 min-h-0 h-full w-full overflow-y-auto p-2">

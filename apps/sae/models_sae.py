@@ -108,6 +108,8 @@ class ArticuloMixin:
     costo_prom = Column('COSTO_PROM', Double())
     ult_costo = Column('ULT_COSTO', Double())
 
+    cve_imagen = Column('CVE_IMAGEN', String(16))
+
 
 class PartidaFacturaMixin:
     num_partida = Column('NUM_PAR', Integer, primary_key=True)

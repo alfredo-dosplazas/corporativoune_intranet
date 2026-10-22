@@ -17,7 +17,6 @@ class UsuarioTable(TableWithActions):
         fields = ("username", "email", "first_name", "last_name", "is_active", "contacto_status")
 
     def render_contacto_status(self, record):
-        # Revisa si la relación OneToOne existe
         contacto = getattr(record, 'contacto', None)
 
         if contacto:
@@ -28,13 +27,8 @@ class UsuarioTable(TableWithActions):
                 </a>
             ''')
 
-        # Si no tiene contacto, muestra badge + botón para crearlo pasando el ID del usuario
-        url_crear = f"{reverse('directorio:create')}?user_id={record.pk}"
         return mark_safe(f'''
             <div class="flex items-center gap-1.5">
                 <span class="badge badge-warning badge-xs font-medium">Falta Perfil</span>
-                <a href="{url_crear}" class="btn btn-primary btn-xs h-6 min-h-0 px-2 font-normal text-[11px]">
-                    <span class="icon-[tabler--user-plus] size-3"></span> Crear Contacto
-                </a>
             </div>
         ''')

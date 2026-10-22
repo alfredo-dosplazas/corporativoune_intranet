@@ -1,1 +1,39 @@
-<a href="{% url 'custom_auth:usuario__update' record.pk %}">Editar</a>
+{% comment %}
+  Acepta 'prefix' de forma opcional (por defecto "table")
+{% endcomment %}
+<c-vars prefix="table"/>
+
+<c-table.actions :record="record" :prefix="prefix">
+    {% if perms.directorio.add_contacto %}
+        <li>
+            <a href="{% url 'directorio:create' %}?user_id={{ record.pk }}"
+               class="flex items-center gap-1.5 py-1 text-xs">
+                <span class="icon-[tabler--user-plus] text-xs text-base-content/60 shrink-0"></span>
+                <span>Crear Contacto</span>
+            </a>
+        </li>
+    {% endif %}
+
+    <!-- 1. EDITAR USUARIO -->
+    {% if perms.auth.change_user %}
+        <li>
+            <a href="{% url 'custom_auth:usuario__update' record.pk %}"
+               class="flex items-center gap-1.5 py-1 text-xs">
+                <span class="icon-[tabler--edit] text-xs text-base-content/60 shrink-0"></span>
+                <span>Editar</span>
+            </a>
+        </li>
+    {% endif %}
+
+    <!-- 2. INICIAR SESIÓN COMO... (IMPERSONATE) -->
+    {% if request.user.is_staff and request.user.pk != record.pk %}
+        <li class="my-0.5 border-t border-base-200"></li>
+        <li>
+            <a href="{% url 'custom_auth:impersonate_user' record.pk %}"
+               class="flex items-center gap-1.5 py-1 text-xs text-warning hover:bg-warning/10 font-medium">
+                <span class="icon-[tabler--user-shield] text-xs shrink-0"></span>
+                <span>Iniciar Sesión Como...</span>
+            </a>
+        </li>
+    {% endif %}
+</c-table.actions>

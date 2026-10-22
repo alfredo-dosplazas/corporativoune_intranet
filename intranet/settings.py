@@ -97,12 +97,12 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'inertia.middleware.InertiaMiddleware',
+    # 'inertia.middleware.InertiaMiddleware',
     'apps.auditoria.middleware.UserAccessLogMiddleware',
     'apps.auditoria.middleware.AuditMiddleware',
     'django_htmx.middleware.HtmxMiddleware',
     "debug_toolbar.middleware.DebugToolbarMiddleware",
-    'apps.core.middleware.inertia_share',
+    # 'apps.core.middleware.inertia_share',
 ]
 
 AUTHENTICATION_BACKENDS = [
@@ -126,6 +126,7 @@ TEMPLATES = [
                 'apps.core.context_processors.empresa',
                 'apps.core.context_processors.navbar_menu',
                 'apps.core.context_processors.mobile_dock_menu',
+                'apps.custom_auth.context_processors.impersonation_status',
             ],
         },
     },
@@ -478,3 +479,7 @@ CHANNEL_LAYERS = {
 
 ONLYOFFICE_SERVER_URL = env('ONLYOFFICE_SERVER_URL', default='http://localhost/')  # O la IP/dominio de tu servidor OnlyOffice
 ONLYOFFICE_SECRET_KEY = env('ONLYOFFICE_SECRET_KEY')
+
+if DEBUG:
+    import os
+    os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"

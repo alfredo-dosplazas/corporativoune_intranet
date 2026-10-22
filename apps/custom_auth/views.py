@@ -1,6 +1,10 @@
+from django.conf import settings
+from django.contrib.auth import login
+from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.auth.models import User
 from django.contrib.messages.views import SuccessMessageMixin
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin
@@ -93,3 +97,37 @@ class UsuarioUpdateView(
             {'title': 'Usuarios', 'url': reverse('custom_auth:usuario__list')},
             {'title': 'Editar'},
         ]
+
+
+@user_passes_test(lambda u: u.is_staff)
+def impersonate_user(request, user_id):
+    """Permite a un admin iniciar sesión como otro usuario."""
+    # 1. Guardar el ID del admin actual ANTES de iniciar sesión con el otro usuario
+    admin_id = request.user.pk
+
+    target_user = get_object_or_404(User, pk=user_id)
+
+    backend = settings.AUTHENTICATION_BACKENDS[0]
+    target_user.backend = backend
+
+    # 2. Aquí Django regenera/limpia la sesión por seguridad
+    login(request, target_user, backend=backend)
+
+    # 3. Volvemos a inyectar el impersonator_id en la NUEVA sesión ya limpia
+    request.session['impersonator_id'] = admin_id
+    request.session.modified = True
+
+    return redirect('home')
+
+
+@user_passes_test(lambda u: u.is_authenticated)
+def stop_impersonating(request):
+    """Permite al admin regresar a su cuenta original."""
+    admin_id = request.session.pop('impersonator_id', None)
+
+    if admin_id:
+        backend = settings.AUTHENTICATION_BACKENDS[0]
+        admin_user = get_object_or_404(User, pk=admin_id)
+        login(request, admin_user, backend=backend)
+
+    return redirect('home')
