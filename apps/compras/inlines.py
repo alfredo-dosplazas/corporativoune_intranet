@@ -15,21 +15,22 @@ class DetalleOrdenInline(InlineFormSetFactory):
 
     def get_factory_kwargs(self):
         kwargs = super().get_factory_kwargs()
+        view = getattr(self, 'view', None)
 
-        view = self.view
-        if getattr(view, 'orden', None):
-            total = view.orden.detalle_orden.count()
-            kwargs['extra'] = total - 1
+        if view and getattr(view, 'orden', None):
+            # Asignamos extra exactamente con el número de partidas a duplicar
+            kwargs['extra'] = view.orden.detalle_orden.count()
         else:
             kwargs['extra'] = 1
 
         return kwargs
 
     def get_initial(self):
-        view = self.view
-        if not getattr(view, 'orden', None):
+        view = getattr(self, 'view', None)
+        if not view or not getattr(view, 'orden', None):
             return []
 
+        # Retornamos los diccionarios con los datos duplicados
         return [
             {
                 "descripcion": d.descripcion,

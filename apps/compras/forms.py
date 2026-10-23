@@ -112,6 +112,12 @@ class DetalleOrdenForm(forms.ModelForm):
             'descripcion': forms.Textarea(attrs={'rows': 2}),
         }
 
+    def has_changed(self) -> bool:
+        has_changed = super().has_changed()
+        if not has_changed and self.initial:
+            return True
+        return has_changed
+
 
 class ProveedorForm(forms.ModelForm):
     class Meta:

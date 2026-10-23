@@ -197,3 +197,9 @@ class DetalleRequisicionForm(forms.ModelForm):
         if cantidad is not None and cantidad < 1:
             raise ValidationError("La cantidad debe ser mayor a 0")
         return cantidad
+
+    def has_changed(self) -> bool:
+        has_changed = super().has_changed()
+        if not has_changed and self.initial:
+            return True
+        return has_changed

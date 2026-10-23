@@ -34,7 +34,15 @@ class RedExploradorView(PermissionRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         ruta_relativa = (self.kwargs.get("ruta") or "").strip("/")
 
-        server_root_str = str(settings.FP_SERVER_ROOT).rstrip("\\/")
+        # Obtener servidor y prefijo dinámicamente
+        server_root_attr = kwargs.get("server_root_attr", "FP_SERVER_ROOT")
+        url_prefix = kwargs.get("url_prefix", "explorador-red")
+
+        server_root_val = getattr(settings, server_root_attr, None)
+        if not server_root_val:
+            raise Http404(f"La configuración {server_root_attr} no existe en settings.")
+
+        server_root_str = str(server_root_val).rstrip("\\/")
         ad_user, ad_pass, ad_domain = self._obtener_credenciales_ad(self.request.user)
 
         carpetas = []
@@ -91,12 +99,13 @@ class RedExploradorView(PermissionRequiredMixin, TemplateView):
             raise PermissionDenied(
                 f"Tu usuario de Active Directory no tiene permisos o acceso a esta ruta: {error_str}")
 
+        # Breadcrumbs dinámicos según el url_prefix
         partes = [p for p in ruta_relativa.replace("\\", "/").split("/") if p]
-        breadcrumbs = [{"title": "Red Local", "url": "/explorador-red/"}]
+        breadcrumbs = [{"title": "Red Local", "url": f"/{url_prefix}/"}]
         acumulado = []
         for parte in partes:
             acumulado.append(parte)
-            breadcrumbs.append({"title": parte, "url": f"/explorador-red/{'/'.join(acumulado)}/"})
+            breadcrumbs.append({"title": parte, "url": f"/{url_prefix}/{'/'.join(acumulado)}/"})
 
         context.update({
             "carpetas": sorted(carpetas, key=lambda x: x["nombre"].lower()),
@@ -105,14 +114,16 @@ class RedExploradorView(PermissionRequiredMixin, TemplateView):
             "breadcrumbs": breadcrumbs,
             "smb_info": {"usuario": ad_user, "dominio": ad_domain},
             "ONLYOFFICE_SERVER_URL": settings.ONLYOFFICE_SERVER_URL,
+            "url_prefix": url_prefix,
         })
         return context
 
 
 @login_required
-def token_onlyoffice_view(request, ruta):
+def token_onlyoffice_view(request, ruta, server_root_attr="FP_SERVER_ROOT", url_prefix="explorador-red"):
     """Genera el token JWT firmado para OnlyOffice con opción de impresión habilitada."""
-    base_path = Path(str(settings.FP_SERVER_ROOT)).resolve()
+    server_root_val = getattr(settings, server_root_attr)
+    base_path = Path(str(server_root_val)).resolve()
     file_path = (base_path / ruta).resolve()
 
     if not str(file_path).startswith(str(base_path)) or not file_path.exists():
@@ -137,7 +148,7 @@ def token_onlyoffice_view(request, ruta):
         "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=5)
     }
     download_token = jwt.encode(download_payload, settings.ONLYOFFICE_SECRET_KEY, algorithm="HS256")
-    file_download_url = f"{settings.APP_URL}/explorador-red/archivo/{ruta}/?dl_token={download_token}"
+    file_download_url = f"{settings.APP_URL}/{url_prefix}/archivo/{ruta}/?dl_token={download_token}"
 
     document_config = {
         "fileType": ext,
@@ -161,7 +172,7 @@ def token_onlyoffice_view(request, ruta):
         "customization": {
             "autosave": False,
             "download": False,
-            "print": True,  # <--- Habilitado también en la barra de herramientas del visor
+            "print": True,
             "compactHeader": True,
         },
         "coEditing": {
@@ -188,11 +199,13 @@ def token_onlyoffice_view(request, ruta):
         }
     })
 
+
 @xframe_options_exempt
-def ver_archivo_red(request, ruta):
+def ver_archivo_red(request, ruta, server_root_attr="FP_SERVER_ROOT"):
     """Endpoint seguro para servir binarios usando la sesión de red autenticada."""
     dl_token = request.GET.get("dl_token")
-    base_path = Path(str(settings.FP_SERVER_ROOT)).resolve()
+    server_root_val = getattr(settings, server_root_attr)
+    base_path = Path(str(server_root_val)).resolve()
     file_path = (base_path / ruta).resolve()
 
     if not str(file_path).startswith(str(base_path)):

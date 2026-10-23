@@ -1,25 +1,19 @@
-import json
+from typing import Any
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.contrib.auth.models import User
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db import transaction
 from django.db.models import Q
-from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpResponse
+from django.http import HttpResponseForbidden
 from django.shortcuts import redirect, get_object_or_404
-from django.template.loader import render_to_string
 from django.urls import reverse
-from django.views import View
 from django.views.generic import DetailView, UpdateView
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin
 from django_tables2.export import ExportMixin
 from extra_views import SearchableListMixin, CreateWithInlinesView, NamedFormsetsMixin, UpdateWithInlinesView
-from inertia import render
-from playwright.sync_api import sync_playwright
 
-from apps.core.decorators import remember_filter_state
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.mixins.modulo_required import ModuloRequiredMixin
 from apps.core.mixins.responsive_view import ResponsiveViewModeMixin
@@ -28,10 +22,9 @@ from apps.core.mixins.title import PageTitleMixin
 from apps.core.utils.network import get_client_ip, ip_in_allowed_range
 from apps.directorio.filters import ContactoFilter
 from apps.directorio.forms import ContactoForm
-from apps.directorio.helpers import puede_eliminar_contacto, puede_ver_contacto
+from apps.directorio.helpers import puede_eliminar_contacto
 from apps.directorio.inlines import EmailContactoInline, TelefonoContactoInline
 from apps.directorio.models import Contacto
-from apps.directorio.serializers import ContactoSerializer
 from apps.directorio.tables import ContactoTable
 from apps.directorio.utils import obtener_sedes_permitidas
 
@@ -111,6 +104,11 @@ class ContactoCreateView(
     inlines = [EmailContactoInline, TelefonoContactoInline]
     inlines_names = ['Email', 'Telefono']
     success_message = 'Contacto creado correctamente.'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = get_object_or_404(User, pk=self.request.GET.get('user_id'))
+        return kwargs
 
     def get_success_url(self) -> str:
         return reverse('directorio:update', args=[self.object.pk])

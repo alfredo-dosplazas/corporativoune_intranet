@@ -8,7 +8,7 @@
         <!-- Logos de empresas -->
         <div class="flex flex-wrap justify-center sm:justify-end items-center gap-5 sm:gap-6">
             {% for empresa in empresas %}
-                {% if empresa.logo %}
+                {% if empresa.logo and empresa.abreviatura != 'EC' %}
                     <img src="{{ empresa.logo.url }}"
                          alt="{{ empresa.nombre }}"
                          class="size-6 brightness-0 invert opacity-90 hover:opacity-100 transition-opacity">

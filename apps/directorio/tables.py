@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.db.models import Value
 from django.db.models.functions import Coalesce, Concat, Lower
 from django.urls import reverse
@@ -19,61 +20,87 @@ class ContactoColumn(Column):
         super().__init__(**kwargs)
 
     def render(self, record):
-        contacto = record
+        obj = record
 
+        # Aplicar accessor si existe (ej: 'solicitante' o 'solicitante__contacto')
         if self.contacto_accessor:
             parts = self.contacto_accessor.split('__')
             for part in parts:
-                contacto = getattr(contacto, part, None)
+                if obj is not None:
+                    obj = getattr(obj, part, None)
 
-        if not contacto or not getattr(contacto, 'empresa', None):
+        if not obj:
             return "—"
 
-        empresa = contacto.empresa
+        is_user = isinstance(obj, User)
+
+        user_obj = obj if is_user else getattr(obj, 'usuario', None)
+        contacto_obj = obj if not is_user else getattr(obj, 'contacto', None)
+
+        # --- OBTENER NOMBRE ---
+        nombre_a_mostrar = "Sin nombre"
+        if user_obj and (user_obj.first_name or user_obj.last_name):
+            nombre_a_mostrar = f"{user_obj.first_name} {user_obj.last_name}".strip()
+        elif user_obj and user_obj.username:
+            nombre_a_mostrar = user_obj.username
+        elif contacto_obj and hasattr(contacto_obj, 'nombre_completo') and contacto_obj.nombre_completo:
+            nombre_a_mostrar = contacto_obj.nombre_completo
+
+        # --- EMPRESA Y TEMA ---
+        empresa = getattr(contacto_obj, 'empresa', None) if contacto_obj else None
         theme_attr = f'data-theme="{empresa.theme}"' if empresa and empresa.theme else ""
 
-        # --- AVATAR / FOTO ---
-        if contacto.foto:
+        # --- FOTO / AVATAR ---
+        foto = getattr(contacto_obj, 'foto', None) if contacto_obj else None
+        if foto:
             foto_html = f"""
                 <div {theme_attr} class="avatar bg-transparent">
                     <div class="w-10 h-10 rounded-full ring ring-primary/30 ring-offset-2 ring-offset-base-100">
-                        <img src="{contacto.foto.url}" alt="{contacto.nombre_completo}" loading="lazy" />
+                        <img src="{foto.url}" alt="{nombre_a_mostrar}" loading="lazy" />
                     </div>
                 </div>
             """
         else:
+            iniciales = getattr(contacto_obj, 'iniciales', None) if contacto_obj else None
+            if not iniciales:
+                palabras = nombre_a_mostrar.split()
+                iniciales = "".join([p[0].upper() for p in palabras[:2]]) if palabras else "?"
+
             foto_html = f"""
                 <div {theme_attr} class="avatar avatar-placeholder bg-transparent">
                     <div class="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold border border-primary/20">
-                        <span class="text-sm">{contacto.iniciales}</span>
+                        <span class="text-sm">{iniciales}</span>
                     </div>
                 </div>
             """
 
-        # --- BADGES DE ESTADO (Inactivo / Archivado) ---
+        # --- BADGES Y DETALLES ---
         estado_badge = ""
-        if contacto.es_inactivo:
+        if contacto_obj and getattr(contacto_obj, 'es_inactivo', False):
             estado_badge = '<span class="badge badge-error badge-xs font-semibold">Inactivo</span>'
 
         archivado_badge = ""
-        if contacto.esta_archivado:
+        if contacto_obj and getattr(contacto_obj, 'esta_archivado', False):
             archivado_badge = '<span class="badge badge-warning badge-xs ml-1">Archivado</span>'
 
-        # --- DETALLES DE ÁREA Y EMPRESA ---
+        area = getattr(contacto_obj, 'area', None) if contacto_obj else None
         area_html = ""
-        if contacto.area and self.mostrar_area:
-            area_html = f'<div class="text-xs text-base-content/60 truncate">{contacto.area.nombre}</div>'
+        if area and self.mostrar_area:
+            area_html = f'<div class="text-xs text-base-content/60 truncate">{area.nombre}</div>'
 
         empresa_html = ""
         if empresa and self.mostrar_empresa:
             empresa_html = f'<span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50">{empresa.nombre_corto}</span>'
 
+        # Enlace de redirección seguro (si tiene contacto usa su detalle, si no, solo muestra el texto o enlace vacio)
+        detalle_url = reverse('directorio:detail', args=(contacto_obj.id,)) if contacto_obj else "#"
+
         return mark_safe(f"""
-            <a {theme_attr} href="{reverse('directorio:detail', args=(contacto.id,))}" class="bg-transparent group flex items-center gap-3 min-w-[220px]">
+            <a {theme_attr} href="{detalle_url}" class="bg-transparent group flex items-center gap-3 min-w-[220px]">
                 {foto_html}
                 <div class="min-w-0">
                     <div class="font-medium text-sm text-base-content group-hover:text-primary transition-colors truncate flex items-center">
-                        <span class="truncate text-primary">{contacto.nombre_completo}</span>
+                        <span class="truncate text-primary">{nombre_a_mostrar}</span>
                         {archivado_badge}
                     </div>
                     {area_html}
@@ -88,17 +115,18 @@ class ContactoColumn(Column):
     def order(self, queryset, is_descending):
         prefix = "-" if is_descending else ""
 
+        # Ordenar considerando primero el nombre del usuario y respaldando con su contacto si existe
         queryset = queryset.annotate(
             nombre_usuario=Concat(
-                "usuario__first_name", Value(" "), "usuario__last_name"
+                "solicitante__first_name", Value(" "), "solicitante__last_name"
             ),
-            nombre_propio=Concat(
-                "primer_nombre", Value(" "),
-                Coalesce("segundo_nombre", Value("")), Value(" "),
-                "primer_apellido", Value(" "),
-                Coalesce("segundo_apellido", Value(""))
+            nombre_contacto=Concat(
+                "solicitante__contacto__primer_nombre", Value(" "),
+                Coalesce("solicitante__contacto__segundo_nombre", Value("")), Value(" "),
+                "solicitante__contacto__primer_apellido", Value(" "),
+                Coalesce("solicitante__contacto__segundo_apellido", Value(""))
             ),
-            nombre_orden=Lower(Coalesce("nombre_usuario", "nombre_propio")),
+            nombre_orden=Lower(Coalesce("nombre_usuario", "nombre_contacto", "solicitante__username")),
         ).order_by(f"{prefix}nombre_orden")
 
         return (queryset, True)

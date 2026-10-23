@@ -35,14 +35,14 @@ class RequisicionTable(TableWithActions):
     )
 
     solicitante = ContactoColumn(
-        accessor='solicitante__contacto',
-        contacto_accessor='solicitante__contacto',
+        accessor='solicitante',
+        contacto_accessor='solicitante',
         verbose_name='Solicitante'
     )
 
     aprobador = ContactoColumn(
-        accessor='aprobador__contacto',
-        contacto_accessor='aprobador__contacto',
+        accessor='aprobador',
+        contacto_accessor='aprobador',
         verbose_name='Aprobador'
     )
 

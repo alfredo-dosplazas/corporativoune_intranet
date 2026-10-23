@@ -2,11 +2,10 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column, HTML, Div
 from dal import autocomplete
 from django import forms
-from django.core.exceptions import ValidationError
 
 from apps.core.models import Empresa
 from apps.directorio.models import Contacto, Sede
-from apps.directorio.utils import es_frescopack, obtener_sedes_permitidas
+from apps.directorio.utils import obtener_sedes_permitidas
 from apps.rrhh.models.areas import Area
 from apps.rrhh.models.puestos import Puesto
 
@@ -169,3 +168,15 @@ class ContactoForm(forms.ModelForm):
 
         self._aplicar_filtros_permisos()
         self._construir_layout()
+
+    def save(self, commit: bool = True):
+        instance = super().save(commit=False)
+
+        if self.user and instance.usuario is None:
+            instance.usuario = self.user
+
+        if commit:
+            instance.save()
+            self.save_m2m()
+
+        return instance

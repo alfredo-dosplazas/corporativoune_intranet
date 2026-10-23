@@ -42,7 +42,7 @@ class SAEView(
                 'description': 'Consulta de existencias, cantidades y costos desglosados por almacén.',
                 'icon': 'icon-[tabler--packages]',
                 'url': reverse('sae:inventario__list'),
-                'permission': 'apps.sae.view_inventario',
+                'permission': 'sae.view_inventario',
                 'badge': 'Existencias',
             },
         ]

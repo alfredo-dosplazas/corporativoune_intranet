@@ -388,7 +388,7 @@ class RequisicionDuplicate(
 
     def get_initial(self) -> dict[str, Any]:
         initial = super().get_initial()
-        initial['notas'] = f'Duplicada de {self.get_object()}'
+        initial['notas'] = f'Duplicada de {self.requisicion}'
         return initial
 
     def get_form_kwargs(self):
@@ -397,7 +397,7 @@ class RequisicionDuplicate(
         return kwargs
 
     def get_success_url(self):
-        return reverse('papeleria:requisiciones__update', args=(self.get_object().id,))
+        return reverse('papeleria:requisiciones__update', args=(self.object.id,))
 
     def get_breadcrumbs(self):
         return [
