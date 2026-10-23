@@ -28,6 +28,7 @@
         let indiceActual = 0;
         let timerActual = null;
         let reproduciendo = false;
+        let safetyTimeout = null; // Temporizador de respaldo anti-congelamiento
 
         const imgElement = document.getElementById('slide-imagen');
         const videoElement = document.getElementById('slide-video');
@@ -38,7 +39,15 @@
                 clearTimeout(timerActual);
                 timerActual = null;
             }
-            // Pausamos el video de forma segura atrapando cualquier AbortError
+            if (safetyTimeout) {
+                clearTimeout(safetyTimeout);
+                safetyTimeout = null;
+            }
+            // Limpiamos eventos previos para evitar ejecuciones duplicadas
+            videoElement.onended = null;
+            videoElement.onerror = null;
+            imgElement.onerror = null;
+
             videoElement.pause();
             videoElement.currentTime = 0;
         }
@@ -67,12 +76,11 @@
             reproduciendo = true;
 
             if (item.tipo === 'imagen') {
-                // Detenemos por completo el video y limpiamos su fuente
                 videoElement.pause();
                 videoElement.removeAttribute('src');
+                videoElement.load();
                 videoElement.classList.add('opacity-0');
 
-                // Asignamos el manejador de error SOLO para esta imagen activa
                 imgElement.onerror = () => {
                     console.warn(`Error cargando imagen (${item.nombre}), saltando al siguiente.`);
                     reproducirSiguiente();
@@ -81,25 +89,32 @@
                 imgElement.src = item.url;
                 imgElement.classList.remove('opacity-0');
 
+                const duracionMs = (item.duracion || 8) * 1000;
                 timerActual = setTimeout(() => {
                     reproducirSiguiente();
-                }, (item.duracion || 8) * 1000);
+                }, duracionMs);
 
             } else if (item.tipo === 'video') {
-                // Limpiamos el manejador de error de la imagen para que no dispare falsos positivos
-                imgElement.onerror = null;
-                imgElement.removeAttribute('src');
                 imgElement.classList.add('opacity-0');
+                imgElement.removeAttribute('src');
 
-                // Asignamos el manejador de error SOLO para este video activo
-                videoElement.onerror = () => {
-                    console.warn(`Error en el video (${item.nombre}), saltando al siguiente.`);
+                videoElement.onerror = (e) => {
+                    console.warn(`Error en el video (${item.nombre}), saltando al siguiente.`, e);
                     reproducirSiguiente();
                 };
 
+                // Bandera para evitar doble salto si 'ended' y el 'safety' chocan
+                let yaSalto = false;
+                const saltarUnico = () => {
+                    if (!yaSalto) {
+                        yaSalto = true;
+                        reproducirSiguiente();
+                    }
+                };
+
                 videoElement.onended = () => {
-                    console.log(`Video finalizado: ${item.nombre}`);
-                    reproducirSiguiente();
+                    console.log(`Video finalizado correctamente: ${item.nombre}`);
+                    saltarUnico();
                 };
 
                 videoElement.src = item.url;
@@ -108,13 +123,22 @@
                 const playPromise = videoElement.play();
                 if (playPromise !== undefined) {
                     playPromise.catch(err => {
-                        // Ignoramos el error por interrupción de pausa para evitar bucles asíncronos
-                        if (err.name !== 'AbortError') {
-                            console.warn("Error reproduciendo video:", err);
-                            reproducirSiguiente();
-                        }
+                        console.warn("Error reproduciendo video (autoplay policy o codec):", err);
+                        saltarUnico();
                     });
                 }
+
+                // SEGURIDAD (WATCHDOG): Si el video dura X segundos, le damos un margen extra de 5 segundos.
+                // Si por alguna razón el navegador se cuelga y no lanza 'onended', este timer forzará el cambio de slide.
+                const duracionEstimadaMs = ((item.duracion && item.duracion > 0 ? item.duracion : 15) + 5) * 1000;
+                safetyTimeout = setTimeout(() => {
+                    if (!videoElement.paused && videoElement.currentTime > 0) {
+                        // Si el video sigue reproduciéndose después del tiempo estimado, dejamos que siga un poco más o forzamos si se trabó
+                        return;
+                    }
+                    console.warn(`Watchdog: El video ${item.nombre} tardó demasiado o se congeló. Forzando siguiente.`);
+                    saltarUnico();
+                }, Math.max(duracionEstimadaMs, 30000)); // Mínimo 30s de respaldo si no trae duración
             }
         }
 
