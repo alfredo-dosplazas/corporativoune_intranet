@@ -80,6 +80,12 @@ class EventoListView(
 
         return qs.filter(sede=contacto.sede_administrativa)
 
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Eventos'},
+        ]
+
 
 class EventoCreateView(
     PermissionRequiredMixin,

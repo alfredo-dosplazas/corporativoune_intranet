@@ -2,8 +2,6 @@
 
     <!-- HEADER UNIFICADO DE LA APP (Navbar + Breadcrumbs / Control Panel) -->
     <header class="bg-base-100 border-b border-base-200 shrink-0 z-30 shadow-2xs">
-        <c-shared.navbar/>
-
         {% if is_impersonating %}
             <div class="bg-warning text-warning-content px-4 py-1.5 text-xs font-semibold flex justify-between items-center z-50 sticky top-0 shadow-md">
                 <span>Usuario Admin: <strong>{{ impersonator_user }}</strong></span>
@@ -12,6 +10,8 @@
                     cuenta</a>
             </div>
         {% endif %}
+
+        <c-shared.navbar/>
 
         <!-- Breadcrumbs estándar (siempre visibles si existen) -->
         {% if breadcrumbs %}

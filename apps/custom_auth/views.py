@@ -36,7 +36,7 @@ class UsuarioListView(
     model = User
     table_class = UsuarioTable
     filterset_fields = ['is_superuser', 'is_staff', 'is_active']
-    paginate_by = 12
+    paginate_by = 24
     search_fields = ['username', 'email']
     export_name = 'Usuarios'
 
