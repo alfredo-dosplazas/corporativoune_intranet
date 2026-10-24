@@ -151,8 +151,8 @@ class Command(BaseCommand):
 
                 req, _ = Requisicion.objects.update_or_create(
                     id=req_id,
+                    folio=folio_legacy,
                     defaults={
-                        'folio': folio_legacy,
                         'folio_consecutivo': consecutivo,
                         'estado': str(row[2]).lower() if row[2] else 'borrador',
                         'solicitante': solicitante,
