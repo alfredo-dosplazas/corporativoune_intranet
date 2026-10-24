@@ -150,7 +150,6 @@ class Command(BaseCommand):
                         pass
 
                 req, _ = Requisicion.objects.update_or_create(
-                    id=req_id,
                     folio=folio_legacy,
                     defaults={
                         'folio_consecutivo': consecutivo,
