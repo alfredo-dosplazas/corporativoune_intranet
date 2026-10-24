@@ -216,9 +216,9 @@ class Command(BaseCommand):
 
                 DetalleRequisicion.objects.update_or_create(
                     requisicion=requisicion_obj,
+                    articulo=articulo_obj,
+                    cantidad=cantidad,
                     defaults={
-                        'articulo': articulo_obj,
-                        'cantidad': cantidad,
                         'cantidad_autorizada': cantidad if requisicion_obj.estado in ['completada',
                                                                                       'autorizada_contraloria'] else 0,
                         'precio_unitario': precio_unitario,
