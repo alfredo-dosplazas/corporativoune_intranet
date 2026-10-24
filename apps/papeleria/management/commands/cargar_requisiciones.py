@@ -106,26 +106,25 @@ class Command(BaseCommand):
         # ==========================================
         self.stdout.write("📋 Cargando requisiciones desde BD legacy...")
         cursor.execute("""
-            SELECT 
-                id,                     -- 0
-                folio,                  -- 1
-                estado,                 -- 2
-                fecha_solicitud,        -- 3
-                fecha_actualizacion,    -- 4
-                autoriza_solicitante,   -- 5
-                autoriza_jefe_area,     -- 6
-                autoriza_compras,       -- 7
-                autoriza_contraloria,   -- 8
-                observaciones,          -- 9
-                aprobador_id,           -- 10 (Empleado ID)
-                empresa_id,             -- 11
-                encargado_compras_id,   -- 12 (Empleado ID)
-                solicitante_id,         -- 13 (Empleado ID)
-                contraloria_id,         -- 14 (Empleado ID)
-                es_urgente,             -- 15
-                notas                   -- 16
-            FROM papeleria_requisicion
-        """)
+                       SELECT id,                   -- 0
+                              folio,                -- 1
+                              estado,               -- 2
+                              fecha_solicitud,      -- 3
+                              fecha_actualizacion,  -- 4
+                              autoriza_solicitante, -- 5
+                              autoriza_jefe_area,   -- 6
+                              autoriza_compras,     -- 7
+                              autoriza_contraloria, -- 8
+                              observaciones,        -- 9
+                              aprobador_id,         -- 10 (Empleado ID)
+                              empresa_id,           -- 11
+                              encargado_compras_id, -- 12 (Empleado ID)
+                              solicitante_id,       -- 13 (Empleado ID)
+                              contraloria_id,       -- 14 (Empleado ID)
+                              es_urgente,           -- 15
+                              notas                 -- 16
+                       FROM papeleria_requisicion
+                       """)
 
         requisiciones_legacy = cursor.fetchall()
         req_creadas = 0
@@ -186,9 +185,9 @@ class Command(BaseCommand):
         # PASO 2: MIGRACIÓN DE DETALLES
         # ==========================================
         cursor.execute("""
-            SELECT id, cantidad, concepto, articulo_id, requisicion_id
-            FROM papeleria_detallerequisicion
-        """)
+                       SELECT id, cantidad, concepto, articulo_id, requisicion_id
+                       FROM papeleria_detallerequisicion
+                       """)
         detalles_legacy = cursor.fetchall()
 
         articulos_dict = {a.id: a for a in Articulo.objects.all()}
@@ -216,9 +215,8 @@ class Command(BaseCommand):
                 precio_unitario = getattr(articulo_obj, 'precio', 0.0)
 
                 DetalleRequisicion.objects.update_or_create(
-                    id=det_id,
+                    requisicion=requisicion_obj,
                     defaults={
-                        'requisicion': requisicion_obj,
                         'articulo': articulo_obj,
                         'cantidad': cantidad,
                         'cantidad_autorizada': cantidad if requisicion_obj.estado in ['completada',
