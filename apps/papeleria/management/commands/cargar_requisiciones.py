@@ -202,7 +202,7 @@ class Command(BaseCommand):
                 det_id = row[0]
                 cantidad = row[1] or 1
                 articulo_id = row[3]
-                requisicion_folio = row[4]
+                requisicion_folio = row[5]
 
                 articulo_obj = articulos_dict.get(articulo_id)
                 requisicion_obj = requisiciones_dict.get(requisicion_folio)
