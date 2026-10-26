@@ -204,7 +204,7 @@ class Command(BaseCommand):
                 requisicion_id = row[4]
 
                 articulo_obj = articulos_dict.get(articulo_id)
-                requisicion_obj = requisiciones_dict.get(requisicion_id)
+                requisicion_obj = Requisicion.objects.get(folio=folio_legacy)
 
                 if not articulo_obj or not requisicion_obj:
                     self.stdout.write(
