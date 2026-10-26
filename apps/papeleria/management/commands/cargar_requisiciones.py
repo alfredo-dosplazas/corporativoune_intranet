@@ -185,7 +185,7 @@ class Command(BaseCommand):
         # PASO 2: MIGRACIÓN DE DETALLES
         # ==========================================
         cursor.execute("""
-                       SELECT id, cantidad, concepto, pa.codigo_vs_dp, requisicion_id
+                       SELECT pdr.id, cantidad, concepto, pa.codigo_vs_dp, requisicion_id
                        FROM papeleria_detallerequisicion pdr
                        JOIN papeleria_articulo pa ON pa.articulo_id = pdr.articulo_id
                        """)
