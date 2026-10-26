@@ -106,8 +106,11 @@ class ContactoCreateView(
     success_message = 'Contacto creado correctamente.'
 
     def get_form_kwargs(self):
+        user_id = self.request.GET.get('user_id')
         kwargs = super().get_form_kwargs()
-        kwargs['user'] = get_object_or_404(User, pk=self.request.GET.get('user_id'))
+
+        if user_id:
+            kwargs['user'] = get_object_or_404(User, pk=self.request.GET.get('user_id'))
         return kwargs
 
     def get_success_url(self) -> str:

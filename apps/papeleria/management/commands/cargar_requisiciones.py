@@ -185,12 +185,13 @@ class Command(BaseCommand):
         # PASO 2: MIGRACIÓN DE DETALLES
         # ==========================================
         cursor.execute("""
-                       SELECT id, cantidad, concepto, articulo_id, requisicion_id
-                       FROM papeleria_detallerequisicion
+                       SELECT id, cantidad, concepto, pa.codigo_vs_dp, requisicion_id
+                       FROM papeleria_detallerequisicion pdr
+                       JOIN papeleria_articulo pa ON pa.articulo_id = pdr.articulo_id
                        """)
         detalles_legacy = cursor.fetchall()
 
-        articulos_dict = {a.id: a for a in Articulo.objects.all()}
+        articulos_dict = {a.codigo_vs_dp: a for a in Articulo.objects.all()}
         requisiciones_dict = {r.id: r for r in Requisicion.objects.all()}
 
         detalles_creados = 0
@@ -199,16 +200,16 @@ class Command(BaseCommand):
             for row in detalles_legacy:
                 det_id = row[0]
                 cantidad = row[1] or 1
-                articulo_id = row[3]
+                codigo_vs_dp = row[3]
                 requisicion_id = row[4]
 
-                articulo_obj = articulos_dict.get(articulo_id)
+                articulo_obj = articulos_dict.get(codigo_vs_dp)
                 requisicion_obj = requisiciones_dict.get(requisicion_id)
 
                 if not articulo_obj or not requisicion_obj:
                     self.stdout.write(
                         self.style.WARNING(
-                            f"⚠️ Omite detalle #{det_id}: Requisición {requisicion_id} o Artículo {articulo_id} no existen en destino.")
+                            f"⚠️ Omite detalle #{det_id}: Requisición {requisicion_id} o Artículo {codigo_vs_dp} no existen en destino.")
                     )
                     continue
 
