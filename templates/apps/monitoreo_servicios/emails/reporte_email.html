@@ -9,28 +9,24 @@
             -webkit-text-size-adjust: 100%;
             -ms-text-size-adjust: 100%;
         }
-
         table, td {
             mso-table-lspace: 0pt;
             mso-table-rspace: 0pt;
         }
-
         img {
             -ms-interpolation-mode: bicubic;
             border: 0;
             outline: none;
             text-decoration: none;
         }
-
         body {
             margin: 0 !important;
             padding: 0 !important;
             width: 100% !important;
-            background-color: #f4f6f9;
+            background-color: #f1f5f9;
             font-family: Arial, Helvetica, sans-serif;
-            color: #333333;
+            color: #1e293b;
         }
-
         .badge {
             display: inline-block;
             padding: 4px 8px;
@@ -39,45 +35,54 @@
             border-radius: 4px;
             text-transform: uppercase;
         }
-
-        .badge-success {
-            background-color: #d1fae5;
-            color: #065f46;
-        }
-
-        .badge-danger {
-            background-color: #fee2e2;
-            color: #991b1b;
-        }
-
-        .badge-warning {
-            background-color: #fef3c7;
-            color: #92400e;
-        }
+        .badge-success { background-color: #d1fae5; color: #065f46; }
+        .badge-danger { background-color: #fee2e2; color: #991b1b; }
+        .badge-warning { background-color: #fef3c7; color: #92400e; }
     </style>
 </head>
-<body style="margin: 0; padding: 20px; background-color: #f4f6f9;">
+<body style="margin: 0; padding: 20px; background-color: #f1f5f9;">
 
 <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%"
-       style="max-width: 680px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); border: 1px solid #e5e7eb;">
+       style="max-width: 680px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); border: 1px solid #cbd5e1;">
 
-    <!-- ENCABEZADO -->
+    <!-- ENCABEZADO CORPORATIVO -->
     <tr>
-        <td style="background-color: #1e293b; padding: 24px; text-align: left; border-bottom: 4px solid #2563eb;">
+        <td style="background-color: #0f172a; padding: 20px 24px; border-bottom: 4px solid #375CF3;">
             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
                     <td>
-                        <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: bold; letter-spacing: -0.5px;">
+                        <h1 style="color: #ffffff; margin: 0; font-size: 18px; font-weight: bold; letter-spacing: -0.5px;">
                             📊 Reporte Semanal de Servicios de TI
                         </h1>
-                        <p style="color: #94a3b8; margin: 4px 0 0 0; font-size: 13px;">
-                            Monitoreo Integral de Infraestructura y Redes
+                        <p style="color: #94a3b8; margin: 4px 0 0 0; font-size: 12px;">
+                            Monitoreo Integral de Infraestructura y Redes Corporativas
                         </p>
                     </td>
-                    <td align="right" style="color: #94a3b8; font-size: 12px; white-space: nowrap;">
+                    <td align="right" style="color: #94a3b8; font-size: 11px; white-space: nowrap; vertical-align: top;">
                         {{ "now"|date:"d/m/Y H:i" }}
                     </td>
                 </tr>
+                {% if empresas %}
+                <tr>
+                    <td colspan="2" style="padding-top: 14px;">
+                        <table border="0" cellspacing="0" cellpadding="0">
+                            <tr>
+                                <td style="font-size: 11px; color: #94a3b8; padding-right: 10px; text-transform: uppercase; font-weight: bold;">Empresas:</td>
+                                {% for empresa in empresas %}
+                                    {% if empresa.logo %}
+                                        <td style="padding-right: 8px;">
+                                            <img src="{{ empresa.logo.url }}"
+                                                 alt="{{ empresa.nombre }}"
+                                                 height="22"
+                                                 style="height: 22px; display: block; background-color: #ffffff; padding: 2px 4px; border-radius: 4px;">
+                                        </td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                {% endif %}
             </table>
         </td>
     </tr>
@@ -85,43 +90,32 @@
     <!-- CONTENIDO PRINCIPAL -->
     <tr>
         <td style="padding: 24px;">
+
             <!-- ================= 1. SECCIÓN CCTV ================= -->
-            <h3 style="font-size: 15px; color: #1e293b; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px;">
+            <h3 style="font-size: 14px; color: #0f172a; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; text-transform: uppercase;">
                 📷 Estado del Sistema CCTV
             </h3>
 
-            <!-- KPIs CCTV -->
             <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 16px;">
                 <tr>
-                    <td width="32%"
-                        style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; text-align: center;">
-                        <div style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase;">
-                            Total Cámaras
-                        </div>
-                        <div style="font-size: 18px; font-weight: bold; color: #0f172a; margin-top: 4px;">{{ total_camaras }}</div>
+                    <td width="32%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; text-align: center;">
+                        <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">Total Cámaras</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #0f172a; margin-top: 4px;">{{ total_camaras }}</div>
                     </td>
                     <td width="2%"></td>
-                    <td width="32%"
-                        style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; text-align: center;">
-                        <div style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase;">
-                            Operativas
-                        </div>
-                        <div style="font-size: 18px; font-weight: bold; color: #16a34a; margin-top: 4px;">{{ camaras_ok }}</div>
+                    <td width="32%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; text-align: center;">
+                        <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">Operativas</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #16a34a; margin-top: 4px;">{{ camaras_ok }}</div>
                     </td>
                     <td width="2%"></td>
-                    <td width="32%"
-                        style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; text-align: center;">
-                        <div style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase;">Sin
-                            Señal
-                        </div>
-                        <div style="font-size: 18px; font-weight: bold; color: #dc2626; margin-top: 4px;">{{ camaras_falla }}</div>
+                    <td width="32%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; text-align: center;">
+                        <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">Sin Señal</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #dc2626; margin-top: 4px;">{{ camaras_falla }}</div>
                     </td>
                 </tr>
             </table>
 
-            <!-- Detalle NVRs con Rango de Grabación -->
-            <table width="100%" border="0" cellspacing="0" cellpadding="6"
-                   style="margin-bottom: 24px; border-collapse: collapse; font-size: 13px;">
+            <table width="100%" border="0" cellspacing="0" cellpadding="6" style="margin-bottom: 24px; border-collapse: collapse; font-size: 12px;">
                 <thead>
                 <tr style="background-color: #f1f5f9; color: #475569; text-align: left;">
                     <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">NVR / Ubicación</th>
@@ -135,10 +129,9 @@
                 {% for nvr in reporte_cctv %}
                     <tr style="border-bottom: 1px solid #f1f5f9;">
                         <td style="padding: 8px; font-weight: bold; color: #334155;">{{ nvr.nvr }}</td>
-                        <td style="padding: 8px; font-size: 12px; color: #475569;">
+                        <td style="padding: 8px; color: #475569;">
                             {% if nvr.grabando_desde and nvr.grabando_hasta %}
-                                <strong>{{ nvr.grabando_desde|date:"d/m/Y" }}</strong> al
-                                <strong>{{ nvr.grabando_hasta|date:"d/m/Y" }}</strong>
+                                <strong>{{ nvr.grabando_desde|date:"d/m/Y" }}</strong> al <strong>{{ nvr.grabando_hasta|date:"d/m/Y" }}</strong>
                             {% else %}
                                 <span style="color: #94a3b8;">—</span>
                             {% endif %}
@@ -154,42 +147,28 @@
                         </td>
                     </tr>
                 {% empty %}
-                    <tr>
-                        <td colspan="5" style="padding: 10px; text-align: center; color: #94a3b8;">Sin datos de CCTV
-                            registrados
-                        </td>
-                    </tr>
+                    <tr><td colspan="5" style="padding: 10px; text-align: center; color: #94a3b8;">Sin datos de CCTV registrados</td></tr>
                 {% endfor %}
                 </tbody>
             </table>
 
             <!-- ================= 2. SECCIÓN iDRAC (SERVIDOR) ================= -->
-            <h3 style="font-size: 15px; color: #1e293b; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px;">
+            <h3 style="font-size: 14px; color: #0f172a; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; text-transform: uppercase;">
                 🖥️ Reporte de Servidor (iDRAC)
             </h3>
 
-            <!-- KPIs iDRAC -->
             <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 12px;">
                 <tr>
-                    <td width="48%"
-                        style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; vertical-align: top;">
-                        <div style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase;">
-                            Estado / Salud
-                        </div>
-                        <div style="font-size: 14px; font-weight: bold; margin-top: 4px;">
-                            Estado: <span
-                                class="{% if sistema.estado == 'Enabled' %}text-success{% else %}text-error{% endif %}">{{ sistema.estado }}</span>
-                            |
-                            Salud: <span
-                                class="{% if sistema.salud == 'OK' %}text-success{% else %}text-warning{% endif %}">{{ sistema.salud }}</span>
+                    <td width="48%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; vertical-align: top;">
+                        <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">Estado / Salud</div>
+                        <div style="font-size: 13px; font-weight: bold; margin-top: 4px;">
+                            Estado: <span style="color: {% if sistema.estado == 'Enabled' %}#16a34a{% else %}#dc2626{% endif %};">{{ sistema.estado }}</span> |
+                            Salud: <span style="color: {% if sistema.salud == 'OK' %}#16a34a{% else %}#f59e0b{% endif %};">{{ sistema.salud }}</span>
                         </div>
                     </td>
                     <td width="4%"></td>
-                    <td width="48%"
-                        style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; vertical-align: top;">
-                        <div style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase;">
-                            Hardware
-                        </div>
+                    <td width="48%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; vertical-align: top;">
+                        <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">Hardware</div>
                         <div style="font-size: 12px; color: #334155; margin-top: 4px;">
                             <strong>Memoria:</strong> {{ sistema.memoria_gib }} GiB<br>
                             <strong>CPU:</strong> {{ sistema.cpu_modelo }}
@@ -198,9 +177,7 @@
                 </tr>
             </table>
 
-            <!-- Almacenamiento iDRAC -->
-            <table width="100%" border="0" cellspacing="0" cellpadding="6"
-                   style="margin-bottom: 24px; border-collapse: collapse; font-size: 13px;">
+            <table width="100%" border="0" cellspacing="0" cellpadding="6" style="margin-bottom: 24px; border-collapse: collapse; font-size: 12px;">
                 <thead>
                 <tr style="background-color: #f1f5f9; color: #475569; text-align: left;">
                     <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Controlador / Disco</th>
@@ -222,51 +199,36 @@
                         </td>
                     </tr>
                 {% empty %}
-                    <tr>
-                        <td colspan="3" style="padding: 10px; text-align: center; color: #94a3b8;">Sin datos de
-                            almacenamiento registrados
-                        </td>
-                    </tr>
+                    <tr><td colspan="3" style="padding: 10px; text-align: center; color: #94a3b8;">Sin datos de almacenamiento registrados</td></tr>
                 {% endfor %}
                 </tbody>
             </table>
 
-
             <!-- ================= 3. SECCIÓN ACCESS POINTS ================= -->
-            <h3 style="font-size: 15px; color: #1e293b; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px;">
+            <h3 style="font-size: 14px; color: #0f172a; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; text-transform: uppercase;">
                 📡 Puntos de Acceso WiFi (Access Points)
             </h3>
 
             <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 16px;">
                 <tr>
-                    <td width="32%"
-                        style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; text-align: center;">
-                        <div style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase;">
-                            Total AP
-                        </div>
-                        <div style="font-size: 18px; font-weight: bold; color: #0f172a; margin-top: 4px;">{{ total_ap }}</div>
+                    <td width="32%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; text-align: center;">
+                        <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">Total AP</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #0f172a; margin-top: 4px;">{{ total_ap }}</div>
                     </td>
                     <td width="2%"></td>
-                    <td width="32%"
-                        style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; text-align: center;">
-                        <div style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase;">
-                            Conectados
-                        </div>
-                        <div style="font-size: 18px; font-weight: bold; color: #16a34a; margin-top: 4px;">{{ ap_conectados }}</div>
+                    <td width="32%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; text-align: center;">
+                        <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">Conectados</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #16a34a; margin-top: 4px;">{{ ap_conectados }}</div>
                     </td>
                     <td width="2%"></td>
-                    <td width="32%"
-                        style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; text-align: center;">
-                        <div style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase;">
-                            Desconectados
-                        </div>
-                        <div style="font-size: 18px; font-weight: bold; color: #dc2626; margin-top: 4px;">{{ ap_desconectados }}</div>
+                    <td width="32%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; text-align: center;">
+                        <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">Desconectados</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #dc2626; margin-top: 4px;">{{ ap_desconectados }}</div>
                     </td>
                 </tr>
             </table>
 
-            <table width="100%" border="0" cellspacing="0" cellpadding="6"
-                   style="margin-bottom: 24px; border-collapse: collapse; font-size: 13px;">
+            <table width="100%" border="0" cellspacing="0" cellpadding="6" style="margin-bottom: 24px; border-collapse: collapse; font-size: 12px;">
                 <thead>
                 <tr style="background-color: #f1f5f9; color: #475569; text-align: left;">
                     <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Nombre</th>
@@ -292,56 +254,37 @@
                         </td>
                     </tr>
                 {% empty %}
-                    <tr>
-                        <td colspan="4" style="padding: 10px; text-align: center; color: #94a3b8;">Sin datos de Access
-                            Points
-                        </td>
-                    </tr>
+                    <tr><td colspan="4" style="padding: 10px; text-align: center; color: #94a3b8;">Sin datos de Access Points</td></tr>
                 {% endfor %}
                 </tbody>
             </table>
 
-
             <!-- ================= 4. SECCIÓN PBX (TELEFONÍA) ================= -->
-            <h3 style="font-size: 15px; color: #1e293b; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px;">
+            <h3 style="font-size: 14px; color: #0f172a; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; text-transform: uppercase;">
                 ☎️ Reporte General del PBX
             </h3>
 
             <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 16px;">
                 <tr>
-                    <td width="48%"
-                        style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
-                        <div style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase;">
-                            Extensiones
-                        </div>
-                        <div style="font-size: 13px; margin-top: 4px;">
-                            Total: <strong>{{ extensiones_total }}</strong> |
-                            Desconectadas: <span
-                                style="color: #dc2626; font-weight: bold;">{{ extensiones_desconectadas }}</span>
+                    <td width="48%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+                        <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">Extensiones</div>
+                        <div style="font-size: 12px; margin-top: 4px;">
+                            Total: <strong>{{ extensiones_total }}</strong> | Desconectadas: <span style="color: #dc2626; font-weight: bold;">{{ extensiones_desconectadas }}</span>
                         </div>
                     </td>
                     <td width="4%"></td>
-                    <td width="48%"
-                        style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
-                        <div style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase;">
-                            Trunks (Troncales)
-                        </div>
-                        <div style="font-size: 13px; margin-top: 4px;">
-                            Total: <strong>{{ trunks_total }}</strong> |
-                            Desconectados: <span
-                                style="color: #dc2626; font-weight: bold;">{{ trunks_desconectados }}</span>
+                    <td width="48%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+                        <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">Trunks (Troncales)</div>
+                        <div style="font-size: 12px; margin-top: 4px;">
+                            Total: <strong>{{ trunks_total }}</strong> | Desconectados: <span style="color: #dc2626; font-weight: bold;">{{ trunks_desconectados }}</span>
                         </div>
                     </td>
                 </tr>
             </table>
 
-            <!-- Extensiones Desconectadas (si hay) -->
             {% if lista_extensiones_desconectadas %}
-                <div style="font-size: 13px; font-weight: bold; color: #b91c1c; margin-bottom: 6px;">Extensiones
-                    Desconectadas:
-                </div>
-                <table width="100%" border="0" cellspacing="0" cellpadding="6"
-                       style="margin-bottom: 16px; border-collapse: collapse; font-size: 12px;">
+                <div style="font-size: 12px; font-weight: bold; color: #b91c1c; margin-bottom: 6px;">Extensiones Desconectadas:</div>
+                <table width="100%" border="0" cellspacing="0" cellpadding="6" style="margin-bottom: 16px; border-collapse: collapse; font-size: 11px;">
                     <thead>
                     <tr style="background-color: #fee2e2; color: #991b1b; text-align: left;">
                         <th style="padding: 6px;">Extensión</th>
@@ -354,21 +297,16 @@
                         <tr style="border-bottom: 1px solid #f1f5f9;">
                             <td style="padding: 6px; font-weight: bold;">{{ ext.extnumber }}</td>
                             <td style="padding: 6px;">{{ ext.username|default:"—" }}</td>
-                            <td style="padding: 6px; text-align: center;"><span
-                                    class="badge badge-danger">{{ ext.status }}</span></td>
+                            <td style="padding: 6px; text-align: center;"><span class="badge badge-danger">{{ ext.status }}</span></td>
                         </tr>
                     {% endfor %}
                     </tbody>
                 </table>
             {% endif %}
 
-            <!-- Trunks Desconectados (si hay) -->
             {% if lista_trunks_desconectados %}
-                <div style="font-size: 13px; font-weight: bold; color: #b91c1c; margin-bottom: 6px;">Trunks
-                    Desconectados:
-                </div>
-                <table width="100%" border="0" cellspacing="0" cellpadding="6"
-                       style="margin-bottom: 24px; border-collapse: collapse; font-size: 12px;">
+                <div style="font-size: 12px; font-weight: bold; color: #b91c1c; margin-bottom: 6px;">Trunks Desconectados:</div>
+                <table width="100%" border="0" cellspacing="0" cellpadding="6" style="margin-bottom: 24px; border-collapse: collapse; font-size: 11px;">
                     <thead>
                     <tr style="background-color: #fee2e2; color: #991b1b; text-align: left;">
                         <th style="padding: 6px;">Nombre</th>
@@ -381,20 +319,17 @@
                         <tr style="border-bottom: 1px solid #f1f5f9;">
                             <td style="padding: 6px; font-weight: bold;">{{ trunk.trunkname }}</td>
                             <td style="padding: 6px;">{{ trunk.type|default:"—" }}</td>
-                            <td style="padding: 6px; text-align: center;"><span
-                                    class="badge badge-danger">{{ trunk.status }}</span></td>
+                            <td style="padding: 6px; text-align: center;"><span class="badge badge-danger">{{ trunk.status }}</span></td>
                         </tr>
                     {% endfor %}
                     </tbody>
                 </table>
             {% endif %}
 
-
             <!-- ================= 5. OBSERVACIONES ================= -->
-            <div style="background-color: #fffbe3; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 4px 4px 0; margin-top: 10px;">
-                <h4 style="margin: 0 0 4px 0; font-size: 13px; color: #b45309; text-transform: uppercase;">📌
-                    Observaciones / Notas</h4>
-                <p style="margin: 0; font-size: 13px; color: #78350f; white-space: pre-line;">{{ observaciones|default:"Sin observaciones registradas para este periodo." }}</p>
+            <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 4px 4px 0; margin-top: 10px;">
+                <h4 style="margin: 0 0 4px 0; font-size: 12px; color: #b45309; text-transform: uppercase;">📌 Observaciones / Notas</h4>
+                <p style="margin: 0; font-size: 12px; color: #78350f; white-space: pre-line;">{{ observaciones|default:"Sin observaciones registradas para este periodo." }}</p>
             </div>
 
         </td>
@@ -402,7 +337,7 @@
 
     <!-- PIE DE PÁGINA -->
     <tr>
-        <td style="background-color: #f8fafc; padding: 16px 24px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8;">
+        <td style="background-color: #f8fafc; padding: 16px 24px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b;">
             <p style="margin: 0;">Este es un reporte automático generado por el Sistema de Monitoreo de TI.</p>
             <p style="margin: 4px 0 0 0;">No responda directamente a este correo.</p>
         </td>

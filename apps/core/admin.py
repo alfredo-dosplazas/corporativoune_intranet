@@ -41,7 +41,7 @@ class EmpresaSoporteSistemasInline(admin.TabularInline):
 class EmpresaAdmin(admin.ModelAdmin):
     inlines = [ModuloEmpresaInline, ConfiguracionPapeleriaInline, EmpresaIPRangeInline, EmpresaSoporteSistemasInline]
     search_fields = ['nombre']
-    list_display = ('nombre', 'abreviatura', 'codigo', 'logo')
+    list_display = ('nombre', 'abreviatura', 'codigo', 'logo', 'pertenece_corporativo')
 
 
 class ModuloIpRangeInline(admin.TabularInline):

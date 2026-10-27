@@ -1,5 +1,10 @@
 from abc import ABC, abstractmethod
-from sqlalchemy import func, extract, or_
+from collections import defaultdict
+from datetime import datetime
+
+from sqlalchemy import func, extract, or_, and_, case, cast, Date
+
+from apps.sae.models_sae import CuenDetMixin
 
 
 # ==============================================================================
@@ -252,23 +257,50 @@ class NotasDevolucionStrategy(BaseDocumentoStrategy):
 
 
 class CorteCajaStrategy(BaseDocumentoStrategy):
-    """Estrategia para Agrupación de Cobranza / Corte de Caja."""
+    """Estrategia para Agrupación de Cobranza / Corte de Caja (Procesado en memoria)."""
 
     def fetch_documentos(self, db_sae, m, filters: dict) -> tuple[list[dict], int]:
-        folio_clean = func.trim(m.CuenDet.no_factura)
+        # 1. Extraemos los filtros de fecha (día, mes, año) que manda la interfaz
+        filters_copia = dict(filters)
+        dia = filters_copia.pop('dia', None)
+        mes = filters_copia.pop('mes', None)
+        anio = filters_copia.pop('anio', None)
 
-        almacen_expr = func.coalesce(
-            m.AlmacenFactura.nombre,
-            m.AlmacenNota.nombre,
-            'GENERAL'
-        ).label('almacen_nombre')
-
-        subquery = db_sae.query(
+        # 2. Iniciamos la consulta base (sin usar apply_common_filters para evitar bloqueos en fecha_apli)
+        query = db_sae.query(
             m.CuenDet.id_mov,
-            m.CuenDet.fecha_apli.label('fecha'),
             m.CuenDet.importe,
-            almacen_expr
-        ).join(
+            m.CuenDet.fecha_apli,
+            m.CuenDet.fechaelab,
+            m.CuenDet.cve_doc_comppago,
+            func.coalesce(
+                m.AlmacenFactura.nombre,
+                m.AlmacenNota.nombre,
+                'GENERAL'
+            ).label('almacen_nombre')
+        )
+
+        # Aplicamos solo los filtros comunes que NO sean de fecha (ej. almacén, sucursal, etc.)
+        # Nota: si apply_common_filters evalúa fecha, la omitimos o la controlamos nosotros.
+        # Aquí aplicamos directamente los filtros de mes y año a nivel SQL de forma amplia para no sobrecargar memoria:
+        if mes and str(mes).isdigit():
+            query = query.filter(
+                or_(
+                    extract('month', m.CuenDet.fecha_apli) == int(mes),
+                    extract('month', m.CuenDet.fechaelab) == int(mes)
+                )
+            )
+        if anio and str(anio).isdigit():
+            query = query.filter(
+                or_(
+                    extract('year', m.CuenDet.fecha_apli) == int(anio),
+                    extract('year', m.CuenDet.fechaelab) == int(anio)
+                )
+            )
+
+        # 3. Joins necesarios
+        folio_clean = func.trim(m.CuenDet.no_factura)
+        query = query.join(
             m.Concepto, m.CuenDet.num_cpto == m.Concepto.num_cpto
         ).outerjoin(
             m.Cliente, m.CuenDet.cve_clie == m.Cliente.clave
@@ -281,56 +313,95 @@ class CorteCajaStrategy(BaseDocumentoStrategy):
         ).outerjoin(
             m.AlmacenNota, m.NotaVenta.num_alma == m.AlmacenNota.clave
         ).filter(
-            m.CuenDet.tipo_mov == 'A',  # Solo Abonos
+            m.CuenDet.tipo_mov == 'A',
             m.Concepto.es_forma_pago == 'S'
         )
 
-        subquery = self.apply_common_filters(subquery, m.CuenDet.fecha_apli, filters)
-        subq = subquery.subquery()
-
-        query = db_sae.query(
-            subq.c.fecha,
-            subq.c.almacen_nombre.label('almacen'),
-            func.sum(subq.c.importe).label('total'),
-            func.count(subq.c.id_mov).label('total_movimientos')
-        ).group_by(
-            subq.c.fecha,
-            subq.c.almacen_nombre
+        # Filtro opcional de almacén individual
+        almacen_filtro = filters.get('almacen')
+        almacen_expr_str = func.coalesce(
+            m.AlmacenFactura.nombre,
+            m.AlmacenNota.nombre,
+            'GENERAL'
         )
-
-        almacen = filters.get('almacen')
-        if almacen:
-            if almacen == 'Sin Almacén / GENERAL':
-                query = query.filter(subq.c.almacen_nombre == 'GENERAL')
+        if almacen_filtro:
+            if almacen_filtro == 'Sin Almacén / GENERAL':
+                query = query.filter(almacen_expr_str == 'GENERAL')
             else:
-                query = query.filter(subq.c.almacen_nombre == almacen)
+                query = query.filter(almacen_expr_str == almacen_filtro)
 
-        total_count = query.count()
+        # Ejecutamos la consulta para traer los candidatos del mes/año
+        registros_raw = query.all()
 
-        query = query.order_by(subq.c.fecha.desc())
+        # 4. PROCESAMIENTO Y FILTRADO ESTRICTO EN MEMORIA (PYTHON)
+        agrupador = defaultdict(lambda: {'total': 0.0, 'count': 0})
 
-        if not filters.get('export_all') and filters.get('limit') is not None:
-            query = query.limit(filters['limit']).offset(filters['offset'])
+        for row in registros_raw:
+            cve_comp = row.cve_doc_comppago
+            tiene_comp = bool(cve_comp and str(cve_comp).strip() != '')
 
+            # REGLA DE NEGOCIO EXACTA:
+            # - Si tiene complemento -> fechaelab
+            # - Si NO tiene complemento -> fecha_apli
+            if tiene_comp:
+                fecha_efectiva = row.fechaelab.date() if isinstance(row.fechaelab, datetime) else row.fechaelab
+            else:
+                fecha_efectiva = row.fecha_apli.date() if isinstance(row.fecha_apli, datetime) else row.fecha_apli
+
+            if not fecha_efectiva:
+                continue
+
+            # Validamos contra los filtros de la interfaz (Día, Mes, Año)
+            if anio and str(anio).isdigit() and fecha_efectiva.year != int(anio):
+                continue
+            if mes and str(mes).isdigit() and fecha_efectiva.month != int(mes):
+                continue
+            if dia and str(dia).isdigit() and fecha_efectiva.day != int(dia):
+                continue
+
+            almacen_nombre = row.almacen_nombre or 'GENERAL'
+            importe = float(row.importe or 0.0)
+
+            key = (fecha_efectiva, almacen_nombre)
+            agrupador[key]['total'] += importe
+            agrupador[key]['count'] += 1
+
+        # 5. Construcción de los documentos agrupados
         documentos_raw = []
-        for r in query.all():
-            dict_res = r._asdict()
-            fecha_str = dict_res['fecha'].strftime('%Y%m%d') if dict_res['fecha'] else 'S_F'
-            alm_nombre = dict_res['almacen'] or 'GEN'
+        for (fecha_efectiva, alm_nombre), datos in agrupador.items():
+            fecha_str = fecha_efectiva.strftime('%Y%m%d')
             alm_code = alm_nombre[:3].upper().replace(' ', '')
 
-            dict_res['folio'] = f"C-M-{alm_code}-{fecha_str}"[:20]
-            dict_res['folio_cp'] = f"C-CP-{alm_code}-{fecha_str}"[:20]
-            dict_res['cliente'] = f"CORTE DE CAJA ({dict_res['total_movimientos']} PAGOS)"
-            dict_res['subtotal'] = round(float(dict_res['total'] or 0) / 1.16, 2)
-            dict_res['total_impuesto4'] = round(float(dict_res['total'] or 0) - dict_res['subtotal'], 2)
-            dict_res['uuid_xml'] = ''
-            dict_res['uuid_sae'] = ''
-            dict_res['status'] = 'A'
-            documentos_raw.append(dict_res)
+            total_importe = datos['total']
+            subtotal = round(total_importe / 1.16, 2)
+            total_impuesto4 = round(total_importe - subtotal, 2)
+
+            doc = {
+                'fecha': fecha_efectiva,
+                'almacen': alm_nombre,
+                'total': total_importe,
+                'total_movimientos': datos['count'],
+                'folio': f"C-M-{alm_code}-{fecha_str}"[:20],
+                'folio_cp': f"C-CP-{alm_code}-{fecha_str}"[:20],
+                'cliente': f"CORTE DE CAJA ({datos['count']} PAGOS)",
+                'subtotal': subtotal,
+                'total_impuesto4': total_impuesto4,
+                'uuid_xml': '',
+                'uuid_sae': '',
+                'status': 'A'
+            }
+            documentos_raw.append(doc)
+
+        # 6. Ordenamiento y paginación
+        documentos_raw.sort(key=lambda x: x['fecha'], reverse=True)
+        total_count = len(documentos_raw)
+
+        if not filters.get('export_all') and filters.get('limit') is not None:
+            limit = filters['limit']
+            offset = filters.get('offset', 0)
+            documentos_raw = documentos_raw[offset : offset + limit]
 
         return documentos_raw, total_count
-
 
 class ComprasStrategy(BaseDocumentoStrategy):
     """

@@ -41,6 +41,8 @@ class Empresa(models.Model):
     theme = models.CharField(max_length=100, default='light')
     logo = models.ImageField(upload_to="empresas/logos/", blank=True, null=True)
 
+    pertenece_corporativo = models.BooleanField(default=False)
+
     razones_sociales = models.ManyToManyField(
         RazonSocial,
         blank=True,

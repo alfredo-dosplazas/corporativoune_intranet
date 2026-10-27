@@ -1,9 +1,10 @@
 from django.urls import path
 
-from apps.monitoreo_servicios.views import MonitoreoServicioView
+from . import views
 
 app_name = "monitoreo_servicios"
 
 urlpatterns = [
-    path('reporte/', MonitoreoServicioView.as_view(), name='reporte'),
+    path('reporte/', views.MonitoreoServicioView.as_view(), name='reporte'),
+    path('reporte/pdf/', views.PrevisualizarReportePDFView.as_view(), name='reporte_pdf_preview'),
 ]

@@ -86,6 +86,8 @@ INSTALLED_APPS = [
     'apps.listas_precios',
     'apps.infopantallas',
 
+    'apps.zabbix',
+
     'apps.vs_erp',
 ]
 
@@ -479,6 +481,9 @@ CHANNEL_LAYERS = {
 
 ONLYOFFICE_SERVER_URL = env('ONLYOFFICE_SERVER_URL', default='http://localhost/')  # O la IP/dominio de tu servidor OnlyOffice
 ONLYOFFICE_SECRET_KEY = env('ONLYOFFICE_SECRET_KEY')
+
+ZABBIX_TOKEN = env('ZABBIX_TOKEN')
+ZABBIX_API_URL = env('ZABBIX_API_URL')
 
 if DEBUG:
     import os

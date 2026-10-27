@@ -8,7 +8,7 @@ from apps.core.utils.network import get_client_ip, get_empresa_from_ip
 
 def empresas(request):
     context = {
-        'empresas': Empresa.objects.all(),
+        'empresas': Empresa.objects.filter(pertenece_corporativo=True),
     }
 
     return context

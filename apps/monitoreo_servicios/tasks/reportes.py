@@ -6,7 +6,7 @@ from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from weasyprint import HTML
 
-from apps.core.models import ListaNotificacionCorreo
+from apps.core.models import ListaNotificacionCorreo, Empresa
 from apps.monitoreo_servicios.models import ReporteServicios
 from apps.slack.client import SlackClient
 
@@ -43,6 +43,7 @@ def generar_y_enviar_reporte_automatico(self):
         ap_off = sum(1 for ap in aps if ap["estado"] == "offline")
 
         context = {
+            "empresas": Empresa.objects.filter(pertenece_corporativo=True),
             "total_camaras": total_cam,
             "camaras_ok": cam_ok,
             "camaras_falla": cam_falla,
