@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #1f2937;
+            margin: 0;
+            padding: 0;
+        }
+
+        .grid {
+            width: 100%;
+        }
+
+        .card-badge {
+            width: 45%;
+            height: 180px;
+            float: left;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 2.5%;
+            box-sizing: border-box;
+            text-align: center;
+            background: #ffffff;
+            page-break-inside: avoid;
+        }
+
+        .evento-titulo {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748b;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .invitado-nombre {
+            font-size: 15px;
+            font-weight: 900;
+            color: #0f172a;
+            margin: 4px 0 10px 0;
+            line-height: 1.2;
+        }
+
+        .qr-img {
+            width: 90px;
+            height: 90px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="grid">
+    {% for item in items %}
+        <div class="card-badge">
+            <div class="evento-titulo">{{ evento.nombre }}</div>
+            <div class="invitado-nombre">{{ item.invitado.nombre_completo }}</div>
+            <div style="float: left; width: 55%; text-align: left; font-size: 10px; color: #475569; padding-top: 15px;">
+                <strong>ID / Gafete:</strong><br>
+                <span style="font-family: monospace; font-size: 9px; word-break: break-all;">{{ item.invitado.codigo_qr }}</span><br><br>
+                <span style="color: #0284c7; font-weight: bold;">Presentar para canje</span>
+            </div>
+            <div style="float: right; width: 45%;">
+                <img src="data:image/png;base64,{{ item.qr_code_base64 }}" class="qr-img" alt="QR Invitado"/>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+</body>
+</html>

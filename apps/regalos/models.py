@@ -10,8 +10,8 @@ from intranet import settings
 
 class Invitado(models.Model):
     evento = models.ForeignKey('Evento', on_delete=models.CASCADE, related_name='invitados', verbose_name="Evento")
+    codigo_qr = models.CharField(max_length=50, unique=True, default=uuid.uuid4, editable=False)
     nombre_completo = models.CharField(max_length=200, verbose_name="Nombre del Invitado")
-
     asistio = models.BooleanField(default=False)
 
     class Meta:
@@ -63,7 +63,7 @@ class Regalo(models.Model):
         unique_together = ('evento', 'numero')
 
     def get_canjeo_url(self):
-        return f'{settings.APP_URL}{reverse("regalos:canjear_regalo", args=[self.evento.slug, self.codigo_qr])}'
+        return f'{settings.APP_URL}{reverse("regalos:canjear_regalo", args=[self.evento.slug])}?regalo_qr={self.codigo_qr}'
 
     def __str__(self):
         return f"[{self.evento.nombre}] Premio #{self.numero} - {self.nombre}"

@@ -24,14 +24,16 @@ urlpatterns = [
     path('invitados/importar/<slug:evento_slug>/', views.InvitadoImportView.as_view(), name='import_invitados'),
     path('invitados/<slug:evento_slug>/', views.InvitadoListView.as_view(), name='invitados__list'),
     path('invitados/crear/<slug:evento_slug>/', views.InvitadoCreateView.as_view(), name='invitados__create'),
+    path('invitados/pdf/<slug:evento_slug>/', views.InvitadoPDFView.as_view(), name='invitados_pdf'),
 
     path('pdf/<slug:evento_slug>/', views.RegaloPDFView.as_view(), name='pdf'),
 
+    path('api/validar-invitado/<slug:evento_slug>/', views.ValidarInvitadoApiView.as_view(), name='api_validar_invitado'),
     path('canjeados/<slug:evento_slug>/', views.RegalosCanjeadosView.as_view(), name='canjeados'),
-    path('canjear/<slug:evento_slug>/<uuid:codigo_qr>/', views.CanjearRegaloView.as_view(), name='canjear_regalo'),
+    path('canjear/<slug:evento_slug>/', views.CanjearRegaloView.as_view(), name='canjear_regalo'),
+    path('api/canjear/<slug:evento_slug>/', views.ProcesarCanjeApiView.as_view(), name='api_procesar_canje'),
 
     # Pantallas gigantes y APIs independientes por evento
     path('pantalla/<slug:evento_slug>/', views.RegaloPantallaView.as_view(), name='pantalla_gigante'),
     path('api/ultimo-ganador/<slug:evento_slug>/', views.UltimoGanadorApiView.as_view(), name='ultimo_ganador_api'),
-
 ]

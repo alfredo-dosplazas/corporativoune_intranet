@@ -1,5 +1,5 @@
 <c-layouts.base>
-    <!-- SCRIPT DE LOTTIE-WEB OFICIAL (CONTROL TOTAL POR JS) -->
+    <!-- SCRIPT DE LOTTIE-WEB OFICIAL -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 
     <div class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-base-300 via-base-200 to-base-300 relative overflow-hidden">
@@ -8,186 +8,280 @@
         <div class="absolute -top-12 -left-12 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
         <div class="absolute -bottom-12 -right-12 w-48 h-48 bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div class="card w-full max-w-md bg-base-100/95 backdrop-blur-xl shadow-2xl border border-base-300/80 overflow-hidden relative z-10">
+        <div class="card w-full max-w-lg bg-base-100/95 backdrop-blur-xl shadow-2xl border border-base-300/80 overflow-hidden relative z-10">
             <div class="card-body text-center p-6 md:p-8">
 
-                {% if not regalo.canjeado %}
-                    <!-- ENCABEZADO DE INGRESO -->
-                    <div class="inline-flex p-4 bg-primary/10 rounded-2xl mb-2 mx-auto text-primary shadow-inner">
-                        <span class="text-4xl">🎁</span>
+                <!-- ENCABEZADO -->
+                <div class="inline-flex p-4 bg-primary/10 rounded-2xl mb-2 mx-auto text-primary shadow-inner">
+                    <span class="text-4xl">🎁</span>
+                </div>
+
+                <h1 class="card-title text-3xl font-black justify-center text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">
+                    Módulo de Canje
+                </h1>
+                <p class="text-xs text-base-content/70 font-bold uppercase tracking-wider mt-1">
+                    Evento: <span class="text-primary font-black">{{ evento.nombre }}</span>
+                </p>
+
+                <!-- CONTENEDOR DE ESCANEO (PASO 1 Y PASO 2) -->
+                <div id="section-escaneo" class="mt-6 space-y-4 text-left">
+
+                    <!-- ALERTA DE MENSAJES DINÁMICOS -->
+                    <div id="alerta-error" class="hidden alert alert-error text-xs shadow-md py-2 px-3">
+                        <span class="icon-[tabler--alert-triangle] text-base shrink-0"></span>
+                        <span id="texto-error">Error en el proceso</span>
                     </div>
 
-                    <h1 class="card-title text-3xl font-black justify-center text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">
-                        ¡Gran Rifa Navideña!
-                    </h1>
-                    <p class="text-base-content/80 font-semibold mt-1">
-                        Boleto <span
-                            class="badge badge-warning badge-lg font-black font-mono shadow-sm">#{{ regalo.numero|stringformat:"03d" }}</span>
-                    </p>
-
-                    {% if invitados %}
-                        <p class="text-xs text-base-content/70 mt-4 font-bold uppercase tracking-wider">
-                            Selecciona o busca tu nombre para canjear:
-                        </p>
-
-                        <!-- FORMULARIO DE CANJE -->
-                        <form id="form-canjear" method="POST" class="mt-4 space-y-5">
-                            {% csrf_token %}
-                            <div class="form-control text-left w-full">
-                                {{ form }}
-                            </div>
-
-                            <button type="button" onclick="mostrarConfirmacion()"
-                                    class="btn btn-primary w-full text-lg font-black shadow-lg shadow-primary/30 hover:scale-[1.02] transition-transform">
-                                ¡Destapar Mi Regalo! 🚀
+                    <!-- PASO 1: ESCANEAR INVITADO -->
+                    <div id="step-invitado"
+                         class="form-control w-full bg-base-200/50 p-4 rounded-xl border border-base-300">
+                        <label class="label pb-1">
+                            <span class="label-text font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+                                <span class="badge badge-primary badge-sm">1</span> Escanea la Identificación o QR del Invitado
+                            </span>
+                        </label>
+                        <div class="join w-full">
+                            <input type="text" id="input-invitado-qr"
+                                   class="input input-bordered join-item w-full text-sm font-mono"
+                                   placeholder="Esperando escaneo de invitado..." autofocus autocomplete="off"/>
+                            <button type="button" class="btn btn-neutral join-item text-xs"
+                                    onclick="validarInvitadoManual()">Validar
                             </button>
-                        </form>
-                    {% else %}
-                        <!-- MENSAJE DE EVENTO COMPLETADO -->
-                        <div class="alert alert-info mt-6 shadow-md text-left border border-info/30">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                 class="stroke-current shrink-0 w-6 h-6">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <div>
-                                <h3 class="font-bold">¡Todos los invitados han participado!</h3>
-                                <div class="text-xs opacity-80">No hay más invitados pendientes por canjear regalo en
-                                    este evento.
-                                </div>
-                            </div>
                         </div>
-                    {% endif %}
-
-                {% else %}
-                    <!-- SECCIÓN DE APERTURA Y REVELACIÓN DEL REGALO -->
-                    <div class="relative min-h-[420px] flex flex-col justify-center items-center my-2">
-
-                        <!-- CONTENEDOR DE LA ANIMACIÓN LOTTIE-WEB -->
-                        <div id="gift-box-container"
-                             class="cursor-pointer flex flex-col items-center group transition-transform hover:scale-105"
-                             onclick="revelarPremioMovil()">
-
-                            <!-- Contenedor donde lottie-web renderizará la animación en pausa -->
-                            <div id="lottie-gift" style="width: 220px; height: 220px;"></div>
-
-                            <div id="click-prompt" class="badge badge-primary badge-lg font-black uppercase tracking-widest px-6 py-3 shadow-lg shadow-primary/20 animate-bounce mt-2">
-                                👇 ¡Toca para abrir! 👇
-                            </div>
+                        <div id="info-invitado-validado"
+                             class="hidden mt-2 text-xs font-bold text-success flex items-center gap-1">
+                            <span class="icon-[tabler--circle-check] text-sm"></span>
+                            <span>Invitado: <strong id="lbl-nombre-invitado" class="underline"></strong></span>
                         </div>
-
-                        <!-- REVELACIÓN DEL PREMIO (OCULTO INICIALMENTE) -->
-                        <div id="premio-revealed"
-                             class="hidden flex-col items-center justify-center space-y-4 w-full animate-fade-in">
-                            <div class="badge badge-success badge-lg text-white font-black tracking-wider px-6 py-4 shadow-lg shadow-success/30 uppercase">
-                                🎉 ¡PREMIO DESBLOQUEADO! 🎉
-                            </div>
-
-                            <h2 class="text-3xl font-black text-primary leading-tight mt-1 drop-shadow-sm">
-                                {{ regalo.nombre }}
-                            </h2>
-
-                            <div class="bg-base-200/80 py-2 px-6 rounded-full border border-base-300 shadow-sm">
-                                <span class="text-xs text-base-content/60 font-bold uppercase tracking-wider">Ganador(a):</span>
-                                <strong class="text-info text-base ml-1 font-black">{{ regalo.ganador_nombre }}</strong>
-                            </div>
-
-                            {% if regalo.imagen %}
-                                <figure class="rounded-2xl overflow-hidden bg-base-200 p-3 border border-base-300 w-full max-h-56 shadow-inner">
-                                    <img src="{{ regalo.imagen.url }}" alt="{{ regalo.nombre }}"
-                                         class="rounded-xl max-h-48 object-contain mx-auto hover:scale-105 transition-transform duration-300"/>
-                                </figure>
-                            {% endif %}
-                        </div>
-
                     </div>
-                {% endif %}
+
+                    <!-- PASO 2: ESCANEAR REGALO (Bloqueado hasta validar invitado) -->
+                    <div id="step-regalo"
+                         class="form-control w-full bg-base-200/50 p-4 rounded-xl border border-base-300 opacity-60">
+                        <label class="label pb-1">
+                            <span class="label-text font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+                                <span class="badge badge-neutral badge-sm">2</span> Escanea el Código del Regalo / Boleto
+                            </span>
+                        </label>
+                        <div class="join w-full">
+                            <input type="text" id="input-regalo-qr"
+                                   class="input input-bordered join-item w-full text-sm font-mono"
+                                   placeholder="Bloqueado hasta escanear invitado..." disabled autocomplete="off"/>
+                            <button type="button" id="btn-procesar-canje"
+                                    class="btn btn-success text-white join-item text-xs" disabled
+                                    onclick="enviarCanjeFinal()">Canjear
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- SECCIÓN DE APERTURA Y REVELACIÓN DEL REGALO -->
+                <div id="section-revelacion"
+                     class="hidden relative min-h-[380px] flex flex-col justify-center items-center my-2">
+
+                    <!-- CONTENEDOR DE LA ANIMACIÓN LOTTIE-WEB -->
+                    <div id="gift-box-container"
+                         class="cursor-pointer flex flex-col items-center group transition-transform hover:scale-105"
+                         onclick="revelarPremioMovil()">
+
+                        <div id="lottie-gift" style="width: 200px; height: 200px;"></div>
+
+                        <div id="click-prompt"
+                             class="badge badge-primary badge-lg font-black uppercase tracking-widest px-6 py-3 shadow-lg shadow-primary/20 animate-bounce mt-2">
+                            👇 ¡Toca para abrir! 👇
+                        </div>
+                    </div>
+
+                    <!-- REVELACIÓN DEL PREMIO -->
+                    <div id="premio-revealed"
+                         class="hidden flex-col items-center justify-center space-y-3 w-full animate-fade-in">
+                        <div class="badge badge-success badge-lg text-white font-black tracking-wider px-6 py-3 shadow-lg shadow-success/30 uppercase text-xs">
+                            🎉 ¡PREMIO DESBLOQUEADO! 🎉
+                        </div>
+
+                        <h2 id="txt-premio-nombre"
+                            class="text-2xl font-black text-primary leading-tight mt-1 drop-shadow-sm">
+                            -
+                        </h2>
+
+                        <div class="bg-base-200/80 py-2 px-6 rounded-full border border-base-300 shadow-sm">
+                            <span class="text-xs text-base-content/60 font-bold uppercase tracking-wider">Ganador(a):</span>
+                            <strong id="txt-ganador-nombre" class="text-info text-sm ml-1 font-black">-</strong>
+                        </div>
+
+                        <div class="badge badge-warning badge-lg font-mono font-black mt-2" id="txt-premio-numero">
+                            #000
+                        </div>
+
+                        <div class="card-actions justify-center mt-4">
+                            <button class="btn btn-outline btn-sm" onclick="location.reload()">Escanear Siguiente Canje
+                                🔄
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
 
             </div>
         </div>
     </div>
 
-    <!-- MODAL DE CONFIRMACIÓN DAISYUI -->
-    <dialog id="modal-confirmar" class="modal">
-        <div class="modal-box text-center border border-warning/30 backdrop-blur-xl">
-            <div class="inline-flex p-3 bg-warning/10 text-warning rounded-full mb-3">
-                <span class="text-3xl">⚠️</span>
-            </div>
-            <h3 class="font-black text-xl text-warning">Confirmar Canje</h3>
-            <p class="py-2 text-sm text-base-content/80 font-medium">
-                Estás a punto de asignar este regalo al participante:
-            </p>
-            <div class="badge badge-primary badge-lg font-black p-4 my-2 text-lg shadow-md" id="span-nombre-ganador">
-                -
-            </div>
-            <p class="text-xs text-base-content/60 mt-2">
-                Una vez confirmado, el regalo se registrará en vivo en la pantalla del evento.
-            </p>
-            <div class="modal-action justify-center gap-3 mt-6">
-                <button type="button" class="btn btn-ghost border border-base-300" onclick="cerrarConfirmacion()">
-                    Cancelar
-                </button>
-                <button type="button" class="btn btn-success text-white font-black shadow-lg shadow-success/20"
-                        onclick="enviarFormulario()">
-                    Sí, Canjear Ahora 🚀
-                </button>
-            </div>
-        </div>
-        <form method="dialog" class="modal-backdrop">
-            <button>close</button>
-        </form>
-    </dialog>
-
-    <!-- SCRIPT DE INTERACCIÓN -->
+    <!-- SCRIPT DE LÓGICA Y ESCANEO -->
     <script>
         let animacionRegalo;
+        let invitadoQrActual = null;
+        let regaloQrActual = null;
 
-        // Inicializar Lottie en pausa al cargar la página
         document.addEventListener("DOMContentLoaded", function () {
+            // Inicializar Lottie
             const contenedor = document.getElementById('lottie-gift');
             if (contenedor) {
                 animacionRegalo = lottie.loadAnimation({
                     container: contenedor,
                     renderer: 'svg',
                     loop: false,
-                    autoplay: false, // Pausada por defecto
+                    autoplay: false,
                     path: 'https://lottie.host/0f731e26-b070-4897-8746-aa468049e827/FhDrqdRK7d.json'
                 });
             }
 
-            {% if regalo.canjeado and exito %}
-                setTimeout(revelarPremioMovil, 500);
-            {% endif %}
+            // Mantener el foco asegurado en el input activo
+            const inputInvitado = document.getElementById('input-invitado-qr');
+            const inputRegalo = document.getElementById('input-regalo-qr');
+
+            inputInvitado.focus();
+
+            // Evento Enter al escanear el invitado con la pistola/lector
+            inputInvitado.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    validarInvitadoQR(this.value.trim());
+                }
+            });
+
+            // Evento Enter al escanear el regalo con la pistola/lector
+            inputRegalo.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    regaloQrActual = this.value.trim();
+                    if (regaloQrActual) {
+                        enviarCanjeFinal();
+                    }
+                }
+            });
         });
 
-        function mostrarConfirmacion() {
-            const inputNombre = document.getElementById('ganador_nombre') || document.querySelector('[name="ganador_nombre"]');
-            const spanNombre = document.getElementById('span-nombre-ganador');
-            const modal = document.getElementById('modal-confirmar');
+        function mostrarError(mensaje) {
+            const alerta = document.getElementById('alerta-error');
+            const texto = document.getElementById('texto-error');
+            texto.textContent = mensaje;
+            alerta.classList.remove('hidden');
 
-            if (!inputNombre || !inputNombre.value.trim()) {
-                if (inputNombre) inputNombre.reportValidity();
-                else alert('Por favor, selecciona un invitado.');
+            // Reproducir sonido de error opcional o limpiar inputs
+            setTimeout(() => {
+                alerta.classList.add('hidden');
+            }, 5000);
+        }
+
+        function validarInvitadoManual() {
+            const val = document.getElementById('input-invitado-qr').value.trim();
+            if (val) validarInvitadoQR(val);
+        }
+
+        // Paso 1: El lector lee el QR del invitado y consulta la API
+        function validarInvitadoQR(codigoQr) {
+            if (!codigoQr) return;
+
+            const formData = new FormData();
+            formData.append('invitado_qr', codigoQr);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            fetch("{% url 'regalos:api_validar_invitado' evento.slug %}", {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json().then(data => ({status: response.status, body: data})))
+                .then(res => {
+                    if (res.status === 200 && res.body.status === 'success') {
+                        invitadoQrActual = codigoQr;
+
+                        const inputInvitado = document.getElementById('input-invitado-qr');
+                        const stepInvitado = document.getElementById('step-invitado');
+                        const stepRegalo = document.getElementById('step-regalo');
+                        const inputRegalo = document.getElementById('input-regalo-qr');
+                        const lblInfo = document.getElementById('info-invitado-validado');
+                        const lblNombre = document.getElementById('lbl-nombre-invitado');
+
+                        // Bloquear paso 1 visualmente
+                        inputInvitado.disabled = true;
+                        stepInvitado.classList.add('opacity-70', 'bg-success/10', 'border-success/30');
+
+                        // Activar paso 2 y llevar el foco AUTOMÁTICAMENTE a la pistola para el regalo
+                        stepRegalo.classList.remove('opacity-60');
+                        inputRegalo.disabled = false;
+                        inputRegalo.placeholder = "¡Listo! Escanea el boleto del regalo...";
+                        inputRegalo.focus(); // <--- El foco pasa solo al siguiente escaneo
+
+                        lblNombre.textContent = res.body.nombre_completo;
+                        lblInfo.classList.remove('hidden');
+                    } else {
+                        mostrarError(res.body.message || "No se encontró el invitado.");
+                        const inputInv = document.getElementById('input-invitado-qr');
+                        inputInv.value = '';
+                        inputInv.focus();
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    mostrarError("Error de red al validar al invitado.");
+                });
+        }
+
+        // Paso 2: El lector lee el QR del regalo y se procesa el canje completo
+        function enviarCanjeFinal() {
+            const inputRegalo = document.getElementById('input-regalo-qr');
+            regaloQrActual = inputRegalo.value.trim();
+
+            if (!invitadoQrActual || !regaloQrActual) {
+                mostrarError("Faltan datos de escaneo.");
                 return;
             }
 
-            let nombreTexto = inputNombre.value;
-            const select2Container = document.querySelector('.select2-selection__rendered');
-            if (select2Container && select2Container.textContent.trim() && select2Container.textContent.trim() !== 'Busca un invitado...') {
-                nombreTexto = select2Container.textContent.trim();
-            }
+            const formData = new FormData();
+            formData.append('invitado_qr', invitadoQrActual);
+            formData.append('regalo_qr', regaloQrActual);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
-            spanNombre.textContent = nombreTexto;
-            modal.showModal();
-        }
+            fetch("{% url 'regalos:api_procesar_canje' evento.slug %}", {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json().then(data => ({status: response.status, body: data})))
+                .then(res => {
+                    if (res.status === 200 && res.body.status === 'success') {
+                        // Ocultar sección de escaneo y mostrar animación de premio
+                        document.getElementById('section-escaneo').classList.add('hidden');
 
-        function cerrarConfirmacion() {
-            const modal = document.getElementById('modal-confirmar');
-            modal.close();
-        }
+                        document.getElementById('txt-premio-nombre').textContent = res.body.premio;
+                        document.getElementById('txt-ganador-nombre').textContent = res.body.ganador;
+                        document.getElementById('txt-premio-numero').textContent = "#" + res.body.numero;
 
-        function enviarFormulario() {
-            document.getElementById('form-canjear').submit();
+                        const secRevelacion = document.getElementById('section-revelacion');
+                        secRevelacion.classList.remove('hidden');
+                        secRevelacion.classList.add('flex');
+
+                        setTimeout(revelarPremioMovil, 400);
+                    } else {
+                        mostrarError(res.body.message || "Ocurrió un error al procesar el canje.");
+                        inputRegalo.value = '';
+                        inputRegalo.focus();
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    mostrarError("Error de red al conectar con el servidor.");
+                });
         }
 
         let yaAbierto = false;
@@ -204,12 +298,10 @@
 
             if (clickPrompt) clickPrompt.style.display = 'none';
 
-            // Reproducir la animación de Lottie de forma exacta
             if (animacionRegalo) {
                 animacionRegalo.play();
             }
 
-            // Cuando termine la animación (o tras 1.5s), ocultamos la caja y mostramos el premio
             setTimeout(() => {
                 boxContainer.style.transform = "scale(0.8)";
                 boxContainer.style.opacity = "0";

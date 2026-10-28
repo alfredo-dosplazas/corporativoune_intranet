@@ -474,72 +474,135 @@ class UltimoGanadorApiView(View):
 
 
 class CanjearRegaloView(View):
-    def get(self, request, evento_slug, codigo_qr):
-        regalo = get_object_or_404(Regalo, codigo_qr=codigo_qr, evento__slug=evento_slug)
-        form = CanjearForm(evento=regalo.evento)
+    def get(self, request, evento_slug):
+        """Muestra la interfaz de escaneo (pantalla de canje unificada)."""
+        evento = get_object_or_404(Evento, slug=evento_slug)
+        return render(request, 'apps/regalos/canjear.html', {'evento': evento})
 
-        def obtener_invitados_disponibles():
-            ganadores_existentes = Regalo.objects.filter(evento=regalo.evento, canjeado=True).exclude(
-                ganador_nombre__isnull=True).values_list('ganador_nombre', flat=True)
 
-            invitados = Invitado.objects.filter(evento=regalo.evento).order_by('nombre_completo')
-            return [i.nombre_completo for i in invitados if i.nombre_completo not in ganadores_existentes]
+class ValidarInvitadoApiView(View):
+    """API para validar el código QR del invitado antes de pasar al paso 2."""
 
-        invitados = obtener_invitados_disponibles()
-        return render(request, 'apps/regalos/canjear.html', {
-            'form': form,
-            'regalo': regalo,
-            'invitados': invitados,
+    def post(self, request, evento_slug):
+        evento = get_object_or_404(Evento, slug=evento_slug)
+        invitado_qr = request.POST.get('invitado_qr')
+
+        if not invitado_qr:
+            return JsonResponse({'status': 'error', 'message': 'Código QR de invitado no proporcionado.'}, status=400)
+
+        # Buscar al invitado por su código QR y evento
+        invitado = Invitado.objects.filter(evento=evento, codigo_qr=invitado_qr).first()
+        if not invitado:
+            return JsonResponse(
+                {'status': 'error', 'message': 'No se encontró ningún invitado con ese código QR o identificación.'},
+                status=404)
+
+        # Validar si ya tiene un regalo canjeado previamente (Anti-duplicados preventivo)
+        regalo_previo = Regalo.objects.filter(evento=evento, invitado=invitado, canjeado=True).first()
+        if regalo_previo:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'¡El invitado "{invitado.nombre_completo}" ya canjeó el regalo #{regalo_previo.numero} ({regalo_previo.nombre}) anteriormente!'
+            }, status=400)
+
+        return JsonResponse({
+            'status': 'success',
+            'nombre_completo': invitado.nombre_completo
         })
 
-    def post(self, request, evento_slug, codigo_qr):
-        regalo = get_object_or_404(Regalo, codigo_qr=codigo_qr, evento__slug=evento_slug)
 
-        if not regalo.canjeado:
-            ganador = request.POST.get('ganador_nombre')
-            if ganador:
-                regalo.ganador_nombre = ganador
-                regalo.canjeado = True
-                regalo.fecha_canje = timezone.now()
-                regalo.save()
+class ProcesarCanjeApiView(View):
+    """API que procesa los dos escaneos de forma segura y atómica."""
 
-                # Consultar historial de forma síncrona
-                regalos_entregados = Regalo.objects.filter(evento=regalo.evento, canjeado=True).order_by(
-                    '-fecha_canje')[:6]
-                historial_data = [
-                    {
-                        'id': r.id,
-                        'ganador': r.ganador_nombre or 'Sin Nombre',
-                        'premio': r.nombre,
-                        'numero': f"{r.numero:03d}",
-                        'destacado': r.destacado,
-                        'imagen_url': r.imagen.url if r.imagen else None,
-                    }
-                    for r in regalos_entregados
-                ]
+    def post(self, request, evento_slug):
+        evento = get_object_or_404(Evento, slug=evento_slug)
 
-                # Envío al Channel Layer gestionando el bucle de eventos mediante async_to_sync
-                channel_layer = get_channel_layer()
-                try:
-                    async_to_sync(channel_layer.group_send)(
-                        f"pantalla_evento_{evento_slug}",
-                        {
-                            "type": "notificar_nuevo_ganador",
-                            "ultimo_ganador": {
-                                'id': regalo.id,
-                                'ganador': regalo.ganador_nombre or 'Sin Nombre',
-                                'premio': regalo.nombre,
-                                'numero': f"{regalo.numero:03d}",
-                                'imagen_url': regalo.imagen.url if regalo.imagen else None,
-                                'destacado': regalo.destacado,
-                            },
-                            "historial": historial_data
-                        }
-                    )
-                except Exception as e:
-                    print(f"Error al notificar por WebSocket: {e}")
+        invitado_qr = request.POST.get('invitado_qr')
+        regalo_qr = request.POST.get('regalo_qr')
 
-        return render(request, 'apps/regalos/canjear.html', {'regalo': regalo, 'exito': True})
+        if not invitado_qr or not regalo_qr:
+            return JsonResponse({'status': 'error', 'message': 'Faltan datos de escaneo (Invitado o Regalo).'},
+                                status=400)
+
+        # 1. Buscar y validar al invitado
+        invitado = Invitado.objects.filter(evento=evento, codigo_qr=invitado_qr).first()
+        if not invitado:
+            return JsonResponse(
+                {'status': 'error', 'message': 'No se encontró ningún invitado con ese código QR o identificación.'},
+                status=404)
+
+        # 2. VALIDACIÓN ANTI-DUPLICADOS: Verificar si el invitado ya ganó un regalo en este evento
+        regalo_previo = Regalo.objects.filter(evento=evento, invitado=invitado, canjeado=True).first()
+        if regalo_previo:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'¡El invitado "{invitado.nombre_completo}" ya canjeó un regalo anteriormente (Premio #{regalo_previo.numero}: {regalo_previo.nombre}). No se permiten canjes duplicados.'
+            }, status=400)
+
+        # 3. Buscar y validar el regalo/boleto
+        regalo = Regalo.objects.filter(evento=evento, codigo_qr=regalo_qr).first()
+        if not regalo:
+            return JsonResponse(
+                {'status': 'error', 'message': 'El código de boleto o regalo escaneado no es válido para este evento.'},
+                status=404)
+
+        if regalo.canjeado:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'El regalo #{regalo.numero} ({regalo.nombre}) ya fue canjeado previamente por {regalo.ganador_nombre}.'
+            }, status=400)
+
+        # 4. Registrar el canje exitosamente
+        regalo.invitado = invitado
+        regalo.ganador_nombre = invitado.nombre_completo
+        regalo.canjeado = True
+        regalo.fecha_canje = timezone.now()
+        regalo.save()
+
+        invitado.asistio = True
+        invitado.save()
+
+        # 5. Notificar por WebSocket a la pantalla gigante
+        regalos_entregados = Regalo.objects.filter(evento=evento, canjeado=True).order_by('-fecha_canje')[:6]
+        historial_data = [
+            {
+                'id': r.id,
+                'ganador': r.ganador_nombre or 'Sin Nombre',
+                'premio': r.nombre,
+                'numero': f"{r.numero:03d}",
+                'destacado': r.destacado,
+                'imagen_url': r.imagen.url if r.imagen else None,
+            }
+            for r in regalos_entregados
+        ]
+
+        channel_layer = get_channel_layer()
+        try:
+            async_to_sync(channel_layer.group_send)(
+                f"pantalla_evento_{evento_slug}",
+                {
+                    "type": "notificar_nuevo_ganador",
+                    "ultimo_ganador": {
+                        'id': regalo.id,
+                        'ganador': regalo.ganador_nombre,
+                        'premio': regalo.nombre,
+                        'numero': f"{regalo.numero:03d}",
+                        'imagen_url': regalo.imagen.url if regalo.imagen else None,
+                        'destacado': regalo.destacado,
+                    },
+                    "historial": historial_data
+                }
+            )
+        except Exception as e:
+            print(f"Error al notificar por WebSocket: {e}")
+
+        return JsonResponse({
+            'status': 'success',
+            'message': f'¡Canje exitoso para {invitado.nombre_completo}!',
+            'ganador': invitado.nombre_completo,
+            'premio': regalo.nombre,
+            'numero': f"{regalo.numero:03d}"
+        })
 
 
 class RegalosCanjeadosView(BreadcrumbsMixin, ListView):
@@ -745,3 +808,54 @@ class InvitadoImportView(
             {'title': 'Invitados', 'url': reverse('regalos:invitados__list', args=[self.evento.slug])},
             {'title': 'Importar Invitados'},
         ]
+
+
+class InvitadoPDFView(
+    PermissionRequiredMixin,
+    SedePermissionMixin,
+    WeasyTemplateResponseMixin,
+    TemplateView,
+):
+    permission_required = 'regalos.view_invitado'
+    pdf_attachment = False
+    template_name = 'apps/regalos/invitados/pdf.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.evento = get_object_or_404(Evento, slug=self.kwargs['evento_slug'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        queryset = Invitado.objects.filter(evento=self.evento).order_by('nombre_completo')
+
+        pk = self.kwargs.get('pk') or self.request.GET.get('pk')
+        if pk:
+            queryset = queryset.filter(pk=pk)
+
+        codigo_qr = self.kwargs.get('codigo_qr') or self.request.GET.get('codigo_qr')
+        if codigo_qr:
+            queryset = queryset.filter(codigo_qr=codigo_qr)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        invitados = self.get_queryset()
+
+        items = []
+        for invitado in invitados:
+            items.append({
+                'invitado': invitado,
+                'qr_code_base64': generar_qr_base64(invitado.codigo_qr)
+                # O el string/URL que quieras que lea el escáner
+            })
+
+        context['evento'] = self.evento
+        context['items'] = items
+        context['es_individual'] = len(items) == 1
+        return context
+
+    def get_pdf_filename(self):
+        pk = self.kwargs.get('pk') or self.request.GET.get('pk')
+        if pk:
+            return f'credencial_invitado_{pk}.pdf'
+        return f'credenciales_invitados_{self.evento.slug}.pdf'
