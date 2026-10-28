@@ -395,7 +395,7 @@ class RegaloPDFView(
         for regalo in regalos:
             items.append({
                 'regalo': regalo,
-                'qr_code_base64': generar_qr_base64(regalo.get_canjeo_url())
+                'qr_code_base64': generar_qr_base64(regalo.codigo_qr)
             })
 
         context['evento'] = self.evento
