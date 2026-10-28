@@ -1,6 +1,8 @@
 <c-layouts.base>
     <!-- SCRIPT DE LOTTIE-WEB OFICIAL -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <!-- SCRIPT DE HTML5-QRCODE PARA USAR LA CÁMARA -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
     <div class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-base-300 via-base-200 to-base-300 relative overflow-hidden">
 
@@ -8,23 +10,23 @@
         <div class="absolute -top-12 -left-12 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
         <div class="absolute -bottom-12 -right-12 w-48 h-48 bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div class="card w-full max-w-lg bg-base-100/95 backdrop-blur-xl shadow-2xl border border-base-300/80 overflow-hidden relative z-10">
-            <div class="card-body text-center p-6 md:p-8">
+        <div class="card w-full max-w-md bg-base-100/95 backdrop-blur-xl shadow-2xl border border-base-300/80 overflow-hidden relative z-10">
+            <div class="card-body text-center p-6 md:p-6">
 
                 <!-- ENCABEZADO -->
-                <div class="inline-flex p-4 bg-primary/10 rounded-2xl mb-2 mx-auto text-primary shadow-inner">
-                    <span class="text-4xl">🎁</span>
+                <div class="inline-flex p-3 bg-primary/10 rounded-2xl mb-1 mx-auto text-primary shadow-inner">
+                    <span class="text-3xl">🎁</span>
                 </div>
 
-                <h1 class="card-title text-3xl font-black justify-center text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">
-                    Módulo de Canje
+                <h1 class="card-title text-2xl font-black justify-center text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">
+                    Escáner de Canje
                 </h1>
-                <p class="text-xs text-base-content/70 font-bold uppercase tracking-wider mt-1">
+                <p class="text-xs text-base-content/70 font-bold uppercase tracking-wider mt-0.5">
                     Evento: <span class="text-primary font-black">{{ evento.nombre }}</span>
                 </p>
 
-                <!-- CONTENEDOR DE ESCANEO (PASO 1 Y PASO 2) -->
-                <div id="section-escaneo" class="mt-6 space-y-4 text-left">
+                <!-- CONTENEDOR DE CÁMARA Y ESTADOS -->
+                <div id="section-escaneo" class="mt-4 space-y-4 text-left">
 
                     <!-- ALERTA DE MENSAJES DINÁMICOS -->
                     <div id="alerta-error" class="hidden alert alert-error text-xs shadow-md py-2 px-3">
@@ -32,63 +34,36 @@
                         <span id="texto-error">Error en el proceso</span>
                     </div>
 
-                    <!-- PASO 1: ESCANEAR INVITADO -->
-                    <div id="step-invitado"
-                         class="form-control w-full bg-base-200/50 p-4 rounded-xl border border-base-300">
-                        <label class="label pb-1">
-                            <span class="label-text font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
-                                <span class="badge badge-primary badge-sm">1</span> Escanea la Identificación o QR del Invitado
-                            </span>
-                        </label>
-                        <div class="join w-full">
-                            <input type="text" id="input-invitado-qr"
-                                   class="input input-bordered join-item w-full text-sm font-mono"
-                                   placeholder="Esperando escaneo de invitado..." autofocus autocomplete="off"/>
-                            <button type="button" class="btn btn-neutral join-item text-xs"
-                                    onclick="validarInvitadoManual()">Validar
-                            </button>
-                        </div>
-                        <div id="info-invitado-validado"
-                             class="hidden mt-2 text-xs font-bold text-success flex items-center gap-1">
-                            <span class="icon-[tabler--circle-check] text-sm"></span>
-                            <span>Invitado: <strong id="lbl-nombre-invitado" class="underline"></strong></span>
-                        </div>
+                    <!-- LECTOR DE CÁMARA VISIBLE -->
+                    <div class="relative bg-neutral rounded-xl overflow-hidden border border-base-300 shadow-inner">
+                        <div id="reader" style="width: 100%; min-height: 250px;"></div>
                     </div>
 
-                    <!-- PASO 2: ESCANEAR REGALO (Bloqueado hasta validar invitado) -->
-                    <div id="step-regalo"
-                         class="form-control w-full bg-base-200/50 p-4 rounded-xl border border-base-300 opacity-60">
-                        <label class="label pb-1">
-                            <span class="label-text font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
-                                <span class="badge badge-neutral badge-sm">2</span> Escanea el Código del Regalo / Boleto
-                            </span>
-                        </label>
-                        <div class="join w-full">
-                            <input type="text" id="input-regalo-qr"
-                                   class="input input-bordered join-item w-full text-sm font-mono"
-                                   placeholder="Bloqueado hasta escanear invitado..." disabled autocomplete="off"/>
-                            <button type="button" id="btn-procesar-canje"
-                                    class="btn btn-success text-white join-item text-xs" disabled
-                                    onclick="enviarCanjeFinal()">Canjear
-                            </button>
+                    <!-- ESTADO ACTUAL DEL PROCESO -->
+                    <div id="status-card" class="p-3 rounded-xl bg-base-200/80 border border-base-300 text-center">
+                        <div class="badge badge-primary font-bold mb-1" id="badge-paso">PASO 1 DE 2</div>
+                        <p id="instrucciones-escaneo" class="text-xs font-bold text-base-content">
+                            Apunta la cámara al código QR del <span class="text-primary underline">Invitado</span>.
+                        </p>
+                        <div id="info-invitado-validado" class="hidden mt-2 text-xs font-bold text-success flex items-center justify-center gap-1">
+                            <span class="icon-[tabler--circle-check] text-sm"></span>
+                            <span>Invitado: <strong id="lbl-nombre-invitado" class="underline"></strong></span>
                         </div>
                     </div>
 
                 </div>
 
                 <!-- SECCIÓN DE APERTURA Y REVELACIÓN DEL REGALO -->
-                <div id="section-revelacion"
-                     class="hidden relative min-h-[380px] flex flex-col justify-center items-center my-2">
+                <div id="section-revelacion" class="hidden relative min-h-[380px] flex flex-col justify-center items-center my-2">
 
                     <!-- CONTENEDOR DE LA ANIMACIÓN LOTTIE-WEB -->
                     <div id="gift-box-container"
                          class="cursor-pointer flex flex-col items-center group transition-transform hover:scale-105"
                          onclick="revelarPremioMovil()">
 
-                        <div id="lottie-gift" style="width: 200px; height: 200px;"></div>
+                        <div id="lottie-gift" style="width: 180px; height: 180px;"></div>
 
-                        <div id="click-prompt"
-                             class="badge badge-primary badge-lg font-black uppercase tracking-widest px-6 py-3 shadow-lg shadow-primary/20 animate-bounce mt-2">
+                        <div id="click-prompt" class="badge badge-primary badge-lg font-black uppercase tracking-widest px-6 py-3 shadow-lg shadow-primary/20 animate-bounce mt-2">
                             👇 ¡Toca para abrir! 👇
                         </div>
                     </div>
@@ -100,8 +75,7 @@
                             🎉 ¡PREMIO DESBLOQUEADO! 🎉
                         </div>
 
-                        <h2 id="txt-premio-nombre"
-                            class="text-2xl font-black text-primary leading-tight mt-1 drop-shadow-sm">
+                        <h2 id="txt-premio-nombre" class="text-2xl font-black text-primary leading-tight mt-1 drop-shadow-sm">
                             -
                         </h2>
 
@@ -115,9 +89,7 @@
                         </div>
 
                         <div class="card-actions justify-center mt-4">
-                            <button class="btn btn-outline btn-sm" onclick="location.reload()">Escanear Siguiente Canje
-                                🔄
-                            </button>
+                            <button class="btn btn-primary btn-sm font-bold text-white shadow-md" onclick="location.reload()">Escanear Siguiente Canje 🔄</button>
                         </div>
                     </div>
 
@@ -127,11 +99,12 @@
         </div>
     </div>
 
-    <!-- SCRIPT DE LÓGICA Y ESCANEO -->
+    <!-- SCRIPT DE CÁMARA Y LÓGICA DE ESCANEO -->
     <script>
         let animacionRegalo;
+        let html5QrCode;
+        let pasoActual = 1; // 1: Escanear Invitado, 2: Escanear Regalo
         let invitadoQrActual = null;
-        let regaloQrActual = null;
 
         document.addEventListener("DOMContentLoaded", function () {
             // Inicializar Lottie
@@ -146,29 +119,19 @@
                 });
             }
 
-            // Mantener el foco asegurado en el input activo
-            const inputInvitado = document.getElementById('input-invitado-qr');
-            const inputRegalo = document.getElementById('input-regalo-qr');
+            // Inicializar Lector de Cámara con html5-qrcode
+            html5QrCode = new Html5Qrcode("reader");
+            const configQR = { fps: 10, qrbox: { width: 220, height: 220 } };
 
-            inputInvitado.focus();
-
-            // Evento Enter al escanear el invitado con la pistola/lector
-            inputInvitado.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    validarInvitadoQR(this.value.trim());
-                }
-            });
-
-            // Evento Enter al escanear el regalo con la pistola/lector
-            inputRegalo.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    regaloQrActual = this.value.trim();
-                    if (regaloQrActual) {
-                        enviarCanjeFinal();
-                    }
-                }
+            // Iniciar escaneo en la cámara trasera por defecto
+            html5QrCode.start(
+                { facingMode: "environment" },
+                configQR,
+                onScanSuccess,
+                onScanFailure
+            ).catch(err => {
+                console.error("Error al iniciar la cámara: ", err);
+                mostrarError("No se pudo acceder a la cámara. Asegúrate de dar permisos HTTPS.");
             });
         });
 
@@ -177,22 +140,29 @@
             const texto = document.getElementById('texto-error');
             texto.textContent = mensaje;
             alerta.classList.remove('hidden');
-
-            // Reproducir sonido de error opcional o limpiar inputs
-            setTimeout(() => {
-                alerta.classList.add('hidden');
-            }, 5000);
+            setTimeout(() => { alerta.classList.add('hidden'); }, 5000);
         }
 
-        function validarInvitadoManual() {
-            const val = document.getElementById('input-invitado-qr').value.trim();
-            if (val) validarInvitadoQR(val);
+        // Esta función se ejecuta cada vez que la cámara lee un código QR con éxito
+        function onScanSuccess(decodedText, decodedResult) {
+            // Pausamos brevemente el escaneo para evitar lecturas duplicadas en milisegundos
+            if (pasoActual === 1) {
+                // Procesar Paso 1: Invitado
+                pasoActual = 0; // Bloquear temporalmente lecturas
+                validarInvitadoQR(decodedText.trim());
+            } else if (pasoActual === 2) {
+                // Procesar Paso 2: Regalo
+                pasoActual = 0; // Bloquear temporalmente lecturas
+                enviarCanjeFinal(decodedText.trim());
+            }
         }
 
-        // Paso 1: El lector lee el QR del invitado y consulta la API
+        function onScanFailure(error) {
+            // Se ignora para que siga buscando continuamente sin llenar la consola
+        }
+
+        // Validación AJAX del Invitado
         function validarInvitadoQR(codigoQr) {
-            if (!codigoQr) return;
-
             const formData = new FormData();
             formData.append('invitado_qr', codigoQr);
             formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
@@ -201,87 +171,73 @@
                 method: 'POST',
                 body: formData
             })
-                .then(response => response.json().then(data => ({status: response.status, body: data})))
-                .then(res => {
-                    if (res.status === 200 && res.body.status === 'success') {
-                        invitadoQrActual = codigoQr;
+            .then(response => response.json().then(data => ({ status: response.status, body: data })))
+            .then(res => {
+                if (res.status === 200 && res.body.status === 'success') {
+                    invitadoQrActual = codigoQr;
+                    pasoActual = 2; // Avanzar al paso 2
 
-                        const inputInvitado = document.getElementById('input-invitado-qr');
-                        const stepInvitado = document.getElementById('step-invitado');
-                        const stepRegalo = document.getElementById('step-regalo');
-                        const inputRegalo = document.getElementById('input-regalo-qr');
-                        const lblInfo = document.getElementById('info-invitado-validado');
-                        const lblNombre = document.getElementById('lbl-nombre-invitado');
+                    // Actualizar interfaz visual
+                    document.getElementById('badge-paso').textContent = "PASO 2 DE 2";
+                    document.getElementById('badge-paso').className = "badge badge-success font-bold mb-1";
+                    document.getElementById('instrucciones-escaneo').innerHTML = 'Invitado validado. Ahora apunta al QR del <span class="text-success underline">Regalo</span>.';
 
-                        // Bloquear paso 1 visualmente
-                        inputInvitado.disabled = true;
-                        stepInvitado.classList.add('opacity-70', 'bg-success/10', 'border-success/30');
-
-                        // Activar paso 2 y llevar el foco AUTOMÁTICAMENTE a la pistola para el regalo
-                        stepRegalo.classList.remove('opacity-60');
-                        inputRegalo.disabled = false;
-                        inputRegalo.placeholder = "¡Listo! Escanea el boleto del regalo...";
-                        inputRegalo.focus(); // <--- El foco pasa solo al siguiente escaneo
-
-                        lblNombre.textContent = res.body.nombre_completo;
-                        lblInfo.classList.remove('hidden');
-                    } else {
-                        mostrarError(res.body.message || "No se encontró el invitado.");
-                        const inputInv = document.getElementById('input-invitado-qr');
-                        inputInv.value = '';
-                        inputInv.focus();
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    mostrarError("Error de red al validar al invitado.");
-                });
+                    const lblNombre = document.getElementById('lbl-nombre-invitado');
+                    lblNombre.textContent = res.body.nombre_completo;
+                    document.getElementById('info-invitado-validado').classList.remove('hidden');
+                } else {
+                    mostrarError(res.body.message || "Invitado no encontrado.");
+                    pasoActual = 1; // Reintentar paso 1
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                mostrarError("Error de red al validar invitado.");
+                pasoActual = 1;
+            });
         }
 
-        // Paso 2: El lector lee el QR del regalo y se procesa el canje completo
-        function enviarCanjeFinal() {
-            const inputRegalo = document.getElementById('input-regalo-qr');
-            regaloQrActual = inputRegalo.value.trim();
-
-            if (!invitadoQrActual || !regaloQrActual) {
-                mostrarError("Faltan datos de escaneo.");
-                return;
-            }
-
+        // Envío final del Canje
+        function enviarCanjeFinal(regaloQr) {
             const formData = new FormData();
             formData.append('invitado_qr', invitadoQrActual);
-            formData.append('regalo_qr', regaloQrActual);
+            formData.append('regalo_qr', regaloQr);
             formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
             fetch("{% url 'regalos:api_procesar_canje' evento.slug %}", {
                 method: 'POST',
                 body: formData
             })
-                .then(response => response.json().then(data => ({status: response.status, body: data})))
-                .then(res => {
-                    if (res.status === 200 && res.body.status === 'success') {
-                        // Ocultar sección de escaneo y mostrar animación de premio
-                        document.getElementById('section-escaneo').classList.add('hidden');
-
-                        document.getElementById('txt-premio-nombre').textContent = res.body.premio;
-                        document.getElementById('txt-ganador-nombre').textContent = res.body.ganador;
-                        document.getElementById('txt-premio-numero').textContent = "#" + res.body.numero;
-
-                        const secRevelacion = document.getElementById('section-revelacion');
-                        secRevelacion.classList.remove('hidden');
-                        secRevelacion.classList.add('flex');
-
-                        setTimeout(revelarPremioMovil, 400);
-                    } else {
-                        mostrarError(res.body.message || "Ocurrió un error al procesar el canje.");
-                        inputRegalo.value = '';
-                        inputRegalo.focus();
+            .then(response => response.json().then(data => ({ status: response.status, body: data })))
+            .then(res => {
+                if (res.status === 200 && res.body.status === 'success') {
+                    // Apagar la cámara de forma segura
+                    if (html5QrCode && html5QrCode.isScanning) {
+                        html5QrCode.stop().catch(err => console.log(err));
                     }
-                })
-                .catch(err => {
-                    console.error(err);
-                    mostrarError("Error de red al conectar con el servidor.");
-                });
+
+                    // Mostrar animación de éxito
+                    document.getElementById('section-escaneo').classList.add('hidden');
+
+                    document.getElementById('txt-premio-nombre').textContent = res.body.premio;
+                    document.getElementById('txt-ganador-nombre').textContent = res.body.ganador;
+                    document.getElementById('txt-premio-numero').textContent = "#" + res.body.numero;
+
+                    const secRevelacion = document.getElementById('section-revelacion');
+                    secRevelacion.classList.remove('hidden');
+                    secRevelacion.classList.add('flex');
+
+                    setTimeout(revelarPremioMovil, 400);
+                } else {
+                    mostrarError(res.body.message || "Error al procesar canje.");
+                    pasoActual = 2; // Permitir reintentar escanear otro regalo si este falló
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                mostrarError("Error de red al procesar el canje.");
+                pasoActual = 2;
+            });
         }
 
         let yaAbierto = false;
@@ -295,7 +251,6 @@
             const premio = document.getElementById('premio-revealed');
 
             if (!boxContainer || !premio) return;
-
             if (clickPrompt) clickPrompt.style.display = 'none';
 
             if (animacionRegalo) {
