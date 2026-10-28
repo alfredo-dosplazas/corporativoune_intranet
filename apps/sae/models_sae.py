@@ -109,6 +109,7 @@ class ArticuloMixin:
     ult_costo = Column('ULT_COSTO', Double())
 
     cve_imagen = Column('CVE_IMAGEN', String(16))
+    ctrl_alm = Column('CTRL_ALM', String(10))
 
 
 class PartidaFacturaMixin:

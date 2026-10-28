@@ -18,6 +18,7 @@ from weasyprint import HTML
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.mixins.title import PageTitleMixin
+from apps.core.models import Empresa
 from apps.core.paginators import SqlPaginator
 from apps.sae.db import sae_session
 from apps.sae.exports.inventario import build_inventario_excel
@@ -67,7 +68,6 @@ class SAEView(
 
 
 CAMPOS_DISPONIBLES = {
-    'imagen': 'Imagen',
     'almacen_nombre': 'Almacén',
     'articulo_clave': 'Clave',
     'status_producto': 'Estatus',
@@ -75,18 +75,25 @@ CAMPOS_DISPONIBLES = {
     'linea': 'Línea',
     'existencia': 'Existencia',
     'precio_lista': 'Precio Lista',
-    'precio_publico': 'Precio Público',
-    'precio_minimo': 'Precio Mínimo',
     'mayoreo': 'Mayoreo',
-    'medio_mayoreo': 'Medio Mayoreo',
+    'ctrl_alm': 'Control Almacén',
     'costo_promedio': 'Costo Unit.',
     'costo_total': 'Costo Total',
 }
 
-CAMPOS_DEFECTO_VENDEDOR = [
+# Vendedor: Sin imagen, solo Precio Lista y Mayoreo (sin costos)
+CAMPOS_VENDEDOR = [
     'almacen_nombre', 'articulo_clave', 'status_producto',
     'articulo_descripcion', 'linea', 'existencia',
-    'precio_lista', 'precio_minimo', 'mayoreo', 'medio_mayoreo'
+    'precio_lista', 'mayoreo'
+]
+
+# Gerencia: Incluye costo promedio y costo total
+CAMPOS_GERENCIA = [
+    'almacen_nombre', 'articulo_clave', 'status_producto',
+    'articulo_descripcion', 'linea', 'existencia',
+    'ctrl_alm',
+    'costo_promedio', 'costo_total'
 ]
 
 
@@ -105,24 +112,27 @@ class InventarioView(
     cache_ttl = 300  # 5 minutos
 
     def get_active_fields(self):
-        """Obtiene las columnas seleccionadas por el usuario vía GET."""
-        selected = self.request.GET.getlist('campos')
-        if not selected:
-            return CAMPOS_DEFECTO_VENDEDOR
-        return [f for f in selected if f in CAMPOS_DISPONIBLES]
+        """
+        Determina los campos visibles según los permisos del usuario.
+        """
+        user = self.request.user
 
-    def get_table(self, **kwargs):
-        """Instancia la tabla ocultando las columnas no activas."""
-        table = super().get_table(**kwargs)
-        active_fields = self.get_active_fields()
+        # Si tiene permiso de gerencia / admin
+        if user.has_perm('sae.view_inventario_gerencia'):
+            # Si permite selección manual vía GET, filtramos sobre los permitidos
+            selected = self.request.GET.getlist('campos')
+            if selected:
+                return [f for f in selected if f in CAMPOS_DISPONIBLES]
+            return CAMPOS_GERENCIA
 
-        for col_name in list(table.columns):
-            if col_name.name not in active_fields:
-                try:
-                    table.columns.hide(col_name.name)
-                except Exception:
-                    pass
-        return table
+        # Para Vendedor (o usuarios sin permiso de gerencia), devolvemos los campos fijos
+        return CAMPOS_VENDEDOR
+
+    def get_table_kwargs(self):
+        """Pasa los active_fields directamente a la inicialización de InventarioTable."""
+        kwargs = super().get_table_kwargs()
+        kwargs['active_fields'] = self.get_active_fields()
+        return kwargs
 
     def get(self, request, *args, **kwargs):
         export_format = self.request.GET.get('_export')
@@ -146,6 +156,8 @@ class InventarioView(
             page = 1
 
         active_fields = self.get_active_fields()
+
+        # Generar cache key considerando los campos activos y el usuario/rol
         active_fields_str = "_".join(sorted(active_fields))
         cache_key = f"sae_inv_{almacen_cve}_{q}_{active_fields_str}_p{page if not export_all else 'all'}"
         cached_res = cache.get(cache_key)
@@ -156,27 +168,16 @@ class InventarioView(
         with sae_session() as (db_sae, suffix):
             m = get_sae_models(suffix)
 
-            base_img_path = rf"\\{settings.DOMINUM_HOST}\dacaspel\Sistemas Aspel\SAE9.00\Empresa{suffix}\Imagenes"
-
+            # Precios agregados solo si están en los campos activos
             precio_lista = func.coalesce(
                 func.max(case((m.PrecioPorProducto.cve_precio == 3, m.PrecioPorProducto.precio), else_=0.0)),
                 0.0
             ).label('precio_lista')
 
-            precio_minimo = func.coalesce(
-                func.max(case((m.PrecioPorProducto.cve_precio == 2, m.PrecioPorProducto.precio), else_=0.0)),
-                0.0
-            ).label('precio_minimo')
-
             mayoreo = func.coalesce(
                 func.max(case((m.PrecioPorProducto.cve_precio == 5, m.PrecioPorProducto.precio), else_=0.0)),
                 0.0
             ).label('mayoreo')
-
-            medio_mayoreo = func.coalesce(
-                func.max(case((m.PrecioPorProducto.cve_precio == 4, m.PrecioPorProducto.precio), else_=0.0)),
-                0.0
-            ).label('medio_mayoreo')
 
             query = db_sae.query(
                 m.Almacen.clave.label('almacen_clave'),
@@ -184,14 +185,12 @@ class InventarioView(
                 m.Producto.clave.label('articulo_clave'),
                 m.Producto.descripcion.label('articulo_descripcion'),
                 m.Producto.linea.label('linea'),
+                m.Producto.ctrl_alm.label('ctrl_alm'),
                 m.Producto.status.label('status_producto'),
-                m.Producto.cve_imagen.label('cve_imagen'),
                 m.Multialmacen.exist.label('existencia'),
                 m.Producto.costo_prom.label('costo_promedio'),
                 precio_lista,
-                precio_minimo,
                 mayoreo,
-                medio_mayoreo,
             ).join(
                 m.Multialmacen, m.Producto.clave == m.Multialmacen.cve_art
             ).join(
@@ -218,39 +217,24 @@ class InventarioView(
                 m.Producto.clave,
                 m.Producto.descripcion,
                 m.Producto.linea,
+                m.Producto.ctrl_alm,
                 m.Producto.status,
-                m.Producto.cve_imagen,
                 m.Multialmacen.exist,
                 m.Producto.costo_prom
             ).order_by(m.Almacen.clave, m.Producto.clave)
 
-            # 1. Total exacto en BD
             total_count = query.count()
 
-            # 2. LIMIT y OFFSET
             if not export_all:
                 offset = (page - 1) * self.paginate_by
                 query = query.limit(self.paginate_by).offset(offset)
 
             resultados = query.all()
 
-            requires_images = 'imagen' in active_fields
-
             data = []
             for item in resultados:
                 exist = float(item.existencia or 0.0)
                 costo_u = float(item.costo_promedio or 0.0)
-
-                img_url = ""
-                full_path = ""
-
-                if requires_images and item.cve_imagen:
-                    img_name = f"{item.cve_imagen}.jpg".strip()
-                    full_path = os.path.join(base_img_path, img_name)
-
-                    if not export_all:
-                        if os.path.exists(full_path):
-                            img_url = reverse('sae:inventario__imagen', kwargs={'suffix': suffix, 'filename': img_name})
 
                 data.append({
                     'almacen_clave': item.almacen_clave,
@@ -259,16 +243,12 @@ class InventarioView(
                     'articulo_descripcion': item.articulo_descripcion.strip() if item.articulo_descripcion else '',
                     'linea': item.linea or '',
                     'status_producto': item.status_producto or 'A',
-                    'imagen': img_url,
-                    'imagen_path': full_path,
+                    'ctrl_alm': item.ctrl_alm or '',
                     'existencia': exist,
                     'costo_promedio': costo_u,
                     'costo_total': exist * costo_u,
                     'precio_lista': float(item.precio_lista or 0.0),
-                    'precio_publico': float(item.precio_lista or 0.0),
-                    'precio_minimo': float(item.precio_minimo or 0.0),
                     'mayoreo': float(item.mayoreo or 0.0),
-                    'medio_mayoreo': float(item.medio_mayoreo or 0.0),
                 })
 
             result = (data, total_count)
@@ -309,7 +289,17 @@ class InventarioView(
 
     def export_excel(self, data):
         active_fields = self.get_active_fields()
-        wb = build_inventario_excel(data, active_fields, CAMPOS_DISPONIBLES)
+
+        logo_path = None
+        try:
+            empresa = Empresa.objects.filter(nombre_corto="Encorto").first()
+            if empresa and empresa.logo and hasattr(empresa.logo, 'path') and os.path.exists(empresa.logo.path):
+                logo_path = empresa.logo.path
+        except Exception:
+            pass
+
+        wb = build_inventario_excel(data, active_fields, CAMPOS_DISPONIBLES, logo_path=logo_path)
+
         response = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
@@ -319,8 +309,16 @@ class InventarioView(
 
     def export_pdf(self, data):
         active_fields = self.get_active_fields()
-        # Mapear títulos de columnas activas para el PDF
         headers_pdf = [CAMPOS_DISPONIBLES[field] for field in active_fields if field in CAMPOS_DISPONIBLES]
+
+        # Intentar obtener el logo de la empresa Encorto si existe
+        logo_url = None
+        try:
+            empresa = Empresa.objects.filter(nombre_corto="Encorto").first()
+            if empresa and empresa.logo:
+                logo_url = empresa.logo.url
+        except Exception:
+            pass
 
         html_string = render_to_string(
             "apps/sae/pdf/inventario_almacen_pdf.html",
@@ -328,11 +326,12 @@ class InventarioView(
                 "articulos": data,
                 "active_fields": active_fields,
                 "headers": headers_pdf,
+                "logo_url": logo_url,
             }
         )
-        pdf_bytes = HTML(string=html_string).write_pdf()
+        pdf_bytes = HTML(string=html_string, base_url=".").write_pdf()
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="Inventario_{now().strftime("%Y%m%d_%H%M")}.pdf"'
+        response['Content-Disposition'] = f'attachment; filename="Inventario_Encorto_{now().strftime("%Y%m%d_%H%M")}.pdf"'
         return response
 
     def get_breadcrumbs(self):

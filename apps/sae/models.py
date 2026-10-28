@@ -13,4 +13,5 @@ class SAE(models.Model):
         permissions = [
             ('view_sae', 'Puede ver el índice/módulo SAE'),
             ('view_inventario', 'Puede ver el reporte de inventario por almacén'),
+            ('view_inventario_gerencia', 'Puede ver el reporte de inventario para gerencia'),
         ]

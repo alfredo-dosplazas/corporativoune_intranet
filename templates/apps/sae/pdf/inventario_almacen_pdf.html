@@ -6,97 +6,149 @@
     <style>
         @page {
             size: letter landscape;
-            margin: 1.5cm 1cm;
+            margin: 1.5cm 1cm 1.5cm 1cm;
             @bottom-right {
                 content: "Página " counter(page) " de " counter(pages);
+                font-family: Helvetica, Arial, sans-serif;
                 font-size: 8pt;
-                font-family: Arial, sans-serif;
+                color: #666;
+            }
+            @bottom-left {
+                content: "Encorto - Reporte de Inventarios";
+                font-family: Helvetica, Arial, sans-serif;
+                font-size: 8pt;
+                color: #666;
             }
         }
+
         body {
-            font-family: Arial, sans-serif;
-            font-size: 9pt;
-            color: #333;
-        }
-        .header {
-            border-bottom: 2px solid #1F497D;
-            padding-bottom: 5px;
-            margin-bottom: 15px;
-        }
-        .header h2 {
-            margin: 0;
-            color: #1F497D;
-        }
-        .header p {
-            margin: 3px 0 0 0;
+            font-family: Helvetica, Arial, sans-serif;
             font-size: 8pt;
-            color: #666;
+            color: #1F2937;
+            margin: 0;
+            padding: 0;
         }
-        table {
+
+        .header-container {
+            width: 100%;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #28A71A; /* Color Primary Encorto */
+            padding-bottom: 8px;
+        }
+
+        .header-container table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
         }
-        th {
-            background-color: #1F497D;
-            color: white;
-            padding: 6px;
-            text-align: left;
-            font-size: 8.5pt;
+
+        .logo-img {
+            max-height: 40px;
+            max-width: 150px;
+            object-fit: contain;
         }
-        td {
-            padding: 5px;
-            border-bottom: 1px solid #E0E0E0;
-        }
-        tr:nth-child(even) {
-            background-color: #F9F9F9;
-        }
-        .text-right { text-align: right; }
-        .text-center { text-align: center; }
-        .total-row {
+
+        .title {
+            font-size: 16pt;
             font-weight: bold;
-            background-color: #E8EEF5 !important;
-            border-top: 2px solid #1F497D;
+            color: #1E293B; /* Color Secondary Encorto */
+            margin: 0;
         }
+
+        .subtitle {
+            font-size: 8pt;
+            color: #4B5563;
+            text-align: right;
+        }
+
+        /* Estilos de Tabla con tonos Encorto */
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+        }
+
+        table.data-table th {
+            background-color: #28A71A; /* Verde Primary Encorto */
+            color: #FFFFFF;
+            font-weight: bold;
+            padding: 6px 4px;
+            text-align: center;
+            font-size: 8pt;
+            border: 1px solid #1B7A10;
+        }
+
+        table.data-table td {
+            padding: 5px 4px;
+            border: 1px solid #E5E7EB;
+            font-size: 7.5pt;
+            vertical-align: middle;
+        }
+
+        table.data-table tr:nth-child(even) {
+            background-color: #F9FAFB; /* Base-100 Encorto */
+        }
+
+        /* Alineaciones */
+        .text-center { text-align: center; }
+        .text-left { text-align: left; }
+        .text-right { text-align: right; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h2>Reporte de Inventario por Almacén</h2>
-        <p>Empresa: {{ empresa_nombre }} | Fecha de Reporte: {{ fecha_reporte }}</p>
+    <div class="header-container">
+        <table>
+            <tr>
+                <td class="text-left" style="width: 50%;">
+                    {% if logo_url %}
+                        <img src="{{ logo_url }}" class="logo-img" alt="Logo Encorto">
+                    {% else %}
+                        <div class="title">REPORTE DE INVENTARIO</div>
+                    {% endif %}
+                </td>
+                <td class="text-right subtitle" style="width: 50%;">
+                    {% if logo_url %}<div style="font-size: 12pt; font-weight: bold; color: #1E293B;">REPORTE DE INVENTARIO</div>{% endif %}
+                    Impreso: {% now "d/m/Y H:i" %}<br>
+                    Total artículos: {{ articulos|length }}
+                </td>
+            </tr>
+        </table>
     </div>
 
-    <table>
+    <table class="data-table">
         <thead>
             <tr>
-                <th style="width: 12%;">Almacén</th>
-                <th style="width: 10%;">Clave</th>
-                <th>Descripción</th>
-                <th style="width: 8%;" class="text-center">Línea</th>
-                <th style="width: 10%;" class="text-right">Cantidad</th>
-                <th style="width: 12%;" class="text-right">Costo Unit.</th>
-                <th style="width: 12%;" class="text-right">Valor Total</th>
+                {% for header in headers %}
+                    <th>{{ header }}</th>
+                {% endfor %}
             </tr>
         </thead>
         <tbody>
             {% for item in articulos %}
-            <tr>
-                <td>{{ item.almacen_nombre }}</td>
-                <td>{{ item.clave }}</td>
-                <td>{{ item.descripcion }}</td>
-                <td class="text-center">{{ item.linea }}</td>
-                <td class="text-right">{{ item.cantidad|floatformat:2 }}</td>
-                <td class="text-right">${{ item.costo_unitario|floatformat:2 }}</td>
-                <td class="text-right">${{ item.costo_total|floatformat:2 }}</td>
-            </tr>
+                <tr>
+                    {% for field in active_fields %}
+                        {% if field == 'articulo_descripcion' %}
+                            <td class="text-left">{{ item.articulo_descripcion }}</td>
+                        {% elif field == 'existencia' %}
+                            <td class="text-right">{{ item.existencia|floatformat:2 }}</td>
+                        {% elif field == 'precio_lista' %}
+                            <td class="text-right">${{ item.precio_lista|floatformat:2 }}</td>
+                        {% elif field == 'mayoreo' %}
+                            <td class="text-right">${{ item.mayoreo|floatformat:2 }}</td>
+                        {% elif field == 'costo_promedio' %}
+                            <td class="text-right">${{ item.costo_promedio|floatformat:2 }}</td>
+                        {% elif field == 'costo_total' %}
+                            <td class="text-right">${{ item.costo_total|floatformat:2 }}</td>
+                        {% else %}
+                            <td class="text-center">{{ item|get_item:field }}</td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="{{ active_fields|length }}" class="text-center">No se encontraron registros de inventario.</td>
+                </tr>
             {% endfor %}
-            <tr class="total-row">
-                <td colspan="4" class="text-right">TOTALES:</td>
-                <td class="text-right">{{ total_piezas|floatformat:2 }}</td>
-                <td></td>
-                <td class="text-right">${{ valor_total_inventario|floatformat:2 }}</td>
-            </tr>
         </tbody>
     </table>
 
