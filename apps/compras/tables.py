@@ -14,6 +14,11 @@ class OrdenTable(TableWithActions):
 
     solicitante = ContactoColumn(accessor='solicitante', contacto_accessor='solicitante',
                                  verbose_name='Solicitante')
+
+    subtotal = AmountColumn()
+    iva = AmountColumn(verbose_name='IVA')
+    total = AmountColumn()
+
     creada_por = ContactoColumn(accessor='creada_por', contacto_accessor='creada_por__contacto')
 
     class Meta:
@@ -24,6 +29,9 @@ class OrdenTable(TableWithActions):
             'razon_social',
             'proveedor',
             'solicitante',
+            'subtotal',
+            'iva',
+            'total',
             'creada_por',
             'updated_at',
         ]
