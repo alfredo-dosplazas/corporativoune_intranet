@@ -16079,6 +16079,32 @@
       }
     }
   }
+  .link-secondary {
+    @layer daisyui.l1.l2 {
+      color: var(--color-secondary);
+      @media (hover: hover) {
+        &:hover {
+          color: var(--color-secondary);
+          @supports (color: color-mix(in lab, red, red)) {
+            color: color-mix(in oklab, var(--color-secondary) 80%, #000);
+          }
+        }
+      }
+    }
+  }
+  .link-secondary {
+    @layer daisyui.l1.l2 {
+      color: var(--color-secondary);
+      @media (hover: hover) {
+        &:hover {
+          color: var(--color-secondary);
+          @supports (color: color-mix(in lab, red, red)) {
+            color: color-mix(in oklab, var(--color-secondary) 80%, #000);
+          }
+        }
+      }
+    }
+  }
   .tooltip-error {
     @layer daisyui.l1.l2 {
       --tt-bg: var(--color-error);

@@ -238,11 +238,17 @@ class ContactoTable(TableWithActions):
         puesto = record.puesto.nombre if record.puesto else "Sin puesto"
         area = record.area.nombre if record.area else "Sin área"
 
+        puesto_url = reverse('organizacion:puestos__detail', args=[record.puesto.id]) if record.puesto else '#'
+        area_url = reverse('organizacion:areas__detail', args=[record.area.id]) if record.area else '#'
+
         return mark_safe(f"""
-            <div class="flex flex-col leading-tight">
-                <span class="font-medium text-xs text-base-content">{puesto}</span>
+            <div class="flex flex-col leading-tight bg-transparent" data-theme="{record.empresa.theme}">
+                <span class="font-medium text-xs text-base-content">
+                    <a href="{puesto_url}" class="{'link link-primary' if record.puesto else ''}">{puesto}</a>
+                </span>
                 <span class="text-[11px] text-base-content/60 flex items-center gap-1 mt-0.5">
-                    <span class="text-primary/50">└</span> {area}
+                    <span class="text-primary/50">└</span> 
+                    <a href="{area_url}" class="{'link link-secondary' if record.area else ''}">{area}</a>
                 </span>
             </div>
         """)
