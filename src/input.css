@@ -128,8 +128,8 @@
     --color-primary-light: #73D0AF;
     --color-primary-dark: #2A7A61;
 
-    --color-secondary: #f5f5f5;
-    --color-secondary-content: #1F2937;
+    --color-secondary: #1E293B;
+    --color-secondary-content: #FFFFFF;
 
     --color-accent: #5CC8FF;
     --color-accent-content: #0F172A;
@@ -411,7 +411,7 @@
     --color-primary: #283E60;
     --color-primary-content: #FFFFFF;
 
-    --color-secondary: #B1B2B2;
+    --color-secondary: #727272;
     --color-secondary-content: #1F2937;
 
     /* UI feedback (neutros, no protagonistas) */
