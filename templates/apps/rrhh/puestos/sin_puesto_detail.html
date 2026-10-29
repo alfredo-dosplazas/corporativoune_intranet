@@ -1,0 +1,93 @@
+{% load phone_filters %}
+
+<c-layouts.app>
+
+    <!-- HEADER / BARRA SUPERIOR -->
+    <c-slot name="header">
+        <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+                <a href="{% url 'organizacion:puestos__list' %}"
+                   class="btn btn-ghost btn-xs btn-square shrink-0 text-base-content/60 hover:text-base-content"
+                   title="Volver a puestos">
+                    <span class="icon-[tabler--arrow-left] text-sm"></span>
+                </a>
+
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="icon-[tabler--id-badge-off] text-warning text-base shrink-0"></span>
+                    <h1 class="font-bold text-xs sm:text-sm text-base-content truncate">Colaboradores Sin Puesto
+                        Asignado</h1>
+                    <span class="badge badge-xs badge-warning shrink-0">{{ page_obj.paginator.count }} personas</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 shrink-0 text-[11px] text-base-content/50 italic">
+                <span>Modo consulta (Sin editar/eliminar)</span>
+            </div>
+        </div>
+    </c-slot>
+
+    <!-- GRID PRINCIPAL DE CONTACTOS HUÉRFANOS DE PUESTO -->
+    <div class="card bg-base-100 border border-base-200 shadow-2xs">
+        <div class="card-body p-4 space-y-3">
+            <div class="text-[11px] font-bold text-warning uppercase tracking-wider border-b border-base-200 pb-1 flex items-center justify-between">
+                <div class="flex items-center gap-1">
+                    <span class="icon-[tabler--users] size-3.5"></span> Listado de Personal Pendiente de Puesto
+                </div>
+                <span class="badge badge-xs badge-neutral">{{ page_obj.paginator.count }}</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                {% for contacto in object_list %}
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-base-200/40 border border-base-200 text-xs hover:border-warning/40 transition-colors group">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <div class="avatar shrink-0 select-none">
+                                <div class="w-8 h-8 rounded-full ring-1 ring-base-200 {% if contacto.foto %} bg-base-100 {% else %} bg-warning text-warning-content {% endif %}">
+                                    {% if contacto.foto %}
+                                        <img src="{{ contacto.foto.url }}" alt="{{ contacto.nombre_completo }}"
+                                             class="object-cover w-full h-full rounded-full"/>
+                                    {% else %}
+                                        <span class="flex items-center justify-center w-full h-full text-[10px] font-bold">
+                                            {{ contacto.iniciales }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="min-w-0 flex-1">
+                                <a href="{% url 'directorio:detail' contacto.pk %}"
+                                   class="font-bold text-base-content group-hover:text-primary truncate block leading-snug">
+                                    {{ contacto.nombre_completo }}
+                                </a>
+                                <p class="text-[10px] text-base-content/60 truncate font-medium">
+                                    Área: {{ contacto.area.nombre|default:"Sin área" }} · <span
+                                        class="text-primary">{{ contacto.empresa.nombre_corto }}</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Acciones directas -->
+                        <div class="flex items-center gap-1 shrink-0">
+                            {% if contacto.email_principal %}
+                                <a href="mailto:{{ contacto.email_principal.email }}"
+                                   class="btn btn-ghost btn-xs btn-square text-base-content/50 hover:text-primary"
+                                   title="Enviar correo">
+                                    <span class="icon-[tabler--mail] size-3.5"></span>
+                                </a>
+                            {% endif %}
+                            <a href="{% url 'directorio:update' contacto.pk %}"
+                               class="btn btn-ghost btn-xs text-[10px] text-primary"
+                               title="Asignar puesto editando contacto">
+                                Asignar
+                            </a>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="col-span-full text-[11px] text-base-content/40 italic p-6 border border-dashed border-base-200 rounded-lg text-center">
+                        ¡Excelente! No hay ningún colaborador sin puesto asignado en tus empresas permitidas.
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+</c-layouts.app>

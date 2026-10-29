@@ -48,7 +48,8 @@
                 <!-- CONTADOR DE REGISTROS -->
                 <div class="flex items-center gap-1.5 border-l border-base-300 pl-2 text-xs text-base-content/60">
                     <span class="text-[11px] whitespace-nowrap">
-                        Total: <span class="font-bold text-base-content">{{ table.page.paginator.count|default:"0" }}</span>
+                        Total: <span
+                            class="font-bold text-base-content">{{ table.page.paginator.count|default:"0" }}</span>
                     </span>
                 </div>
 
@@ -69,9 +70,21 @@
         {% endif %}
     </c-slot>
 
+    {% if sin_area_count > 0 %}
+        <div class="mb-3 p-2.5 rounded-lg bg-warning/10 border border-warning/30 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+                <span class="icon-[tabler--alert-triangle] text-warning size-4 shrink-0"></span>
+                <span class="text-base-content font-medium">
+                    Hay <strong>{{ sin_area_count }}</strong> colaborador(es) registrado(s) sin área asignada.
+                </span>
+            </div>
+            <a href="{% url 'organizacion:areas__sin_area' %}" class="btn btn-warning btn-xs font-semibold">
+                Ver sin área
+            </a>
+        </div>
+    {% endif %}
+
     <!-- VISTA TABLA -->
-    <div class="flex flex-col flex-1 min-h-0 h-full w-full bg-base-100 rounded-lg border border-base-200 p-2 shadow-2xs">
-        {% render_table table %}
-    </div>
+    {% render_table table %}
 
 </c-layouts.app>

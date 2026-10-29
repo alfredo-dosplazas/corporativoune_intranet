@@ -2,9 +2,10 @@ from django.urls import path
 
 from apps.rrhh.autocompletes import AreaAutocomplete, PuestoAutocomplete, AreaNombreAutocomplete, \
     PuestoNombreAutocomplete
-from apps.rrhh.views.areas import AreaListView, AreaUpdateView, AreaCreateView, AreaDetailView, AreaDeleteView
+from apps.rrhh.views.areas import AreaListView, AreaUpdateView, AreaCreateView, AreaDetailView, AreaDeleteView, \
+    AreaSinAreaDetailView
 from apps.rrhh.views.puestos import PuestoListView, PuestoCreateView, PuestoUpdateView, PuestoDeleteView, \
-    PuestoDetailView
+    PuestoDetailView, PuestoSinPuestoDetailView
 from apps.rrhh.views.rrhh import OrganizacionView
 
 app_name = 'organizacion'
@@ -15,6 +16,7 @@ urlpatterns = [
 
 areas_urlpatterns = [
     path('areas/', AreaListView.as_view(), name='areas__list'),
+    path('areas/sin-area/', AreaSinAreaDetailView.as_view(), name='areas__sin_area'),
     path('areas/crear/', AreaCreateView.as_view(), name='areas__create'),
     path('areas/editar/<int:pk>/', AreaUpdateView.as_view(), name='areas__update'),
     path('areas/detalle/<int:pk>/', AreaDetailView.as_view(), name='areas__detail'),
@@ -25,6 +27,7 @@ areas_urlpatterns = [
 
 puestos_urlpatterns = [
     path('puestos/', PuestoListView.as_view(), name='puestos__list'),
+    path('puestos/sin-puesto/', PuestoSinPuestoDetailView.as_view(), name='puestos__sin_puesto'),
     path('puestos/crear/', PuestoCreateView.as_view(), name='puestos__create'),
     path('puestos/editar/<int:pk>/', PuestoUpdateView.as_view(), name='puestos__update'),
     path('puestos/detalle/<int:pk>/', PuestoDetailView.as_view(), name='puestos__detail'),

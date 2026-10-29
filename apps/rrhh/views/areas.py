@@ -1,5 +1,6 @@
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db.models import Q
 from django.http.response import HttpResponseForbidden
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -8,7 +9,9 @@ from django_tables2 import SingleTableMixin
 from extra_views import SearchableListMixin
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.models import Empresa
 from apps.core.utils.network import get_client_ip, ip_in_allowed_range
+from apps.directorio.models import Contacto
 from apps.directorio.utils import obtener_empresas_permitidas
 from apps.rrhh.forms.areas import AreaForm
 from apps.rrhh.helpers.areas import puede_editar_area, puede_eliminar_area, puede_ver_area
@@ -51,6 +54,57 @@ class AreaListView(
 
         empresas_ids = obtener_empresas_permitidas(self.request)
         return qs.filter(empresa_id__in=empresas_ids)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        empresas_ids = obtener_empresas_permitidas(self.request)
+
+        from apps.directorio.models import Contacto
+        from django.db.models import Q
+
+        context['sin_area_count'] = Contacto.objects.filter(
+            Q(usuario__is_active=True) | Q(usuario__isnull=True),
+            esta_archivado=False,
+            mostrar_en_directorio=True,
+            area__isnull=True,
+            empresa_id__in=empresas_ids if not self.request.user.is_superuser else Empresa.objects.values_list(
+                'id',
+                flat=True
+            )
+        ).count()
+
+        return context
+
+class AreaSinAreaDetailView(PermissionRequiredMixin, BreadcrumbsMixin, ListView):
+    permission_required = ['rrhh.view_area']
+    template_name = "apps/rrhh/areas/sin_area_detail.html"
+    model = Contacto
+    paginate_by = 15
+
+    def dispatch(self, request, *args, **kwargs):
+        ip = get_client_ip(request)
+        if not ip_in_allowed_range(ip):
+            return HttpResponseForbidden("Acceso permitido solo desde la red interna.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        empresas_ids = obtener_empresas_permitidas(self.request)
+        return Contacto.objects.filter(
+            Q(usuario__is_active=True) | Q(usuario__isnull=True),
+            esta_archivado=False,
+            mostrar_en_directorio=True,
+            area__isnull=True,
+            empresa_id__in=empresas_ids if not self.request.user.is_superuser else Empresa.objects.values_list('id', flat=True)
+        ).select_related('empresa', 'puesto').order_by('primer_nombre')
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Organización', 'url': reverse('organizacion:index')},
+            {'title': 'Áreas', 'url': reverse('organizacion:areas__list')},
+            {'title': 'Sin Área Asignada'},
+        ]
 
 
 class AreaCreateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMessageMixin, CreateView):
@@ -111,6 +165,14 @@ class AreaDetailView(PermissionRequiredMixin, BreadcrumbsMixin, DetailView):
     permission_required = ['rrhh.view_area']
     template_name = "apps/rrhh/areas/detail.html"
     model = Area
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['personal'] = self.get_object().contactos.exclude(
+            Q(archivado=True) |
+            Q(usuario__active=False)
+        )
+        return context
 
     def dispatch(self, request, *args, **kwargs):
         if not puede_ver_area(request, self.get_object()):
