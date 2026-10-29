@@ -1,9 +1,9 @@
 <c-table.actions>
     {% if perms.rrhh.view_puesto %}
-        <li><a href="{% url 'rrhh:puestos__detail' record.pk %}">Detalle</a></li>
+        <li><a href="{% url 'organizacion:puestos__detail' record.pk %}">Detalle</a></li>
     {% endif %}
     {% if perms.rrhh.change_puesto %}
-        <li><a href="{% url 'rrhh:puestos__update' record.pk %}">Editar</a></li>
+        <li><a href="{% url 'organizacion:puestos__update' record.pk %}">Editar</a></li>
     {% endif %}
     {% if perms.rrhh.delete_puesto %}
         <li>
@@ -22,7 +22,7 @@
                 <p class="py-4">Esta acción no se podrá deshacer.</p>
 
                 <div class="modal-action">
-                    <form action="{% url 'rrhh:puestos__delete' record.pk %}" method="post">
+                    <form action="{% url 'organizacion:puestos__delete' record.pk %}" method="post">
                         {% csrf_token %}
                         <button class="btn btn-error">Confirmar</button>
                     </form>

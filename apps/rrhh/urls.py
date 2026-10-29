@@ -5,12 +5,12 @@ from apps.rrhh.autocompletes import AreaAutocomplete, PuestoAutocomplete, AreaNo
 from apps.rrhh.views.areas import AreaListView, AreaUpdateView, AreaCreateView, AreaDetailView, AreaDeleteView
 from apps.rrhh.views.puestos import PuestoListView, PuestoCreateView, PuestoUpdateView, PuestoDeleteView, \
     PuestoDetailView
-from apps.rrhh.views.rrhh import RRHHView
+from apps.rrhh.views.rrhh import OrganizacionView
 
-app_name = 'rrhh'
+app_name = 'organizacion'
 
 urlpatterns = [
-    path('', RRHHView.as_view(), name='index'),
+    path('', OrganizacionView.as_view(), name='index'),
 ]
 
 areas_urlpatterns = [

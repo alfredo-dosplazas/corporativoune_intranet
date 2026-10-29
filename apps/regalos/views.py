@@ -29,6 +29,7 @@ from apps.regalos.mixins import SedePermissionMixin
 from apps.regalos.models import Regalo, Evento, Invitado
 from apps.regalos.resources import RegaloResource, InvitadoResource
 from apps.regalos.tables import RegaloTable, EventoTable, InvitadoTable
+from apps.rrhh.models.sedes import Sede
 
 
 class RegaloModuloView(
@@ -421,7 +422,7 @@ class RegaloPantallaView(TemplateView):
         evento = get_object_or_404(Evento, slug=evento_slug)
 
         context['evento'] = evento
-        context['empresas'] = Empresa.objects.exclude(logo='').order_by('nombre_corto')
+        context['empresas'] = evento.sede.empresas.all()
 
         # Últimos 6 regalos entregados filtrados por este evento específico
         regalos_entregados = Regalo.objects.filter(evento=evento, canjeado=True).order_by('-fecha_canje')[:6]

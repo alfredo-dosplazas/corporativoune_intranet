@@ -64,9 +64,17 @@ class DocumentoFilterForm(forms.Form):
         # 2. Generar rango dinámico de Años (ej. 2020 al año actual)
         anio_actual = datetime.datetime.now().year
         anios = [(str(year), str(year)) for year in range(anio_actual, 2019, -1)]
-        self.fields['anio'].choices = [('', 'Todos los años')] + anios
 
-        # 3. Configuración de Crispy Forms Helper
+        # Cambiamos la opción por defecto en las opciones de la lista desplegable a "Año" o dejamos el catálogo limpio
+        self.fields['anio'].choices = [('', 'Año')] + anios
+
+        # 3. Asignar valores por defecto (mes y año actuales) solo si no hay datos en el GET
+        if not self.data:
+            hoy = datetime.datetime.now()
+            self.fields['mes'].initial = str(hoy.month)
+            self.fields['anio'].initial = str(hoy.year)
+
+        # 4. Configuración de Crispy Forms Helper
         self.helper = FormHelper()
         self.helper.form_id = 'filter-documentos-form'
         self.helper.form_tag = False  # No renderiza la etiqueta <form> para controlarla en el modal

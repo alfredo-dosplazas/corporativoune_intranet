@@ -1,5 +1,6 @@
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.http.response import HttpResponseForbidden
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, DeleteView
@@ -7,13 +8,21 @@ from django_tables2 import SingleTableMixin
 from extra_views import SearchableListMixin
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.utils.network import get_client_ip, ip_in_allowed_range
+from apps.directorio.utils import obtener_empresas_permitidas
 from apps.rrhh.forms.areas import AreaForm
 from apps.rrhh.helpers.areas import puede_editar_area, puede_eliminar_area, puede_ver_area
 from apps.rrhh.models.areas import Area
 from apps.rrhh.tables.areas import AreaTable
 
 
-class AreaListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMixin, SingleTableMixin, ListView):
+class AreaListView(
+    PermissionRequiredMixin,
+    BreadcrumbsMixin,
+    SearchableListMixin,
+    SingleTableMixin,
+    ListView
+):
     permission_required = ['rrhh.view_area']
     template_name = "apps/rrhh/areas/list.html"
     model = Area
@@ -29,7 +38,7 @@ class AreaListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMixi
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'RRHH', 'url': reverse('rrhh:index')},
+            {'title': 'Organización', 'url': reverse('organizacion:index')},
             {'title': 'Áreas'},
         ]
 
@@ -37,14 +46,11 @@ class AreaListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMixi
         qs = super().get_queryset()
         usuario = self.request.user
 
-        empresa = getattr(usuario.contacto, 'empresa', None)
-
         if usuario.is_superuser:
             return qs
 
-        qs = qs.filter(empresa__in=[empresa])
-
-        return qs
+        empresas_ids = obtener_empresas_permitidas(self.request)
+        return qs.filter(empresa_id__in=empresas_ids)
 
 
 class AreaCreateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMessageMixin, CreateView):
@@ -60,13 +66,13 @@ class AreaCreateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMessageMi
         return kwargs
 
     def get_success_url(self):
-        return reverse('rrhh:areas__update', args=(self.object.id,))
+        return reverse('organizacion:areas__update', args=(self.object.id,))
 
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'RRHH', 'url': reverse('rrhh:index')},
-            {'title': 'Áreas', 'url': reverse('rrhh:areas__list')},
+            {'title': 'Organización', 'url': reverse('organizacion:index')},
+            {'title': 'Áreas', 'url': reverse('organizacion:areas__list')},
             {'title': 'Crear'},
         ]
 
@@ -79,8 +85,8 @@ class AreaUpdateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMessageMi
     success_message = "Área actualizada correctamente."
 
     def dispatch(self, request, *args, **kwargs):
-        if not puede_editar_area(request.user, self.get_object()):
-            return redirect('rrhh:areas__list')
+        if not puede_editar_area(request, self.get_object()):
+            return redirect('organizacion:areas__list')
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
@@ -89,14 +95,14 @@ class AreaUpdateView(PermissionRequiredMixin, BreadcrumbsMixin, SuccessMessageMi
         return kwargs
 
     def get_success_url(self):
-        return reverse('rrhh:areas__update', args=(self.get_object().id,))
+        return reverse('organizacion:areas__update', args=(self.get_object().id,))
 
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'RRHH', 'url': reverse('rrhh:index')},
-            {'title': 'Áreas', 'url': reverse('rrhh:areas__list')},
-            {'title': self.get_object(), 'url': reverse('rrhh:areas__detail', args=(self.get_object().id,))},
+            {'title': 'Organización', 'url': reverse('organizacion:index')},
+            {'title': 'Áreas', 'url': reverse('organizacion:areas__list')},
+            {'title': self.get_object(), 'url': reverse('organizacion:areas__detail', args=(self.get_object().id,))},
             {'title': 'Editar'},
         ]
 
@@ -107,15 +113,15 @@ class AreaDetailView(PermissionRequiredMixin, BreadcrumbsMixin, DetailView):
     model = Area
 
     def dispatch(self, request, *args, **kwargs):
-        if not puede_ver_area(request.user, self.get_object()):
-            return redirect('rrhh:areas__list')
+        if not puede_ver_area(request, self.get_object()):
+            return redirect('organizacion:areas__list')
         return super().dispatch(request, *args, **kwargs)
 
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'RRHH', 'url': reverse('rrhh:index')},
-            {'title': 'Áreas', 'url': reverse('rrhh:areas__list')},
+            {'title': 'Organización', 'url': reverse('organizacion:index')},
+            {'title': 'Áreas', 'url': reverse('organizacion:areas__list')},
             {'title': self.get_object()},
         ]
 
@@ -126,9 +132,9 @@ class AreaDeleteView(PermissionRequiredMixin, SuccessMessageMixin, DeleteView):
     success_message = "Área eliminada correctamente."
 
     def dispatch(self, request, *args, **kwargs):
-        if not puede_eliminar_area(request.user, self.get_object()):
-            return redirect('rrhh:areas__list')
+        if not puede_eliminar_area(request, self.get_object()):
+            return redirect('organizacion:areas__list')
         return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
-        return reverse('rrhh:areas__list')
+        return reverse('organizacion:areas__list')

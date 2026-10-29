@@ -89,11 +89,16 @@ class DocumentosContabilizarSaeView(
                 ).values_list('folio_sae', flat=True)
             )
 
+            # Lógica para usar mes y año actuales por defecto a menos que vengan explícitamente
+            # (Si usas un formulario de crispy/django, asegúrate de que el form también refleje estos valores por defecto si es necesario)
+            default_mes = str(today.month)
+            default_anio = str(today.year)
+
             filters = {
                 'q': self.request.GET.get('q', '').strip(),
-                'dia': self.request.GET.get('dia', None),
-                'mes': self.request.GET.get('mes', str(today.month)),
-                'anio': self.request.GET.get('anio', str(today.year)),
+                'dia': self.request.GET.get('dia', None), # null/vacio por defecto para abarcar todo el mes
+                'mes': self.request.GET.get('mes') if 'mes' in self.request.GET else default_mes,
+                'anio': self.request.GET.get('anio') if 'anio' in self.request.GET else default_anio,
                 'almacen': self.request.GET.get('almacen', ''),
                 'tipo_documento': self.request.GET.get('tipo_documento', 'ventas'),
                 'estado_conta': estado_conta,

@@ -21,8 +21,8 @@ class ContactoForm(forms.ModelForm):
             'primer_apellido': forms.TextInput(attrs={'class': 'input input-xs input-bordered w-full h-8'}),
             'segundo_apellido': forms.TextInput(attrs={'class': 'input input-xs input-bordered w-full h-8'}),
             'numero_empleado': forms.TextInput(attrs={'class': 'input input-xs input-bordered w-full h-8 font-mono'}),
-            'area': autocomplete.ModelSelect2(url='rrhh:areas__autocomplete', forward=['empresa']),
-            'puesto': autocomplete.ModelSelect2(url='rrhh:puestos__autocomplete', forward=['empresa']),
+            'area': autocomplete.ModelSelect2(url='organizacion:areas__autocomplete', forward=['empresa']),
+            'puesto': autocomplete.ModelSelect2(url='organizacion:puestos__autocomplete', forward=['empresa']),
             'jefe_directo': autocomplete.ModelSelect2(url='directorio:jefe__autocomplete', forward=['empresa']),
             'fecha_nacimiento': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date',
                                                                           'class': 'input input-xs input-bordered w-full h-8'}),
@@ -120,6 +120,7 @@ class ContactoForm(forms.ModelForm):
                             css_class="grid grid-cols-12 gap-2"
                         ),
                         'jefe_directo',
+                        'empresas_relacionadas',
                         css_class="card bg-base-100 border border-base-200 p-4 shadow-2xs space-y-2"
                     ),
                     css_class="col-span-12 lg:col-span-6 space-y-4"

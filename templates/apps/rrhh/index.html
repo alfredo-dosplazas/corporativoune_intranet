@@ -1,29 +1,31 @@
 <c-layouts.app>
+    <!-- HEADER / BARRA SUPERIOR DE ORGANIZACIÓN -->
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
 
-            <!-- START -->
-            <div class="justify-self-start">
-                <h1 class="font-bold text-xl flex items-center gap-2">RRHH</h1>
-                <h2 class="text-muted text-sm"></h2>
+            <!-- TÍTULO DE LA VISTA Y NAVEGACIÓN -->
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="icon-[tabler--building-skyscraper] text-primary text-base"></span>
+                <div class="flex items-center gap-1.5">
+                    <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">Estructura Organizacional</h1>
+                    <span class="badge badge-xs badge-neutral font-medium">Módulo</span>
+                </div>
             </div>
 
-            <!-- MIDDLE -->
-            <div class="justify-self-center w-full flex justify-center">
-
-            </div>
-
-
-            <!-- END -->
-            <div class="justify-self-end">
-
+            <!-- BUSCADOR RÁPIDO / CONTADOR COMPACTO -->
+            <div class="flex items-center gap-2 flex-1 justify-end max-w-2xl">
+                <div class="flex items-center gap-1.5 text-xs text-base-content/60">
+                    <span class="text-[11px] whitespace-nowrap">
+                        Secciones activas: <span class="font-bold text-base-content">{{ modulos|length|default:"0" }}</span>
+                    </span>
+                </div>
             </div>
 
         </div>
-
     </c-slot>
 
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <!-- GRID DE TARJETAS / MÓDULOS DE ORGANIZACIÓN -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {% for modulo in modulos %}
             <c-shared.modulos.card
                     :url="modulo.url"
@@ -31,6 +33,15 @@
                     :nombre="modulo.nombre"
                     :descripcion="modulo.descripcion"
             />
+        {% empty %}
+            <div class="col-span-full card bg-base-100 border border-base-200 shadow-2xs p-8 text-center">
+                <div class="flex flex-col items-center justify-center space-y-2">
+                    <span class="icon-[tabler--building-off] size-8 text-base-content/30"></span>
+                    <p class="text-xs text-base-content/60 font-medium">
+                        No hay catálogos o secciones disponibles en la estructura organizacional.
+                    </p>
+                </div>
+            </div>
         {% endfor %}
     </div>
 </c-layouts.app>

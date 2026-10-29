@@ -1,32 +1,77 @@
 {% load django_tables2 %}
+
 <c-layouts.app>
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+        <!-- BARRA DE ACCIONES Y FILTROS -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
 
-            <!-- START -->
-            <div class="justify-self-start">
-                <h1 class="font-bold text-xl flex items-center gap-2">Áreas</h1>
-                <h2 class="text-muted text-sm">Catálogo de áreas</h2>
-            </div>
+            <!-- TÍTULO DE LA VISTA -->
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="icon-[tabler--sitemap] text-primary text-base"></span>
+                <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">Áreas</h1>
 
-            <!-- MIDDLE -->
-            <div class="justify-self-center w-full flex justify-center">
-                <c-shared.searchbar/>
-            </div>
-
-
-            <!-- END -->
-            <div class="justify-self-end">
                 {% if perms.rrhh.add_area %}
-                    <a href="{% url 'rrhh:areas__create' %}" class="btn btn-sm btn-primary">
-                        CREAR
+                    <a href="{% url 'organizacion:areas__create' %}"
+                       class="btn btn-primary btn-xs gap-1 font-medium shadow-2xs ml-1">
+                        <span class="icon-[tabler--plus] text-xs"></span>
+                        <span>Nueva</span>
                     </a>
                 {% endif %}
             </div>
 
+            <!-- BUSCADOR RÁPIDO + CONTADORES -->
+            <div class="flex items-center gap-2 flex-1 justify-end max-w-2xl">
+
+                <!-- FORMULARIO DE BÚSQUEDA RÁPIDA -->
+                <form method="get" action="" id="search-form" class="flex items-center gap-2 flex-1 max-w-sm">
+                    {% for key, value in request.GET.items %}
+                        {% if key != 'q' and key != 'page' and value %}
+                            <input type="hidden" name="{{ key }}" value="{{ value }}">
+                        {% endif %}
+                    {% endfor %}
+
+                    <div class="relative flex-1 flex items-center">
+                        <span class="absolute left-2.5 text-base-content/40 pointer-events-none z-10">
+                            <span class="icon-[tabler--search] text-xs block"></span>
+                        </span>
+
+                        <input
+                                type="text"
+                                name="q"
+                                value="{{ request.GET.q|default:'' }}"
+                                placeholder="Buscar área..."
+                                class="input input-xs w-full pl-7 pr-3 bg-base-100 border-base-300 focus:border-primary focus:outline-none text-xs rounded-md h-7"
+                        />
+                    </div>
+                </form>
+
+                <!-- CONTADOR DE REGISTROS -->
+                <div class="flex items-center gap-1.5 border-l border-base-300 pl-2 text-xs text-base-content/60">
+                    <span class="text-[11px] whitespace-nowrap">
+                        Total: <span class="font-bold text-base-content">{{ table.page.paginator.count|default:"0" }}</span>
+                    </span>
+                </div>
+
+            </div>
         </div>
 
+        <!-- CHIPS DE FILTROS ACTIVOS -->
+        {% if request.GET.q %}
+            <div class="flex items-center gap-1.5 flex-wrap pt-1 border-t border-base-200/60 mt-1">
+                <a href="{% querystring 'q'="" %}"
+                   class="badge badge-ghost border-base-300 badge-xs gap-1 text-[10px] h-4.5">
+                    <span>Búsqueda: "{{ request.GET.q }}"</span>
+                    <span class="icon-[tabler--x] text-[9px]"></span>
+                </a>
+                <a href="{% url 'organizacion:areas__list' %}"
+                   class="text-[10px] text-primary hover:underline ml-1">Limpiar</a>
+            </div>
+        {% endif %}
     </c-slot>
 
-    {% render_table table %}
+    <!-- VISTA TABLA -->
+    <div class="flex flex-col flex-1 min-h-0 h-full w-full bg-base-100 rounded-lg border border-base-200 p-2 shadow-2xs">
+        {% render_table table %}
+    </div>
+
 </c-layouts.app>

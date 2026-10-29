@@ -8,7 +8,7 @@ RRHH_MODULOS = [
     {
         "key": "areas",
         "nombre": "Áreas",
-        "url_name": "rrhh:areas__list",
+        "url_name": "organizacion:areas__list",
         "icono": "icon-[mdi--office-building]",
         "permisos": ["rrhh.view_area"],
         "descripcion": "Catálogo de Áreas",
@@ -16,7 +16,7 @@ RRHH_MODULOS = [
 {
         "key": "puestos",
         "nombre": "Puestos",
-        "url_name": "rrhh:puestos__list",
+        "url_name": "organizacion:puestos__list",
         "icono": "icon-[mdi--account-tie]",
         "permisos": ["rrhh.view_puesto"],
         "descripcion": "Catálogo de Puestos",
@@ -24,14 +24,14 @@ RRHH_MODULOS = [
 ]
 
 
-class RRHHView(PermissionRequiredMixin, BreadcrumbsMixin, TemplateView):
+class OrganizacionView(PermissionRequiredMixin, BreadcrumbsMixin, TemplateView):
     permission_required = ['rrhh.acceder_rrhh']
     template_name = "apps/rrhh/index.html"
 
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'RRHH'},
+            {'title': 'Organización'},
         ]
 
     def get_context_data(self, **kwargs):

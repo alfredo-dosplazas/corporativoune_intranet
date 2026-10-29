@@ -1,84 +1,183 @@
+{% load phone_filters %}
+
 <c-layouts.app>
+
+    <!-- HEADER / BARRA SUPERIOR ERP -->
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+        <div class="flex items-center justify-between gap-2">
+            <!-- TÍTULO Y NAVEGACIÓN -->
+            <div class="flex items-center gap-2 min-w-0">
+                <a href="{% url 'organizacion:areas__list' %}"
+                   class="btn btn-ghost btn-xs btn-square shrink-0 text-base-content/60 hover:text-base-content"
+                   title="Volver a áreas">
+                    <span class="icon-[tabler--arrow-left] text-sm"></span>
+                </a>
 
-            <!-- START -->
-            <div class="justify-self-start">
-                <h1 class="font-bold text-xl flex items-center gap-2">
-                    {{ area.nombre }}
-                </h1>
-                <p class="text-sm opacity-70">
-                    {{ area.empresa.nombre }}
-                </p>
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="icon-[tabler--sitemap] text-primary text-base shrink-0"></span>
+                    <h1 class="font-bold text-xs sm:text-sm text-base-content truncate">{{ area.nombre }}</h1>
+                    <span class="badge badge-xs badge-neutral shrink-0">{{ area.contactos.count }} integrantes</span>
+                </div>
             </div>
 
-            <!-- MIDDLE -->
-            <div class="justify-self-center">
-                <span class="badge badge-outline">
-                    {{ area.contactos.count }} personas
-                </span>
-            </div>
-
-            <!-- END -->
-            <div class="justify-self-end">
-                {% if perms.rrhh.add_area %}
-                    <a href="{% url 'rrhh:areas__update' area.pk %}"
-                       class="btn btn-sm btn-outline">
-                        Editar
+            <!-- ACCIONES -->
+            <div class="flex items-center gap-1.5 shrink-0">
+                {% if perms.organizacion.change_area %}
+                    <a href="{% url 'organizacion:areas__update' area.pk %}"
+                       class="btn btn-primary btn-xs gap-1 font-medium shadow-2xs">
+                        <span class="icon-[tabler--edit] text-xs"></span>
+                        <span>Editar Área</span>
                     </a>
                 {% endif %}
             </div>
-
         </div>
     </c-slot>
 
-    <div class="mt-6">
+    <!-- GRID PRINCIPAL DE DETALLE (12 COLS) -->
+    <div class="grid grid-cols-12 gap-3">
 
-        <h2 class="text-lg font-semibold mb-4">
-            Contactos del área
-        </h2>
+        <!-- TARJETA 1: DATOS GENERALES Y LIDERAZGO (4 COLS) -->
+        <div class="col-span-12 lg:col-span-4 space-y-3">
 
-        {% if area.contactos.count %}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- INFORMACIÓN CORPORATIVA -->
+            <div class="card bg-base-100 border border-base-200 shadow-2xs">
+                <div class="card-body p-4 space-y-3">
+                    <div class="text-[11px] font-bold text-primary uppercase tracking-wider border-b border-base-200 pb-1 flex items-center gap-1">
+                        <span class="icon-[tabler--building] size-3.5"></span> Datos Generales
+                    </div>
 
-                {% for contacto in area.contactos.all %}
-                    <a href="{% url 'directorio:detail' contacto.pk %}"
-                       class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 transition">
+                    <div class="space-y-2 text-xs">
+                        <div>
+                            <span class="text-base-content/60 block text-[10px] uppercase font-semibold">Empresa</span>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                {% if contacto.empresa.logo %}
+                                    <img class="size-6"
+                                         src="{{ contacto.empresa.logo.url }}"
+                                         alt="LOGO {{ contacto.empresa.nombre_corto }}">
+                                {% endif %}
+                                <span class="font-bold text-base-content">{{ area.empresa.nombre_corto }}</span>
+                            </div>
+                        </div>
 
-                        <!-- Avatar -->
-                        <div class="avatar">
-                            <div class="w-10 h-10 rounded-full">
-                                {% if contacto.foto %}
-                                    <img src="{{ contacto.foto.url }}" alt="{{ contacto.nombre_completo }}">
-                                {% else %}
-                                    <div class="bg-primary text-primary-content w-full h-full flex items-center justify-center">
-                                        {{ contacto.iniciales }}
+                        <!-- JEFE DE ÁREA -->
+                        <div class="pt-2 border-t border-base-200/60">
+                            <span class="text-base-content/60 block text-[10px] uppercase font-semibold mb-1">Jefe de Área</span>
+                            {% if area.jefe_area and area.jefe_area.contacto %}
+                                <a href="{% url 'directorio:detail' area.jefe_area.contacto.pk %}"
+                                   class="flex items-center gap-2 p-1.5 rounded-lg bg-base-200/40 border border-base-200 hover:border-primary/40 transition-colors group">
+                                    <div class="avatar shrink-0">
+                                        <div class="w-7 h-7 rounded-full bg-primary text-primary-content text-[10px] font-bold flex items-center justify-center">
+                                            {% if area.jefe_area.contacto.foto %}
+                                                <img src="{{ area.jefe_area.contacto.foto.url }}"
+                                                     alt="{{ area.jefe_area.contacto.nombre_completo }}"/>
+                                            {% else %}
+                                                {{ area.jefe_area.contacto.iniciales }}
+                                            {% endif %}
+                                        </div>
                                     </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="font-semibold text-xs text-base-content group-hover:text-primary truncate">
+                                            {{ area.jefe_area.contacto.nombre_completo }}
+                                        </p>
+                                        <p class="text-[10px] text-base-content/60 truncate">
+                                            {{ area.jefe_area.contacto.puesto.nombre|default:"Líder de área" }}
+                                        </p>
+                                    </div>
+                                </a>
+                            {% elif area.jefe_area %}
+                                <span class="font-medium text-base-content">{{ area.jefe_area.get_full_name|default:area.jefe_area.username }}</span>
+                            {% else %}
+                                <span class="text-base-content/40 italic text-[11px]">Sin jefe asignado</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- APROBADOR DE PAPELERÍA -->
+                        <div class="pt-2 border-t border-base-200/60">
+                            <span class="text-base-content/60 block text-[10px] uppercase font-semibold mb-1">Aprobador de Papelería</span>
+                            {% if area.aprobador_papeleria and area.aprobador_papeleria.contacto %}
+                                <a href="{% url 'directorio:detail' area.aprobador_papeleria.contacto.pk %}"
+                                   class="flex items-center gap-2 p-1.5 rounded-lg bg-base-200/40 border border-base-200 hover:border-primary/40 transition-colors group">
+                                    <span class="icon-[tabler--clipboard-check] text-primary size-4 shrink-0"></span>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="font-medium text-xs text-base-content group-hover:text-primary truncate">
+                                            {{ area.aprobador_papeleria.contacto.nombre_completo }}
+                                        </p>
+                                    </div>
+                                </a>
+                            {% else %}
+                                <span class="text-base-content/40 italic text-[11px]">Sin aprobador asignado</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- TARJETA 2: INTEGRANTES DEL ÁREA (8 COLS) -->
+        <div class="col-span-12 lg:col-span-8 card bg-base-100 border border-base-200 shadow-2xs">
+            <div class="card-body p-4 space-y-3">
+                <div class="text-[11px] font-bold text-primary uppercase tracking-wider border-b border-base-200 pb-1 flex items-center justify-between">
+                    <div class="flex items-center gap-1">
+                        <span class="icon-[tabler--users] size-3.5"></span> Personal Asignado
+                    </div>
+                    <span class="badge badge-xs badge-neutral">{{ area.contactos.count }}</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {% for contacto in area.contactos.all %}
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-base-200/40 border border-base-200 text-xs hover:border-primary/30 transition-colors group">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <div class="avatar shrink-0 select-none">
+                                    <div class="w-8 h-8 rounded-full ring-1 ring-base-200 {% if contacto.foto %} bg-base-100 {% else %} bg-primary text-primary-content {% endif %}">
+                                        {% if contacto.foto %}
+                                            <img src="{{ contacto.foto.url }}" alt="{{ contacto.nombre_completo }}"
+                                                 class="object-cover w-full h-full rounded-full"/>
+                                        {% else %}
+                                            <span class="flex items-center justify-center w-full h-full text-[10px] font-bold">
+                                                {{ contacto.iniciales }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="min-w-0 flex-1">
+                                    <a href="{% url 'directorio:detail' contacto.pk %}"
+                                       class="font-bold text-base-content group-hover:text-primary truncate block leading-snug">
+                                        {{ contacto.nombre_completo }}
+                                    </a>
+                                    <p class="text-[10px] text-base-content/60 truncate font-medium">
+                                        {{ contacto.puesto.nombre|default:"Sin puesto" }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Acciones / Canal de contacto -->
+                            <div class="flex items-center gap-1 shrink-0">
+                                {% if contacto.email_principal %}
+                                    <a href="mailto:{{ contacto.email_principal.email }}"
+                                       class="btn btn-ghost btn-xs btn-square text-base-content/50 hover:text-primary"
+                                       title="Enviar correo">
+                                        <span class="icon-[tabler--mail] size-3.5"></span>
+                                    </a>
+                                {% endif %}
+                                {% if contacto.telefono_principal %}
+                                    <a href="tel:{{ contacto.telefono_principal.telefono }}"
+                                       class="btn btn-ghost btn-xs btn-square text-base-content/50 hover:text-primary"
+                                       title="Llamar">
+                                        <span class="icon-[tabler--phone] size-3.5"></span>
+                                    </a>
                                 {% endif %}
                             </div>
                         </div>
-
-                        <!-- Info -->
-                        <div class="min-w-0">
-                            <div class="font-medium truncate">
-                                {{ contacto.nombre_completo }}
-                            </div>
-                            <div class="text-xs opacity-70 truncate">
-                                {% if contacto.puesto %}
-                                    {{ contacto.puesto.nombre }}
-                                {% endif %}
-                            </div>
+                    {% empty %}
+                        <div class="col-span-full text-[11px] text-base-content/40 italic p-6 border border-dashed border-base-200 rounded-lg text-center">
+                            No hay contactos asignados actualmente a esta área.
                         </div>
-
-                    </a>
-                {% endfor %}
-
+                    {% endfor %}
+                </div>
             </div>
-        {% else %}
-            <div class="text-sm opacity-60">
-                No hay contactos asignados a esta área.
-            </div>
-        {% endif %}
+        </div>
 
     </div>
 

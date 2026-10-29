@@ -241,6 +241,22 @@ class Contacto(models.Model):
             return True
         return False
 
+    @property
+    def subordinados(self):
+        """Devuelve los contactos que tienen a este contacto como jefe directo."""
+        return self.a_cargo_de.filter(fecha_egreso__isnull=True, esta_archivado=False)
+
+    @property
+    def companeros_de_area(self):
+        """Devuelve los contactos que comparten la misma área, excluyendo al propio contacto."""
+        if not self.area_id:
+            return Contacto.objects.none()
+        return (
+            self.area.contactos
+            .exclude(pk=self.pk)
+            .filter(fecha_egreso__isnull=True, esta_archivado=False)
+        )
+
     def puede_ver(self, user, request=None):
         """
         Determina si un usuario (autenticado o anónimo por IP) tiene permiso para ver este contacto.
@@ -349,21 +365,6 @@ class Contacto(models.Model):
 
         if errors:
             raise ValidationError(errors)
-
-    def save(self, *args, **kwargs):
-        if not self.empresa_id:
-            self.empresa = Empresa.get_default()
-
-        if not self.sede_administrativa_id:
-            self.sede_administrativa = Sede.get_default()
-
-        if not self.area_id:
-            self.area = Area.get_default(self.empresa)
-
-        if not self.puesto_id:
-            self.puesto = Puesto.get_default()
-
-        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.nombre_completo}"

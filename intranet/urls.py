@@ -14,7 +14,7 @@ urlpatterns = [
                   path('destajos/', include('apps.destajos.urls')),
                   path('papeleria/', include('apps.papeleria.urls')),
                   path('directorio/', include('apps.directorio.urls')),
-                  path('rrhh/', include('apps.rrhh.urls')),
+                  path('organizacion/', include('apps.rrhh.urls')),
                   path('fotos/', include('apps.fotos.urls')),
                   path('monitoreo-servicios/', include('apps.monitoreo_servicios.urls')),
                   path('compras/', include('apps.compras.urls')),

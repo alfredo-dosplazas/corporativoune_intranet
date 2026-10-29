@@ -72,32 +72,34 @@ def obtener_empresas_permitidas(request):
 
     # 1. Si es Superusuario o Staff, ve todo
     if user.is_staff or user.is_superuser:
-        return Empresa.objects.values_list('id', flat=True)
+        return list(Empresa.objects.values_list('id', flat=True))
 
     empresas_ids = set()
 
-    # 2. Filtrado por Red (IP de la petición)
+    # 2. Si el usuario está autenticado, nos basamos en su perfil (Prioridad absoluta)
+    if user.is_authenticated:
+        if hasattr(user, 'contacto') and user.contacto:
+            contacto = user.contacto
+
+            # Su empresa principal
+            if contacto.empresa_id:
+                empresas_ids.add(contacto.empresa_id)
+
+            # Empresas secundarias / relacionadas a las que tiene acceso
+            relacionadas = contacto.empresas_relacionadas.values_list('id', flat=True)
+            empresas_ids.update(relacionadas)
+
+        return list(empresas_ids)
+
+    # 3. Si es un usuario Anónimo, filtramos exclusivamente por la IP de la petición
     ip_cliente = get_client_ip(request)
     if ip_cliente:
         try:
             ip_obj = ipaddress.ip_address(ip_cliente)
-            # Obtenemos empresas cuyas redes configuradas coincidan con la IP actual
             for rango in EmpresaIPRange.objects.filter(activa=True).select_related('empresa'):
                 if ip_obj in ipaddress.ip_network(rango.cidr):
                     empresas_ids.add(rango.empresa_id)
         except ValueError:
             pass
-
-    # 3. Filtrado por asignación de Usuario (Contacto vinculado)
-    if user.is_authenticated and hasattr(user, 'contacto') and user.contacto:
-        contacto = user.contacto
-
-        # Su empresa principal
-        if contacto.empresa_id:
-            empresas_ids.add(contacto.empresa_id)
-
-        # Empresas secundarias/relacionadas a las que tiene acceso (ej. Gerente de sistemas)
-        relacionadas = contacto.empresas_relacionadas.values_list('id', flat=True)
-        empresas_ids.update(relacionadas)
 
     return list(empresas_ids)

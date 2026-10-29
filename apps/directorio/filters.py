@@ -25,7 +25,7 @@ class ContactoFilter(django_filters.FilterSet):
         lookup_expr='iexact',
         choices=(),
         widget=autocomplete.ListSelect2(
-            url='rrhh:areas_nombre__autocomplete',
+            url='organizacion:areas_nombre__autocomplete',
             attrs={'style': 'width: 100%;', 'data-dropdown-parent': '#modal_filtros'}
         )
     )
@@ -34,7 +34,7 @@ class ContactoFilter(django_filters.FilterSet):
         queryset=Puesto.objects.none(),
         field_name='puesto',
         widget=autocomplete.ModelSelect2(
-            url='rrhh:puestos__autocomplete',
+            url='organizacion:puestos__autocomplete',
             attrs={'style': 'width: 100%;', 'data-dropdown-parent': '#modal_filtros'}
         )
     )
