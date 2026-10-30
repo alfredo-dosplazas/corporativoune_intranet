@@ -4,6 +4,7 @@ from django.db import models
 from django.urls import reverse
 
 from apps.core.models import Empresa
+from apps.image_searcher.images import get_placeholder_image
 from apps.rrhh.models.sedes import Sede
 from intranet import settings
 
@@ -58,6 +59,12 @@ class Regalo(models.Model):
         verbose_name="Premio Destacado / Especial",
         help_text="Si está activo, se mostrará con un diseño especial al canjearse."
     )
+
+    @property
+    def get_imagen(self):
+        if self.imagen:
+            return self.imagen.url
+        return get_placeholder_image(self.nombre)
 
     class Meta:
         unique_together = ('evento', 'numero')

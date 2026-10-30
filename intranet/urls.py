@@ -25,6 +25,7 @@ urlpatterns = [
                   path('resguardos/', include('apps.resguardos.urls')),
                   path('regalos/', include('apps.regalos.urls')),
                   path('infopantallas/', include('apps.infopantallas.urls')),
+                  path('votaciones/', include('apps.votaciones.urls')),
                   path('sae/', include('apps.sae.urls')),
                   path('', include('apps.explorador.urls')),
                   path('', include('pwa.urls')),

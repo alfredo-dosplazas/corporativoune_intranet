@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     'apps.evidencias_moldes',
     'apps.resguardos',
     'apps.regalos',
+    'apps.votaciones',
 
     'apps.sae',
     'apps.interfaz_sae_coi',

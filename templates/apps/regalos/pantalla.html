@@ -2,23 +2,41 @@
     <!-- ESTILOS DE ANIMACIONES AVANZADAS Y EFECTOS ÉPICOS -->
     <style>
         @keyframes epicSlideDown {
-            0% { opacity: 0; transform: translateY(-40px) scale(0.95); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
+            0% {
+                opacity: 0;
+                transform: translateY(-40px) scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         @keyframes goldGlow {
-            0%, 100% { box-shadow: 0 0 25px rgba(234, 179, 8, 0.4), inset 0 0 15px rgba(234, 179, 8, 0.2); }
-            50% { box-shadow: 0 0 50px rgba(234, 179, 8, 0.8), inset 0 0 30px rgba(234, 179, 8, 0.4); }
+            0%, 100% {
+                box-shadow: 0 0 25px rgba(234, 179, 8, 0.4), inset 0 0 15px rgba(234, 179, 8, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 50px rgba(234, 179, 8, 0.8), inset 0 0 30px rgba(234, 179, 8, 0.4);
+            }
         }
 
         @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
+            0% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
         }
 
         @keyframes floatEffect {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-8px);
+            }
         }
 
         .animate-epic-entry {
@@ -35,13 +53,14 @@
 
         /* Efecto de brillo cruzando la tarjeta */
         .shimmer-card {
-            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%);
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0) 100%);
             background-size: 200% 100%;
             animation: shimmer 3s infinite;
         }
     </style>
 
-    <div data-theme="{{ evento.empresa.theme }}" class="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-300 p-8 flex flex-col justify-between overflow-hidden">
+    <div data-theme="{{ evento.empresa.theme }}"
+         class="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-300 p-8 flex flex-col justify-between overflow-hidden">
 
         <!-- ENCABEZADO -->
         <header class="text-center mb-8">
@@ -55,7 +74,8 @@
         </header>
 
         <!-- CONTENEDOR PRINCIPAL -->
-        <main class="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-center max-w-7xl mx-auto w-full px-4" id="historial-container">
+        <main class="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-center max-w-7xl mx-auto w-full px-4"
+              id="historial-container">
 
             {% for item in historial %}
                 <div class="card bg-base-100 shadow-2xl border transition-all duration-700 relative overflow-hidden group
@@ -70,7 +90,8 @@
                     <!-- DISTINTIVO VISUAL SI ES DESTACADO -->
                     {% if item.destacado %}
                         <div class="absolute top-0 right-0 bg-gradient-to-l from-warning to-amber-500 text-warning-content text-xs font-black px-4 py-1.5 rounded-bl-2xl shadow-lg uppercase tracking-widest z-10 flex items-center gap-1.5">
-                            <span class="icon-[tabler--star-filled] text-sm animate-spin" style="animation-duration: 6s;"></span> ¡GRAN PREMIO!
+                            <span class="icon-[tabler--star-filled] text-sm animate-spin"
+                                  style="animation-duration: 6s;"></span> ¡GRAN PREMIO!
                         </div>
                     {% elif forloop.first %}
                         <div class="absolute top-0 right-0 bg-primary text-primary-content text-xs font-black px-4 py-1.5 rounded-bl-2xl shadow-lg uppercase tracking-widest z-10">
@@ -100,7 +121,9 @@
                                 <img src="{{ item.imagen_url }}" alt="{{ item.premio }}"
                                      class="h-full w-full object-contain p-3 transition-transform duration-500 group-hover:scale-110"/>
                             {% else %}
-                                <span class="icon-[tabler--gift] text-5xl text-base-content/30 animate-bounce"></span>
+                                <img src="https://source.unsplash.com/400x300/?{{ item.premio }}" alt="Placeholder"
+                                     class="h-full w-full object-contain p-3 transition-transform duration-500 group-hover:scale-110"
+                                />
                             {% endif %}
                         </div>
                     </div>
@@ -119,7 +142,8 @@
         <footer class="mt-10 flex justify-center items-center gap-8 opacity-80 py-4 border-t border-base-300/40">
             {% for empresa in empresas %}
                 {% if empresa.logo %}
-                    <img src="{{ empresa.logo.url }}" alt="{{ empresa.nombre_corto }}" class="h-10 object-contain drop-shadow-sm filter grayscale hover:grayscale-0 transition-all duration-300"/>
+                    <img src="{{ empresa.logo.url }}" alt="{{ empresa.nombre_corto }}"
+                         class="h-10 object-contain drop-shadow-sm filter grayscale hover:grayscale-0 transition-all duration-300"/>
                 {% endif %}
             {% endfor %}
         </footer>
@@ -127,7 +151,8 @@
     </div>
 
     <!-- AUDIO DE EFECTO ÉPICO -->
-    <audio id="sound-destacado" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+    <audio id="sound-destacado" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+           preload="auto"></audio>
 
     <!-- SCRIPT DE WEBSOCKETS CON ACTUALIZACIÓN DINÁMICA SIN RECARGAR -->
     <script>
@@ -153,9 +178,9 @@
         };
 
         // Reconexión automática del WebSocket ante cortes de red
-        pantallaSocket.onclose = function(e) {
+        pantallaSocket.onclose = function (e) {
             console.log('Socket cerrado. Intentando reconectar...');
-            setTimeout(function() {
+            setTimeout(function () {
                 window.location.reload();
             }, 5000);
         };
