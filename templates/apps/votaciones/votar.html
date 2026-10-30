@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,194 +7,186 @@
     <title>🎃 {{ evento.titulo }} - Votación</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Fondo animado estilo Halloween / Día de Muertos */
-        .spooky-bg {
-            background-color: #0d0a1a;
-            background-image: radial-gradient(#2a1b4e 1px, transparent 1px), radial-gradient(#1e1035 1px, #0d0a1a 1px);
-            background-size: 40px 40px;
-            background-position: 0 0, 20px 20px;
+        body {
+            background-image: linear-gradient(rgba(13, 10, 26, 0.92), rgba(13, 10, 26, 0.96)),
+            url('{% static 'img/votaciones/concurso_disfraces_2026.jpg' %}');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        /* Estilo personalizado para resaltar el radio seleccionado en móvil */
+        input[type="radio"]:checked + div {
+            border-color: #f97316;
+            background-color: rgba(249, 115, 22, 0.1);
         }
     </style>
     {% if exito %}
         <meta http-equiv="refresh" content="4;url={% url 'votaciones:votar_evento' evento.id %}">
     {% endif %}
 </head>
-<body class="spooky-bg text-slate-100 min-h-screen py-8 px-4 flex justify-center items-start relative overflow-x-hidden">
+<body class="text-slate-100 min-h-screen py-6 sm:py-10 px-3 sm:px-6 flex justify-center items-start relative overflow-x-hidden">
 
-<!-- DECORACIONES FLOTANTES CARTOON DE FONDO -->
-<div class="fixed top-4 left-4 text-4xl opacity-20 pointer-events-none select-none">💀</div>
-<div class="fixed top-12 right-8 text-5xl opacity-20 pointer-events-none select-none">👻</div>
-<div class="fixed bottom-6 left-8 text-5xl opacity-20 pointer-events-none select-none">🎃</div>
-<div class="fixed bottom-10 right-6 text-4xl opacity-20 pointer-events-none select-none">🕯️</div>
+<div class="max-w-6xl w-full bg-slate-900/95 backdrop-blur-md border-2 border-purple-900/60 rounded-3xl p-5 sm:p-10 shadow-[0_0_60px_rgba(147,51,234,0.2)] relative z-10">
 
-<div class="max-w-4xl w-full bg-slate-900/90 backdrop-blur-md border-2 border-purple-900/60 rounded-3xl p-6 sm:p-8 shadow-[0_0_50px_rgba(147,51,234,0.15)] relative z-10">
-
-    <!-- BARRA SUPERIOR: ENCABEZADO Y LINK PRIVADO DE RESULTADOS -->
-    <div class="flex justify-between items-center mb-6 pb-4 border-b border-purple-900/40">
-        <span class="bg-orange-500/15 text-orange-400 text-xs font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider border border-orange-500/30 flex items-center gap-1.5">
-            <span>🎃</span> Concurso RH
+    <!-- BARRA SUPERIOR -->
+    <div class="flex flex-col sm:flex-row justify-between items-center gap-3 mb-6 pb-4 border-b border-purple-900/40">
+        <span class="bg-orange-500/15 text-orange-400 text-xs font-bold px-4 py-2 rounded-full uppercase tracking-wider border border-orange-500/30 flex items-center gap-2 shadow-inner">
+            <span>🎃</span> Concurso RH - Panel de Votación
         </span>
 
-        <!-- LINK SOLO PARA USUARIOS CON PERMISO (STAFF / ADMIN) -->
-        {% if perms.votaciones.view_votosesion %}
+        {% if request.user.is_staff %}
             <a href="{% url 'votaciones:resultados_evento' evento.id %}"
-               class="text-xs font-semibold bg-purple-950/80 hover:bg-purple-900 text-purple-300 hover:text-purple-100 px-3 py-1.5 rounded-lg border border-purple-700/50 transition flex items-center gap-1.5 shadow-sm">
+               class="text-xs font-semibold bg-purple-950/90 hover:bg-purple-900 text-purple-300 hover:text-purple-100 px-4 py-2 rounded-xl border border-purple-700/50 transition flex items-center gap-2 shadow-sm">
                 <span>📊</span> Ver Resultados <span
-                    class="text-[10px] bg-purple-800 text-purple-200 px-1.5 py-0.5 rounded">RH</span>
+                    class="text-[10px] bg-purple-800 text-purple-200 px-1.5 py-0.5 rounded">Staff</span>
             </a>
         {% endif %}
     </div>
 
-    <!-- TITULO Y DESCRIPCIÓN DEL EVENTO -->
+    <!-- TITULO -->
     <header class="text-center mb-8">
-        <h1 class="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-purple-400">
+        <h1 class="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-purple-400 drop-shadow-sm">
             {{ evento.titulo }} 👻
         </h1>
-        {% if evento.descripcion %}
-            <p class="text-slate-400 text-sm mt-2 max-w-xl mx-auto">{{ evento.descripcion }}</p>
-        {% endif %}
+        <p class="text-slate-400 text-xs sm:text-sm mt-2 max-w-xl mx-auto">
+            Selecciona al ganador de cada categoría. Puedes ver la tabla completa en computadora o las tarjetas
+            interactivas en tu celular.
+        </p>
     </header>
 
-    <!-- PANTALLA DE ÉXITO Y RESET AUTOMÁTICO -->
     {% if exito %}
-        <div class="bg-emerald-950/40 border-2 border-emerald-500/40 text-emerald-300 p-8 rounded-2xl text-center my-10 shadow-[0_0_30px_rgba(16,185,129,0.15)]">
-            <div class="text-6xl mb-3 animate-bounce">🎉</div>
-            <h2 class="text-2xl font-black text-emerald-400">¡Voto Registrado Con Éxito!</h2>
-            <p class="text-slate-300 text-sm mt-2">Esta pantalla se reiniciará en 4 segundos para el siguiente
-                votante...</p>
-            <a href="{% url 'votaciones:votar_evento' evento.id %}"
-               class="inline-flex items-center gap-2 mt-5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-extrabold px-5 py-2.5 rounded-xl text-sm transition transform active:scale-95 shadow-md">
-                <span>🔄</span> Reiniciar Ahora
-            </a>
+        <div class="bg-emerald-950/50 border-2 border-emerald-500/50 text-emerald-300 p-8 sm:p-12 rounded-3xl text-center my-8 shadow-2xl animate-fade-in">
+            <div class="text-7xl mb-4 animate-bounce">🎉</div>
+            <h2 class="text-3xl font-black text-emerald-400">¡Voto Registrado Con Éxito!</h2>
+            <p class="text-slate-300 text-sm mt-2">Reiniciando pantalla automáticamente para el siguiente
+                participante...</p>
         </div>
     {% else %}
-
-        <!-- MENSAJES DE ERROR / ADVERTENCIA -->
         {% if messages %}
             {% for message in messages %}
-                <div class="mb-6 p-4 rounded-xl text-sm font-medium border flex items-center gap-3 {% if message.tags == 'error' %}bg-rose-950/50 border-rose-500/40 text-rose-300{% else %}bg-amber-950/50 border-amber-500/40 text-amber-300{% endif %}">
+                <div class="mb-6 p-4 rounded-2xl text-sm font-medium border flex items-center gap-3 shadow-lg {% if message.tags == 'error' %}bg-rose-950/60 border-rose-500/40 text-rose-300{% else %}bg-amber-950/60 border-amber-500/40 text-amber-300{% endif %}">
                     <span class="text-xl">⚠️</span>
                     <div>{{ message }}</div>
                 </div>
             {% endfor %}
         {% endif %}
 
-        <form method="POST" id="voteForm" class="space-y-8">
+        <form method="POST" class="space-y-8">
             {% csrf_token %}
 
-            <!-- IDENTIFICADOR DE VOTANTE -->
             {% if evento.requiere_identificador %}
-                <div class="bg-purple-950/30 p-4 sm:p-5 rounded-2xl border border-purple-800/40 shadow-inner">
+                <div class="bg-purple-950/40 p-5 sm:p-6 rounded-2xl border border-purple-800/50 max-w-lg mx-auto shadow-inner">
                     <label for="identificador"
                            class="block text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
-                        <span>🪪</span> Número de Empleado / ID de Votante <span class="text-orange-400">*</span>
+                        <span>🪪</span> Nombre Completo o Número de Empleado <span class="text-orange-400">*</span>
                     </label>
                     <input type="text" id="identificador" name="identificador" required autocomplete="off"
-                           placeholder="Ingresa tu número de empleado..."
-                           class="w-full bg-slate-950 border border-purple-700/60 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 transition">
+                           placeholder="Ej. Juan Pérez / ID 1042"
+                           class="w-full bg-slate-950 border border-purple-700/60 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/30 transition">
                 </div>
             {% endif %}
 
-            <!-- MATRIZ DE PARTICIPANTES -->
-            <div class="space-y-6">
-                <h2 class="text-lg font-bold text-orange-400 border-l-4 border-orange-500 pl-3 flex items-center gap-2">
-                    <span>💀</span> Califica a los Participantes
-                </h2>
-
-                {% for p in participantes %}
-                    <div class="bg-slate-950/70 rounded-2xl p-5 border border-purple-900/50 hover:border-orange-500/50 transition shadow-lg">
-                        <div class="flex items-center gap-4 mb-4">
-                            {% if p.imagen %}
-                                <img src="{{ p.imagen.url }}" alt="{{ p.nombre }}"
-                                     class="w-16 h-16 rounded-xl object-cover border-2 border-orange-500/40 shadow-md">
-                            {% else %}
-                                <div class="w-16 h-16 rounded-xl bg-purple-950 border border-purple-800 flex items-center justify-center text-2xl">
-                                    🎭
-                                </div>
-                            {% endif %}
-                            <div>
-                                <h3 class="text-xl font-black text-amber-300 flex items-center gap-2">
-                                    {{ p.nombre }}
-                                </h3>
-                                {% if p.descripcion %}
-                                    <p class="text-xs text-slate-400 mt-0.5">{{ p.descripcion }}</p>
+            <!-- ================================================= -->
+            <!-- VISTA DESKTOP: TABLA MATRIZ (Oculto en celulares) -->
+            <!-- ================================================= -->
+            <div class="hidden md:block overflow-x-auto border border-purple-900/60 rounded-2xl bg-slate-950/70 shadow-2xl">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                    <tr class="bg-purple-950/90 border-b border-purple-900 text-purple-200 text-xs uppercase tracking-wider">
+                        <th class="p-4 font-black">Participante / Disfraz</th>
+                        {% for c in criterios %}
+                            <th class="p-4 text-center font-black text-orange-300">🔮 {{ c.texto }}</th>
+                        {% endfor %}
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-purple-900/40">
+                    {% for p in participantes %}
+                        <tr class="hover:bg-purple-900/20 transition group">
+                            <td class="p-4 flex items-center gap-3">
+                                {% if p.imagen %}
+                                    <img src="{{ p.imagen.url }}" alt="{{ p.nombre }}"
+                                         class="w-14 h-14 rounded-xl object-cover border-2 border-orange-500/40 shadow-md group-hover:scale-105 transition">
+                                {% else %}
+                                    <div class="w-14 h-14 rounded-xl bg-purple-950 border border-purple-800 flex items-center justify-center text-2xl shadow-md">
+                                        🎭
+                                    </div>
                                 {% endif %}
-                            </div>
-                        </div>
-
-                        <!-- CRITERIOS DE EVALUACIÓN -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 pt-4 border-t border-purple-900/40">
-                            {% for c in criterios %}
-                                <div class="bg-slate-900/90 p-3.5 rounded-xl border border-slate-800 hover:border-purple-800/60 transition">
-                                    <label class="block text-xs font-bold text-purple-300 mb-2 flex items-center gap-1.5">
-                                        <span>🔮</span> {{ c.texto }}
-                                    </label>
-
-                                    {% if c.tipo == 'estrellas' %}
-                                        <div class="star-rating flex items-center gap-1.5"
-                                             data-input-id="voto_{{ p.id }}_{{ c.id }}">
-                                            <input type="hidden" name="voto_{{ p.id }}_{{ c.id }}"
-                                                   id="voto_{{ p.id }}_{{ c.id }}" value="0" required>
-                                            {% for val in "12345" %}
-                                                <button type="button" data-value="{{ val }}"
-                                                        class="star-btn text-2xl text-slate-700 hover:text-amber-400 transition-transform active:scale-125 focus:outline-none">
-                                                    ★
-                                                </button>
-                                            {% endfor %}
-                                        </div>
-
-                                    {% elif c.tipo == 'numerico' %}
-                                        <input type="number" name="voto_{{ p.id }}_{{ c.id }}" min="0" max="100"
-                                               step="1" required
-                                               placeholder="0 - 100 pts"
-                                               class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-orange-400 focus:outline-none">
-
-                                    {% else %}
-                                        <input type="number" name="voto_{{ p.id }}_{{ c.id }}" min="1" max="5" required
-                                               class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+                                <div>
+                                    <div class="font-bold text-amber-300 text-base">{{ p.nombre }}</div>
+                                    {% if p.descripcion %}
+                                        <div class="text-xs text-slate-400 max-w-xs">{{ p.descripcion }}</div>
                                     {% endif %}
                                 </div>
+                            </td>
+
+                            {% for c in criterios %}
+                                <td class="p-4 text-center">
+                                    <label class="cursor-pointer inline-flex items-center justify-center p-3 rounded-xl hover:bg-purple-800/30 transition">
+                                        <input type="radio" name="categoria_{{ c.id }}" value="{{ p.id }}" required
+                                               class="w-5 h-5 accent-orange-500 cursor-pointer">
+                                    </label>
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ================================================= -->
+            <!-- VISTA MOBILE: TARJETAS POR CATEGORÍA (Oculto en PC) -->
+            <!-- ================================================= -->
+            <div class="block md:hidden space-y-6">
+                <div class="bg-orange-500/10 border border-orange-500/30 p-3 rounded-xl text-center text-xs text-orange-300 mb-4">
+                    📱 Desplázate hacia abajo y selecciona un candidato por cada categoría.
+                </div>
+
+                {% for c in criterios %}
+                    <div class="bg-slate-950/80 border border-purple-900/80 rounded-2xl p-4 shadow-lg space-y-3">
+                        <div class="border-b border-purple-900/50 pb-2">
+                            <span class="text-[10px] uppercase font-bold tracking-widest text-orange-400">Categoría</span>
+                            <h3 class="text-lg font-black text-amber-300 flex items-center gap-2">
+                                🔮 {{ c.texto }} <span class="text-xs text-rose-400 font-normal">*Obligatorio</span>
+                            </h3>
+                        </div>
+
+                        <div class="space-y-2 pt-1">
+                            {% for p in participantes %}
+                                <label class="flex items-center justify-between p-3 rounded-xl border border-purple-900/40 bg-slate-950 hover:bg-purple-900/20 cursor-pointer transition">
+                                    <div class="flex items-center gap-3">
+                                        {% if p.imagen %}
+                                            <img src="{{ p.imagen.url }}" alt="{{ p.nombre }}"
+                                                 class="w-10 h-10 rounded-lg object-cover border border-orange-500/30">
+                                        {% else %}
+                                            <div class="w-10 h-10 rounded-lg bg-purple-950 flex items-center justify-center text-lg">
+                                                🎭
+                                            </div>
+                                            <div>
+                                        {% endif %}
+                                        <div class="font-bold text-sm text-slate-100">{{ p.nombre }}</div>
+                                        {% if p.descripcion %}
+                                            <div class="text-[10px] text-slate-400 line-clamp-1">{{ p.descripcion }}</div>{% endif %}
+                                        </div>
+                                    </div>
+                                    <input type="radio" name="categoria_{{ c.id }}" value="{{ p.id }}" required
+                                           class="w-5 h-5 accent-orange-500">
+                                </label>
                             {% endfor %}
                         </div>
                     </div>
                 {% endfor %}
             </div>
 
-            <!-- BOTÓN DE ENVÍO CON ESTILO SPOOKY -->
+            <!-- BOTÓN DE ENVÍO -->
             <div class="pt-4">
                 <button type="submit"
-                        class="w-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-slate-950 font-black text-lg py-4 rounded-2xl shadow-[0_0_25px_rgba(249,115,22,0.3)] transition-all transform active:scale-[0.99] flex items-center justify-center gap-2">
-                    <span>🎃</span> EMITIR Y GUARDAR VOTO <span>👻</span>
+                        class="w-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-400 text-slate-950 font-black text-lg sm:text-xl py-4 sm:py-5 rounded-2xl shadow-[0_0_30px_rgba(249,115,22,0.35)] transition-all transform active:scale-[0.99] flex items-center justify-center gap-3">
+                    <span>🎃</span> ENVIAR MIS VOTOS <span>👻</span>
                 </button>
             </div>
         </form>
     {% endif %}
 </div>
-
-<!-- JAVASCRIPT DE ESTRELLAS INTERACTIVAS -->
-<script>
-    document.querySelectorAll('.star-rating').forEach(container => {
-        const inputId = container.getAttribute('data-input-id');
-        const hiddenInput = document.getElementById(inputId);
-        const stars = container.querySelectorAll('.star-btn');
-
-        stars.forEach(star => {
-            star.addEventListener('click', () => {
-                const value = star.getAttribute('data-value');
-                hiddenInput.value = value;
-
-                stars.forEach(s => {
-                    if (parseInt(s.getAttribute('data-value')) <= parseInt(value)) {
-                        s.classList.remove('text-slate-700');
-                        s.classList.add('text-amber-400');
-                    } else {
-                        s.classList.remove('text-amber-400');
-                        s.classList.add('text-slate-700');
-                    }
-                });
-            });
-        });
-    });
-</script>
 </body>
 </html>

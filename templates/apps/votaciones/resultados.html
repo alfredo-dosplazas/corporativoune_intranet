@@ -3,87 +3,178 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resultados en Vivo - {{ evento.titulo }}</title>
+    <title>Resultados y Auditoría - {{ evento.titulo }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Auto-refresca la pantalla cada 10 segundos para ver los votos en tiempo real -->
     <meta http-equiv="refresh" content="10">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen py-10 px-4 flex justify-center">
 
-<div class="max-w-4xl w-full">
+<div class="max-w-6xl w-full space-y-12">
 
-    <!-- ENCABEZADO DE RESULTADOS -->
-    <header class="text-center mb-10">
-            <span class="bg-amber-500/10 text-amber-400 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider border border-amber-500/20">
-                🔴 Transmisión en Vivo / Resultados
-            </span>
+    <!-- ENCABEZADO -->
+    <header class="text-center">
+        <span class="bg-amber-500/10 text-amber-400 text-xs font-semibold px-3.5 py-1.5 rounded-full uppercase tracking-wider border border-amber-500/20">
+            🔴 Resultados en Vivo & Auditoría
+        </span>
         <h1 class="text-4xl font-black mt-3 text-white tracking-tight">{{ evento.titulo }}</h1>
-        <p class="text-slate-400 text-sm mt-2">Total de votos emitidos hasta el momento: <span
+        <p class="text-slate-400 text-sm mt-2">Total de personas que han votado: <span
                 class="text-amber-400 font-bold text-base">{{ total_votos }}</span></p>
     </header>
 
-    <!-- TABLA DE POSICIONES / PODIO -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
-        <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
-            <h2 class="text-lg font-bold text-slate-200">Tabla General de Posiciones</h2>
-            <span class="text-xs text-slate-500">Actualización automática cada 10s</span>
-        </div>
+    <!-- SECCIÓN 1: GANADORES POR CATEGORÍA -->
+    <section>
+        <h2 class="text-xl font-extrabold text-orange-400 mb-6 flex items-center gap-2 border-l-4 border-orange-500 pl-3">
+            🏆 Ganadores por Categoría
+        </h2>
 
-        <div class="divide-y divide-slate-800">
-            {% for p in participantes %}
-                <div class="p-5 flex items-center justify-between hover:bg-slate-800/40 transition {% if forloop.counter == 1 %}bg-amber-500/5{% elif forloop.counter == 2 %}bg-slate-800/20{% endif %}">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {% for item in resultados %}
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-amber-400 mb-4 flex items-center gap-2 border-b border-slate-800 pb-2">
+                            <span>🔮</span> {{ item.criterio.texto }}
+                        </h3>
 
-                    <!-- POSICIÓN Y DATOS DEL PARTICIPANTE -->
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg
-                            {% if forloop.counter == 1 %} bg-amber-400 text-slate-950 shadow-lg shadow-amber-500/20
-                            {% elif forloop.counter == 2 %} bg-slate-300 text-slate-950
-                            {% elif forloop.counter == 3 %} bg-amber-700 text-white
-                            {% else %} bg-slate-800 text-slate-400 border border-slate-700 {% endif %}">
-                            #{{ forloop.counter }}
-                        </div>
-
-                        {% if p.imagen %}
-                            <img src="{{ p.imagen.url }}" alt="{{ p.nombre }}"
-                                 class="w-12 h-12 rounded-lg object-cover border border-slate-700">
+                        {% if item.ganador %}
+                            <div class="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl mb-6 flex items-center gap-4">
+                                {% if item.ganador.participante.imagen %}
+                                    <img src="{{ item.ganador.participante.imagen.url }}"
+                                         class="w-14 h-14 rounded-lg object-cover border border-amber-500 shadow-md">
+                                {% endif %}
+                                <div>
+                                    <span class="text-[10px] uppercase tracking-widest text-amber-400 font-bold bg-amber-500/20 px-2 py-0.5 rounded">Ganador Asignado</span>
+                                    <h4 class="text-lg font-black text-white mt-1">{{ item.ganador.participante.nombre }}</h4>
+                                    <p class="text-xs text-slate-400">{{ item.ganador.votos }} votos a favor</p>
+                                </div>
+                            </div>
+                        {% else %}
+                            <p class="text-sm text-slate-500 italic mb-6">Aún sin votos en esta categoría.</p>
                         {% endif %}
 
-                        <div>
-                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                                {{ p.nombre }}
-                                {% if forloop.counter == 1 %} 👑 {% endif %}
-                            </h3>
-                            {% if p.descripcion %}<p class="text-xs text-slate-400">{{ p.descripcion }}</p>{% endif %}
+                        <div class="space-y-2">
+                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Ranking Completo:</span>
+                            {% for rank in item.ranking %}
+                                <div class="flex justify-between items-center bg-slate-950/50 px-3 py-2 rounded-lg text-sm border border-slate-800">
+                                    <span class="text-slate-300">#{{ forloop.counter }} {{ rank.participante.nombre }}</span>
+                                    <span class="text-amber-400 font-bold text-xs">{{ rank.votos }} votos</span>
+                                </div>
+                            {% endfor %}
                         </div>
                     </div>
-
-                    <!-- PUNTAJE OBTENIDO -->
-                    <div class="text-right">
-                        <div class="text-2xl font-black text-amber-400">
-                            {% if p.puntaje_total %}
-                                {{ p.puntaje_total|floatformat:1 }}
-                                <span class="text-xs font-normal text-slate-400">pts</span>
-                            {% else %}
-                                0.0 <span class="text-xs font-normal text-slate-400">pts</span>
-                            {% endif %}
-                        </div>
-                        <span class="text-[10px] text-slate-500 uppercase tracking-widest">Promedio General</span>
-                    </div>
-
-                </div>
-            {% empty %}
-                <div class="p-12 text-center text-slate-500">
-                    Aún no hay participantes registrados o votaciones emitidas.
                 </div>
             {% endfor %}
         </div>
-    </div>
+    </section>
 
-    <!-- ACCIONES DE RETORNO -->
-    <div class="mt-8 text-center">
+    <!-- SECCIÓN 2: ACUMULADO GENERAL DE VOTOS -->
+    <section class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl overflow-hidden">
+        <h2 class="text-xl font-extrabold text-purple-400 mb-4 flex items-center gap-2 border-l-4 border-purple-500 pl-3">
+            📊 Resumen Acumulado por Participante
+        </h2>
+        <p class="text-xs text-slate-400 mb-6">Desglose total de votos recibidos por cada participante divididos por
+            categoría.</p>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                <tr class="bg-purple-950/70 border-b border-purple-900 text-purple-200 text-xs uppercase">
+                    <th class="p-3 font-bold">Participante</th>
+                    {% for c in criterios %}
+                        <th class="p-3 text-center font-bold">{{ c.texto }}</th>
+                    {% endfor %}
+                    <th class="p-3 text-center font-black text-amber-400">Total Votos</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                {% for row in acumulado_participantes %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="p-3 font-bold text-amber-300">{{ row.participante.nombre }}</td>
+                        {% for c in criterios %}
+                            <td class="p-3 text-center">
+                                <!-- Obtenemos el conteo por criterio pasando la clave id -->
+                                <span class="bg-slate-950 border border-slate-700 px-2.5 py-1 rounded-lg text-xs font-mono">
+                                        {% for key, val in row.conteo.items %}
+                                            {% if key == c.id %}{{ val }}{% endif %}
+                                        {% endfor %}
+                                    </span>
+                            </td>
+                        {% endfor %}
+                        <td class="p-3 text-center font-black text-amber-400 text-base">
+                            {{ row.total_acumulado }}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- SECCIÓN 3: TABLA DE AUDITORÍA (QUIÉN VOTÓ POR QUIÉN) -->
+    <section class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl overflow-hidden">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4 border-b border-slate-800 pb-4">
+            <div>
+                <h2 class="text-xl font-extrabold text-emerald-400 flex items-center gap-2 border-l-4 border-emerald-500 pl-3">
+                    🔍 Auditoría Individual de Votos
+                </h2>
+                <p class="text-xs text-slate-400 mt-1">Lista completa para validar la identidad de cada votante y la
+                    selección realizada.</p>
+            </div>
+            <span class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700/50 px-3 py-1 rounded-full font-mono">
+                Solo visible para RH / Staff
+            </span>
+        </div>
+
+        <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead class="sticky top-0 bg-slate-950 border-b border-slate-800 text-slate-400 text-xs uppercase z-10">
+                <tr>
+                    <th class="p-3 font-bold">Votante (ID / Nombre)</th>
+                    <th class="p-3 font-bold">Fecha / Hora</th>
+                    {% for c in criterios %}
+                        <th class="p-3 font-bold text-amber-300">Voto: {{ c.texto }}</th>
+                    {% endfor %}
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 font-mono text-xs">
+                {% for v in votos_detalle %}
+                    <tr class="hover:bg-slate-800/50 transition">
+                        <td class="p-3 font-bold text-slate-200">
+                            🪪 {{ v.identificador }}
+                            <span class="block text-[10px] text-slate-500 font-normal">IP: {{ v.ip|default:"N/A" }}</span>
+                        </td>
+                        <td class="p-3 text-slate-400">
+                            {{ v.fecha|date:"H:i:s" }} <span
+                                class="text-[10px] text-slate-600">({{ v.fecha|date:"d/m" }})</span>
+                        </td>
+                        {% for c in criterios %}
+                            <td class="p-3">
+                                {% for crit_id, part_nombre in v.elecciones.items %}
+                                    {% if crit_id == c.id %}
+                                        <span class="bg-purple-950/80 text-purple-200 border border-purple-800 px-2 py-1 rounded text-xs font-sans font-medium">
+                                                🎭 {{ part_nombre }}
+                                            </span>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="10" class="p-8 text-center text-slate-500 font-sans">
+                            Aún no se han registrado votos en la base de datos.
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- NAVEGACIÓN -->
+    <div class="text-center pt-4">
         <a href="{% url 'votaciones:votar_evento' evento.id %}"
            class="text-xs font-medium text-slate-400 hover:text-amber-400 underline transition">
-            Abrir pantalla de votación en nueva pestaña &rarr;
+            &larr; Volver a la pantalla de votación
         </a>
     </div>
 

@@ -1,6 +1,7 @@
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.db import transaction
-from django.db.models.aggregates import Avg
+from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from .models import Criterio, DetalleVoto, EventoVotacion, OpcionParticipante, VotoSesion
 
@@ -13,7 +14,6 @@ def votar_evento(request, evento_id):
     if request.method == 'POST':
         identificador = request.POST.get('identificador', '').strip()
 
-        # 1. Validar que ingresó un identificador
         if evento.requiere_identificador and not identificador:
             messages.error(
                 request,
@@ -29,12 +29,11 @@ def votar_evento(request, evento_id):
                 },
             )
 
-        # 2. Validar que no haya votado previamente
         if (
-                evento.requiere_identificador
-                and VotoSesion.objects.filter(
-            evento=evento, identificador=identificador
-        ).exists()
+            evento.requiere_identificador
+            and VotoSesion.objects.filter(
+                evento=evento, identificador=identificador
+            ).exists()
         ):
             messages.error(
                 request,
@@ -50,43 +49,43 @@ def votar_evento(request, evento_id):
                 },
             )
 
-        # Obtener la IP remota de forma limpia
         ip = request.META.get('HTTP_X_FORWARDED_FOR')
         if ip:
             ip = ip.split(',')[0]
         else:
             ip = request.META.get('REMOTE_ADDR')
 
-        # 3. Guardar la votación atómicamente
         try:
             with transaction.atomic():
                 sesion_voto = VotoSesion.objects.create(
                     evento=evento,
                     identificador=identificador
-                                  or f'ANON-{VotoSesion.objects.count() + 1}',
+                    or f'ANON-{VotoSesion.objects.count() + 1}',
                     ip_address=ip,
                 )
 
-                # Recorrer inputs con el formato: voto_<participante_id>_<criterio_id>
-                for p in participantes:
-                    for c in criterios:
-                        key_input = f'voto_{p.id}_{c.id}'
-                        valor_voto = request.POST.get(key_input)
+                # El formulario ahora manda: categoria_<criterio_id> = participante_id
+                for c in criterios:
+                    key_input = f'categoria_{c.id}'
+                    participante_id = request.POST.get(key_input)
 
-                        if valor_voto is not None and valor_voto != '':
+                    if participante_id:
+                        participante_obj = participantes.filter(
+                            id=participante_id
+                        ).first()
+                        if participante_obj:
                             DetalleVoto.objects.create(
                                 sesion_voto=sesion_voto,
-                                participante=p,
+                                participante=participante_obj,
                                 criterio=c,
-                                valor=float(valor_voto),
+                                valor=1,  # Voto unitario por selección de categoría
                             )
 
             messages.success(
                 request,
                 '¡Tu voto ha sido registrado con éxito! Gracias por participar.',
             )
-            # Redireccionar con flag de auto-reset para la computadora prestada
-            return redirect(f"{request.path}?exito=1")
+            return redirect(f'{request.path}?exito=1')
 
         except Exception as e:
             messages.error(
@@ -107,26 +106,107 @@ def votar_evento(request, evento_id):
     )
 
 
+@staff_member_required
 def resultados_evento(request, evento_id):
     evento = get_object_or_404(EventoVotacion, id=evento_id)
-
-    # Calcular el promedio de puntuación por cada participante sumando todos sus detalles de voto
-    # Puedes cambiar Avg por Sum si prefieres puntaje acumulativo total
-    participantes_con_puntaje = (
-        OpcionParticipante.objects.filter(evento=evento)
-        .annotate(puntaje_total=Avg('detallevoto__valor'))
-        .order_by('-puntaje_total')
-    )  # Orden descendente (el mayor puntaje primero)
-
-    # Total de votantes únicos que han participado
+    criterios = evento.criterios.all()
+    participantes = evento.participantes.all()
     total_votos = evento.votosesion_set.count()
+
+    # -------------------------------------------------------------
+    # 1. CÁLCULO DE GANADORES Y RANKING POR CATEGORÍA
+    # -------------------------------------------------------------
+    resultados_por_criterio = []
+    ganadores_asignados = set()
+
+    for criterio in criterios:
+        votos_criterio = (
+            DetalleVoto.objects.filter(
+                sesion_voto__evento=evento, criterio=criterio
+            )
+            .values('participante')
+            .annotate(total_votos=Count('id'))
+            .order_by('-total_votos')
+        )
+
+        ranking = []
+        for v in votos_criterio:
+            part = OpcionParticipante.objects.get(id=v['participante'])
+            ranking.append({'participante': part, 'votos': v['total_votos']})
+
+        ganador = None
+        for r in ranking:
+            if r['participante'] not in ganadores_asignados:
+                ganador = r
+                ganadores_asignados.add(r['participante'])
+                break
+
+        if not ganador and ranking:
+            ganador = ranking[0]
+
+        resultados_por_criterio.append(
+            {'criterio': criterio, 'ganador': ganador, 'ranking': ranking}
+        )
+
+    # -------------------------------------------------------------
+    # 2. AUDITORÍA: BITÁCORA INDIVIDUAL (QUIÉN VOTÓ POR QUIÉN)
+    # -------------------------------------------------------------
+    sesiones_votos = evento.votosesion_set.prefetch_related(
+        'detalles__criterio', 'detalles__participante'
+    ).order_by('-fecha_emision')
+
+    # Estructuramos una lista limpia de votos por votante
+    votos_detalle = []
+    for sesion in sesiones_votos:
+        votos_usuario = {}
+        for detalle in sesion.detalles.all():
+            votos_usuario[detalle.criterio_id] = detalle.participante.nombre
+
+        votos_detalle.append(
+            {
+                'identificador': sesion.identificador,
+                'fecha': sesion.fecha_emision,
+                'ip': sesion.ip_address,
+                'elecciones': votos_usuario,  # Mapea criterio_id -> participante_nombre
+            }
+        )
+
+    # -------------------------------------------------------------
+    # 3. AUDITORÍA: CONTEO ACUMULADO POR PARTICIPANTE Y CRITERIO
+    # -------------------------------------------------------------
+    acumulado_participantes = []
+    for part in participantes:
+        conteo_criterios = {}
+        total_acumulado = 0
+        for c in criterios:
+            cant_votos = DetalleVoto.objects.filter(
+                sesion_voto__evento=evento, criterio=c, participante=part
+            ).count()
+            conteo_criterios[c.id] = cant_votos
+            total_acumulado += cant_votos
+
+        acumulado_participantes.append(
+            {
+                'participante': part,
+                'conteo': conteo_criterios,
+                'total_acumulado': total_acumulado,
+            }
+        )
+
+    # Ordenar acumulados de mayor a menor total de votos
+    acumulado_participantes.sort(
+        key=lambda x: x['total_acumulado'], reverse=True
+    )
 
     return render(
         request,
         'apps/votaciones/resultados.html',
         {
             'evento': evento,
-            'participantes': participantes_con_puntaje,
+            'criterios': criterios,
+            'resultados': resultados_por_criterio,
+            'votos_detalle': votos_detalle,
+            'acumulado_participantes': acumulado_participantes,
             'total_votos': total_votos,
         },
     )

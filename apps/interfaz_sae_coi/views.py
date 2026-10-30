@@ -89,16 +89,22 @@ class DocumentosContabilizarSaeView(
                 ).values_list('folio_sae', flat=True)
             )
 
-            # Lógica para usar mes y año actuales por defecto a menos que vengan explícitamente
-            # (Si usas un formulario de crispy/django, asegúrate de que el form también refleje estos valores por defecto si es necesario)
+            # 2. Valores por defecto obligatorios para evitar escaneos históricos masivos
             default_mes = str(today.month)
             default_anio = str(today.year)
 
+            raw_mes = self.request.GET.get('mes')
+            raw_anio = self.request.GET.get('anio')
+
+            # Validación estricta: si vienen vacíos, nulos o no existen, forzamos el mes y año actuales
+            mes = raw_mes if raw_mes else default_mes
+            anio = raw_anio if raw_anio else default_anio
+
             filters = {
                 'q': self.request.GET.get('q', '').strip(),
-                'dia': self.request.GET.get('dia', None), # null/vacio por defecto para abarcar todo el mes
-                'mes': self.request.GET.get('mes') if 'mes' in self.request.GET else default_mes,
-                'anio': self.request.GET.get('anio') if 'anio' in self.request.GET else default_anio,
+                'dia': self.request.GET.get('dia', None),  # null/vacío para abarcar todo el mes acotado
+                'mes': mes,
+                'anio': anio,
                 'almacen': self.request.GET.get('almacen', ''),
                 'tipo_documento': self.request.GET.get('tipo_documento', 'ventas'),
                 'estado_conta': estado_conta,
@@ -116,10 +122,10 @@ class DocumentosContabilizarSaeView(
                 DOCUMENTO_STRATEGIES['ventas']
             )
 
-            # 2. Fetch documentos SAE (debe retornar: documentos_raw, total_count)
+            # 3. Fetch documentos SAE acotados al periodo
             documentos_raw, total_count = strategy.fetch_documentos(db_sae, m, filters)
 
-            # 3. Cruce con COI / Django para los registros traídos en el lote
+            # 4. Cruce con COI / Django para los registros traídos en el lote
             documentos_procesados = enrich_and_filter_contabilidad(
                 documentos_raw,
                 suffix_coi,
@@ -153,13 +159,22 @@ class DocumentosContabilizarSaeView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        today = now().date()
 
         with sae_session() as (db_sae, suffix):
             m = get_sae_models(suffix)
             almacenes_db = [a.nombre for a in db_sae.query(m.Almacen.nombre).all() if a.nombre]
 
         almacenes_choices = [(almacen, almacen) for almacen in almacenes_db]
-        filter_form = DocumentoFilterForm(self.request.GET or None, almacenes_choices=almacenes_choices)
+
+        # Aseguramos que el formulario también refleje los valores por defecto si no están presentes
+        get_data = self.request.GET.copy()
+        if not get_data.get('mes'):
+            get_data['mes'] = str(today.month)
+        if not get_data.get('anio'):
+            get_data['anio'] = str(today.year)
+
+        filter_form = DocumentoFilterForm(get_data or None, almacenes_choices=almacenes_choices)
 
         context['form'] = filter_form
         context['almacenes'] = almacenes_db + ['Sin Almacén / GENERAL']
