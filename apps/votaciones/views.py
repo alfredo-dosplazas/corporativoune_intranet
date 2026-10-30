@@ -3,11 +3,42 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.db import transaction
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
-from .models import Criterio, DetalleVoto, EventoVotacion, OpcionParticipante, VotoSesion
+from django.utils import timezone
+
+from .models import DetalleVoto, EventoVotacion, OpcionParticipante, VotoSesion
+from ..core.decorators import modulo_required
 
 
+@modulo_required('Votaciones')
 def votar_evento(request, evento_id):
     evento = get_object_or_404(EventoVotacion, id=evento_id, activo=True)
+    ahora = timezone.now()
+    user = request.user
+
+    # -------------------------------------------------------------
+    # 1. CONTROL DE TIEMPOS DE VOTACIÓN
+    # -------------------------------------------------------------
+    # Excepción: Los superusuarios pueden saltarse el bloqueo para pruebas
+    if not user.is_superuser:
+        # A) Si la votación aún no ha comenzado
+        if ahora < evento.fecha_inicio:
+            return render(
+                request,
+                'apps/votaciones/proximamente.html',
+                {'evento': evento},
+            )
+
+        # B) Si la votación ya finalizó -> Redirigir a resultados
+        if ahora > evento.fecha_fin:
+            messages.info(
+                request,
+                'El tiempo para votar en este evento ha finalizado.',
+            )
+            return redirect('votaciones:resultados_evento', evento_id=evento.id)
+
+    # -------------------------------------------------------------
+    # 2. PROCESAMIENTO DEL VOTO (POST)
+    # -------------------------------------------------------------
     criterios = evento.criterios.all()
     participantes = evento.participantes.all()
 
@@ -64,7 +95,6 @@ def votar_evento(request, evento_id):
                     ip_address=ip,
                 )
 
-                # El formulario ahora manda: categoria_<criterio_id> = participante_id
                 for c in criterios:
                     key_input = f'categoria_{c.id}'
                     participante_id = request.POST.get(key_input)
@@ -78,7 +108,7 @@ def votar_evento(request, evento_id):
                                 sesion_voto=sesion_voto,
                                 participante=participante_obj,
                                 criterio=c,
-                                valor=1,  # Voto unitario por selección de categoría
+                                valor=1,
                             )
 
             messages.success(
@@ -94,6 +124,7 @@ def votar_evento(request, evento_id):
             )
 
     exito = request.GET.get('exito') == '1'
+
     return render(
         request,
         'apps/votaciones/votar.html',
@@ -106,16 +137,13 @@ def votar_evento(request, evento_id):
     )
 
 
-@staff_member_required
+@modulo_required('Votaciones')
 def resultados_evento(request, evento_id):
     evento = get_object_or_404(EventoVotacion, id=evento_id)
     criterios = evento.criterios.all()
     participantes = evento.participantes.all()
     total_votos = evento.votosesion_set.count()
 
-    # -------------------------------------------------------------
-    # 1. CÁLCULO DE GANADORES Y RANKING POR CATEGORÍA
-    # -------------------------------------------------------------
     resultados_por_criterio = []
     ganadores_asignados = set()
 
@@ -148,14 +176,10 @@ def resultados_evento(request, evento_id):
             {'criterio': criterio, 'ganador': ganador, 'ranking': ranking}
         )
 
-    # -------------------------------------------------------------
-    # 2. AUDITORÍA: BITÁCORA INDIVIDUAL (QUIÉN VOTÓ POR QUIÉN)
-    # -------------------------------------------------------------
     sesiones_votos = evento.votosesion_set.prefetch_related(
         'detalles__criterio', 'detalles__participante'
     ).order_by('-fecha_emision')
 
-    # Estructuramos una lista limpia de votos por votante
     votos_detalle = []
     for sesion in sesiones_votos:
         votos_usuario = {}
@@ -167,13 +191,10 @@ def resultados_evento(request, evento_id):
                 'identificador': sesion.identificador,
                 'fecha': sesion.fecha_emision,
                 'ip': sesion.ip_address,
-                'elecciones': votos_usuario,  # Mapea criterio_id -> participante_nombre
+                'elecciones': votos_usuario,
             }
         )
 
-    # -------------------------------------------------------------
-    # 3. AUDITORÍA: CONTEO ACUMULADO POR PARTICIPANTE Y CRITERIO
-    # -------------------------------------------------------------
     acumulado_participantes = []
     for part in participantes:
         conteo_criterios = {}
@@ -193,7 +214,6 @@ def resultados_evento(request, evento_id):
             }
         )
 
-    # Ordenar acumulados de mayor a menor total de votos
     acumulado_participantes.sort(
         key=lambda x: x['total_acumulado'], reverse=True
     )
