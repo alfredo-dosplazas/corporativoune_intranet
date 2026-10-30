@@ -89,20 +89,18 @@ class DocumentosContabilizarSaeView(
                 ).values_list('folio_sae', flat=True)
             )
 
-            # 2. Valores por defecto obligatorios para evitar escaneos históricos masivos
+            default_dia = str(today.day)      # <-- Añadido por defecto
             default_mes = str(today.month)
             default_anio = str(today.year)
 
-            raw_mes = self.request.GET.get('mes')
-            raw_anio = self.request.GET.get('anio')
-
-            # Validación estricta: si vienen vacíos, nulos o no existen, forzamos el mes y año actuales
-            mes = raw_mes if raw_mes else default_mes
-            anio = raw_anio if raw_anio else default_anio
+            # Validar si los parámetros vienen en el GET o asignar los por defecto (hoy)
+            dia = self.request.GET.get('dia') if 'dia' in self.request.GET else default_dia
+            mes = self.request.GET.get('mes') if 'mes' in self.request.GET else default_mes
+            anio = self.request.GET.get('anio') if 'anio' in self.request.GET else default_anio
 
             filters = {
                 'q': self.request.GET.get('q', '').strip(),
-                'dia': self.request.GET.get('dia', None),  # null/vacío para abarcar todo el mes acotado
+                'dia': dia,   # <-- Ahora usa el día actual por defecto
                 'mes': mes,
                 'anio': anio,
                 'almacen': self.request.GET.get('almacen', ''),
@@ -167,11 +165,13 @@ class DocumentosContabilizarSaeView(
 
         almacenes_choices = [(almacen, almacen) for almacen in almacenes_db]
 
-        # Aseguramos que el formulario también refleje los valores por defecto si no están presentes
+        # Aseguramos que el formulario también refleje los valores por defecto si no están presentes en el GET
         get_data = self.request.GET.copy()
-        if not get_data.get('mes'):
+        if 'dia' not in get_data:
+            get_data['dia'] = str(today.day)   # <-- Añadido al contexto del form
+        if 'mes' not in get_data:
             get_data['mes'] = str(today.month)
-        if not get_data.get('anio'):
+        if 'anio' not in get_data:
             get_data['anio'] = str(today.year)
 
         filter_form = DocumentoFilterForm(get_data or None, almacenes_choices=almacenes_choices)

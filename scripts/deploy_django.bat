@@ -4,62 +4,59 @@ echo Deploy Django - Windows + NSSM
 echo =====================================
 
 set NSSM=D:\Web\NSSM\nssm-2.24\win64\nssm.exe
-
 set PROJECT_DIR=D:\Web\Sitios\corporativeune-intranet
 set VENV_DIR=D:\Web\Sitios\corporativeune-intranet\.venv
 set PYTHON=%VENV_DIR%\Scripts\python.exe
 set MANAGE=%PROJECT_DIR%\manage.py
-
 set REQUIREMENTS=D:\Web\Sitios\corporativeune-intranet\requirements.txt
 
-REM === Servicios ===
 set DJANGO_SERVICE=corporativoune_intranet
 set CELERY_SERVICE=corporativoune_intranet_celery_worker
 set BEAT_SERVICE=corporativoune_intranet_celery_beat
 
-echo Bajando repositorio...
+echo [1/6] Bajando cambios del repositorio...
 git pull origin
-
-timeout /t 5 /nobreak >nul
-
-echo Instalando Librerias...
-%PYTHON% -m pip install -r %REQUIREMENTS%
-
 if %errorlevel% neq 0 (
-    echo Error en pip install -r requirements.txt
+    echo [ERROR] Falla en git pull. Abortando deploy.
     pause
     exit /b 1
 )
 
-echo Ejecutando migraciones...
+echo [2/6] Instalando Librerias...
+%PYTHON% -m pip install -r %REQUIREMENTS% --quiet
+if %errorlevel% neq 0 (
+    echo [ERROR] Falla en pip install. Abortando deploy.
+    pause
+    exit /b 1
+)
+
+echo [3/6] Ejecutando migraciones de base de datos...
 %PYTHON% %MANAGE% migrate --noinput
-
 if %errorlevel% neq 0 (
-    echo Error en migrate
+    echo [ERROR] Falla en migraciones. Abortando deploy.
     pause
     exit /b 1
 )
 
-echo Ejecutando collectstatic...
+echo [4/6] Recopilando archivos estaticos (Collectstatic)...
 %PYTHON% %MANAGE% collectstatic --noinput
-
 if %errorlevel% neq 0 (
-    echo Error en collectstatic
+    echo [ERROR] Falla en collectstatic. Abortando deploy.
     pause
     exit /b 1
 )
 
-echo Deteniendo servicios...
-%NSSM% stop %DJANGO_SERVICE%
+echo [5/6] Deteniendo servicios en segundo plano...
 %NSSM% stop %CELERY_SERVICE%
 %NSSM% stop %BEAT_SERVICE%
+%NSSM% stop %DJANGO_SERVICE%
 
-timeout /t 3 /nobreak >nul
-
-echo Iniciando servicios...
+echo [6/6] Reiniciando servicios actualizados...
 %NSSM% start %DJANGO_SERVICE%
 %NSSM% start %CELERY_SERVICE%
 %NSSM% start %BEAT_SERVICE%
 
-echo Deploy terminado correctamente
+echo =====================================
+echo  Deploy terminado con exito! 🚀
+echo =====================================
 pause

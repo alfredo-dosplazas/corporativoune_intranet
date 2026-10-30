@@ -18493,6 +18493,13 @@
       }
     }
   }
+  .hover\:bg-emerald-900 {
+    &:hover {
+      @media (hover: hover) {
+        background-color: var(--color-emerald-900);
+      }
+    }
+  }
   .hover\:bg-error {
     &:hover {
       @media (hover: hover) {

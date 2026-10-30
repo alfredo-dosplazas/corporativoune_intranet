@@ -53,31 +53,26 @@ class DocumentoFilterForm(forms.Form):
     )
 
     def __init__(self, *args, **kwargs):
-        # Recibimos las opciones de almacenes desde la vista
         almacenes_choices = kwargs.pop('almacenes_choices', None)
         super().__init__(*args, **kwargs)
 
-        # 1. Poblar catálogo de Almacenes desde SQLAlchemy
         if almacenes_choices:
             self.fields['almacen'].choices = [('', 'Todos los almacenes')] + almacenes_choices
 
-        # 2. Generar rango dinámico de Años (ej. 2020 al año actual)
         anio_actual = datetime.datetime.now().year
         anios = [(str(year), str(year)) for year in range(anio_actual, 2019, -1)]
-
-        # Cambiamos la opción por defecto en las opciones de la lista desplegable a "Año" o dejamos el catálogo limpio
         self.fields['anio'].choices = [('', 'Año')] + anios
 
-        # 3. Asignar valores por defecto (mes y año actuales) solo si no hay datos en el GET
+        # Si el formulario no tiene datos (carga inicial), asignamos los initial de hoy completo
         if not self.data:
             hoy = datetime.datetime.now()
-            self.fields['mes'].initial = str(hoy.month)
-            self.fields['anio'].initial = str(hoy.year)
+            self.initial['dia'] = str(hoy.day)     # <-- Añadido
+            self.initial['mes'] = str(hoy.month)
+            self.initial['anio'] = str(hoy.year)
 
-        # 4. Configuración de Crispy Forms Helper
         self.helper = FormHelper()
         self.helper.form_id = 'filter-documentos-form'
-        self.helper.form_tag = False  # No renderiza la etiqueta <form> para controlarla en el modal
+        self.helper.form_tag = False
         self.helper.disable_csrf = True
 
         self.helper.layout = Layout(
