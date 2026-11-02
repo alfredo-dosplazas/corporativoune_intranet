@@ -403,7 +403,10 @@ def exportar_reporte_excel(request, evento_id):
 
     ws1.append([f"REPORTE GENERAL DE RESULTADOS - {evento.titulo.upper()}"])
     ws1.cell(row=1, column=1).font = font_title
-    ws1.append([f"Fecha de generación: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}"])
+
+    # --- HORA LOCAL EN ENCABEZADO ---
+    ahora_local = timezone.localtime(timezone.now())
+    ws1.append([f"Fecha de generación: {ahora_local.strftime('%Y-%m-%d %H:%M:%S')}"])
     ws1.append([])
 
     headers_h1 = ["Lugar", "Equipo / Participante"] + [c.texto for c in criterios] + ["TOTAL VOTOS"]
@@ -416,7 +419,6 @@ def exportar_reporte_excel(request, evento_id):
         cell.font = font_header
         cell.alignment = Alignment(horizontal="center", vertical="center")
 
-    # Ordenar participantes por puntuación total
     ranking = []
     for part in participantes:
         conteo = []
@@ -471,10 +473,14 @@ def exportar_reporte_excel(request, evento_id):
 
     for sesion in sesiones_votos:
         elecciones = {d.criterio_id: d.participante.nombre for d in sesion.detalles.all()}
+
+        # --- CONVERSIÓN A ZONA HORARIA LOCAL EN CADA REGISTRO ---
+        fecha_local = timezone.localtime(sesion.fecha_emision)
+
         row = [
             sesion.identificador,
-            sesion.fecha_emision.strftime("%Y-%m-%d"),
-            sesion.fecha_emision.strftime("%H:%M:%S"),
+            fecha_local.strftime("%Y-%m-%d"),
+            fecha_local.strftime("%H:%M:%S"),
             sesion.ip_address or "N/A",
         ]
         for c in criterios:
