@@ -187,11 +187,16 @@ class PolizaCorteCajaGenerator:
             doc_referencia = cobro.get('no_factura', cobro.get('refer', ''))
             doc_complemento_pago = cobro.get('cve_doc_comppago', '')
 
+            # Obtenemos la fecha específica en que se aplicó/timbró este cobro en particular
+            fecha_cobro_real = cobro.get('fecha_efectiva', fecha_corte)
+
             base_pago = round(monto_pago / 1.16, 2)
             iva_pago = round(monto_pago - base_pago, 2)
 
             complemento_str = f" | CP: {doc_complemento_pago}" if doc_complemento_pago else ""
-            concepto_partida = f"COBRO {concepto_pago} | {doc_referencia}{complemento_str} | {cliente_nombre}"[:100]
+            # Incluimos la fecha real del cobro en el concepto de la partida para plena trazabilidad
+            concepto_partida = f"COBRO [{fecha_cobro_real}] {concepto_pago} | {doc_referencia}{complemento_str} | {cliente_nombre}"[
+                :100]
 
             # 1. DEBE: Caja / Banco
             cuenta_caja_banco = get_cuenta_caja_banco(almacen=almacen_nombre, num_cpto=num_cpto)
@@ -215,7 +220,7 @@ class PolizaCorteCajaGenerator:
 
             # 3. DEBE: Cancelación de IVA Trasladado Pendiente
             if iva_pago > 0:
-                concepto = f"CANCELACION IVA PEND. | {doc_referencia}{complemento_str}"[:100]
+                concepto = f"CANCELACION IVA PEND. [{fecha_cobro_real}] | {doc_referencia}{complemento_str}"[:100]
                 poliza.movimientos.append(MovimientoPolizaDTO(
                     nombre_cuenta=get_nombre_cuenta(cuenta_iva_pend),
                     cuenta=cuenta_iva_pend,
@@ -225,7 +230,7 @@ class PolizaCorteCajaGenerator:
                 ))
 
                 # 4. HABER: IVA Trasladado Cobrado
-                concepto = f"IVA COBRADO | {doc_referencia}{complemento_str}"[:100]
+                concepto = f"IVA COBRADO [{fecha_cobro_real}] | {doc_referencia}{complemento_str}"[:100]
                 poliza.movimientos.append(MovimientoPolizaDTO(
                     nombre_cuenta=get_nombre_cuenta(cuenta_iva_cobrado),
                     cuenta=cuenta_iva_cobrado,

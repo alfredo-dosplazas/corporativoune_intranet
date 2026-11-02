@@ -1,4 +1,9 @@
+from django.conf import settings
 from django.db import models
+from django.urls import reverse
+
+from apps.codigos_qr.utils import generar_qr_base64
+
 
 class EventoVotacion(models.Model):
     TIPOS_EVALUACION = (
@@ -18,8 +23,11 @@ class EventoVotacion(models.Model):
     fecha_inicio = models.DateTimeField()
     fecha_fin = models.DateTimeField()
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    @property
+    def qr_imagen(self):
+        url = f'{settings.APP_URL}{reverse('votaciones:votar_evento', args=[self.pk])}'
+        qr_base64 = generar_qr_base64(url)
+        return f'data:image/png;base64,{qr_base64}'
 
     def __str__(self):
         return self.titulo

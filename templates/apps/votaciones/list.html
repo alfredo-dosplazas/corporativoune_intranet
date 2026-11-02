@@ -1,0 +1,250 @@
+{% load django_tables2 %}
+<c-layouts.app>
+    <c-slot name="header">
+        <!-- BARRA DE ACCIONES Y FILTROS -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+
+            <!-- TÍTULO DE LA VISTA + BOTÓN CREAR -->
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="icon-[tabler--ballot] text-primary text-base"></span>
+                <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">Eventos de Votación</h1>
+
+                {% if perms.votaciones.add_eventovotacion %}
+                    <a href="{% url 'votaciones:create' %}"
+                       class="btn btn-primary btn-xs gap-1 font-medium shadow-2xs ml-1">
+                        <span class="icon-[tabler--plus] text-xs"></span>
+                        <span>Nuevo Evento</span>
+                    </a>
+                {% endif %}
+            </div>
+
+            <!-- BUSCADOR + BOTÓN MODAL FILTROS + CONTADORES -->
+            <div class="flex items-center gap-2 flex-1 justify-end max-w-2xl">
+
+                <!-- FORMULARIO DE BÚSQUEDA RÁPIDA -->
+                <form method="get" action="" id="search-form" class="flex items-center gap-2 flex-1 max-w-sm">
+                    {% for key, value in request.GET.items %}
+                        {% if key != 'q' and key != 'page' and key != '_export' and value %}
+                            <input type="hidden" name="{{ key }}" value="{{ value }}">
+                        {% endif %}
+                    {% endfor %}
+
+                    <div class="relative flex-1 flex items-center">
+                        <span class="absolute left-2.5 text-base-content/40 pointer-events-none z-10">
+                            <span class="icon-[tabler--search] text-xs block"></span>
+                        </span>
+
+                        <input type="text"
+                               name="q"
+                               value="{{ request.GET.q|default:'' }}"
+                               placeholder="Buscar por título o descripción..."
+                               class="input input-xs w-full pl-7 pr-3 bg-base-100 border-base-300 focus:border-primary focus:outline-none text-xs rounded-md h-7"/>
+                    </div>
+                </form>
+
+                <!-- BOTÓN QUE DISPARA EL MODAL DE FILTROS -->
+                <button type="button"
+                        onclick="modal_filtros.showModal()"
+                        class="btn btn-ghost btn-xs h-7 min-h-0 px-2 border border-base-300 bg-base-100 font-normal text-xs text-base-content/70 relative">
+                    <span class="icon-[tabler--adjustments-horizontal] text-xs"></span>
+                    <span class="hidden sm:inline">Filtros</span>
+                    {% if request.GET.activo or request.GET.requiere_identificador %}
+                        <span class="badge badge-primary badge-xs size-2 p-0 rounded-full absolute -top-1 -right-1"></span>
+                    {% endif %}
+                </button>
+
+                <!-- MENÚ EXPORTAR / IMPRIMIR -->
+                <div class="dropdown dropdown-end">
+                    <button tabindex="0"
+                            class="btn btn-ghost btn-xs btn-square h-7 w-7 border border-base-300 bg-base-100">
+                        <span class="icon-[tabler--dots-vertical] text-xs"></span>
+                    </button>
+                    <ul tabindex="0"
+                        class="dropdown-content menu menu-xs bg-base-100 rounded-md border border-base-200 shadow-lg w-36 z-50 p-1">
+                        <li>
+                            <a href="{% querystring "_export"="xls" %}" target="_blank">
+                                <span class="icon-[tabler--file-spreadsheet]"></span> Excel
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- CONTADOR + CAMBIADOR DE VISTA -->
+                <div class="hidden sm:flex items-center gap-1.5 border-l border-base-300 pl-2 text-xs text-base-content/60">
+                    <span class="text-[11px] whitespace-nowrap">
+                        <span class="font-bold text-base-content">{{ table.page.paginator.count|default:"0" }}</span>
+                    </span>
+
+                    <div class="join border border-base-300 rounded p-0.5 bg-base-100">
+                        <!-- Botón Tabla -->
+                        <a href="{% querystring "view"="list" %}"
+                           class="join-item btn btn-xs btn-ghost btn-square h-5 w-5 min-h-0 {% if view_mode == 'list' or not view_mode %}btn-active text-primary{% endif %}"
+                           title="Vista de lista">
+                            <span class="icon-[tabler--list] text-xs"></span>
+                        </a>
+
+                        <!-- Botón Tarjetas / Grid -->
+                        <a href="{% querystring "view"="kanban" %}"
+                           class="join-item btn btn-xs btn-ghost btn-square h-5 w-5 min-h-0 {% if view_mode == 'kanban' %}btn-active text-primary{% endif %}"
+                           title="Vista de tarjetas">
+                            <span class="icon-[tabler--layout-grid] text-xs"></span>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- CHIPS DE FILTROS ACTIVOS -->
+        {% if request.GET.q or request.GET.activo %}
+            <div class="flex items-center gap-1.5 flex-wrap pt-1 border-t border-base-200/60 mt-1">
+                {% if request.GET.q %}
+                    <a href="{% querystring 'q'="" %}"
+                       class="badge badge-ghost border-base-300 badge-xs gap-1 text-[10px] h-4.5">
+                        <span>"{{ request.GET.q }}"</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+
+                {% if request.GET.activo %}
+                    <a href="{% querystring 'activo'="" %}"
+                       class="badge badge-success badge-outline badge-xs gap-1 text-[10px] h-4.5">
+                        <span>Activo: {{ request.GET.activo }}</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+
+                <a href="{% url 'votaciones:list' %}?clean_filter=1"
+                   class="text-[10px] text-primary hover:underline ml-1">Limpiar</a>
+            </div>
+        {% endif %}
+    </c-slot>
+
+    <!-- VISTA TABLA COMPACTA (ERP DEFAULT EN DESKTOP) -->
+    <div class="{% if view_mode == 'kanban' %}hidden{% else %}hidden sm:flex flex-col flex-1 min-h-0 h-full w-full{% endif %}">
+        {% render_table table %}
+    </div>
+
+    <!-- VISTA TARJETAS / GRID (COMPACTA/MOBILE) -->
+    <div class="{% if view_mode == 'kanban' %}block{% else %}block sm:hidden{% endif %}">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 p-2">
+            {% for obj in object_list %}
+                <div class="card bg-base-100 border border-base-200 p-3 shadow-2xs hover:border-primary/50 transition-all flex flex-col justify-between group">
+                    <div>
+                        <!-- Encabezado Tarjeta -->
+                        <div class="flex items-start justify-between gap-2 mb-2">
+                            <div class="badge badge-xs {% if obj.activo %}badge-success{% else %}badge-ghost{% endif %} font-medium">
+                                {% if obj.activo %}Activo{% else %}Inactivo{% endif %}
+                            </div>
+                            <span class="text-[10px] font-mono text-base-content/40">#{{ obj.pk }}</span>
+                        </div>
+
+                        <!-- Título y Descripción -->
+                        <h3 class="font-bold text-sm text-base-content leading-tight group-hover:text-primary transition-colors">
+                            {{ obj.titulo }}
+                        </h3>
+                        <p class="text-[11px] text-base-content/60 mt-1 line-clamp-2">
+                            {{ obj.descripcion|default:"Sin descripción." }}
+                        </p>
+
+                        <!-- Fechas -->
+                        <div class="mt-3 pt-2 border-t border-base-200/60 text-[10px] space-y-1 text-base-content/70">
+                            <div class="flex items-center gap-1">
+                                <span class="icon-[tabler--calendar-event] text-primary"></span>
+                                <span>Inicio: {{ obj.fecha_inicio|date:"d/m/Y H:i" }}</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <span class="icon-[tabler--calendar-due] text-rose-500"></span>
+                                <span>Cierre: {{ obj.fecha_fin|date:"d/m/Y H:i" }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Enlaces de Acción Rápida -->
+                    <div class="mt-3 pt-2 border-t border-base-200/60 flex items-center justify-between">
+                        <a href="{% url 'votaciones:resultados_evento' obj.pk %}"
+                           class="btn btn-ghost btn-xs text-primary gap-1">
+                            <span class="icon-[tabler--chart-bar] text-xs"></span> Resultados
+                        </a>
+                        <a href="{% url 'votaciones:votar_evento' obj.pk %}" target="_blank"
+                           class="btn btn-outline btn-xs gap-1">
+                            <span class="icon-[tabler--external-link] text-xs"></span> Votar
+                        </a>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-span-full text-center py-10 text-base-content/50 text-xs">
+                    <span class="icon-[tabler--ballot-off] text-2xl block mb-1"></span>
+                    No se encontraron eventos de votación registrados.
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- PAGINACIÓN MODO TARJETAS -->
+        {% if table.page %}
+            <div class="flex items-center justify-between p-3 border-t border-base-200 bg-base-100 rounded-b-lg mt-2">
+                <span class="text-[11px] text-base-content/60">
+                    Página {{ table.page.number }} de {{ table.paginator.num_pages }}
+                </span>
+                <div class="join">
+                    {% if table.page.has_previous %}
+                        <a href="{% querystring 'page'=table.page.previous_page_number %}"
+                           class="join-item btn btn-xs border-base-300">Anterior</a>
+                    {% endif %}
+                    {% if table.page.has_next %}
+                        <a href="{% querystring 'page'=table.page.next_page_number %}"
+                           class="join-item btn btn-xs border-base-300">Siguiente</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- MODAL DE FILTROS AVANZADOS -->
+    <dialog id="modal_filtros" class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box p-4 bg-base-100 border border-base-200">
+
+            <!-- ENCABEZADO MODAL -->
+            <div class="flex items-center justify-between border-b border-base-200 pb-2 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="icon-[tabler--adjustments-horizontal] text-primary text-base"></span>
+                    <h3 class="font-bold text-sm">Filtros Avanzados</h3>
+                </div>
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost text-base-content/60">✕</button>
+                </form>
+            </div>
+
+            <!-- FORMULARIO DE FILTROS -->
+            <form method="get" action="" id="advanced-filter-form" class="space-y-3 text-xs">
+                {% if request.GET.q %}
+                    <input type="hidden" name="q" value="{{ request.GET.q }}">
+                {% endif %}
+
+                {% if request.GET.view %}
+                    <input type="hidden" name="view" value="{{ request.GET.view }}">
+                {% endif %}
+
+                <!-- Renderizado de los campos del FilterSet -->
+                <div class="space-y-2">
+                    {{ filter.form }}
+                </div>
+
+                <!-- ACCIONES DEL MODAL -->
+                <div class="modal-action border-t border-base-200 pt-3 mt-4 flex items-center justify-end gap-2">
+                    <a href="{% url 'votaciones:list' %}?clean_filter=1"
+                       class="btn btn-ghost btn-xs text-xs font-normal">
+                        Limpiar filtros
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-xs px-4">
+                        Aplicar Filtros
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+</c-layouts.app>

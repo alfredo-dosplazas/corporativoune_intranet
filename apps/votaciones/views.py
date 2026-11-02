@@ -1,17 +1,163 @@
 import openpyxl
+from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.contrib.messages.views import SuccessMessageMixin
+from django.urls import reverse
+from django.views.generic.detail import DetailView
+from django_filters.views import FilterView
+from django_tables2 import SingleTableMixin
+from django_tables2.export import ExportMixin
+from extra_views import SearchableListMixin, NamedFormsetsMixin, CreateWithInlinesView, UpdateWithInlinesView
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
 from django.db import transaction
-from django.db.models import Count
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from .models import DetalleVoto, EventoVotacion, OpcionParticipante, VotoSesion
-from ..core.decorators import modulo_required
+from apps.codigos_qr.utils import generar_qr_base64
+from apps.core.mixins.responsive_view import ResponsiveViewModeMixin
+from apps.core.mixins.session_filter_state import SessionFilterStateMixin
+from apps.votaciones.forms import EventoVotacionForm
+from apps.votaciones.inlines import OpcionParticipanteInline, CriterioInline
+from apps.votaciones.models import DetalleVoto, EventoVotacion, OpcionParticipante, VotoSesion
+from apps.core.decorators import modulo_required
+from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
+from apps.core.mixins.modulo_required import ModuloRequiredMixin
+from apps.core.mixins.title import PageTitleMixin
+from apps.votaciones.tables import EventoVotacionTable
+
+
+@modulo_required('Votaciones')
+def acceso_qr_wifi_evento(request, evento_id):
+    evento = get_object_or_404(EventoVotacion, id=evento_id)
+
+    qr_votacion = evento.qr_imagen
+
+    # 2. Configuración de la red Wi-Fi corporativa de emergencia o interna
+    # Formato estándar de QR Wi-Fi: WIFI:S:<SSID>;T:<WPA|WEP|nopass>;P:<password>;;
+    wifi_ssid = "DOS_PLAZAS_E"  # Cambia esto por el nombre de tu red real
+    wifi_pass = "Inmo062021"  # Cambia esto por la contraseña real
+    wifi_string = f"WIFI:S:{wifi_ssid};T:WPA;P:{wifi_pass};;"
+    qr_wifi = f'data:image/png;base64,{generar_qr_base64(wifi_string)}'
+
+    return render(
+        request,
+        'apps/votaciones/acceso_qr_wifi.html',
+        {
+            'evento': evento,
+            'qr_votacion': qr_votacion,
+            'qr_wifi': qr_wifi,
+            'wifi_ssid': wifi_ssid,
+            'wifi_pass': wifi_pass,
+        }
+    )
+
+
+class EventoVotacionListView(
+    PermissionRequiredMixin,
+    SessionFilterStateMixin,
+    ResponsiveViewModeMixin,
+    SearchableListMixin,
+    PageTitleMixin,
+    BreadcrumbsMixin,
+    ExportMixin,
+    SingleTableMixin,
+    FilterView
+):
+    permission_required = 'votaciones.eventovotacion'
+    template_name = 'apps/votaciones/list.html'
+    page_title = 'Votaciones'
+    model = EventoVotacion
+    table_class = EventoVotacionTable
+    paginate_by = 12
+    search_fields = ['titulo', 'descripcion']
+    export_name = 'Votaciones'
+    filterset_fields = ['activo', 'requiere_identificador']
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Votaciones'},
+        ]
+
+
+class EventoVotacionCreateView(
+    PermissionRequiredMixin,
+    PageTitleMixin,
+    BreadcrumbsMixin,
+    SuccessMessageMixin,
+    NamedFormsetsMixin,
+    CreateWithInlinesView,
+):
+    permission_required = 'votaciones.add_eventovotacion'
+    template_name = 'apps/votaciones/create.html'
+    page_title = 'Crear Evento'
+    model = EventoVotacion
+    form_class = EventoVotacionForm
+    inlines = [CriterioInline, OpcionParticipanteInline]
+    inlines_names = ['Criterios', 'Participantes']
+    success_message = 'Evento de votación creado correctamente.'
+
+    def get_success_url(self) -> str:
+        return reverse('votaciones:update', args=[self.object.pk])
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Votaciones', 'url': reverse('votaciones:list')},
+            {'title': 'Crear'},
+        ]
+
+
+class EventoVotacionUpdateView(
+    PermissionRequiredMixin,
+    PageTitleMixin,
+    BreadcrumbsMixin,
+    SuccessMessageMixin,
+    NamedFormsetsMixin,
+    UpdateWithInlinesView,
+):
+    permission_required = 'votaciones.change_eventovotacion'
+    template_name = 'apps/votaciones/update.html'
+    page_title = 'Editar Evento'
+    model = EventoVotacion
+    form_class = EventoVotacionForm
+    inlines = [CriterioInline, OpcionParticipanteInline]
+    inlines_names = ['Criterios', 'Participantes']
+    success_message = 'Evento de votación actualizado correctamente.'
+    context_object_name = 'evento'
+
+    def get_success_url(self) -> str:
+        return reverse('votaciones:update', args=[self.get_object().pk])
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Votaciones', 'url': reverse('votaciones:list')},
+            {'title': 'Editar'},
+        ]
+
+
+class EventoVotacionDetailView(
+    ModuloRequiredMixin,
+    PageTitleMixin,
+    BreadcrumbsMixin,
+    DetailView,
+):
+    nombre_modulo = 'Votaciones'
+    template_name = 'apps/votaciones/detail.html'
+    page_title = 'Detalle Votación'
+    model = EventoVotacion
+    context_object_name = 'evento'
+
+    def get_breadcrumbs(self):
+        return [
+            {'title': 'Inicio', 'url': reverse('home')},
+            {'title': 'Votaciones', 'url': reverse('votaciones:list')},
+            {'title': self.get_object()},
+        ]
 
 
 @modulo_required('Votaciones')
@@ -63,10 +209,10 @@ def votar_evento(request, evento_id):
             )
 
         if (
-            evento.requiere_identificador
-            and VotoSesion.objects.filter(
-                evento=evento, identificador=identificador
-            ).exists()
+                evento.requiere_identificador
+                and VotoSesion.objects.filter(
+            evento=evento, identificador=identificador
+        ).exists()
         ):
             messages.error(
                 request,
@@ -93,7 +239,7 @@ def votar_evento(request, evento_id):
                 sesion_voto = VotoSesion.objects.create(
                     evento=evento,
                     identificador=identificador
-                    or f'ANON-{VotoSesion.objects.count() + 1}',
+                                  or f'ANON-{VotoSesion.objects.count() + 1}',
                     ip_address=ip,
                 )
 
@@ -286,7 +432,8 @@ def exportar_reporte_excel(request, evento_id):
     ranking.sort(key=lambda x: x['total'], reverse=True)
 
     for idx, item in enumerate(ranking, start=1):
-        lugar_str = f"1.er Lugar 🥇" if idx == 1 else (f"2.do Lugar 🥈" if idx == 2 else (f"3.er Lugar 🥉" if idx == 3 else f"#{idx}"))
+        lugar_str = f"1.er Lugar 🥇" if idx == 1 else (
+            f"2.do Lugar 🥈" if idx == 2 else (f"3.er Lugar 🥉" if idx == 3 else f"#{idx}"))
         row = [lugar_str, item['nombre']] + item['conteo'] + [item['total']]
         ws1.append(row)
 

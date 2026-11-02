@@ -1,0 +1,98 @@
+{% comment %}
+  Acepta 'prefix' de forma opcional (por defecto "table")
+{% endcomment %}
+<c-vars prefix="table"/>
+
+<c-table.actions :record="record" :prefix="prefix">
+    <!-- 1. VER RESULTADOS -->
+    {% if perms.votaciones.view_eventovotacion %}
+        <li>
+            <a href="{% url 'votaciones:resultados_evento' record.pk %}"
+               class="flex items-center gap-1.5 py-1 text-xs">
+                <span class="icon-[tabler--chart-bar] text-xs text-primary shrink-0"></span>
+                <span>Ver Resultados</span>
+            </a>
+        </li>
+    {% endif %}
+
+    <!-- 2. IR A VOTAR (ABRIR BOLETA) -->
+    <li>
+        <a href="{% url 'votaciones:votar_evento' record.pk %}" target="_blank"
+           class="flex items-center gap-1.5 py-1 text-xs">
+            <span class="icon-[tabler--external-link] text-xs text-info shrink-0"></span>
+            <span>Ir a Votar</span>
+        </a>
+    </li>
+
+    <!-- 3. EDITAR EVENTO -->
+    {% if perms.votaciones.change_eventovotacion %}
+        <li>
+            <a href="{% url 'votaciones:update' record.pk %}"
+               class="flex items-center gap-1.5 py-1 text-xs">
+                <span class="icon-[tabler--edit] text-xs text-base-content/60 shrink-0"></span>
+                <span>Editar</span>
+            </a>
+        </li>
+    {% endif %}
+
+    <!-- 4. ELIMINAR EVENTO -->
+    {% if perms.votaciones.delete_eventovotacion %}
+        <li class="my-0.5 border-t border-base-200"></li>
+        <li>
+            <button type="button"
+                    class="flex items-center gap-1.5 py-1 text-xs text-error hover:bg-error/10"
+                    onclick="evento_delete_modal_{{ prefix }}_{{ record.pk }}.showModal()">
+                <span class="icon-[tabler--trash] text-xs shrink-0"></span>
+                <span>Eliminar</span>
+            </button>
+        </li>
+    {% endif %}
+
+    <!-- MODAL CON ID UNIFORMADO Y ÚNICO -->
+    {% if perms.votaciones.delete_eventovotacion %}
+        <dialog id="evento_delete_modal_{{ prefix }}_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
+            <div class="modal-box max-w-sm p-4 bg-base-100 border border-base-200 shadow-2xl">
+                <form method="dialog">
+                    <button class="btn btn-xs btn-circle btn-ghost absolute right-2.5 top-2.5 text-base-content/50">✕
+                    </button>
+                </form>
+
+                <div class="flex items-start gap-2.5 mb-3">
+                    <div class="p-2 bg-error/10 text-error rounded-full shrink-0">
+                        <span class="icon-[tabler--alert-triangle] text-base block"></span>
+                    </div>
+                    <div class="pr-4">
+                        <h3 class="text-xs font-bold text-base-content uppercase tracking-wider">¿Eliminar Evento de
+                            Votación?</h3>
+                        <p class="text-[11px] text-base-content/70 mt-0.5">
+                            Se eliminará permanentemente el evento <span
+                                class="font-bold text-base-content">{{ record.titulo }}</span>.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-base-200/50 border border-base-200 rounded p-2 text-[10px] text-base-content/70 mb-4 flex gap-1.5 items-center">
+                    <span class="icon-[tabler--info-circle] text-warning text-xs shrink-0"></span>
+                    <span>Esta acción no se puede deshacer y borrará todos sus criterios, participantes y votos asociados.</span>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-base-200">
+                    <form method="dialog">
+                        <button class="btn btn-ghost btn-xs font-normal">Cancelar</button>
+                    </form>
+                    <form action="#" method="post">
+                        {% csrf_token %}
+                        <button class="btn btn-error btn-xs gap-1 font-medium text-white shadow-2xs">
+                            <span class="icon-[tabler--trash] text-xs"></span>
+                            <span>Confirmar</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <form method="dialog" class="modal-backdrop bg-neutral/40 backdrop-blur-2xs">
+                <button>close</button>
+            </form>
+        </dialog>
+    {% endif %}
+</c-table.actions>

@@ -1,0 +1,140 @@
+{% load static %}
+<c-layouts.app>
+    <c-slot name="header">
+        <!-- BARRA SUPERIOR: NAVEGACIÓN Y ACCIONES -->
+        <div class="flex items-center justify-between gap-2">
+            <!-- TITULO Y BREADCRUMBS -->
+            <div class="flex items-center gap-2 min-w-0">
+                <a href="{% url 'votaciones:list' %}"
+                   class="btn btn-ghost btn-xs btn-square shrink-0 text-base-content/60 hover:text-base-content"
+                   title="Volver a la lista">
+                    <span class="icon-[tabler--arrow-left] text-sm"></span>
+                </a>
+
+                <div class="flex items-center gap-1.5 text-xs truncate">
+                    <span class="font-bold text-base-content truncate">{{ evento.titulo }}</span>
+                    {% if evento.activo %}
+                        <span class="badge badge-xs badge-success font-mono text-[10px]">Activo</span>
+                    {% else %}
+                        <span class="badge badge-xs badge-ghost font-mono text-[10px]">Inactivo</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- BOTONES DE ACCIÓN RÁPIDA -->
+            <div class="flex items-center gap-2 shrink-0">
+                {% if perms.votaciones.change_eventovotacion %}
+                    <a href="#"
+                       class="btn btn-primary btn-xs gap-1 font-medium shadow-2xs">
+                        <span class="icon-[tabler--edit] text-xs"></span>
+                        <span>Editar Evento</span>
+                    </a>
+                {% endif %}
+                <a href="{% url 'votaciones:resultados_evento' evento.pk %}"
+                   class="btn btn-outline btn-xs gap-1 font-medium shadow-2xs">
+                    <span class="icon-[tabler--chart-bar] text-xs"></span>
+                    <span>Ver Resultados</span>
+                </a>
+            </div>
+        </div>
+    </c-slot>
+
+    <!-- DASHBOARD DETALLE DEL EVENTO (GRID 12 COLS) -->
+    <div class="grid grid-cols-12 gap-3">
+
+        <!-- TARJETA 1: INFORMACIÓN GENERAL DEL EVENTO (8 COLS) -->
+        <div class="col-span-12 lg:col-span-8 card bg-base-100 border border-base-200 shadow-2xs">
+            <div class="card-body p-4 space-y-4">
+                <!-- Encabezado de Sección -->
+                <div class="text-[11px] font-bold text-primary uppercase tracking-wider border-b border-base-200 pb-1 flex items-center gap-1">
+                    <span class="icon-[tabler--info-circle] size-3.5"></span> Detalles del Concurso
+                </div>
+
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <h2 class="text-base font-extrabold text-base-content leading-tight">{{ evento.titulo }}</h2>
+                        <p class="text-xs text-base-content/70 mt-1.5 leading-relaxed">
+                            {{ evento.descripcion|default:"Sin descripción detallada para este evento." }}
+                        </p>
+                    </div>
+
+                    <!-- Horarios y Configuración -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-base-200/60 text-[11px]">
+                        <div class="bg-base-200/40 p-2.5 rounded-lg border border-base-200">
+                            <span class="text-base-content/60 block text-[10px] uppercase font-semibold mb-0.5">Fecha de Inicio</span>
+                            <span class="font-mono text-base-content font-bold flex items-center gap-1">
+                                <span class="icon-[tabler--calendar-event] text-primary"></span>
+                                {{ evento.fecha_inicio|date:"d/m/Y - H:i" }} hrs
+                            </span>
+                        </div>
+                        <div class="bg-base-200/40 p-2.5 rounded-lg border border-base-200">
+                            <span class="text-base-content/60 block text-[10px] uppercase font-semibold mb-0.5">Fecha de Cierre</span>
+                            <span class="font-mono text-base-content font-bold flex items-center gap-1">
+                                <span class="icon-[tabler--calendar-due] text-rose-500"></span>
+                                {{ evento.fecha_fin|date:"d/m/Y - H:i" }} hrs
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Flags de Seguridad -->
+                    <div class="pt-2 border-t border-base-200/60 flex flex-wrap items-center gap-4">
+                        <div class="flex items-center gap-2">
+                            <span class="icon-[tabler--shield-lock] text-base-content/60 size-4"></span>
+                            <span class="text-base-content/70 text-[11px]">Requiere Identificador / ID:</span>
+                            {% if evento.requiere_identificador %}
+                                <span class="badge badge-success badge-xs gap-1 font-medium">Obligatorio</span>
+                            {% else %}
+                                <span class="badge badge-ghost badge-xs gap-1">Libre / Anónimo</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TARJETA 2: CÓDIGO QR DE ACCESO RÁPIDO (4 COLS) -->
+        <div class="col-span-12 lg:col-span-4 card bg-base-100 border border-base-200 shadow-2xs">
+            <div class="card-body p-4 space-y-3 text-center flex flex-col items-center justify-between">
+                <!-- Encabezado de Sección -->
+                <div class="w-full text-[11px] font-bold text-primary uppercase tracking-wider border-b border-base-200 pb-1 flex items-center justify-center gap-1">
+                    <span class="icon-[tabler--qrcode] size-3.5"></span> Acceso por Código QR
+                </div>
+
+                <div class="space-y-2 py-1">
+                    <!-- Imagen del QR generada desde la propiedad del modelo -->
+                    <div class="bg-white p-2.5 rounded-xl border border-base-300 inline-block shadow-sm">
+                        <img src="{{ evento.qr_imagen }}" alt="QR Votación {{ evento.titulo }}"
+                             class="w-36 h-36 mx-auto object-contain">
+                    </div>
+                    <p class="text-[11px] text-base-content/60 max-w-[220px] mx-auto">
+                        Escanea este código con cualquier celular para abrir la boleta de votación directamente.
+                    </p>
+                </div>
+
+                <div class="w-full pt-2 border-t border-base-200/60">
+                    <a href="{{ evento.qr_imagen }}" download="qr_evento_{{ evento.pk }}.png"
+                       class="btn btn-xs btn-ghost text-primary w-full gap-1">
+                        <span class="icon-[tabler--download] size-3.5"></span> Descargar Imagen QR
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- TARJETA 3: PIE DE INFORMACIÓN / METADATOS (12 COLS) -->
+        <div class="col-span-12 card bg-base-100 border border-base-200 shadow-2xs">
+            <div class="card-body p-3.5">
+                <div class="flex flex-wrap items-center justify-between gap-4 text-xs">
+                    <div class="flex items-center gap-2 text-base-content/70">
+                        <span class="icon-[tabler--info-square] size-4 text-primary"></span>
+                        <span>Comparte este enlace o proyecta el código QR en las pantallas de la oficina durante el concurso de disfraces.</span>
+                    </div>
+
+                    <div class="text-[10px] text-base-content/50 italic">
+                        ID del Evento: <span class="font-mono">#{{ evento.pk }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</c-layouts.app>

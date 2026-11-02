@@ -22,7 +22,7 @@ from apps.core.mixins.responsive_view import ResponsiveViewModeMixin
 from apps.core.mixins.session_filter_state import SessionFilterStateMixin
 from apps.core.mixins.title import PageTitleMixin
 from apps.core.models import Empresa
-from apps.qrs.utils import generar_qr_base64
+from apps.codigos_qr.utils import generar_qr_base64
 from apps.regalos.forms import RegaloForm, EventoForm, CanjearForm, InvitadoForm, ImportarRegalosForm, \
     ImportarInvitadoForm
 from apps.regalos.mixins import SedePermissionMixin

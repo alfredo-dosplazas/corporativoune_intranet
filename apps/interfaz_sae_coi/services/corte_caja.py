@@ -1,64 +1,104 @@
-from sqlalchemy import func, literal_column, and_, or_, cast, Date
+from datetime import datetime, timedelta
+from sqlalchemy import and_, text, func
 
 
 def obtener_cobros_del_dia(db_sae, m, fecha_filtro, almacen_filtro=None):
     """
-    Obtiene todos los abonos en CUEN_DET haciendo JOIN seguro
-    con Facturas (FACTF) y Notas de Venta (FACTV).
-    Usa fechaelab si tiene complemento de pago, de lo contrario fecha_apli.
+    Obtiene todos los abonos en CUEN_DET usando el modelo base para evitar
+    desajustes de tuplas en el driver de Firebird, consultando catálogos de forma independiente.
     """
-    folio_cuen_clean = func.trim(m.CuenDet.no_factura)
+    inicio_str = datetime.combine(fecha_filtro, datetime.min.time()).strftime('%Y-%m-%d %H:%M:%S')
+    siguiente_dia = fecha_filtro + timedelta(days=1)
+    fin_str = datetime.combine(siguiente_dia, datetime.min.time()).strftime('%Y-%m-%d %H:%M:%S')
 
-    almacen_nombre_expr = func.coalesce(
-        m.AlmacenFactura.nombre,
-        m.AlmacenNota.nombre,
-        literal_column("'GENERAL'")
-    ).label('almacen_nombre')
-
-    # Un registro se considera con complemento de pago si cve_doc_comppago tiene contenido
-    tiene_complemento = and_(
-        m.CuenDet.cve_doc_comppago.isnot(None),
-        func.trim(m.CuenDet.cve_doc_comppago) != ''
-    )
-
-    # REGLA: Si tiene complemento, evaluamos contra fechaelab. Si no, contra fecha_apli.
-    # Usamos cast(..., Date) para comparar únicamente la fecha sin importar la hora.
-    filtro_fecha = or_(
-        and_(tiene_complemento, cast(m.CuenDet.fechaelab, Date) == fecha_filtro),
-        and_(~tiene_complemento, cast(m.CuenDet.fecha_apli, Date) == fecha_filtro)
-    )
-
-    query = db_sae.query(
-        m.CuenDet.importe,
-        m.CuenDet.fecha_apli,
-        m.CuenDet.fechaelab,
-        m.CuenDet.refer,
-        m.CuenDet.no_factura,
-        m.CuenDet.num_cpto,
-        m.Concepto.descr.label('concepto_descr'),
-        m.CuenDet.cve_doc_comppago,
-        m.Cliente.nombre.label('cliente_nombre'),
-        almacen_nombre_expr
-    ).join(
-        m.Concepto, m.CuenDet.num_cpto == m.Concepto.num_cpto
-    ).outerjoin(
-        m.Cliente, m.CuenDet.cve_clie == m.Cliente.clave
-    ).outerjoin(
-        m.Factura, folio_cuen_clean == func.trim(m.Factura.folio)
-    ).outerjoin(
-        m.AlmacenFactura, m.Factura.num_alma == m.AlmacenFactura.clave
-    ).outerjoin(
-        m.NotaVenta, folio_cuen_clean == func.trim(m.NotaVenta.folio)
-    ).outerjoin(
-        m.AlmacenNota, m.NotaVenta.num_alma == m.AlmacenNota.clave
-    ).filter(
+    # Consulta limpia basada únicamente en el modelo m.CuenDet
+    query = db_sae.query(m.CuenDet).filter(
         m.CuenDet.tipo_mov == 'A',
-        filtro_fecha,
-        m.Concepto.es_forma_pago == 'S',
+        m.CuenDet.fecha_apli >= text(f"CAST('{inicio_str}' AS TIMESTAMP)"),
+        m.CuenDet.fecha_apli < text(f"CAST('{fin_str}' AS TIMESTAMP)")
     )
 
-    if almacen_filtro:
-        query = query.filter(almacen_nombre_expr == almacen_filtro)
+    registros = query.all()
+    cobros_filtrados = []
 
-    cobros = query.all()
-    return [c._asdict() for c in cobros]
+    for reg in registros:
+        # 1. Validar que el concepto sea forma de pago ('S') consultándolo de forma independiente
+        concepto_obj = None
+        if reg.num_cpto is not None:
+            concepto_obj = db_sae.query(m.Concepto).filter(m.Concepto.num_cpto == reg.num_cpto).first()
+
+        if not concepto_obj or getattr(concepto_obj, 'es_forma_pago', None) != 'S':
+            continue
+
+        # 2. Validar almacén
+        almacen_nombre = 'GENERAL'
+        folio_clean = str(reg.no_factura or '').strip()
+
+        if folio_clean:
+            factura = db_sae.query(m.Factura).filter(func.trim(m.Factura.folio) == folio_clean).first()
+            if factura and factura.num_alma:
+                alma_obj = db_sae.query(m.Almacen).filter(m.Almacen.clave == factura.num_alma).first()
+                if alma_obj and alma_obj.nombre:
+                    almacen_nombre = alma_obj.nombre
+            else:
+                nota = db_sae.query(m.NotaVenta).filter(func.trim(m.NotaVenta.folio) == folio_clean).first()
+                if nota and nota.num_alma:
+                    alma_obj = db_sae.query(m.Almacen).filter(m.Almacen.clave == nota.num_alma).first()
+                    if alma_obj and alma_obj.nombre:
+                        almacen_nombre = alma_obj.nombre
+
+        if almacen_filtro:
+            if almacen_filtro == 'Sin Almacén / GENERAL':
+                if almacen_nombre != 'GENERAL':
+                    continue
+            elif almacen_nombre != almacen_filtro:
+                continue
+
+        # 3. Validar fecha efectiva (considerando complemento de pago si existe)
+        cve_comp = reg.cve_doc_comppago
+        tiene_comp = bool(cve_comp and str(cve_comp).strip() != '')
+
+        fecha_timbre = None
+        if tiene_comp:
+            cfdi_comp = db_sae.query(m.CFDI).filter(func.trim(m.CFDI.folio) == str(cve_comp).strip()).first()
+            if cfdi_comp:
+                fecha_timbre = cfdi_comp.fecha_cert
+
+        if tiene_comp:
+            raw_fecha = fecha_timbre if fecha_timbre else reg.fechaelab
+        else:
+            raw_fecha = reg.fecha_apli
+
+        if not raw_fecha:
+            continue
+
+        fecha_efectiva = raw_fecha.date() if isinstance(raw_fecha, datetime) else raw_fecha
+
+        if fecha_efectiva == fecha_filtro:
+            # 4. Obtener nombre del cliente de forma segura
+            cliente_nombre = 'PUBLICO GENERAL'
+            if reg.cve_clie:
+                cte = db_sae.query(m.Cliente).filter(m.Cliente.clave == reg.cve_clie).first()
+                if cte and cte.nombre:
+                    cliente_nombre = cte.nombre
+
+            # 5. Obtener descripción del concepto de manera segura desde el objeto consultado
+            concepto_descr = concepto_obj.descr if concepto_obj and concepto_obj.descr else 'PAGO'
+
+            cobro_dict = {
+                'importe': float(reg.importe or 0.0),
+                'fecha_apli': reg.fecha_apli,
+                'fechaelab': reg.fechaelab,
+                'fecha_timbre': fecha_timbre,
+                'refer': reg.refer,
+                'no_factura': reg.no_factura,
+                'num_cpto': reg.num_cpto,
+                'concepto_descr': concepto_descr,
+                'cve_doc_comppago': reg.cve_doc_comppago,
+                'cliente_nombre': cliente_nombre,
+                'almacen_nombre': almacen_nombre,
+                'fecha_efectiva': fecha_efectiva.strftime('%Y-%m-%d')
+            }
+            cobros_filtrados.append(cobro_dict)
+
+    return cobros_filtrados

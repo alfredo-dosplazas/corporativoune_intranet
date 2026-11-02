@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from sqlalchemy import Column, String, Date, Float, Integer, ForeignKey, BLOB, Double
+from sqlalchemy import Column, String, Date, Float, Integer, ForeignKey, BLOB, Double, DateTime
 from sqlalchemy.orm import relationship, aliased
 
 from apps.sae.db import Base
@@ -86,6 +86,10 @@ class CFDIMixin:
     tipo_doc = Column('TIPO_DOC', String(1))
     uuid_sat = Column('UUID', String(50))
     xml_doc = Column('XML_DOC', BLOB())
+    fecha_cert = Column('FECHA_CERT', DateTime())
+    fecha_cancela = Column('FECHA_CANCELA', Date())
+    msj_canc = Column('MSJ_CANC', String(80))
+    motivo_canc = Column('MOTIVO_CANC', String(3))
 
 
 class CoiXmlMixin:
@@ -174,7 +178,6 @@ def get_sae_models(suffix="01"):
     class Almacen(AlmacenMixin, Base):
         __tablename__ = f'ALMACENES{suffix}'
         __table_args__ = {'extend_existing': True}
-
 
     class Cliente(ClienteMixin, Base):
         __tablename__ = f'CLIE{suffix}'

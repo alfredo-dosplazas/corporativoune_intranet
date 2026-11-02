@@ -1,0 +1,340 @@
+{% load crispy_forms_filters %}
+{% load crispy_forms_tags %}
+
+{% if form.errors or Criterios.errors or Participantes.errors %}
+    <div class="alert alert-error alert-soft shadow-2xs mb-3 rounded-md py-1.5 px-3 text-xs">
+        <div class="flex items-center gap-2">
+            <span class="icon-[tabler--alert-triangle] text-base shrink-0"></span>
+            <div>
+                <span class="font-bold">Faltan campos obligatorios:</span> Por favor complete todos los datos marcados
+                en rojo.
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<form id="evento-votacion-form" method="post" enctype="multipart/form-data" novalidate class="space-y-4">
+    {% csrf_token %}
+
+    <!-- FICHA PRINCIPAL ESTILO ODOO (SHEET CONTAINER) -->
+    <div class="bg-base-100 rounded-lg border border-base-200 shadow-2xs overflow-hidden">
+
+        <!-- BARRA SUPERIOR DE ENCABEZADO -->
+        <div class="bg-base-200/50 px-4 py-2 border-b border-base-200 flex items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-2">
+                <span class="icon-[tabler--ballot] text-primary text-base"></span>
+                <span class="font-bold text-base-content text-sm">
+                    {% if object.pk %}{{ object.titulo }}{% else %}NUEVO EVENTO DE VOTACIÓN{% endif %}
+                </span>
+            </div>
+            <div class="text-[11px] text-base-content/60 font-mono">
+                {% if object.pk %}ID: #{{ object.pk }}{% else %}Borrador{% endif %}
+            </div>
+        </div>
+
+        <!-- DATOS DEL EVENTO (ENCABEZADO GENERAL) -->
+        <div class="p-4 text-xs bg-base-100">
+            {% crispy form %}
+        </div>
+
+        <!-- SECCIÓN 1: CRITERIOS / CATEGORÍAS DE EVALUACIÓN -->
+        <div class="border-t border-base-200 bg-base-100">
+            <div class="px-4 py-2 flex items-center justify-between bg-base-200/30 border-b border-base-200">
+                <div class="flex items-center gap-2">
+                    <span class="icon-[tabler--category] text-primary text-base"></span>
+                    <h2 class="font-bold text-xs text-base-content uppercase tracking-wider">Criterios de Evaluación /
+                        Categorías</h2>
+                </div>
+                <span class="text-[11px] text-base-content/50">Mínimo 1 criterio requerido</span>
+            </div>
+
+            {{ Criterios.management_form }}
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                    <tr class="bg-base-200/60 text-[11px] uppercase tracking-wider text-base-content/70 border-b border-base-200">
+                        <th class="w-8 py-1.5 px-2 text-center">#</th>
+                        <th class="py-1.5 px-2">Criterio / Categoría *</th>
+                        <th class="w-48 py-1.5 px-2">Tipo de Evaluación *</th>
+                        <th class="w-28 py-1.5 px-2 text-right">Peso *</th>
+                        <th class="w-8 py-1.5 px-2 text-center"></th>
+                    </tr>
+                    </thead>
+                    <tbody id="criterios-container" class="divide-y divide-base-200/60">
+                    {% for inline_form in Criterios %}
+                        <tr class="form-row hover:bg-base-200/20 transition-colors {% if inline_form.errors %}bg-error/10{% endif %}"
+                            data-has-id="{% if inline_form.instance.pk %}1{% else %}0{% endif %}">
+
+                            <td class="text-center bg-base-200/30 text-[11px] text-base-content/60 font-mono py-1 px-2 align-middle select-none row-number">
+                                {{ forloop.counter }}
+                            </td>
+
+                            <td class="p-1 align-middle">
+                                {{ inline_form.id }}
+                                <input type="text"
+                                       name="{{ inline_form.texto.html_name }}"
+                                       id="{{ inline_form.texto.id_for_label }}"
+                                       value="{{ inline_form.texto.value|default_if_none:'' }}" required
+                                       class="input input-xs input-bordered w-full h-7 text-xs {% if inline_form.texto.errors %}input-error{% endif %}"
+                                       placeholder="Ej. Creatividad, Caracterización...">
+                                {% if inline_form.texto.errors %}
+                                    <div class="text-[10px] text-error px-1 py-0.5 bg-error/10 rounded mt-0.5">
+                                        {% for error in inline_form.texto.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </td>
+
+                            <td class="p-1 align-middle">
+                                <select name="{{ inline_form.tipo.html_name }}"
+                                        id="{{ inline_form.tipo.id_for_label }}"
+                                        class="select select-xs select-bordered w-full h-7 text-xs {% if inline_form.tipo.errors %}select-error{% endif %}">
+                                    {% for choice_val, choice_label in inline_form.fields.tipo.choices %}
+                                        <option value="{{ choice_val }}"
+                                                {% if inline_form.tipo.value == choice_val %}selected{% endif %}>
+                                            {{ choice_label }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+
+                            <td class="p-1 align-middle">
+                                <input type="number"
+                                       name="{{ inline_form.peso.html_name }}"
+                                       id="{{ inline_form.peso.id_for_label }}"
+                                       value="{{ inline_form.peso.value|default:'1.00' }}"
+                                       step="0.01" min="0" required
+                                       class="input input-xs input-bordered w-full font-mono text-right h-7 {% if inline_form.peso.errors %}input-error{% endif %}">
+                            </td>
+
+                            <td class="text-center align-middle p-1">
+                                {% if Criterios.can_delete %}
+                                    <input type="checkbox"
+                                           name="{{ inline_form.DELETE.html_name }}"
+                                           id="{{ inline_form.DELETE.id_for_label }}"
+                                           class="hidden input-delete-check">
+                                {% endif %}
+                                <button type="button"
+                                        class="btn btn-ghost btn-xs btn-square text-error/60 hover:text-error hover:bg-error/10 size-6 rounded btn-delete-row"
+                                        title="Eliminar criterio">
+                                    ✕
+                                </button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-2.5 bg-base-200/20 border-t border-base-200">
+                <button type="button" id="add-criterio"
+                        class="btn btn-xs btn-outline btn-primary gap-1 font-semibold rounded-md h-7">
+                    <span class="text-xs font-bold">+</span>
+                    <span>Agregar Criterio</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 2: PARTICIPANTES / EQUIPOS -->
+        <div class="border-t border-base-200 bg-base-100">
+            <div class="px-4 py-2 flex items-center justify-between bg-base-200/30 border-b border-base-200">
+                <div class="flex items-center gap-2">
+                    <span class="icon-[tabler--users] text-primary text-base"></span>
+                    <h2 class="font-bold text-xs text-base-content uppercase tracking-wider">Participantes /
+                        Equipos</h2>
+                </div>
+                <span class="text-[11px] text-base-content/50">Mínimo 1 participante requerido</span>
+            </div>
+
+            {{ Participantes.management_form }}
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                    <tr class="bg-base-200/60 text-[11px] uppercase tracking-wider text-base-content/70 border-b border-base-200">
+                        <th class="w-8 py-1.5 px-2 text-center">#</th>
+                        <th class="w-64 py-1.5 px-2">Nombre del Participante / Equipo *</th>
+                        <th class="py-1.5 px-2">Descripción / Detalle del Disfraz</th>
+                        <th class="w-56 py-1.5 px-2">Imagen / Fotografía</th>
+                        <th class="w-8 py-1.5 px-2 text-center"></th>
+                    </tr>
+                    </thead>
+                    <tbody id="participantes-container" class="divide-y divide-base-200/60">
+                    {% for inline_form in Participantes %}
+                        <tr class="form-row hover:bg-base-200/20 transition-colors {% if inline_form.errors %}bg-error/10{% endif %}"
+                            data-has-id="{% if inline_form.instance.pk %}1{% else %}0{% endif %}">
+
+                            <td class="text-center bg-base-200/30 text-[11px] text-base-content/60 font-mono py-1 px-2 align-middle select-none row-number">
+                                {{ forloop.counter }}
+                            </td>
+
+                            <td class="p-1 align-middle">
+                                {{ inline_form.id }}
+                                <input type="text"
+                                       name="{{ inline_form.nombre.html_name }}"
+                                       id="{{ inline_form.nombre.id_for_label }}"
+                                       value="{{ inline_form.nombre.value|default_if_none:'' }}" required
+                                       class="input input-xs input-bordered w-full h-7 text-xs {% if inline_form.nombre.errors %}input-error{% endif %}"
+                                       placeholder="Ej. Equipo Los Fantasmas...">
+                                {% if inline_form.nombre.errors %}
+                                    <div class="text-[10px] text-error px-1 py-0.5 bg-error/10 rounded mt-0.5">
+                                        {% for error in inline_form.nombre.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </td>
+
+                            <td class="p-1 align-middle">
+                                <input type="text"
+                                       name="{{ inline_form.descripcion.html_name }}"
+                                       id="{{ inline_form.descripcion.id_for_label }}"
+                                       value="{{ inline_form.descripcion.value|default_if_none:'' }}"
+                                       class="input input-xs input-bordered w-full h-7 text-xs"
+                                       placeholder="Detalles del disfraz o integrantes...">
+                            </td>
+
+                            <td class="p-1 align-middle">
+                                <input type="file"
+                                       name="{{ inline_form.imagen.html_name }}"
+                                       id="{{ inline_form.imagen.id_for_label }}"
+                                       accept="image/*"
+                                       class="file-input file-input-xs file-input-bordered w-full text-xs">
+                            </td>
+
+                            <td class="text-center align-middle p-1">
+                                {% if Participantes.can_delete %}
+                                    <input type="checkbox"
+                                           name="{{ inline_form.DELETE.html_name }}"
+                                           id="{{ inline_form.DELETE.id_for_label }}"
+                                           class="hidden input-delete-check">
+                                {% endif %}
+                                <button type="button"
+                                        class="btn btn-ghost btn-xs btn-square text-error/60 hover:text-error hover:bg-error/10 size-6 rounded btn-delete-row"
+                                        title="Eliminar participante">
+                                    ✕
+                                </button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-2.5 bg-base-200/20 border-t border-base-200">
+                <button type="button" id="add-participante"
+                        class="btn btn-xs btn-outline btn-primary gap-1 font-semibold rounded-md h-7">
+                    <span class="text-xs font-bold">+</span>
+                    <span>Agregar Participante</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- BARRA INFERIOR DE ACCIONES -->
+        <div class="p-3 bg-base-200/50 border-t border-base-200 flex items-center justify-end gap-2">
+            <a href="{% url 'votaciones:list' %}" class="btn btn-xs btn-ghost text-xs">
+                Cancelar
+            </a>
+            <button type="submit" class="btn btn-xs btn-primary font-semibold text-xs px-4">
+                <span class="icon-[tabler--device-floppy] text-sm"></span>
+                <span>Guardar Evento</span>
+            </button>
+        </div>
+
+    </div>
+</form>
+
+<!-- SCRIPT DINÁMICO PARA MANEJAR MÚLTIPLES FORMSETS -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        function setupInlineFormset(containerId, btnAddId, prefix) {
+            const container = document.getElementById(containerId);
+            const btnAdd = document.getElementById(btnAddId);
+
+            const getTotalFormsInput = () => {
+                return document.querySelector(`input[name="${prefix}-TOTAL_FORMS"]`);
+            };
+
+            function reindexRows() {
+                let visibleCount = 0;
+                const rows = container.querySelectorAll('tr.form-row');
+                rows.forEach(row => {
+                    if (row.style.display !== 'none') {
+                        visibleCount++;
+                        const numTd = row.querySelector('.row-number');
+                        if (numTd) numTd.textContent = visibleCount;
+                    }
+                });
+            }
+
+            if (btnAdd) {
+                btnAdd.addEventListener('click', function () {
+                    const totalFormsInput = getTotalFormsInput();
+                    if (!totalFormsInput) {
+                        console.error(`No se encontró el TOTAL_FORMS para el prefijo: ${prefix}`);
+                        return;
+                    }
+
+                    const currentFormCount = parseInt(totalFormsInput.value, 10);
+                    const rows = container.querySelectorAll('tr.form-row');
+                    if (rows.length === 0) return;
+
+                    const templateRow = rows[0].cloneNode(true);
+                    templateRow.style.display = '';
+                    templateRow.classList.remove('bg-error/10');
+                    templateRow.querySelectorAll('.text-error').forEach(e => e.remove());
+
+                    const regexIndex = new RegExp(`${prefix}-(\\d+)-`, 'g');
+                    const replacement = `${prefix}-${currentFormCount}-`;
+
+                    templateRow.innerHTML = templateRow.innerHTML.replace(regexIndex, replacement);
+
+                    templateRow.querySelectorAll('input, select, textarea').forEach(input => {
+                        if (input.type === 'checkbox') {
+                            input.checked = false;
+                        } else if (input.name && input.name.endsWith('-id')) {
+                            input.value = '';
+                        } else {
+                            input.value = '';
+                        }
+                    });
+
+                    container.appendChild(templateRow);
+                    totalFormsInput.value = currentFormCount + 1;
+
+                    reindexRows();
+                });
+            }
+
+            container.addEventListener('click', function (e) {
+                const btnDelete = e.target.closest('.btn-delete-row');
+                if (!btnDelete) return;
+
+                const row = btnDelete.closest('tr.form-row');
+                const isExistingRow = row.getAttribute('data-has-id') === '1';
+                const deleteCheckbox = row.querySelector('.input-delete-check');
+
+                if (isExistingRow && deleteCheckbox) {
+                    deleteCheckbox.checked = true;
+                    row.style.display = 'none';
+                } else {
+                    const visibleRows = Array.from(container.querySelectorAll('tr.form-row')).filter(r => r.style.display !== 'none');
+                    if (visibleRows.length > 1) {
+                        row.remove();
+                    } else {
+                        row.querySelectorAll('input, select, textarea').forEach(i => {
+                            if (i.type !== 'checkbox') i.value = '';
+                        });
+                    }
+                }
+
+                reindexRows();
+            });
+
+            reindexRows();
+        }
+
+        // Inicializar formsets independientes con sus respectivos prefijos asignados por extra_views
+        setupInlineFormset('criterios-container', 'add-criterio', 'criterios');
+        setupInlineFormset('participantes-container', 'add-participante', 'participantes');
+    });
+</script>
