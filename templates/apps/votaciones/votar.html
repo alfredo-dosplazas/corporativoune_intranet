@@ -76,14 +76,26 @@
             {% csrf_token %}
 
             {% if evento.requiere_identificador %}
-                <div class="bg-purple-950/40 p-5 sm:p-6 rounded-2xl border border-purple-800/50 max-w-lg mx-auto shadow-inner">
-                    <label for="identificador"
-                           class="block text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
-                        <span>🪪</span> Nombre Completo o Número de Empleado <span class="text-orange-400">*</span>
+                <div class="bg-purple-950/40 p-5 sm:p-6 rounded-2xl border border-purple-800/50 max-w-xl mx-auto shadow-inner space-y-3">
+                    <label for="identificador" class="block text-sm font-bold text-slate-200 flex items-center gap-2">
+                        <span>🪪</span> Nombre Completo o Correo Corporativo <span class="text-orange-400">*</span>
                     </label>
+
                     <input type="text" id="identificador" name="identificador" required autocomplete="off"
-                           placeholder="Ej. Juan Pérez / ID 1042"
+                           placeholder="Ej. Juan Pérez / jperez@corporativoune.mx"
                            class="w-full bg-slate-950 border border-purple-700/60 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/30 transition">
+
+                    <!-- NOTA IMPORTANTE DE ANULACIÓN DE VOTO -->
+                    <div class="bg-amber-950/40 border border-amber-500/30 rounded-xl p-3 flex items-start gap-2.5 text-xs text-amber-300/90">
+                        <span class="text-base leading-none">⚠️</span>
+                        <p class="leading-relaxed">
+                            <strong class="text-amber-400 font-bold">Nota importante:</strong> Ingresa tu nombre
+                            completo o correo institucional válido. Los votos con nombres ficticios, repetidos, no
+                            pertenecientes al personal del corporativo o correos no institucionales <span
+                                class="underline decoration-amber-500 font-bold text-amber-200">serán anulados automáticamente</span>
+                            durante la revisión de RH.
+                        </p>
+                    </div>
                 </div>
             {% endif %}
 

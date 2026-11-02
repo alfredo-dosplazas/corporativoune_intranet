@@ -1,12 +1,12 @@
 import openpyxl
-from django.http import HttpResponse
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 from django.contrib import messages
-
+from django.contrib.admin.views.decorators import staff_member_required
 from django.db import transaction
 from django.db.models import Count
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -23,9 +23,7 @@ def votar_evento(request, evento_id):
     # -------------------------------------------------------------
     # 1. CONTROL DE TIEMPOS DE VOTACIÓN
     # -------------------------------------------------------------
-    # Excepción: Los superusuarios pueden saltarse el bloqueo para pruebas
     if not user.is_superuser:
-        # A) Si la votación aún no ha comenzado
         if ahora < evento.fecha_inicio:
             return render(
                 request,
@@ -33,7 +31,6 @@ def votar_evento(request, evento_id):
                 {'evento': evento},
             )
 
-        # B) Si la votación ya finalizó -> Redirigir a resultados
         if ahora > evento.fecha_fin:
             messages.info(
                 request,
@@ -149,57 +146,9 @@ def resultados_evento(request, evento_id):
     participantes = evento.participantes.all()
     total_votos = evento.votosesion_set.count()
 
-    resultados_por_criterio = []
-    ganadores_asignados = set()
-
-    for criterio in criterios:
-        votos_criterio = (
-            DetalleVoto.objects.filter(
-                sesion_voto__evento=evento, criterio=criterio
-            )
-            .values('participante')
-            .annotate(total_votos=Count('id'))
-            .order_by('-total_votos')
-        )
-
-        ranking = []
-        for v in votos_criterio:
-            part = OpcionParticipante.objects.get(id=v['participante'])
-            ranking.append({'participante': part, 'votos': v['total_votos']})
-
-        ganador = None
-        for r in ranking:
-            if r['participante'] not in ganadores_asignados:
-                ganador = r
-                ganadores_asignados.add(r['participante'])
-                break
-
-        if not ganador and ranking:
-            ganador = ranking[0]
-
-        resultados_por_criterio.append(
-            {'criterio': criterio, 'ganador': ganador, 'ranking': ranking}
-        )
-
-    sesiones_votos = evento.votosesion_set.prefetch_related(
-        'detalles__criterio', 'detalles__participante'
-    ).order_by('-fecha_emision')
-
-    votos_detalle = []
-    for sesion in sesiones_votos:
-        votos_usuario = {}
-        for detalle in sesion.detalles.all():
-            votos_usuario[detalle.criterio_id] = detalle.participante.nombre
-
-        votos_detalle.append(
-            {
-                'identificador': sesion.identificador,
-                'fecha': sesion.fecha_emision,
-                'ip': sesion.ip_address,
-                'elecciones': votos_usuario,
-            }
-        )
-
+    # -------------------------------------------------------------
+    # 1. ACUMULADO GENERAL Y DETERMINACIÓN DE LOS 3 LUGARES
+    # -------------------------------------------------------------
     acumulado_participantes = []
     for part in participantes:
         conteo_criterios = {}
@@ -219,9 +168,38 @@ def resultados_evento(request, evento_id):
             }
         )
 
+    # Ordenar participantes de mayor a menor según su total de votos
     acumulado_participantes.sort(
         key=lambda x: x['total_acumulado'], reverse=True
     )
+
+    # Extraer los 3 primeros lugares para el podio
+    podio_1 = acumulado_participantes[0] if len(acumulado_participantes) > 0 else None
+    podio_2 = acumulado_participantes[1] if len(acumulado_participantes) > 1 else None
+    podio_3 = acumulado_participantes[2] if len(acumulado_participantes) > 2 else None
+    resto_posiciones = acumulado_participantes[3:] if len(acumulado_participantes) > 3 else []
+
+    # -------------------------------------------------------------
+    # 2. AUDITORÍA: BITÁCORA INDIVIDUAL DE VOTOS
+    # -------------------------------------------------------------
+    sesiones_votos = evento.votosesion_set.prefetch_related(
+        'detalles__criterio', 'detalles__participante'
+    ).order_by('-fecha_emision')
+
+    votos_detalle = []
+    for sesion in sesiones_votos:
+        votos_usuario = {}
+        for detalle in sesion.detalles.all():
+            votos_usuario[detalle.criterio_id] = detalle.participante.nombre
+
+        votos_detalle.append(
+            {
+                'identificador': sesion.identificador,
+                'fecha': sesion.fecha_emision,
+                'ip': sesion.ip_address,
+                'elecciones': votos_usuario,
+            }
+        )
 
     return render(
         request,
@@ -229,9 +207,12 @@ def resultados_evento(request, evento_id):
         {
             'evento': evento,
             'criterios': criterios,
-            'resultados': resultados_por_criterio,
-            'votos_detalle': votos_detalle,
+            'podio_1': podio_1,
+            'podio_2': podio_2,
+            'podio_3': podio_3,
+            'resto_posiciones': resto_posiciones,
             'acumulado_participantes': acumulado_participantes,
+            'votos_detalle': votos_detalle,
             'total_votos': total_votos,
         },
     )
@@ -248,9 +229,12 @@ def exportar_reporte_excel(request, evento_id):
 
     wb = openpyxl.Workbook()
 
-    # Estilos compartidos
+    # Estilos de formato
     fill_header = PatternFill(
         start_color="311B92", end_color="311B92", fill_type="solid"
+    )
+    fill_podio1 = PatternFill(
+        start_color="FEF3C7", end_color="FEF3C7", fill_type="solid"
     )
     fill_accent = PatternFill(
         start_color="E8EAF6", end_color="E8EAF6", fill_type="solid"
@@ -266,17 +250,17 @@ def exportar_reporte_excel(request, evento_id):
     )
 
     # -------------------------------------------------------------
-    # HOJA 1: RESUMEN ACUMULADO Y TOTALES
+    # HOJA 1: RESUMEN ACUMULADO Y PODIO GENERAL
     # -------------------------------------------------------------
     ws1 = wb.active
-    ws1.title = "Resumen de Votaciones"
+    ws1.title = "Tabla General y Podio"
 
-    ws1.append([f"REPORTE GENERAL DE VOTACIÓN - {evento.titulo.upper()}"])
+    ws1.append([f"REPORTE GENERAL DE RESULTADOS - {evento.titulo.upper()}"])
     ws1.cell(row=1, column=1).font = font_title
     ws1.append([f"Fecha de generación: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}"])
     ws1.append([])
 
-    headers_h1 = ["Participante / Disfraz"] + [c.texto for c in criterios] + ["TOTAL VOTOS"]
+    headers_h1 = ["Lugar", "Equipo / Participante"] + [c.texto for c in criterios] + ["TOTAL VOTOS"]
     ws1.append(headers_h1)
 
     row_header_idx = 4
@@ -286,32 +270,41 @@ def exportar_reporte_excel(request, evento_id):
         cell.font = font_header
         cell.alignment = Alignment(horizontal="center", vertical="center")
 
+    # Ordenar participantes por puntuación total
+    ranking = []
     for part in participantes:
-        row = [part.nombre]
-        total_part = 0
+        conteo = []
+        total = 0
         for c in criterios:
             cnt = DetalleVoto.objects.filter(
                 sesion_voto__evento=evento, criterio=c, participante=part
             ).count()
-            row.append(cnt)
-            total_part += cnt
-        row.append(total_part)
+            conteo.append(cnt)
+            total += cnt
+        ranking.append({'nombre': part.nombre, 'conteo': conteo, 'total': total})
+
+    ranking.sort(key=lambda x: x['total'], reverse=True)
+
+    for idx, item in enumerate(ranking, start=1):
+        lugar_str = f"1.er Lugar 🥇" if idx == 1 else (f"2.do Lugar 🥈" if idx == 2 else (f"3.er Lugar 🥉" if idx == 3 else f"#{idx}"))
+        row = [lugar_str, item['nombre']] + item['conteo'] + [item['total']]
         ws1.append(row)
 
         current_row = ws1.max_row
         for col_num in range(1, len(row) + 1):
             cell = ws1.cell(row=current_row, column=col_num)
             cell.border = thin_border
-            if col_num == 1:
+            if idx == 1:
+                cell.fill = fill_podio1
+            if col_num in [1, 2]:
                 cell.font = font_bold
             else:
                 cell.alignment = Alignment(horizontal="center")
             if col_num == len(row):
-                cell.fill = fill_accent
                 cell.font = font_bold
 
     # -------------------------------------------------------------
-    # HOJA 2: AUDITORÍA INDIVIDUAL (QUIÉN VOTÓ POR QUIÉN)
+    # HOJA 2: AUDITORÍA DETALLADA (QUIÉN VOTÓ POR QUIÉN)
     # -------------------------------------------------------------
     ws2 = wb.create_sheet(title="Auditoría de Votos")
 
@@ -348,18 +341,17 @@ def exportar_reporte_excel(request, evento_id):
             if col_num in [2, 3, 4]:
                 cell.alignment = Alignment(horizontal="center")
 
-    # Ajuste automático del ancho de columnas en ambas hojas
+    # Ajuste automático del ancho de columnas
     for sheet in [ws1, ws2]:
         for col in sheet.columns:
             max_len = max(len(str(cell.value or '')) for cell in col)
             col_letter = get_column_letter(col[0].column)
-            sheet.column_dimensions[col_letter].width = max(max_len + 4, 12)
+            sheet.column_dimensions[col_letter].width = max(max_len + 4, 14)
 
-    # Respuesta de descarga HTTP
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-    filename = f"reporte_votacion_evento_{evento_id}.xlsx"
+    filename = f"reporte_resultados_concurso_{evento_id}.xlsx"
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     wb.save(response)
 
