@@ -434,7 +434,7 @@ class RegaloPantallaView(TemplateView):
                 'premio': r.nombre,
                 'numero': f"{r.numero:03d}",
                 'destacado': r.destacado,
-                'imagen_url': r.get_imagen(),
+                'imagen_url': r.imagen.url if r.imagen else None,
             }
             for r in regalos_entregados
         ]

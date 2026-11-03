@@ -1,67 +1,129 @@
 import django_tables2 as tables
 from django.utils.html import format_html
 from django.urls import reverse
-from .models import Resguardo
+from .models import Resguardo, Equipo
+from ..core.tables import TableWithActions
+
+import django_tables2 as tables
+from apps.resguardos.models import Resguardo
+# Ajusta la importación de tu TableWithActions según corresponda en tu proyecto:
+from apps.core.tables import TableWithActions
 
 
-class ResguardoTable(tables.Table):
-    # Columna personalizada para el ID o Folio con enlace al detalle
-    id = tables.Column(verbose_name="Folio", linkify=lambda record: reverse('resguardos:detail', args=[record.pk]))
+class ResguardoTable(TableWithActions):
+    actions_template = 'components/apps/resguardos/table/actions.html'
 
-    equipo = tables.Column(accessor='equipo.nombre', verbose_name="Equipo")
-    numero_serie = tables.Column(accessor='equipo.numero_serie', verbose_name="N° Serie")
-    recibe_nombre = tables.Column(verbose_name="Asignado a")
-    recibe_puesto_area = tables.Column(verbose_name="Puesto / Área")
-    fecha_entrega = tables.DateColumn(verbose_name="Fecha Entrega", format="d/m/Y")
+    id = tables.Column(
+        verbose_name="ID",
+        linkify=lambda record: record.get_absolute_url(),
+        attrs={'th': {'class': 'w-16'}, 'td': {'class': 'font-semibold'}}
+    )
 
-    # Renderizado personalizado para el estado del resguardo
-    estado_resguardo = tables.Column(verbose_name="Estado")
+    equipo = tables.Column(
+        verbose_name="Equipo",
+        accessor='equipo',
+        orderable=True
+    )
 
-    # Indicador visual si está firmado digitalmente/subido
-    firmado_digital = tables.Column(verbose_name="Firmado")
+    recibe_nombre = tables.Column(
+        verbose_name="Recibe",
+        accessor='recibe_nombre'
+    )
 
-    # Acciones
-    acciones = tables.Column(empty_values=(), verbose_name="Acciones", orderable=False)
+    recibe_puesto_area = tables.Column(
+        verbose_name="Puesto / Área",
+        accessor='recibe_puesto_area'
+    )
+
+    estado_resguardo = tables.Column(
+        verbose_name="Estado",
+        attrs={
+            'td': {
+                'class': lambda record: (
+                    'text-success font-medium' if record.estado_resguardo == 'ACTIVO' else
+                    'text-info font-medium' if record.estado_resguardo == 'DEVUELTO' else
+                    'text-error font-medium'
+                )
+            }
+        }
+    )
+
+    fecha_entrega = tables.DateColumn(
+        verbose_name="Fecha Entrega",
+        format="d/m/Y"
+    )
 
     class Meta:
         model = Resguardo
         fields = (
             'id',
             'equipo',
-            'numero_serie',
             'recibe_nombre',
             'recibe_puesto_area',
-            'fecha_entrega',
             'estado_resguardo',
-            'firmado_digital',
-            'acciones'
+            'fecha_entrega'
         )
-        attrs = {
-            'class': 'table table-hover table-striped align-middle',
+
+
+class EquipoTable(TableWithActions):
+    actions_template = 'components/apps/resguardos/equipos/table/actions.html'
+
+    id = tables.Column(
+        verbose_name="ID",
+        linkify=lambda record: reverse('resguardos:equipos__update', args=[record.pk]),
+        attrs={'th': {'class': 'w-16'}, 'td': {'class': 'font-semibold'}}
+    )
+
+    empresa = tables.Column(
+        verbose_name="Empresa",
+        accessor='empresa'
+    )
+
+    nombre = tables.Column(
+        verbose_name="Equipo / Modelo",
+        accessor='nombre',
+        attrs={'td': {'class': 'font-medium text-base-content'}}
+    )
+
+    numero_serie = tables.Column(
+        verbose_name="Número de Serie",
+        accessor='numero_serie',
+        attrs={'td': {'class': 'font-mono text-xs'}}
+    )
+
+    identificador_interno = tables.Column(
+        verbose_name="Tag / ID Interno",
+        accessor='identificador_interno',
+        attrs={'td': {'class': 'font-mono text-xs'}}
+    )
+
+    estado_actual = tables.Column(
+        verbose_name="Estado Actual",
+        attrs={
+            'td': {
+                'class': lambda record: (
+                    'text-success font-medium' if record.estado_actual == 'NUEVO' else
+                    'text-info font-medium' if record.estado_actual == 'USADO' else
+                    'text-warning font-medium' if record.estado_actual == 'DANIADO' else
+                    'text-error font-medium'
+                )
+            }
         }
+    )
 
-    def render_estado_resguardo(self, value):
-        badge_class = {
-            'ACTIVO': 'bg-success',
-            'DEVUELTO': 'bg-secondary',
-            'CANCELADO': 'bg-danger',
-        }.get(value, 'bg-info')
-        return format_html('<span class="badge {}">{}</span>', badge_class, value)
+    ubicacion_fisica_actual = tables.Column(
+        verbose_name="Ubicación Física",
+        accessor='ubicacion_fisica_actual'
+    )
 
-    def render_firmado_digital(self, value):
-        if value:
-            return format_html('<span class="badge bg-primary"><i class="fas fa-check"></i> Firmado</span>')
-        return format_html('<span class="badge bg-warning text-dark"><i class="fas fa-clock"></i> Pendiente</span>')
-
-    def render_acciones(self, record):
-        url_detail = reverse('resguardos:detail', args=[record.pk])
-        url_print = reverse('resguardos:print', args=[record.pk])  # Para reimpresión/PDF
-
-        return format_html(
-            '<div class="btn-group btn-group-sm">'
-            '<a href="{}" class="btn btn-outline-primary" title="Ver Detalle"><i class="fas fa-eye"></i></a>'
-            '<a href="{}" target="_blank" class="btn btn-outline-secondary" title="Imprimir / PDF"><i class="fas fa-print"></i></a>'
-            '</div>',
-            url_detail,
-            url_print
+    class Meta:
+        model = Equipo
+        fields = (
+            'id',
+            'empresa',
+            'nombre',
+            'numero_serie',
+            'identificador_interno',
+            'estado_actual',
+            'ubicacion_fisica_actual',
         )

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime
 
-from sqlalchemy import func, extract, or_, and_, case, cast, Date
+from sqlalchemy import func, extract, or_, and_, case, cast, Date, text
 from sqlalchemy.orm import aliased
 
 from apps.sae.models_sae import CuenDetMixin
@@ -258,7 +258,7 @@ class NotasDevolucionStrategy(BaseDocumentoStrategy):
 
 
 class CorteCajaStrategy(BaseDocumentoStrategy):
-    """Estrategia para Agrupación de Cobranza / Corte de Caja (Optimizada con periodo acotado)."""
+    """Estrategia para Agrupación de Cobranza / Corte de Caja (Optimizada y blindada contra codificación)."""
 
     def fetch_documentos(self, db_sae, m, filters: dict) -> tuple[list[dict], int]:
         filters_copia = dict(filters)
@@ -266,89 +266,88 @@ class CorteCajaStrategy(BaseDocumentoStrategy):
         mes = filters_copia.pop('mes', None)
         anio = filters_copia.pop('anio', None)
 
-        # Creamos un alias de CFDI para buscar el complemento por su código (cve_doc_comppago)
-        CFDIComp = aliased(m.CFDI, name='CFDIComp_strategy')
+        # Filtro de periodo obligatorio por año y mes usando cadenas para evitar errores en Firebird
+        query = db_sae.query(m.CuenDet).filter(m.CuenDet.tipo_mov == 'A')
 
-        # 1. Consulta base incluyendo fecha_cert del CFDI del complemento
-        query = db_sae.query(
-            m.CuenDet.id_mov,
-            m.CuenDet.importe,
-            m.CuenDet.fecha_apli,
-            m.CuenDet.fechaelab,
-            CFDIComp.fecha_cert.label('fecha_timbre'),
-            m.CuenDet.cve_doc_comppago,
-            func.coalesce(
-                m.AlmacenFactura.nombre,
-                m.AlmacenNota.nombre,
-                'GENERAL'
-            ).label('almacen_nombre')
-        )
+        if anio and str(anio).isdigit() and mes and str(mes).isdigit():
+            from calendar import monthrange
+            inicio_str = f"{anio}-{str(mes).zfill(2)}-01 00:00:00"
 
-        # 2. Joins necesarios
-        folio_clean = func.trim(m.CuenDet.no_factura)
-        query = query.join(
-            m.Concepto, m.CuenDet.num_cpto == m.Concepto.num_cpto
-        ).outerjoin(
-            m.Cliente, m.CuenDet.cve_clie == m.Cliente.clave
-        ).outerjoin(
-            CFDIComp, func.trim(m.CuenDet.cve_doc_comppago) == func.trim(CFDIComp.folio)
-        ).outerjoin(
-            m.Factura, folio_clean == func.trim(m.Factura.folio)
-        ).outerjoin(
-            m.AlmacenFactura, m.Factura.num_alma == m.AlmacenFactura.clave
-        ).outerjoin(
-            m.NotaVenta, folio_clean == func.trim(m.NotaVenta.folio)
-        ).outerjoin(
-            m.AlmacenNota, m.NotaVenta.num_alma == m.AlmacenNota.clave
-        ).filter(
-            m.CuenDet.tipo_mov == 'A',
-            m.Concepto.es_forma_pago == 'S'
-        )
+            siguiente_mes = int(mes) + 1
+            siguiente_anio = int(anio)
+            if siguiente_mes > 12:
+                siguiente_mes = 1
+                siguiente_anio += 1
+            fin_str = f"{siguiente_anio}-{str(siguiente_mes).zfill(2)}-01 00:00:00"
 
-        # Optimización de rendimiento: Filtrar por Año y Mes directamente en SQL
-        # utilizando la fecha de aplicación para aprovechar los índices de Firebird.
-        if anio and str(anio).isdigit():
-            query = query.filter(extract('year', m.CuenDet.fecha_apli) == int(anio))
-
-        if mes and str(mes).isdigit():
-            query = query.filter(extract('month', m.CuenDet.fecha_apli) == int(mes))
-
-        # Filtro de almacén individual
-        almacen_filtro = filters.get('almacen')
-        almacen_expr_str = func.coalesce(
-            m.AlmacenFactura.nombre,
-            m.AlmacenNota.nombre,
-            'GENERAL'
-        )
-        if almacen_filtro:
-            if almacen_filtro == 'Sin Almacén / GENERAL':
-                query = query.filter(almacen_expr_str == 'GENERAL')
-            else:
-                query = query.filter(almacen_expr_str == almacen_filtro)
+            query = query.filter(
+                m.CuenDet.fecha_apli >= text(f"CAST('{inicio_str}' AS TIMESTAMP)"),
+                m.CuenDet.fecha_apli < text(f"CAST('{fin_str}' AS TIMESTAMP)")
+            )
+        elif anio and str(anio).isdigit():
+            inicio_str = f"{anio}-01-01 00:00:00"
+            fin_str = f"{int(anio) + 1}-01-01 00:00:00"
+            query = query.filter(
+                m.CuenDet.fecha_apli >= text(f"CAST('{inicio_str}' AS TIMESTAMP)"),
+                m.CuenDet.fecha_apli < text(f"CAST('{fin_str}' AS TIMESTAMP)")
+            )
 
         registros_raw = query.all()
 
         # 3. PROCESAMIENTO Y FILTRADO FINO EN MEMORIA (PYTHON)
         agrupador = defaultdict(lambda: {'total': 0.0, 'count': 0})
 
-        for row in registros_raw:
-            cve_comp = row.cve_doc_comppago
+        for reg in registros_raw:
+            # Validar que el concepto sea forma de pago ('S')
+            if reg.num_cpto is not None:
+                concepto_obj = db_sae.query(m.Concepto).filter(m.Concepto.num_cpto == reg.num_cpto).first()
+                if not concepto_obj or getattr(concepto_obj, 'es_forma_pago', None) != 'S':
+                    continue
+            else:
+                continue
+
+            # Resolver Almacén de forma segura
+            almacen_nombre = 'GENERAL'
+            folio_clean = str(reg.no_factura or '').strip()
+
+            if folio_clean:
+                factura = db_sae.query(m.Factura).filter(func.trim(m.Factura.folio) == folio_clean).first()
+                if factura and factura.num_alma:
+                    alma_obj = db_sae.query(m.Almacen).filter(m.Almacen.clave == factura.num_alma).first()
+                    if alma_obj and alma_obj.nombre:
+                        almacen_nombre = alma_obj.nombre
+                else:
+                    nota = db_sae.query(m.NotaVenta).filter(func.trim(m.NotaVenta.folio) == folio_clean).first()
+                    if nota and nota.num_alma:
+                        alma_obj = db_sae.query(m.Almacen).filter(m.Almacen.clave == nota.num_alma).first()
+                        if alma_obj and alma_obj.nombre:
+                            almacen_nombre = alma_obj.nombre
+
+            # Filtrar por almacén individual si viene en los parámetros
+            almacen_filtro = filters.get('almacen')
+            if almacen_filtro:
+                if almacen_filtro == 'Sin Almacén / GENERAL':
+                    if almacen_nombre != 'GENERAL':
+                        continue
+                elif almacen_nombre != almacen_filtro:
+                    continue
+
+            cve_comp = reg.cve_doc_comppago
             tiene_comp = bool(cve_comp and str(cve_comp).strip() != '')
 
-            # REGLA DE NEGOCIO:
-            # - Si tiene complemento -> Usamos fecha de timbre (fecha_timbre / fecha_cert), respaldado por fechaelab.
-            # - Si NO tiene complemento -> Usamos fecha_apli.
-            if tiene_comp:
-                raw_fecha = row.fecha_timbre if row.fecha_timbre else row.fechaelab
+            # REGLA DE NEGOCIO SEGURA (Sin consultas frágiles a CFDI que rompen la codificación)
+            # Si tiene complemento o no, usamos la fecha de elaboración o aplicación nativa de CuenDet
+            if tiene_comp and reg.fechaelab:
+                raw_fecha = reg.fechaelab
             else:
-                raw_fecha = row.fecha_apli
+                raw_fecha = reg.fecha_apli
 
             if not raw_fecha:
                 continue
 
             fecha_efectiva = raw_fecha.date() if isinstance(raw_fecha, datetime) else raw_fecha
 
-            # Red de seguridad exacta contra los filtros de la interfaz (Año, Mes, Día)
+            # Red de seguridad contra filtros de la interfaz
             if anio and str(anio).isdigit() and fecha_efectiva.year != int(anio):
                 continue
             if mes and str(mes).isdigit() and fecha_efectiva.month != int(mes):
@@ -356,8 +355,7 @@ class CorteCajaStrategy(BaseDocumentoStrategy):
             if dia and str(dia).isdigit() and fecha_efectiva.day != int(dia):
                 continue
 
-            almacen_nombre = row.almacen_nombre or 'GENERAL'
-            importe = float(row.importe or 0.0)
+            importe = float(reg.importe or 0.0)
 
             key = (fecha_efectiva, almacen_nombre)
             agrupador[key]['total'] += importe

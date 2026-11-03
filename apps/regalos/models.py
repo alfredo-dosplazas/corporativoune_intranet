@@ -60,12 +60,6 @@ class Regalo(models.Model):
         help_text="Si está activo, se mostrará con un diseño especial al canjearse."
     )
 
-    @property
-    def get_imagen(self):
-        if self.imagen:
-            return self.imagen.url
-        return get_placeholder_image(self.nombre)
-
     class Meta:
         unique_together = ('evento', 'numero')
 

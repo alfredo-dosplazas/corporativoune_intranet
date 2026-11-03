@@ -1,36 +1,215 @@
-{% extends "base.html" %}
-{% load render_table from django_tables2 %}
+{% load django_tables2 %}
+{% load export_url from django_tables2 %}
 
-{% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3">{{ page_title }}</h1>
-        <a href="{% url 'resguardos:create' %}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Nuevo Resguardo
-        </a>
+<c-layouts.app>
+    <c-slot name="header">
+        <!-- BARRA DE ACCIONES Y FILTROS -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+
+            <!-- TÍTULO DE LA VISTA + BOTÓN CREAR -->
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="icon-[tabler--file-text] text-primary text-base"></span>
+                <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">Resguardos</h1>
+
+                {% if perms.resguardos.add_resguardo %}
+                    <a href="{% url 'resguardos:create' %}"
+                       class="btn btn-primary btn-xs gap-1 font-medium shadow-2xs ml-1">
+                        <span class="icon-[tabler--plus] text-xs"></span>
+                        <span>Nuevo</span>
+                    </a>
+                {% endif %}
+            </div>
+
+            <!-- BUSCADOR + BOTÓN MODAL FILTROS + CONTADORES -->
+            <div class="flex items-center gap-2 flex-1 justify-end max-w-2xl">
+
+                <!-- FORMULARIO DE BÚSQUEDA RÁPIDA -->
+                <form method="get" action="" id="search-form" class="flex items-center gap-2 flex-1 max-w-sm">
+                    {% for key, value in request.GET.items %}
+                        {% if key != 'search' and key != 'page' and key != '_export' and value %}
+                            <input type="hidden" name="{{ key }}" value="{{ value }}">
+                        {% endif %}
+                    {% endfor %}
+
+                    <div class="relative flex-1 flex items-center">
+                        <span class="absolute left-2.5 text-base-content/40 pointer-events-none z-10">
+                            <span class="icon-[tabler--search] text-xs block"></span>
+                        </span>
+
+                        <input
+                                type="text"
+                                name="search"
+                                value="{{ request.GET.q|default:'' }}"
+                                placeholder="Buscar por quien recibe, equipo, n/s..."
+                                class="input input-xs w-full pl-7 pr-3 bg-base-100 border-base-300 focus:border-primary focus:outline-none text-xs rounded-md h-7"
+                        />
+                    </div>
+                </form>
+
+                <!-- BOTÓN QUE DISPARA EL MODAL DE FILTROS -->
+                <button type="button"
+                        onclick="modal_filtros.showModal()"
+                        class="btn btn-ghost btn-xs h-7 min-h-0 px-2 border border-base-300 bg-base-100 font-normal text-xs text-base-content/70 relative">
+                    <span class="icon-[tabler--adjustments-horizontal] text-xs"></span>
+                    <span class="hidden sm:inline">Filtros</span>
+                    {% if request.GET.estado_resguardo or request.GET.estado_equipo_entrega or request.GET.firmado_digital %}
+                        <span class="badge badge-primary badge-xs size-2 p-0 rounded-full absolute -top-1 -right-1"></span>
+                    {% endif %}
+                </button>
+
+                <!-- MENÚ EXPORTAR / IMPRIMIR -->
+                <div class="dropdown dropdown-end">
+                    <button tabindex="0"
+                            class="btn btn-ghost btn-xs btn-square h-7 w-7 border border-base-300 bg-base-100">
+                        <span class="icon-[tabler--dots-vertical] text-xs"></span>
+                    </button>
+                    <ul tabindex="0"
+                        class="dropdown-content menu menu-xs bg-base-100 rounded-md border border-base-200 shadow-lg w-36 z-50 p-1">
+                        <li>
+                            <a href="{% querystring "_export"="xls" %}" target="_blank">
+                                <span class="icon-[tabler--file-spreadsheet]"></span> Excel
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- CONTADOR + CAMBIADOR DE VISTA -->
+                <div class="hidden sm:flex items-center gap-1.5 border-l border-base-300 pl-2 text-xs text-base-content/60">
+                    <span class="text-[11px] whitespace-nowrap">
+                        <span class="font-bold text-base-content">{{ table.page.paginator.count|default:paginator.count|default:"0" }}</span>
+                    </span>
+
+                    <div class="join border border-base-300 rounded p-0.5 bg-base-100">
+                        <!-- Botón Tabla / Lista -->
+                        <a href="{% querystring "view"="list" %}"
+                           class="join-item btn btn-xs btn-ghost btn-square h-5 w-5 min-h-0 {% if view_mode == 'list' or not view_mode %}btn-active text-primary{% endif %}"
+                           title="Vista de lista">
+                            <span class="icon-[tabler--list] text-xs"></span>
+                        </a>
+
+                        <!-- Botón Cards / Kanban -->
+                        <a href="{% querystring "view"="kanban" %}"
+                           class="join-item btn btn-xs btn-ghost btn-square h-5 w-5 min-h-0 {% if view_mode == 'kanban' %}btn-active text-primary{% endif %}"
+                           title="Vista de tarjetas">
+                            <span class="icon-[tabler--layout-kanban] text-xs"></span>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- CHIPS DE FILTROS ACTIVOS -->
+        {% if request.GET.estado_resguardo or request.GET.q or request.GET.estado_equipo_entrega or request.GET.firmado_digital %}
+            <div class="flex items-center gap-1.5 flex-wrap pt-1 border-t border-base-200/60 mt-1">
+                {% if request.GET.q %}
+                    <a href="{% querystring 'search'="" %}"
+                       class="badge badge-ghost border-base-300 badge-xs gap-1 text-[10px] h-4.5">
+                        <span>"{{ request.GET.q }}"</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+                {% if request.GET.estado_resguardo %}
+                    <a href="{% querystring 'estado_resguardo'="" %}"
+                       class="badge badge-info badge-outline badge-xs gap-1 text-[10px] h-4.5">
+                        <span>Estado: {{ request.GET.estado_resguardo }}</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+                {% if request.GET.firmado_digital %}
+                    <a href="{% querystring 'firmado_digital'="" %}"
+                       class="badge badge-success badge-outline badge-xs gap-1 text-[10px] h-4.5">
+                        <span>Firmado Digital</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+                <a href="{% url 'resguardos:list' %}?clean_filter=1"
+                   class="text-[10px] text-primary hover:underline ml-1">Limpiar</a>
+            </div>
+        {% endif %}
+    </c-slot>
+
+    <!-- VISTA DESKTOP: TABLA COMPACTA ERP -->
+    <div class="{% if view_mode == 'kanban' %}hidden{% else %}hidden sm:flex flex-col flex-1 min-h-0 h-full w-full{% endif %}">
+        {% render_table table %}
     </div>
 
-    <!-- Formulario de Búsqueda -->
-    <div class="card mb-3">
-        <div class="card-body">
-            <form method="get" class="row g-2">
-                <div class="col-md-4">
-                    <input type="text" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Buscar por Folio, Equipo, N° Serie, Empleado...">
+    <!-- VISTA MOBILE / CARDS (Visible en mobile o cuando view_mode == 'kanban') -->
+    <div class="{% if view_mode == 'kanban' %}block{% else %}block sm:hidden{% endif %}">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-2">
+            {% for resguardo in object_list %}
+{#                <c-apps.resguardos.card :resguardo="resguardo"/>#}
+            {% empty %}
+                <div class="col-span-full text-center py-12 px-4 bg-base-100 rounded-lg border border-dashed border-base-300 my-2">
+                    <div class="bg-base-200/60 p-3 rounded-full inline-block mb-2 text-base-content/50">
+                        <span class="text-2xl icon-[tabler--device-laptop] block"></span>
+                    </div>
+                    <h3 class="text-xs font-semibold text-base-content/80">No se encontraron resguardos</h3>
+                    <p class="text-[11px] text-base-content/60 mt-0.5">Intenta modificar los criterios de búsqueda o limpia los filtros.</p>
                 </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-outline-primary w-100">
-                        <i class="fas fa-search"></i> Buscar
+            {% endfor %}
+        </div>
+
+        <!-- Paginación dedicada solo para el modo Cards / Kanban -->
+        {% if table.page or is_paginated %}
+            {% with page_obj=table.page|default:page_obj %}
+                <div class="flex items-center justify-between p-3 border-t border-base-200 bg-base-100 rounded-b-lg mt-2">
+                    <span class="text-[11px] text-base-content/60"> Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} </span>
+                    <div class="join">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="join-item btn btn-xs border-base-300">Anterior</a>
+                        {% endif %}
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="join-item btn btn-xs border-base-300">Siguiente</a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endwith %}
+        {% endif %}
+    </div>
+
+    <!-- MODAL DE FILTROS (MOBILE BOTTOM SHEET / DESKTOP MODAL) -->
+    <dialog id="modal_filtros" class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box p-4 bg-base-100 border border-base-200">
+
+            <!-- ENCABEZADO MODAL -->
+            <div class="flex items-center justify-between border-b border-base-200 pb-2 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="icon-[tabler--adjustments-horizontal] text-primary text-base"></span>
+                    <h3 class="font-bold text-sm">Filtros Avanzados</h3>
+                </div>
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost text-base-content/60">✕</button>
+                </form>
+            </div>
+
+            <!-- FORMULARIO DE FILTROS COMPLETO -->
+            <form method="get" action="" id="advanced-filter-form" class="space-y-3 text-xs">
+                {% if request.GET.q %}
+                    <input type="hidden" name="search" value="{{ request.GET.q }}">
+                {% endif %}
+
+                <!-- Renderizado de campos de django-filter -->
+                <div class="space-y-2">
+                    {{ filter.form }}
+                </div>
+
+                <!-- ACCIONES DEL MODAL -->
+                <div class="modal-action border-t border-base-200 pt-3 mt-4 flex items-center justify-end gap-2">
+                    <a href="{% url 'resguardos:list' %}?clean_filter=1"
+                       class="btn btn-ghost btn-xs text-xs font-normal">
+                        Limpiar filtros
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-xs px-4">
+                        Aplicar Filtros
                     </button>
                 </div>
             </form>
         </div>
-    </div>
 
-    <!-- Renderizado de la Tabla django-tables2 -->
-    <div class="card">
-        <div class="card-body p-0">
-            {% render_table table %}
-        </div>
-    </div>
-</div>
-{% endblock %}
+        <!-- FONDO / BACKDROP PARA CERRAR AL HACER CLIC FUERA -->
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+</c-layouts.app>

@@ -3,6 +3,8 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
+from apps.core.models import Empresa
+
 
 class Equipo(models.Model):
     ESTADO_CHOICES = [
@@ -12,7 +14,7 @@ class Equipo(models.Model):
         ('BAJA', 'Dado de Baja'),
     ]
 
-    empresa = models.CharField(max_length=100, default="Mi Empresa S.A. de C.V.")
+    empresa = models.ForeignKey(Empresa, on_delete=models.PROTECT, related_name='equipos')
     nombre = models.CharField(max_length=100, help_text="Ej. Laptop Dell Latitude 5420")
     numero_serie = models.CharField(max_length=100, unique=True)
     identificador_interno = models.CharField(max_length=50, unique=True, help_text="Tag de activo fijo o ID interno")
@@ -35,7 +37,7 @@ class Resguardo(models.Model):
         ('CANCELADO', 'Cancelado'),
     ]
 
-    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='resguardos')
+    equipo = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='resguardos')
 
     fecha_entrega = models.DateField(default=timezone.now)
     recibe_nombre = models.CharField(max_length=150, verbose_name="Nombre de quien recibe")
