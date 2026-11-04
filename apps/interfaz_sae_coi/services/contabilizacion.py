@@ -93,7 +93,7 @@ class ContabilizacionCorteCajaHandler:
     def procesar(db_sae, db_coi, m, m_coi, folio, empresa_suffix, request_user, fecha=None, almacen=None):
         cobros_list = obtener_cobros_del_dia(db_sae, m, fecha, almacen)
         polizas_mostrador, polizas_cp = PolizaCorteCajaGenerator.generate_split(
-            fecha_corte=fecha,
+            fecha_corte=fecha.strftime('%Y-%m-%d') if hasattr(fecha, 'strftime') else str(fecha),
             almacen_nombre=almacen,
             cobros_list=cobros_list,
         )

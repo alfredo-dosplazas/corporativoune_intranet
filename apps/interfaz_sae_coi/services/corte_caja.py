@@ -1,6 +1,5 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from sqlalchemy import and_, text, func
-
 
 def obtener_cobros_del_dia(db_sae, m, fecha_filtro, almacen_filtro=None):
     """
@@ -8,6 +7,23 @@ def obtener_cobros_del_dia(db_sae, m, fecha_filtro, almacen_filtro=None):
     desajustes de tuplas en el driver de Firebird, consultando catálogos de forma independiente
     y extrayendo campos escalares para prevenir errores de codificación.
     """
+    # ====================================================================
+    # BLINDAJE INICIAL: Asegurar que fecha_filtro sea estrictamente un date
+    # ====================================================================
+    if isinstance(fecha_filtro, str):
+        cleaned = fecha_filtro.strip()[:10]
+        try:
+            fecha_filtro = datetime.fromisoformat(cleaned).date()
+        except ValueError:
+            try:
+                fecha_filtro = datetime.strptime(cleaned, '%Y/%m/%d').date()
+            except ValueError:
+                fecha_filtro = date.today()
+    elif isinstance(fecha_filtro, datetime):
+        fecha_filtro = fecha_filtro.date()
+    elif not isinstance(fecha_filtro, date):
+        fecha_filtro = date.today()
+
     inicio_str = datetime.combine(fecha_filtro, datetime.min.time()).strftime('%Y-%m-%d %H:%M:%S')
     siguiente_dia = fecha_filtro + timedelta(days=1)
     fin_str = datetime.combine(siguiente_dia, datetime.min.time()).strftime('%Y-%m-%d %H:%M:%S')
@@ -63,7 +79,6 @@ def obtener_cobros_del_dia(db_sae, m, fecha_filtro, almacen_filtro=None):
         if tiene_comp:
             cve_comp_str = str(cve_comp).strip()
             try:
-                # BLINDAJE: Usamos .scalar() para extraer únicamente la fecha sin mapear el objeto CFDI completo
                 fecha_timbre = db_sae.query(m.CFDI.fecha_cert).filter(
                     func.trim(m.CFDI.folio) == cve_comp_str
                 ).scalar()

@@ -394,7 +394,7 @@ class CorteCajaStrategy(BaseDocumentoStrategy):
                 'total': total_importe,
                 'total_movimientos': datos['count'],
                 'folio': f"C-M-{alm_code}-{fecha_str}"[:20],
-                'folio_cp': f"C-C{alm_code}-{fecha_str}"[:20],
+                'folio_cp': f"C-CP-{alm_code}-{fecha_str}"[:20],
                 'cliente': f"CORTE DE CAJA ({datos['count']} PAGOS)",
                 'subtotal': subtotal,
                 'total_impuesto4': total_impuesto4,

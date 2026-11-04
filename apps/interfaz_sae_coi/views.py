@@ -1,6 +1,6 @@
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 
 from django.contrib import messages
 from django.contrib.auth.decorators import permission_required, login_required
@@ -468,8 +468,27 @@ def contabilizar_coi_view(request):
     """
     tipo_documento = request.POST.get('tipo_documento', 'FACTURA').upper()
     folio = request.POST.get('folio')
-    fecha = request.POST.get('fecha')
+    raw_fecha = request.POST.get('fecha')
     almacen = request.POST.get('almacen')
+
+    # ====================================================================
+    # BLINDAJE INICIAL: Forzar que la fecha del POST sea un objeto date puro
+    # ====================================================================
+    if isinstance(raw_fecha, str) and raw_fecha.strip():
+        cleaned = raw_fecha.strip()[:10]
+        try:
+            fecha = datetime.fromisoformat(cleaned).date()
+        except ValueError:
+            try:
+                fecha = datetime.strptime(cleaned, '%Y/%m/%d').date()
+            except ValueError:
+                fecha = date.today()
+    elif isinstance(raw_fecha, datetime):
+        fecha = raw_fecha.date()
+    elif isinstance(raw_fecha, date):
+        fecha = raw_fecha
+    else:
+        fecha = date.today()
 
     if not folio:
         messages.error(request, 'No se especificó un folio para contabilizar.')
@@ -508,13 +527,51 @@ def contabilizar_coi_view(request):
 
                 for poliza_obj in polizas_a_procesar:
                     p_dict = poliza_obj.to_dict()
-                    fecha_str = p_dict.get('fecha')
-                    fecha_dt = datetime.fromisoformat(fecha_str).date() if isinstance(fecha_str, str) else fecha_str
 
-                    ejercicio = fecha_dt.year
-                    periodo = fecha_dt.month
+                    # ====================================================================
+                    # EXTRACCIÓN Y CONVERSIÓN FORZOSA A DATE REAL (Sobreescribe p_dict)
+                    # ====================================================================
+                    raw_f = p_dict.get('fecha') or fecha
+
+                    if isinstance(raw_f, str):
+                        cleaned = raw_f.strip()[:10]
+                        try:
+                            fecha_dt = datetime.fromisoformat(cleaned).date()
+                        except ValueError:
+                            try:
+                                fecha_dt = datetime.strptime(cleaned, '%Y/%m/%d').date()
+                            except ValueError:
+                                fecha_dt = fecha if isinstance(fecha, date) else date.today()
+                    elif isinstance(raw_f, datetime):
+                        fecha_dt = raw_f.date()
+                    elif isinstance(raw_f, date):
+                        fecha_dt = raw_f
+                    elif hasattr(raw_f, 'year') and hasattr(raw_f, 'month'):
+                        fecha_dt = date(raw_f.year, raw_f.month, raw_f.day)
+                    else:
+                        fecha_dt = fecha if isinstance(fecha, date) else date.today()
+
+                    if isinstance(fecha_dt, datetime):
+                        fecha_dt = fecha_dt.date()
+                    elif not isinstance(fecha_dt, date):
+                        fecha_dt = date.today()
+
+                    p_dict['fecha'] = fecha_dt
+
+                    # ====================================================================
+                    # CONVERSIÓN FORZOSA A ENTEROS (Evita 'str' object cannot be interpreted as an integer)
+                    # ====================================================================
+                    try:
+                        ejercicio = int(fecha_dt.year)
+                    except (TypeError, ValueError):
+                        ejercicio = int(datetime.now().year)
+
+                    try:
+                        periodo = int(fecha_dt.month)
+                    except (TypeError, ValueError):
+                        periodo = int(datetime.now().month)
+
                     anio_suffix = str(ejercicio)[-2:]
-
                     m_coi = get_coi_models(anio_suffix)
 
                     tipo_poliza = str(p_dict.get('tipo_poliza', 'Dr'))
@@ -526,7 +583,7 @@ def contabilizar_coi_view(request):
                     if not movimientos or not referencia:
                         continue
 
-                    # Consecutivo de folios COI
+                    # Consecutivo de folios COI (periodo y ejercicio son enteros garantizados)
                     col_folio_name = f"folio{periodo:02d}"
                     folio_record = db_coi.query(m_coi.Folio).filter(
                         m_coi.Folio.tippol == tipo_poliza,
@@ -612,7 +669,7 @@ def contabilizar_coi_view(request):
                             iduuid=0
                         ))
 
-                    # Registrar bitácora DiarioSAE
+                    # Registrar bitácora DiarioSAE con fecha_dt garantizada como date
                     db_coi.add(m_coi.DiarioSAE(
                         uuid_sinc=str(uuid.uuid4()).upper(),
                         fecha_sinc=datetime.now(),
