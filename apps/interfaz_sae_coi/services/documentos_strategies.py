@@ -332,25 +332,8 @@ class CorteCajaStrategy(BaseDocumentoStrategy):
                 elif almacen_nombre != almacen_filtro:
                     continue
 
-            # REGLA DE NEGOCIO EXACTA: Complemento de pago (fecha_cert de CFDI con respaldo en fechaelab)
-            cve_comp = reg.cve_doc_comppago
-            tiene_comp = bool(cve_comp and str(cve_comp).strip() != '')
-
-            fecha_timbre = None
-            if tiene_comp:
-                cve_comp_str = str(cve_comp).strip()
-                try:
-                    fecha_timbre = db_sae.query(m.CFDI.fecha_cert).filter(
-                        func.trim(m.CFDI.folio) == cve_comp_str
-                    ).scalar()
-                except Exception:
-                    fecha_timbre = None
-
-            if tiene_comp:
-                raw_fecha = fecha_timbre if fecha_timbre else reg.fechaelab
-            else:
-                raw_fecha = reg.fecha_apli
-
+            # Validar fecha efectiva basada exclusivamente en FECHA_APLI
+            raw_fecha = reg.fecha_apli
             if not raw_fecha:
                 continue
 

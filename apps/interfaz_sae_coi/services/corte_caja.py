@@ -71,25 +71,8 @@ def obtener_cobros_del_dia(db_sae, m, fecha_filtro, almacen_filtro=None):
             elif almacen_nombre != almacen_filtro:
                 continue
 
-        # 3. Validar fecha efectiva (considerando complemento de pago si existe)
-        cve_comp = reg.cve_doc_comppago
-        tiene_comp = bool(cve_comp and str(cve_comp).strip() != '')
-
-        fecha_timbre = None
-        if tiene_comp:
-            cve_comp_str = str(cve_comp).strip()
-            try:
-                fecha_timbre = db_sae.query(m.CFDI.fecha_cert).filter(
-                    func.trim(m.CFDI.folio) == cve_comp_str
-                ).scalar()
-            except Exception:
-                fecha_timbre = None
-
-        if tiene_comp:
-            raw_fecha = fecha_timbre if fecha_timbre else reg.fechaelab
-        else:
-            raw_fecha = reg.fecha_apli
-
+        # 3. Validar fecha efectiva basada exclusivamente en FECHA_APLI
+        raw_fecha = reg.fecha_apli
         if not raw_fecha:
             continue
 
@@ -119,7 +102,6 @@ def obtener_cobros_del_dia(db_sae, m, fecha_filtro, almacen_filtro=None):
                 'importe': float(reg.importe or 0.0),
                 'fecha_apli': reg.fecha_apli,
                 'fechaelab': reg.fechaelab,
-                'fecha_timbre': fecha_timbre,
                 'refer': reg.refer,
                 'no_factura': reg.no_factura,
                 'num_cpto': reg.num_cpto,
