@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import func, extract, or_, and_, case, cast, Date, text
 from sqlalchemy.orm import aliased
@@ -258,43 +258,45 @@ class NotasDevolucionStrategy(BaseDocumentoStrategy):
 
 
 class CorteCajaStrategy(BaseDocumentoStrategy):
-    """Estrategia para Agrupación de Cobranza / Corte de Caja (Optimizada y blindada contra codificación)."""
+    """Estrategia para Agrupación de Cobranza / Corte de Caja con normalización estricta de fechas."""
 
     def fetch_documentos(self, db_sae, m, filters: dict) -> tuple[list[dict], int]:
         filters_copia = dict(filters)
         dia = filters_copia.pop('dia', None)
         mes = filters_copia.pop('mes', None)
         anio = filters_copia.pop('anio', None)
+        almacen_filtro = filters.get('almacen')
 
-        # Filtro de periodo obligatorio por año y mes usando cadenas para evitar errores en Firebird
-        query = db_sae.query(m.CuenDet).filter(m.CuenDet.tipo_mov == 'A')
-
-        if anio and str(anio).isdigit() and mes and str(mes).isdigit():
-            from calendar import monthrange
+        # 1. Acotar por rango de fecha base en SQL para garantizar rendimiento inmediato
+        if anio and str(anio).isdigit() and mes and str(mes).isdigit() and dia and str(dia).isdigit():
+            inicio_str = f"{anio}-{str(mes).zfill(2)}-{str(dia).zfill(2)} 00:00:00"
+            sig_dia = datetime(int(anio), int(mes), int(dia)) + timedelta(days=1)
+            fin_str = sig_dia.strftime('%Y-%m-%d 00:00:00')
+        elif anio and str(anio).isdigit() and mes and str(mes).isdigit():
             inicio_str = f"{anio}-{str(mes).zfill(2)}-01 00:00:00"
-
             siguiente_mes = int(mes) + 1
             siguiente_anio = int(anio)
             if siguiente_mes > 12:
                 siguiente_mes = 1
                 siguiente_anio += 1
             fin_str = f"{siguiente_anio}-{str(siguiente_mes).zfill(2)}-01 00:00:00"
-
-            query = query.filter(
-                m.CuenDet.fecha_apli >= text(f"CAST('{inicio_str}' AS TIMESTAMP)"),
-                m.CuenDet.fecha_apli < text(f"CAST('{fin_str}' AS TIMESTAMP)")
-            )
         elif anio and str(anio).isdigit():
             inicio_str = f"{anio}-01-01 00:00:00"
             fin_str = f"{int(anio) + 1}-01-01 00:00:00"
-            query = query.filter(
-                m.CuenDet.fecha_apli >= text(f"CAST('{inicio_str}' AS TIMESTAMP)"),
-                m.CuenDet.fecha_apli < text(f"CAST('{fin_str}' AS TIMESTAMP)")
-            )
+        else:
+            hoy = datetime.now()
+            inicio_str = f"{hoy.year}-{str(hoy.month).zfill(2)}-01 00:00:00"
+            fin_str = f"{hoy.year if hoy.month < 12 else hoy.year + 1}-{str(hoy.month % 12 + 1).zfill(2)}-01 00:00:00"
+
+        # Consulta limpia basada en m.CuenDet dentro del rango
+        query = db_sae.query(m.CuenDet).filter(
+            m.CuenDet.tipo_mov == 'A',
+            m.CuenDet.fecha_apli >= text(f"CAST('{inicio_str}' AS TIMESTAMP)"),
+            m.CuenDet.fecha_apli < text(f"CAST('{fin_str}' AS TIMESTAMP)")
+        )
 
         registros_raw = query.all()
 
-        # 3. PROCESAMIENTO Y FILTRADO FINO EN MEMORIA (PYTHON)
         agrupador = defaultdict(lambda: {'total': 0.0, 'count': 0})
 
         for reg in registros_raw:
@@ -323,8 +325,6 @@ class CorteCajaStrategy(BaseDocumentoStrategy):
                         if alma_obj and alma_obj.nombre:
                             almacen_nombre = alma_obj.nombre
 
-            # Filtrar por almacén individual si viene en los parámetros
-            almacen_filtro = filters.get('almacen')
             if almacen_filtro:
                 if almacen_filtro == 'Sin Almacén / GENERAL':
                     if almacen_nombre != 'GENERAL':
@@ -332,22 +332,40 @@ class CorteCajaStrategy(BaseDocumentoStrategy):
                 elif almacen_nombre != almacen_filtro:
                     continue
 
+            # REGLA DE NEGOCIO EXACTA: Complemento de pago (fecha_cert de CFDI con respaldo en fechaelab)
             cve_comp = reg.cve_doc_comppago
             tiene_comp = bool(cve_comp and str(cve_comp).strip() != '')
 
-            # REGLA DE NEGOCIO SEGURA (Sin consultas frágiles a CFDI que rompen la codificación)
-            # Si tiene complemento o no, usamos la fecha de elaboración o aplicación nativa de CuenDet
-            if tiene_comp and reg.fechaelab:
-                raw_fecha = reg.fechaelab
+            fecha_timbre = None
+            if tiene_comp:
+                cve_comp_str = str(cve_comp).strip()
+                try:
+                    fecha_timbre = db_sae.query(m.CFDI.fecha_cert).filter(
+                        func.trim(m.CFDI.folio) == cve_comp_str
+                    ).scalar()
+                except Exception:
+                    fecha_timbre = None
+
+            if tiene_comp:
+                raw_fecha = fecha_timbre if fecha_timbre else reg.fechaelab
             else:
                 raw_fecha = reg.fecha_apli
 
             if not raw_fecha:
                 continue
 
-            fecha_efectiva = raw_fecha.date() if isinstance(raw_fecha, datetime) else raw_fecha
+            # NORMALIZACIÓN SEGURA DE FECHA (Independiente de si viene como str, datetime o date)
+            if isinstance(raw_fecha, datetime):
+                fecha_efectiva = raw_fecha.date()
+            elif isinstance(raw_fecha, str):
+                try:
+                    fecha_efectiva = datetime.fromisoformat(raw_fecha.strip()[:10]).date()
+                except ValueError:
+                    continue
+            else:
+                fecha_efectiva = raw_fecha  # Asumimos que ya es tipo date
 
-            # Red de seguridad contra filtros de la interfaz
+            # Filtros estrictos de seguridad por si el rango abarcó bordes
             if anio and str(anio).isdigit() and fecha_efectiva.year != int(anio):
                 continue
             if mes and str(mes).isdigit() and fecha_efectiva.month != int(mes):
@@ -356,12 +374,11 @@ class CorteCajaStrategy(BaseDocumentoStrategy):
                 continue
 
             importe = float(reg.importe or 0.0)
-
             key = (fecha_efectiva, almacen_nombre)
             agrupador[key]['total'] += importe
             agrupador[key]['count'] += 1
 
-        # 4. Construcción de documentos agrupados
+        # Construcción de documentos agrupados
         documentos_raw = []
         for (fecha_efectiva, alm_nombre), datos in agrupador.items():
             fecha_str = fecha_efectiva.strftime('%Y%m%d')
@@ -387,7 +404,6 @@ class CorteCajaStrategy(BaseDocumentoStrategy):
             }
             documentos_raw.append(doc)
 
-        # 5. Ordenamiento y paginación
         documentos_raw.sort(key=lambda x: x['fecha'], reverse=True)
         total_count = len(documentos_raw)
 

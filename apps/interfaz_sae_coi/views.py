@@ -89,18 +89,17 @@ class DocumentosContabilizarSaeView(
                 ).values_list('folio_sae', flat=True)
             )
 
-            default_dia = str(today.day)      # <-- Añadido por defecto
+            default_dia = str(today.day)
             default_mes = str(today.month)
             default_anio = str(today.year)
 
-            # Validar si los parámetros vienen en el GET o asignar los por defecto (hoy)
             dia = self.request.GET.get('dia') if 'dia' in self.request.GET else default_dia
             mes = self.request.GET.get('mes') if 'mes' in self.request.GET else default_mes
             anio = self.request.GET.get('anio') if 'anio' in self.request.GET else default_anio
 
             filters = {
                 'q': self.request.GET.get('q', '').strip(),
-                'dia': dia,   # <-- Ahora usa el día actual por defecto
+                'dia': dia,
                 'mes': mes,
                 'anio': anio,
                 'almacen': self.request.GET.get('almacen', ''),
@@ -120,10 +119,10 @@ class DocumentosContabilizarSaeView(
                 DOCUMENTO_STRATEGIES['ventas']
             )
 
-            # 3. Fetch documentos SAE acotados al periodo
+            # 3. Fetch documentos SAE acotados únicamente a la página actual / exportación
             documentos_raw, total_count = strategy.fetch_documentos(db_sae, m, filters)
 
-            # 4. Cruce con COI / Django para los registros traídos en el lote
+            # 4. Cruce con COI / Django para los registros traídos en el lote de esta página
             documentos_procesados = enrich_and_filter_contabilidad(
                 documentos_raw,
                 suffix_coi,
@@ -143,7 +142,8 @@ class DocumentosContabilizarSaeView(
 
     def get_table_pagination(self, table):
         """
-        Inyecta el SqlPaginator con el conteo precalculado desde SQL/Estrategia.
+        Inyecta el SqlPaginator utilizando el conteo exacto devuelto por la estrategia,
+        garantizando que la paginación refleje las páginas reales sin traer todos los datos.
         """
         _, total_count = self.get_queryset_data(export_all=False)
 
@@ -165,10 +165,9 @@ class DocumentosContabilizarSaeView(
 
         almacenes_choices = [(almacen, almacen) for almacen in almacenes_db]
 
-        # Aseguramos que el formulario también refleje los valores por defecto si no están presentes en el GET
         get_data = self.request.GET.copy()
         if 'dia' not in get_data:
-            get_data['dia'] = str(today.day)   # <-- Añadido al contexto del form
+            get_data['dia'] = str(today.day)
         if 'mes' not in get_data:
             get_data['mes'] = str(today.month)
         if 'anio' not in get_data:
@@ -278,6 +277,7 @@ def poliza_corte_preview_view(request):
     with sae_session() as (db_sae, suffix):
         m = get_sae_models(suffix)
 
+        # Consulta exclusiva y ligera únicamente para la fecha exacta del preview
         cobros = obtener_cobros_del_dia(db_sae, m, fecha_obj, almacen)
 
         if not cobros:
@@ -652,5 +652,4 @@ def contabilizar_coi_view(request):
     except Exception as e:
         messages.error(request, f"Error al contabilizar en COI: {str(e)}")
 
-    # Redireccionar o refrescar pantalla
     return redirect(request.META.get('HTTP_REFERER', '/'))

@@ -5,7 +5,8 @@ from sqlalchemy import and_, text, func
 def obtener_cobros_del_dia(db_sae, m, fecha_filtro, almacen_filtro=None):
     """
     Obtiene todos los abonos en CUEN_DET usando el modelo base para evitar
-    desajustes de tuplas en el driver de Firebird, consultando catálogos de forma independiente.
+    desajustes de tuplas en el driver de Firebird, consultando catálogos de forma independiente
+    y extrayendo campos escalares para prevenir errores de codificación.
     """
     inicio_str = datetime.combine(fecha_filtro, datetime.min.time()).strftime('%Y-%m-%d %H:%M:%S')
     siguiente_dia = fecha_filtro + timedelta(days=1)
@@ -60,9 +61,14 @@ def obtener_cobros_del_dia(db_sae, m, fecha_filtro, almacen_filtro=None):
 
         fecha_timbre = None
         if tiene_comp:
-            cfdi_comp = db_sae.query(m.CFDI).filter(func.trim(m.CFDI.folio) == str(cve_comp).strip()).first()
-            if cfdi_comp:
-                fecha_timbre = cfdi_comp.fecha_cert
+            cve_comp_str = str(cve_comp).strip()
+            try:
+                # BLINDAJE: Usamos .scalar() para extraer únicamente la fecha sin mapear el objeto CFDI completo
+                fecha_timbre = db_sae.query(m.CFDI.fecha_cert).filter(
+                    func.trim(m.CFDI.folio) == cve_comp_str
+                ).scalar()
+            except Exception:
+                fecha_timbre = None
 
         if tiene_comp:
             raw_fecha = fecha_timbre if fecha_timbre else reg.fechaelab
@@ -72,7 +78,16 @@ def obtener_cobros_del_dia(db_sae, m, fecha_filtro, almacen_filtro=None):
         if not raw_fecha:
             continue
 
-        fecha_efectiva = raw_fecha.date() if isinstance(raw_fecha, datetime) else raw_fecha
+        # Normalización segura de fecha ante cualquier tipo (str, datetime, date)
+        if isinstance(raw_fecha, datetime):
+            fecha_efectiva = raw_fecha.date()
+        elif isinstance(raw_fecha, str):
+            try:
+                fecha_efectiva = datetime.fromisoformat(raw_fecha.strip()[:10]).date()
+            except ValueError:
+                continue
+        else:
+            fecha_efectiva = raw_fecha
 
         if fecha_efectiva == fecha_filtro:
             # 4. Obtener nombre del cliente de forma segura
