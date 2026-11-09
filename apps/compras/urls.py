@@ -25,6 +25,8 @@ urlpatterns = [
     path('eliminar/<int:pk>/', orden_delete, name='ordenes__delete'),
     path('pdf/<int:pk>/', OrdenPdfView.as_view(), name='ordenes__pdf'),
 
+    path('exportar-excel/', views.ordenes.ExportOrdenesDetalleExcelView.as_view(), name='ordenes__export_excel'),
+
     path('solicitantes/autocomplete/', SolicitanteAutocomplete.as_view(), name='solicitantes__autocomplete'),
     path('proveedores/autocomplete/', ProveedorAutocomplete.as_view(), name='proveedores__autocomplete'),
     path('autorizadores/autocomplete/', AutorizadorAutocomplete.as_view(), name='autorizadores__autocomplete'),

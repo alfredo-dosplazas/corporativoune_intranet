@@ -4,7 +4,7 @@ from django import forms
 from django.forms import DateInput
 from django.urls import reverse
 
-from apps.regalos.models import Regalo, Evento, Invitado
+from apps.regalos.models import Regalo, Evento, Invitado, CategoriaRegalo
 
 
 class RegaloForm(forms.ModelForm):
@@ -12,6 +12,7 @@ class RegaloForm(forms.ModelForm):
         model = Regalo
         fields = [
             'evento',
+            'categoria',
             'imagen',
             'numero',
             'nombre',
@@ -28,10 +29,36 @@ class RegaloForm(forms.ModelForm):
         self.helper.attrs = {'novalidate': 'novalidate'}
         self.helper.include_media = False
 
-        self.fields['evento'].initial = self.evento
+        if self.evento:
+            self.fields['evento'].initial = self.evento
+            self.fields['categoria'].queryset = CategoriaRegalo.objects.filter(evento=self.evento)
 
         if not self.user.is_superuser:
             self.fields['evento'].disabled = True
+
+
+class CategoriaRegaloForm(forms.ModelForm):
+    class Meta:
+        model = CategoriaRegalo
+        fields = [
+            'nombre',
+            'color',
+        ]
+        widgets = {
+            'color': forms.TextInput(attrs={
+                'type': 'color',
+                'class': 'h-9 w-16 p-1 bg-base-100 rounded-md border border-base-300 cursor-pointer'
+            }),
+            'nombre': forms.TextInput(attrs={
+                'class': 'input input-xs sm:input-sm w-full bg-base-100 border-base-300'
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.include_media = False
 
 
 class EventoForm(forms.ModelForm):
@@ -58,6 +85,7 @@ class EventoForm(forms.ModelForm):
 
         self.helper = FormHelper()
         self.helper.form_id = 'evento-form'
+        self.helper.form_tag = False
         self.helper.attrs = {'novalidate': 'novalidate'}
         self.helper.include_media = False
 
@@ -94,7 +122,11 @@ class InvitadoForm(forms.ModelForm):
     class Meta:
         model = Invitado
         fields = [
-            'nombre_completo',
+            'foto',
+            'primer_nombre',
+            'segundo_nombre',
+            'primer_apellido',
+            'segundo_apellido',
             'asistio',
         ]
 
@@ -113,6 +145,7 @@ class ImportarRegalosForm(forms.Form):
         widget=forms.FileInput(attrs={'class': 'file-input file-input-bordered file-input-primary w-full'}),
         help_text="Sube un archivo con las columnas: numero, nombre, destacado"
     )
+
 
 class ImportarInvitadoForm(forms.Form):
     archivo = forms.FileField(

@@ -1,0 +1,122 @@
+<c-layouts.base>
+    <!-- ESTILOS DE RULETA CINEMÁTICA -->
+    <style>
+        @keyframes slotSpin {
+            0% {
+                transform: translateY(0);
+            }
+            100% {
+                transform: translateY(-300px);
+            }
+        }
+
+        .slot-animation {
+            animation: slotSpin 0.4s infinite linear;
+        }
+    </style>
+
+    <div class="h-screen w-screen bg-gradient-to-tr from-slate-100 via-sky-50 to-indigo-100 flex items-center justify-center p-4 overflow-hidden relative">
+
+        <!-- ORBES AMBIENTALES -->
+        <div class="absolute -top-20 left-1/4 w-[450px] h-[450px] bg-primary/15 rounded-full blur-[120px] pointer-events-none"></div>
+        <div class="absolute -bottom-20 right-1/4 w-[450px] h-[450px] bg-secondary/15 rounded-full blur-[120px] pointer-events-none"></div>
+
+        <div class="card w-full max-w-lg bg-white/95 backdrop-blur-2xl shadow-2xl border border-slate-200/80 p-8 md:p-10 text-center relative z-10 rounded-3xl">
+
+            <div class="inline-flex p-5 bg-primary/10 rounded-3xl mx-auto text-primary mb-5 shadow-sm">
+                <span class="text-6xl animate-bounce">🎁</span>
+            </div>
+
+            <h1 class="text-2xl md:text-3xl font-black uppercase text-slate-900 tracking-wide">Sorteo General en
+                Vivo</h1>
+            <p class="text-xs text-slate-500 mt-2 uppercase font-extrabold tracking-wider">Evento: <span
+                    class="text-primary">{{ evento.nombre }}</span></p>
+
+            <!-- PANEL INICIAL: BOTÓN DE INICIO -->
+            <div id="panel-inicio" class="mt-8">
+                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 mb-6 text-left">
+                    <p class="text-xs text-slate-700 font-medium leading-relaxed">
+                        {% if modo_automatico_ofuscado %}
+                            🔒 <strong>Modo Sistema:</strong> Archivo cifrado de asignación detectado y listo para
+                            procesar de forma segura.
+                        {% else %}
+                            🎲 <strong>Modo Automático:</strong> Sistema listo para distribuir los premios de manera
+                            completamente aleatoria entre los asistentes.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <button onclick="iniciarSorteoMasivo()"
+                        class="btn btn-primary btn-lg w-full font-black tracking-widest uppercase shadow-xl hover:scale-102 transition-transform text-white">
+                    🚀 Iniciar Sorteo General
+                </button>
+            </div>
+
+            <!-- PANEL RULETA / ANIMACIÓN CINEMÁTICA DE CÁLCULO -->
+            <div id="panel-ruleta" class="hidden py-8 flex flex-col items-center justify-center space-y-6">
+                <div class="relative w-36 h-36 flex items-center justify-center bg-slate-900 rounded-full shadow-2xl border-4 border-primary/40 overflow-hidden">
+                    <div class="absolute inset-0 border-8 border-dashed border-primary/60 rounded-full animate-spin"
+                         style="animation-duration: 3s;"></div>
+                    <div class="absolute inset-2 border-4 border-secondary/40 rounded-full animate-spin"
+                         style="animation-duration: 2s; animation-direction: reverse;"></div>
+                    <span class="text-6xl z-10 animate-pulse">🎰</span>
+                </div>
+                <div>
+                    <h3 class="text-xl font-black text-slate-900 animate-pulse">Calculando asignaciones...</h3>
+                    <p class="text-xs text-slate-500 mt-1 font-medium">Cruzando bases de datos y generando
+                        ganadores...</p>
+                </div>
+            </div>
+
+            <!-- PANEL DE ÉXITO -->
+            <div id="panel-exito" class="hidden py-6 flex flex-col items-center space-y-4 animate-page-in">
+                <span class="text-6xl animate-bounce">🎉</span>
+                <h2 class="text-2xl font-black text-emerald-600">¡Sorteo Concluido con Éxito!</h2>
+                <p class="text-xs text-slate-600 font-medium">Todos los regalos han sido asignados correctamente.
+                    Redirigiendo a la transmisión...</p>
+                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div class="bg-emerald-500 h-full animate-pulse w-full"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        function iniciarSorteoMasivo() {
+            document.getElementById('panel-inicio').classList.add('hidden');
+            document.getElementById('panel-ruleta').classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            setTimeout(() => {
+                fetch("{% url 'regalos:api_sorteo_masivo' evento.slug %}", {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        document.getElementById('panel-ruleta').classList.add('hidden');
+                        if (data.status === 'success') {
+                            document.getElementById('panel-exito').classList.remove('hidden');
+
+                            // REDIRECCIÓN AUTOMÁTICA A LA PANTALLA GIGANTE EN 2.5 SEGUNDOS
+                            setTimeout(() => {
+                                window.location.href = "{% url 'regalos:all_pantalla_gigante' evento.slug %}";
+                            }, 2500);
+                        } else {
+                            alert(data.message || 'Error al procesar el sorteo.');
+                            document.getElementById('panel-inicio').classList.remove('hidden');
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        document.getElementById('panel-ruleta').classList.add('hidden');
+                        document.getElementById('panel-inicio').classList.remove('hidden');
+                        alert('Error de red al ejecutar el sorteo.');
+                    });
+            }, 4000); // 4 segundos de ruleta cinemática para mayor emoción
+        }
+    </script>
+</c-layouts.base>

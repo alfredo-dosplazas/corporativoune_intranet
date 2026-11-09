@@ -59,14 +59,20 @@
                 <!-- MENÚ EXPORTAR / IMPRIMIR -->
                 <div class="dropdown dropdown-end">
                     <button tabindex="0"
-                            class="btn btn-ghost btn-xs btn-square h-7 w-7 border border-base-300 bg-base-100">
+                            class="btn btn-ghost btn-xs btn-square h-7 w-7 border border-base-300 bg-base-100"
+                            title="Opciones de exportación">
                         <span class="icon-[tabler--dots-vertical] text-xs"></span>
                     </button>
                     <ul tabindex="0"
-                        class="dropdown-content menu menu-xs bg-base-100 rounded-md border border-base-200 shadow-lg w-36 z-50 p-1">
+                        class="dropdown-content menu menu-xs bg-base-100 rounded-md border border-base-200 shadow-lg w-44 z-50 p-1">
                         <li>
                             <a href="{% querystring "_export"="xls" %}" target="_blank">
-                                <span class="icon-[tabler--file-spreadsheet]"></span> Excel
+                                <span class="icon-[tabler--file-text]"></span> Reporte General
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'compras:ordenes__export_excel' %}{% querystring %}" target="_blank">
+                                <span class="icon-[tabler--file-spreadsheet]"></span> Desglose de Artículos
                             </a>
                         </li>
                     </ul>

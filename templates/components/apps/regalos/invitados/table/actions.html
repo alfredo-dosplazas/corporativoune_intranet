@@ -5,6 +5,19 @@
 
 <c-table.actions :record="record" :prefix="prefix">
 
+    <!-- 1. VER CÓDIGO QR -->
+    {% if perms.regalos.view_invitado %}
+        <li>
+            <button type="button"
+                    onclick="qr_invitado_modal_{{ prefix }}_{{ record.pk }}.showModal()"
+                    class="flex items-center gap-1.5 py-1 text-xs">
+                <span class="icon-[tabler--qrcode] text-xs text-primary shrink-0"></span>
+                <span>Ver Código QR</span>
+            </button>
+        </li>
+    {% endif %}
+
+    <!-- 2. EDITAR INVITADO -->
     {% if perms.regalos.change_invitado %}
         <li>
             <a href="{% url 'regalos:invitados__update' record.pk %}"
@@ -15,6 +28,7 @@
         </li>
     {% endif %}
 
+    <!-- 3. ELIMINAR INVITADO -->
     {% if perms.regalos.delete_invitado %}
         <li class="my-0.5 border-t border-base-200"></li>
         <li>
@@ -25,6 +39,61 @@
                 <span>Eliminar</span>
             </button>
         </li>
+    {% endif %}
+
+    <!-- MODAL PARA VER EL CÓDIGO QR DEL INVITADO -->
+    {% if perms.regalos.view_invitado %}
+        <dialog id="qr_invitado_modal_{{ prefix }}_{{ record.pk }}" class="modal modal-bottom sm:modal-middle">
+            <div class="modal-box w-full p-5 bg-base-100 text-center border border-base-200 shadow-2xl overflow-x-hidden">
+                <form method="dialog">
+                    <button class="btn btn-xs btn-circle btn-ghost absolute right-2.5 top-2.5 text-base-content/50">✕
+                    </button>
+                </form>
+
+                <div class="mb-3 px-2">
+                    <span class="badge badge-primary badge-outline text-[10px] font-bold">Invitado</span>
+                    <!-- Nombre completo del invitado con protección contra desbordamiento -->
+                    <h3 class="text-sm font-bold text-base-content mt-1 break-words line-clamp-2 leading-tight"
+                        title="{{ record.nombre_completo }}">
+                        {{ record.nombre_completo }}
+                    </h3>
+                    <p class="text-[11px] text-base-content/70 mt-0.5">
+                        Evento: <span class="font-semibold text-base-content">{{ record.evento.nombre }}</span>
+                    </p>
+                </div>
+
+                <!-- CONTENEDOR DEL QR -->
+                <div class="bg-white p-3 rounded-xl border border-base-200 inline-block shadow-inner my-2 max-w-full">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ record.codigo_qr }}"
+                         alt="QR Invitado"
+                         class="w-44 h-44 max-w-full object-contain mx-auto"/>
+                </div>
+
+                <!-- Código UUID del QR -->
+                <p class="text-[10px] font-mono text-base-content/60 mt-1 select-all break-all px-2">
+                    {{ record.codigo_qr }}
+                </p>
+
+                <!-- Si tienes una URL de canje o perfil para el invitado, puedes mostrarla aquí (opcional) -->
+                {% if record.get_canjeo_url %}
+                    <p class="text-[10px] font-mono text-base-content/60 mt-1 select-all break-all px-2">
+                        <a class="link link-primary" href="{{ record.get_canjeo_url }}">{{ record.get_canjeo_url }}</a>
+                    </p>
+                {% endif %}
+
+                <div class="mt-4 pt-3 border-t border-base-200 flex justify-center gap-2">
+                    <a href="{% url 'regalos:invitados_pdf' record.evento.slug %}{% querystring pk=record.pk %}"
+                       target="_blank"
+                       class="btn btn-primary btn-xs gap-1">
+                        <span class="icon-[tabler--printer] text-xs"></span>
+                        <span>Imprimir Credencial / QR</span>
+                    </a>
+                </div>
+            </div>
+            <form method="dialog" class="modal-backdrop bg-neutral/40 backdrop-blur-2xs">
+                <button>close</button>
+            </form>
+        </dialog>
     {% endif %}
 
     <!-- MODAL DE ELIMINACIÓN -->
@@ -41,7 +110,8 @@
                         <span class="icon-[tabler--alert-triangle] text-base block"></span>
                     </div>
                     <div class="pr-4 min-w-0 flex-1">
-                        <h3 class="text-xs font-bold text-base-content uppercase tracking-wider">¿Eliminar Invitado?</h3>
+                        <h3 class="text-xs font-bold text-base-content uppercase tracking-wider">¿Eliminar
+                            Invitado?</h3>
                         <p class="text-[11px] text-base-content/70 mt-0.5 break-words">
                             Se eliminará permanentemente el invitado
                             <span class="font-bold text-base-content break-words">{{ record.nombre_completo|default:record.pk }}</span>.

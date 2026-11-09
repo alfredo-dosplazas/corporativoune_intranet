@@ -250,19 +250,18 @@ class Orden(models.Model):
 
 
 class DetalleOrden(models.Model):
+    UNIDAD_CHOICES = [
+        ('n/a', 'N/A'),
+        ('pza', 'PZA'),
+        ('metro', 'METRO'),
+    ]
+
     orden = models.ForeignKey(Orden, on_delete=models.CASCADE, related_name="detalle_orden")
     cantidad = models.PositiveIntegerField()
     descripcion = models.TextField()
     precio_unitario = models.DecimalField(max_digits=24, decimal_places=6)
+    unidad = models.CharField(choices=UNIDAD_CHOICES, max_length=20, default='n/a')
 
     @property
     def subtotal(self):
         return self.cantidad * self.precio_unitario
-
-    def to_dict(self):
-        return {
-            'orden_id': self.orden.id,
-            'cantidad': self.cantidad,
-            'descripcion': self.descripcion,
-            'precio_unitario': self.precio_unitario,
-        }

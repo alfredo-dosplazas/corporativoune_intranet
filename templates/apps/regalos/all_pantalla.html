@@ -1,0 +1,322 @@
+<c-layouts.base>
+    <!-- ESTILOS DE ANIMACIONES Y EFECTOS DE CARRUSEL CORPORATIVO -->
+    <style>
+        @keyframes pageFadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(15px) scale(0.98);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes goldSpotlight {
+            0%, 100% {
+                box-shadow: 0 0 60px rgba(245, 158, 11, 0.6), inset 0 0 25px rgba(245, 158, 11, 0.3);
+                border-color: rgba(245, 158, 11, 1);
+            }
+            50% {
+                box-shadow: 0 0 100px rgba(245, 158, 11, 0.9), inset 0 0 40px rgba(245, 158, 11, 0.5);
+                border-color: rgba(251, 191, 36, 1);
+            }
+        }
+
+        @keyframes floatSlow {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-6px);
+            }
+        }
+
+        .animate-page-in {
+            animation: pageFadeIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .animate-gold-zoom {
+            animation: goldSpotlight 2.5s infinite ease-in-out;
+        }
+
+        .float-hover {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .float-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.1);
+        }
+
+        .glass-card-light {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+    </style>
+
+    <!-- FONDO LUMINOSO CORPORATIVO -->
+    <div data-theme="{{ evento.empresa.theme }}"
+         class="h-screen w-screen bg-gradient-to-tr from-slate-100 via-sky-50 to-indigo-100 p-4 md:p-6 flex flex-col justify-between overflow-hidden relative text-slate-800">
+
+        <!-- DESTELLOS AMBIENTALES -->
+        <div class="absolute -top-20 left-1/4 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[140px] pointer-events-none"></div>
+        <div class="absolute -bottom-20 right-1/4 w-[500px] h-[500px] bg-secondary/10 rounded-full blur-[140px] pointer-events-none"></div>
+        <div class="absolute inset-0 opacity-[0.25] bg-[radial-gradient(#94a3b8_1.5px,transparent_1.5px)] [background-size:28px_28px] pointer-events-none"></div>
+
+        <!-- ENCABEZADO CON CONTADOR DE PÁGINAS -->
+        <header class="text-center mb-1 relative z-10 shrink-0 flex items-center justify-between px-6">
+            <div class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/90 border border-slate-200/80 shadow-md backdrop-blur-md">
+                <span class="text-sm">✨</span>
+                <span class="text-xs font-black tracking-widest text-primary uppercase">Transmisión en Vivo</span>
+            </div>
+
+            <h1 class="text-2xl md:text-4xl font-black uppercase text-slate-900 tracking-wider drop-shadow-xs">
+                {{ evento.nombre }}
+            </h1>
+
+            <div class="px-5 py-2 rounded-full bg-slate-900 text-white font-mono text-xs font-black shadow-lg"
+                 id="page-indicator">
+                Pág. 1/1
+            </div>
+        </header>
+
+        <!-- CONTENEDOR DEL CARRUSEL (6 REGALOS POR VISTA EN 2 FILAS) -->
+        <main class="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 items-center justify-center max-w-7xl mx-auto w-full px-4 relative z-10 overflow-hidden my-auto"
+              id="grid-carrusel">
+            <!-- Se puebla dinámicamente con JavaScript -->
+        </main>
+
+        <!-- FOOTER CORPORATIVO -->
+        <footer class="mt-2 flex justify-center items-center gap-10 py-2.5 border-t border-slate-200/80 relative z-10 bg-white/90 backdrop-blur-xl rounded-2xl px-8 max-w-3xl mx-auto w-full shadow-lg shrink-0">
+            {% for empresa in empresas %}
+                {% if empresa.logo %}
+                    <img src="{{ empresa.logo.url }}" alt="{{ empresa.nombre_corto }}"
+                         class="h-8 object-contain drop-shadow-xs opacity-90 hover:opacity-100 transition-all duration-300"/>
+                {% endif %}
+            {% endfor %}
+        </footer>
+
+        <!-- MODAL / OVERLAY DE REGALO DESTACADO (SUPER ZOOM SECUENCIAL) -->
+        <div id="modal-destacado"
+             class="fixed inset-0 bg-slate-950/85 backdrop-blur-lg z-50 flex items-center justify-center p-6 hidden">
+            <div class="card w-full max-w-2xl bg-white shadow-2xl border-4 border-amber-400 rounded-3xl p-8 text-center animate-gold-zoom relative overflow-hidden">
+                <div class="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-yellow-500 text-white text-xs font-black px-6 py-2 rounded-bl-2xl shadow-lg uppercase tracking-widest flex items-center gap-2">
+                    <span class="icon-[tabler--trophy] text-lg animate-bounce"></span> ¡GRAN PREMIO DESTACADO!
+                </div>
+
+                <div class="badge badge-warning font-mono font-black text-lg px-6 py-3.5 mx-auto mt-3 text-slate-950 shadow-md"
+                     id="destacado-boleto">
+                    Boleto #000
+                </div>
+
+                <h2 class="text-3xl md:text-5xl font-black text-slate-900 mt-4 tracking-wide drop-shadow-sm"
+                    id="destacado-premio">
+                    Nombre del Premio
+                </h2>
+
+                <div class="py-3 px-6 bg-amber-50/80 rounded-2xl border border-amber-200/80 my-5 max-w-lg mx-auto shadow-inner">
+                    <span class="text-xs text-amber-800 uppercase tracking-widest font-black block">Colaborador(a) Ganador(a)</span>
+                    <p class="text-2xl md:text-3xl font-black text-primary truncate mt-1" id="destacado-ganador">
+                        Nombre del Ganador
+                    </p>
+                </div>
+
+                <div class="h-64 md:h-72 w-full bg-slate-50 rounded-2xl overflow-hidden flex items-center justify-center border border-slate-200 relative shadow-inner">
+                    <img id="destacado-imagen" src="" alt="Premio"
+                         class="h-full w-full object-cover transition-transform duration-700 hover:scale-105"/>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL / OVERLAY DE MENSAJE DE FIN DE VUELTA -->
+        <div id="modal-agradecimiento"
+             class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-6 hidden">
+            <div class="card w-full max-w-xl bg-white shadow-2xl border-2 border-primary/40 rounded-3xl p-10 text-center animate-page-in relative overflow-hidden">
+                <div class="inline-flex p-5 bg-primary/10 rounded-full mx-auto text-primary mb-4 shadow-sm animate-bounce">
+                    <span class="text-6xl">🎉</span>
+                </div>
+                <h2 class="text-3xl md:text-4xl font-black text-slate-900 uppercase tracking-wide">
+                    ¡Gracias por Asistir!
+                </h2>
+                <p class="text-base text-slate-600 mt-3 font-medium leading-relaxed">
+                    Hemos concluido la primera vuelta de la premiación de nuestra gran celebración corporativa.
+                    Continuamos con el resumen en tiempo real.
+                </p>
+                <div class="mt-6 flex justify-center">
+                    <div class="badge badge-primary font-bold px-4 py-3 uppercase tracking-widest text-xs">
+                        Continuando transmisión...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- AUDIO PARA PREMIOS -->
+    <audio id="sound-destacado" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+           preload="auto"></audio>
+    <audio id="sound-normal" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"
+           preload="auto"></audio>
+
+    <!-- INYECCIÓN SEGURA DE DATOS DESDE DJANGO -->
+    {{ historial_completo|json_script:"regalos-data" }}
+
+    <!-- LÓGICA DE CARRUSEL, COLA DE DESTACADOS Y FIN DE VUELTA -->
+    <script>
+        const todosLosRegalos = JSON.parse(document.getElementById('regalos-data').textContent);
+        const TAMANO_PAGINA = 6;
+        let paginaActual = 0;
+        let timerCarrusel = null;
+        let primeraVueltaCompletada = false;
+
+        function renderizarPagina(indexPagina) {
+            const container = document.getElementById('grid-carrusel');
+            const totalPaginas = Math.ceil(todosLosRegalos.length / TAMANO_PAGINA) || 1;
+
+            document.getElementById('page-indicator').innerText = `Pág. ${indexPagina + 1}/${totalPaginas}`;
+
+            const inicio = indexPagina * TAMANO_PAGINA;
+            const lote = todosLosRegalos.slice(inicio, inicio + TAMANO_PAGINA);
+
+            if (lote.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-slate-500">
+                        <span class="icon-[tabler--gift-off] text-6xl mb-3 inline-block animate-pulse text-primary/70"></span>
+                        <p class="text-xl font-black text-slate-800">Esperando ganadores...</p>
+                    </div>`;
+                return;
+            }
+
+            let html = '';
+            lote.forEach((item, idx) => {
+                const esDestacado = item.destacado;
+
+                html += `
+                <div class="card glass-card-light shadow-xl border ${esDestacado ? 'border-amber-400 bg-amber-50/70 ring-4 ring-amber-400/20' : 'border-slate-200/80'} float-hover relative overflow-hidden group max-h-full rounded-2xl animate-page-in" style="animation-delay: ${idx * 0.06}s">
+                    ${esDestacado ? `
+                        <div class="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-yellow-500 text-white text-[10px] font-black px-3 py-1 rounded-bl-xl shadow-md uppercase tracking-wider z-10 flex items-center gap-1">
+                            <span class="icon-[tabler--trophy] text-xs"></span> GRAN PREMIO
+                        </div>` : ''}
+
+                    <div class="card-body p-4 md:p-5 text-center flex flex-col justify-between">
+                        <div class="badge ${esDestacado ? 'badge-warning font-black text-slate-900 bg-amber-400 shadow-sm' : 'badge-ghost font-bold text-slate-700 bg-slate-100'} text-xs px-3.5 py-1.5 mx-auto font-mono">
+                            Boleto #${item.numero}
+                        </div>
+
+                        <h2 class="text-base md:text-lg font-black text-slate-900 mt-1.5 line-clamp-1">
+                            ${item.premio}
+                        </h2>
+
+                        <div class="py-1 px-3 bg-white/80 rounded-xl border border-slate-200/80 my-1 shadow-xs">
+                            <span class="text-[9px] text-slate-500 uppercase tracking-widest font-extrabold block">Ganador(a)</span>
+                            <p class="text-sm md:text-base font-black text-primary truncate">
+                                ${item.ganador}
+                            </p>
+                        </div>
+
+                        <div class="mt-1 h-28 md:h-32 w-full bg-white rounded-xl overflow-hidden flex items-center justify-center border border-slate-200 relative shadow-inner">
+                            ${item.imagen_url ? `<img src="${item.imagen_url}" alt="${item.premio}" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>` : `
+                                <div class="flex flex-col items-center justify-center text-slate-400">
+                                    <span class="icon-[tabler--gift] text-3xl text-primary/70 animate-pulse"></span>
+                                </div>`}
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+
+            // COLA DE DESTACADOS: Recolectar todos los destacados de este lote y mostrarlos en secuencia
+            const destacadosEnLote = lote.filter(item => item.destacado);
+            if (destacadosEnLote.length > 0) {
+                mostrarColaZoomDestacados(destacadosEnLote, 0);
+            }
+        }
+
+        function mostrarColaZoomDestacados(cola, index) {
+            if (index >= cola.length) {
+                // Al terminar todos los zooms de este lote, reanudamos el carrusel
+                iniciarCicloCarrusel();
+                return;
+            }
+
+            // Pausar carrusel
+            clearInterval(timerCarrusel);
+
+            const item = cola[index];
+            const modal = document.getElementById('modal-destacado');
+            document.getElementById('destacado-boleto').innerText = `Boleto #${item.numero}`;
+            document.getElementById('destacado-premio').innerText = item.premio;
+            document.getElementById('destacado-ganador').innerText = item.ganador;
+            document.getElementById('destacado-imagen').src = item.imagen_url || '';
+
+            modal.classList.remove('hidden');
+            const audioEpic = document.getElementById('sound-destacado');
+            if (audioEpic) audioEpic.play().catch(e => console.log(e));
+
+            // Duración del zoom por cada premio destacado (5 segundos) antes de pasar al siguiente o reanudar
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                // Breve pausa de 0.6s entre destacados si hay más de uno
+                setTimeout(() => {
+                    mostrarColaZoomDestacados(cola, index + 1);
+                }, 600);
+            }, 5000);
+        }
+
+        function mostrarMensajeFinVuelta() {
+            clearInterval(timerCarrusel);
+            const modalAgradecimiento = document.getElementById('modal-agradecimiento');
+            modalAgradecimiento.classList.remove('hidden');
+
+            const audioNormal = document.getElementById('sound-normal');
+            if (audioNormal) audioNormal.play().catch(e => console.log(e));
+
+            // Mostrar el mensaje durante 5 segundos y continuar ciclo
+            setTimeout(() => {
+                modalAgradecimiento.classList.add('hidden');
+                iniciarCicloCarrusel();
+            }, 5000);
+        }
+
+        function iniciarCicloCarrusel() {
+            clearInterval(timerCarrusel);
+            const totalPaginas = Math.ceil(todosLosRegalos.length / TAMANO_PAGINA) || 1;
+
+            timerCarrusel = setInterval(() => {
+                paginaActual++;
+
+                // Si completamos la vuelta
+                if (paginaActual >= totalPaginas) {
+                    paginaActual = 0;
+                    renderizarPagina(paginaActual);
+                    mostrarMensajeFinVuelta();
+                    return;
+                }
+
+                renderizarPagina(paginaActual);
+            }, 7500); // Cambia de página cada 7.5 segundos
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderizarPagina(0);
+            if (todosLosRegalos.length > TAMANO_PAGINA) {
+                iniciarCicloCarrusel();
+            }
+        });
+
+        // WebSocket para tiempo real
+        const eventoSlug = "{{ evento.slug }}";
+        const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+        const pantallaSocket = new WebSocket(`${wsScheme}://${window.location.host}/ws/regalos/pantalla/${eventoSlug}/`);
+
+        pantallaSocket.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+            if (data.type === "NUEVO_GANADOR") {
+                window.location.reload();
+            }
+        };
+    </script>
+</c-layouts.base>

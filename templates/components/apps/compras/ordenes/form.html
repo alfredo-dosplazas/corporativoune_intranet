@@ -52,10 +52,11 @@
                     <thead>
                     <tr class="bg-base-200/60 text-[11px] uppercase tracking-wider text-base-content/70 border-b border-base-200">
                         <th class="w-8 py-1.5 px-2 text-center">#</th>
-                        <th class="w-28 py-1.5 px-2">Cantidad *</th>
+                        <th class="w-24 py-1.5 px-2">Cantidad *</th>
+                        <th class="w-32 py-1.5 px-2">Unidad *</th>
                         <th class="py-1.5 px-2">Descripción *</th>
-                        <th class="w-36 py-1.5 px-2 text-right">Precio Unit. *</th>
-                        <th class="w-36 py-1.5 px-2 text-right">Importe</th>
+                        <th class="w-32 py-1.5 px-2 text-right">Precio Unit. *</th>
+                        <th class="w-32 py-1.5 px-2 text-right">Importe</th>
                         <th class="w-8 py-1.5 px-2 text-center"></th>
                     </tr>
                     </thead>
@@ -80,6 +81,26 @@
                                 {% if inline_form.cantidad.errors %}
                                     <div class="text-[10px] text-error px-1 py-0.5 bg-error/10 rounded mt-0.5">
                                         {% for error in inline_form.cantidad.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </td>
+
+                            <!-- UNIDAD (SELECT) -->
+                            <td class="p-1 align-middle">
+                                <select name="{{ inline_form.unidad.html_name }}"
+                                        id="{{ inline_form.unidad.id_for_label }}"
+                                        required
+                                        class="select select-xs select-bordered w-full input-unidad h-7 {% if inline_form.unidad.errors %}select-error{% endif %}">
+                                    {% for choice_value, choice_label in inline_form.unidad.field.choices %}
+                                        <option value="{{ choice_value }}"
+                                                {% if inline_form.unidad.value|stringformat:"s" == choice_value|stringformat:"s" %}selected{% endif %}>
+                                            {{ choice_label }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                {% if inline_form.unidad.errors %}
+                                    <div class="text-[10px] text-error px-1 py-0.5 bg-error/10 rounded mt-0.5">
+                                        {% for error in inline_form.unidad.errors %}{{ error }}{% endfor %}
                                     </div>
                                 {% endif %}
                             </td>
@@ -340,14 +361,16 @@
                 // Reemplazar índices en los atributos html
                 templateRow.innerHTML = templateRow.innerHTML.replace(regexIndex, replacement);
 
-                // Resetear inputs de la nueva fila
-                templateRow.querySelectorAll('input, select, textarea').forEach(input => {
-                    if (input.type === 'checkbox') {
-                        input.checked = false;
-                    } else if (input.name && input.name.endsWith('-id')) {
-                        input.value = ''; // Limpiar PK de la instancia clonada
+                // Resetear inputs y selects de la nueva fila
+                templateRow.querySelectorAll('input, select, textarea').forEach(el => {
+                    if (el.type === 'checkbox') {
+                        el.checked = false;
+                    } else if (el.tagName.toLowerCase() === 'select') {
+                        el.selectedIndex = 0; // Reiniciar al primer elemento del select
+                    } else if (el.name && el.name.endsWith('-id')) {
+                        el.value = ''; // Limpiar PK de la instancia clonada
                     } else {
-                        input.value = '';
+                        el.value = '';
                     }
                 });
 
@@ -390,8 +413,14 @@
                     row.remove();
                 } else {
                     // Si es la única fila visible, limpiar sus valores en vez de borrarla para no quedar sin filas
-                    row.querySelectorAll('input').forEach(i => {
-                        if (i.type !== 'checkbox') i.value = '';
+                    row.querySelectorAll('input, select').forEach(el => {
+                        if (el.type === 'checkbox') {
+                            el.checked = false;
+                        } else if (el.tagName.toLowerCase() === 'select') {
+                            el.selectedIndex = 0;
+                        } else {
+                            el.value = '';
+                        }
                     });
                 }
             }

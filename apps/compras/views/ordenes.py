@@ -1,11 +1,13 @@
-import json
 from typing import Any
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.utils import timezone
+from django.views import View
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
 from django_filters.views import FilterView
@@ -15,9 +17,11 @@ from django_weasyprint import WeasyTemplateResponseMixin
 from extra_views import SearchableListMixin, CreateWithInlinesView, SuccessMessageMixin, NamedFormsetsMixin, \
     UpdateWithInlinesView
 
+from apps.compras.exports.excel import OrdenesExcelExporter
+from apps.compras.filters import OrdenFilter
 from apps.compras.forms import OrdenForm
 from apps.compras.inlines import DetalleOrdenInline
-from apps.compras.models import Orden
+from apps.compras.models import Orden, DetalleOrden
 from apps.compras.tables import OrdenTable
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.mixins.responsive_view import ResponsiveViewModeMixin
@@ -44,7 +48,7 @@ class OrdenListView(
     paginate_by = 12
     search_fields = ['folio']
     export_name = 'Órdenes De Compra'
-    filterset_fields = ['estado']
+    filterset_class = OrdenFilter
 
     def get_breadcrumbs(self):
         return [
@@ -201,3 +205,41 @@ class OrdenPdfView(
 
     def get_pdf_filename(self):
         return f'{self.get_object().folio}.pdf'
+
+
+class ExportOrdenesDetalleExcelView(PermissionRequiredMixin, View):
+    """
+    Vista orientada a HTTP response para descargar el reporte en Excel con metadatos en el archivo y contenido.
+    """
+
+    permission_required = 'compras.view_orden'
+
+    def get(self, request, *args, **kwargs):
+        ordenes_qs = Orden.objects.all()
+        f = OrdenFilter(request.GET, queryset=ordenes_qs)
+        detalles_qs = DetalleOrden.objects.filter(orden__in=f.qs).select_related('orden')
+
+        # Obtener datos limpios de los filtros aplicados
+        filtros_datos = f.form.cleaned_data if f.is_valid() else {}
+
+        # 1. Instanciar exporter con los metadatos del filtro
+        exporter = OrdenesExcelExporter(
+            queryset=detalles_qs,
+            usuario=request.user,
+            empresa_nombre="ELECTRAVÍA S.A. DE C.V.",
+            logo_path=None,
+            filtros=filtros_datos
+        )
+        wb = exporter.build_workbook()
+
+        timestamp = timezone.localtime(timezone.now()).strftime('%Y%m%d_%H%M')
+
+        filename = f"desglose_costos_{timestamp}.xlsx"
+
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        wb.save(response)
+        return response

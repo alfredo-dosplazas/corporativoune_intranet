@@ -5,6 +5,20 @@
 
 <c-table.actions :record="record" :prefix="prefix">
 
+    <li>
+        <a href="{% url 'regalos:canjear_regalo' record.slug %}" class="flex items-center gap-1.5 py-1 text-xs">
+            <span class="icon-[akar-icons--gift] text-xs text-base-content/60 shrink-0"></span>
+            Canjear Regalo
+        </a>
+    </li>
+
+    <li>
+        <a href="{% url 'regalos:sorteo_masivo' record.slug %}" class="flex items-center gap-1.5 py-1 text-xs">
+            <span class="icon-[akar-icons--gift] text-xs text-base-content/60 shrink-0"></span>
+            <span>Sorteo Masivo</span>
+        </a>
+    </li>
+
     {% if perms.regalos.view_regalo %}
         <li>
             <a href="{% url 'regalos:list' record.slug %}"
@@ -21,6 +35,16 @@
                class="flex items-center gap-1.5 py-1 text-xs">
                 <span class="icon-[hugeicons--suit-01] text-xs text-base-content/60 shrink-0"></span>
                 <span>Invitados</span>
+            </a>
+        </li>
+    {% endif %}
+
+    {% if perms.regalos.view_evento %}
+        <li>
+            <a href="{% url 'regalos:eventos__detail' record.pk %}"
+               class="flex items-center gap-1.5 py-1 text-xs">
+                <span class="icon-[tabler--eye] text-xs text-base-content/60 shrink-0"></span>
+                <span>Ver</span>
             </a>
         </li>
     {% endif %}

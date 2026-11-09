@@ -1,9 +1,11 @@
+{% load crispy_forms_filters %}
 {% load money %}
 {% load humanize %}
 {% load crispy_forms_tags %}
 
-{% if form.errors %}
-    <div id="form-errors-banner" class="alert alert-error alert-soft p-3 text-xs mb-3 rounded-lg border border-error/30">
+{% if form.errors or Categoria.errors %}
+    <div id="form-errors-banner"
+         class="alert alert-error alert-soft p-3 text-xs mb-4 rounded-lg border border-error/30 shadow-xs">
         <div class="flex items-center gap-2">
             <span class="icon-[tabler--alert-circle] text-base shrink-0 text-error"></span>
             <div>
@@ -14,6 +16,190 @@
     </div>
 {% endif %}
 
-<div class="bg-base-100 rounded-lg border border-base-200 shadow-2xs p-3">
-    {% crispy form %}
-</div>
+<form method="post" id="evento-form" class="space-y-6">
+    {% csrf_token %}
+
+    <!-- SECCIÓN 1: INFORMACIÓN GENERAL -->
+    <div class="bg-base-100 border border-base-200 shadow-2xs rounded-xl p-5 sm:p-6 space-y-4">
+        <div class="flex items-center gap-2 border-b border-base-200 pb-3">
+            <span class="icon-[tabler--info-circle] text-primary text-base"></span>
+            <h2 class="font-bold text-xs uppercase tracking-wider text-base-content">Información General</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 [&_.form-group]:space-y-1 [&_input[type=text]]:input [&_input[type=text]]:input-sm [&_input[type=text]]:w-full [&_input[type=date]]:input [&_input[type=date]]:input-sm [&_input[type=date]]:w-full [&_select]:select [&_select]:select-sm [&_select]:w-full">
+            {{ form.nombre|as_crispy_field }}
+            {{ form.slug|as_crispy_field }}
+            {{ form.fecha_evento|as_crispy_field }}
+            <div class="flex items-center pt-6">
+                {{ form.activo|as_crispy_field }}
+            </div>
+            {{ form.empresa|as_crispy_field }}
+            {{ form.sede|as_crispy_field }}
+        </div>
+    </div>
+
+    <!-- SECCIÓN 2: CATEGORÍAS DE REGALOS -->
+    <div class="bg-base-100 border border-base-200 shadow-2xs rounded-xl p-5 sm:p-6 space-y-4">
+        <div class="flex items-center justify-between border-b border-base-200 pb-3">
+            <div class="flex items-center gap-2">
+                <span class="icon-[tabler--category] text-primary text-base"></span>
+                <div>
+                    <h2 class="font-bold text-xs uppercase tracking-wider text-base-content">Categorías de Regalos</h2>
+                    <p class="text-[11px] text-base-content/60 font-normal">Define los tipos o rangos de premios para
+                        este evento</p>
+                </div>
+            </div>
+
+            <button type="button" id="add-categoria-btn" class="btn btn-primary btn-xs gap-1 font-semibold shadow-2xs">
+                <span class="icon-[tabler--plus] text-xs"></span>
+                <span>Agregar Categoría</span>
+            </button>
+        </div>
+
+        {{ Categoria.management_form }}
+
+        <div class="overflow-x-auto pt-1">
+            <table class="table table-sm w-full align-middle" id="categorias-table">
+                <thead>
+                <tr class="border-b border-base-200 text-base-content/60 bg-base-200/40">
+                    <th class="w-7/12 py-2.5 px-3 rounded-l-lg">Nombre de Categoría</th>
+                    <th class="w-3/12 text-center py-2.5 px-3">Color Identificador</th>
+                    <th class="w-2/12 text-center py-2.5 px-3 rounded-r-lg">Acción</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-base-200/50">
+                {% for cat_form in Categoria %}
+                    <tr class="categoria-row transition-all">
+                        <td class="py-3 px-3">
+                            {% for hidden in cat_form.hidden_fields %}
+                                {{ hidden }}
+                            {% endfor %}
+                            {{ cat_form.nombre }}
+                            {% if cat_form.nombre.errors %}
+                                <label class="label text-error text-[10px] p-0 mt-1">{{ cat_form.nombre.errors.0 }}</label>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3 text-center">
+                            <div class="flex justify-center items-center">
+                                {{ cat_form.color }}
+                            </div>
+                            {% if cat_form.color.errors %}
+                                <label class="label text-error text-[10px] p-0 mt-1">{{ cat_form.color.errors.0 }}</label>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3 text-center">
+                            {% if Categoria.can_delete %}
+                                <div class="hidden">
+                                    {{ cat_form.DELETE }}
+                                </div>
+                                <button type="button"
+                                        class="btn btn-ghost btn-xs btn-square text-error hover:bg-error/10 delete-row-btn"
+                                        title="Eliminar fila">
+                                    <span class="icon-[tabler--trash] text-sm"></span>
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Template HTML5 nativo utilizando el prefijo exacto del formset de Django -->
+        <template id="empty-form-template">
+            <tr class="categoria-row transition-all">
+                <td class="py-3 px-3">
+                    <input type="hidden" name="{{ Categoria.prefixثمار }}__{prefix}__-evento"
+                           id="id_{{ Categoria.prefix }}__{prefix}__-evento">
+                    <input type="text" name="{{ Categoria.prefix }}-__prefix__-nombre"
+                           id="id_{{ Categoria.prefix }}-__prefix__-nombre"
+                           class="input input-sm w-full bg-base-100 border-base-300" placeholder="Nombre de categoría"
+                           maxlength="100">
+                </td>
+                <td class="py-3 px-3 text-center">
+                    <div class="flex justify-center items-center">
+                        <input type="color" name="{{ Categoria.prefix }}-__prefix__-color" value="#3b82f6"
+                               id="id_{{ Categoria.prefix }}-__prefix__-color"
+                               class="h-9 w-16 p-1 bg-base-100 rounded-md border border-base-300 cursor-pointer"
+                               maxlength="50">
+                    </div>
+                </td>
+                <td class="py-3 px-3 text-center">
+                    <div class="hidden">
+                        <input type="checkbox" name="{{ Categoria.prefix }}-__prefix__-DELETE"
+                               id="id_{{ Categoria.prefix }}-__prefix__-DELETE">
+                    </div>
+                    <button type="button"
+                            class="btn btn-ghost btn-xs btn-square text-error hover:bg-error/10 delete-row-btn"
+                            title="Eliminar fila">
+                        <span class="icon-[tabler--trash] text-sm"></span>
+                    </button>
+                </td>
+            </tr>
+        </template>
+    </div>
+</form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const addButton = document.getElementById('add-categoria-btn');
+        // Buscamos el input TOTAL_FORMS de forma segura sin importar el id exacto
+        const totalFormsInput = document.querySelector('input[name$="-TOTAL_FORMS"]');
+        const tableBody = document.querySelector('#categorias-table tbody');
+        const emptyTemplate = document.getElementById('empty-form-template');
+
+        if (addButton && emptyTemplate && totalFormsInput && tableBody) {
+            addButton.addEventListener('click', function (e) {
+                e.preventDefault();
+
+                let formCount = parseInt(totalFormsInput.value, 10);
+
+                // Clonar el contenido del template
+                let templateContent = emptyTemplate.content.cloneNode(true);
+
+                // Reemplazar __prefix__ por el número de formulario exacto (ej. 2, 3...)
+                let rowHtml = templateContent.firstElementChild.outerHTML.replace(/__prefix__/g, formCount);
+
+                // Insertar en la tabla
+                tableBody.insertAdjacentHTML('beforeend', rowHtml);
+
+                // Incrementar el TOTAL_FORMS para que Django reconozca el nuevo formulario
+                totalFormsInput.value = formCount + 1;
+            });
+        }
+
+        // Delegación de eventos para eliminar filas limpiamente y reindexar
+        tableBody.addEventListener('click', function (e) {
+            if (e.target.closest('.delete-row-btn')) {
+                const row = e.target.closest('tr');
+                const deleteCheckbox = row.querySelector('input[name$="-DELETE"]');
+                const idInput = row.querySelector('input[name$="-id"]');
+
+                if (deleteCheckbox && idInput && idInput.value) {
+                    deleteCheckbox.checked = true;
+                    row.style.display = 'none';
+                } else {
+                    row.remove();
+
+                    // Actualizar el conteo total de forms y reindexar filas restantes secuencialmente (0, 1, 2...)
+                    const remainingRows = tableBody.querySelectorAll('tr.categoria-row');
+                    totalFormsInput.value = remainingRows.length;
+
+                    const formPrefix = "{{ Categoria.prefix }}"; // Ej: "categorias"
+
+                    remainingRows.forEach((r, index) => {
+                        const inputs = r.querySelectorAll('input, select, textarea');
+                        inputs.forEach(input => {
+                            if (input.name) {
+                                input.name = input.name.replace(new RegExp(`${formPrefix}-\\d+-`), `${formPrefix}-${index}-`);
+                            }
+                            if (input.id) {
+                                input.id = input.id.replace(new RegExp(`id_${formPrefix}-\\d+-`), `id_${formPrefix}-${index}-`);
+                            }
+                        });
+                    });
+                }
+            }
+        });
+    });
+</script>

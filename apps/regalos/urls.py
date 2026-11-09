@@ -7,8 +7,8 @@ app_name = 'regalos'
 urlpatterns = [
     path('eventos/', views.EventoListView.as_view(), name='eventos__list'),
     path('eventos/crear/', views.EventoCreateView.as_view(), name='eventos__create'),
+    path('eventos/detalle/<int:pk>/', views.EventoDetailView.as_view(), name='eventos__detail'),
     path('eventos/editar/<int:pk>/', views.EventoUpdateView.as_view(), name='eventos__update'),
-    path('eventos/detalle/<int:pk>/', views.EventoListView.as_view(), name='eventos__detail'),
     path('eventos/eliminar/<int:pk>/', views.EventoDeleteView.as_view(), name='eventos__delete'),
 
     path('lista/<slug:evento_slug>/', views.RegaloListView.as_view(), name='list'),
@@ -20,6 +20,7 @@ urlpatterns = [
 
     path('invitados/autocomplete/', InvitadoAutocomplete.as_view(), name='invitados_autocomplete'),
     path('invitados/editar/<int:pk>/', views.InvitadoUpdateView.as_view(), name='invitados__update'),
+    path('invitados/detalle/<int:pk>/', views.InvitadoDetailView.as_view(), name='invitados__detail'),
     path('invitados/eliminar/<int:pk>/', views.InvitadoDeleteView.as_view(), name='invitados__delete'),
     path('invitados/importar/<slug:evento_slug>/', views.InvitadoImportView.as_view(), name='import_invitados'),
     path('invitados/<slug:evento_slug>/', views.InvitadoListView.as_view(), name='invitados__list'),
@@ -28,12 +29,21 @@ urlpatterns = [
 
     path('pdf/<slug:evento_slug>/', views.RegaloPDFView.as_view(), name='pdf'),
 
-    path('api/validar-invitado/<slug:evento_slug>/', views.ValidarInvitadoApiView.as_view(), name='api_validar_invitado'),
+    path('api/validar-invitado/<slug:evento_slug>/', views.ValidarInvitadoApiView.as_view(),
+         name='api_validar_invitado'),
+    path('api/canjear-aleatorio/<slug:evento_slug>/', views.ProcesarCanjeAleatorioApiView.as_view(),
+         name='api_procesar_canje_aleatorio'),
     path('canjeados/<slug:evento_slug>/', views.RegalosCanjeadosView.as_view(), name='canjeados'),
     path('canjear/<slug:evento_slug>/', views.CanjearRegaloView.as_view(), name='canjear_regalo'),
+    path('canjear-aleatorio/<slug:evento_slug>/', views.CanjearRegaloAleatorioView.as_view(),
+         name='canjear_regalo_aleatorio'),
+    path('sorteo-masivo/<slug:evento_slug>/', views.SorteoMasivoView.as_view(), name='sorteo_masivo'),
     path('api/canjear/<slug:evento_slug>/', views.ProcesarCanjeApiView.as_view(), name='api_procesar_canje'),
+    path('api/sorteo-masivo/<slug:evento_slug>/', views.ProcesarSorteoMasivoApiView.as_view(),
+         name='api_sorteo_masivo'),
 
     # Pantallas gigantes y APIs independientes por evento
     path('pantalla/<slug:evento_slug>/', views.RegaloPantallaView.as_view(), name='pantalla_gigante'),
+    path('todos-pantalla/<slug:evento_slug>/', views.AllRegaloPantallaView.as_view(), name='all_pantalla_gigante'),
     path('api/ultimo-ganador/<slug:evento_slug>/', views.UltimoGanadorApiView.as_view(), name='ultimo_ganador_api'),
 ]

@@ -9,6 +9,7 @@ class SessionFilterStateMixin:
     """
     clear_param = "clear_filters"
     export_param = "_export"  # Parámetro a ignorar
+    page_param = "page"  # Parámetro de paginación a ignorar para el guardado
     filter_state_key = None
 
     def get_session_key(self, request):
@@ -36,24 +37,27 @@ class SessionFilterStateMixin:
                 request.GET = mutable_get
                 return
 
-            # 2. Si vienen parámetros en la URL, guardamos el estado ignorando '_export'
+            # 2. Si vienen parámetros en la URL, guardamos el estado ignorando '_export' y 'page'
             if request.GET:
-                # Creamos una copia mutable para no alterar la petición actual (necesaria para la exportación de esta vista)
+                # Creamos una copia mutable para no alterar la petición actual
                 save_params = request.GET.copy()
                 save_params.pop(self.export_param, None)  # Ignoramos _export
+                save_params.pop(self.page_param, None)  # Ignoramos la paginación
 
-                # Si al quitar _export todavía quedan filtros (p.ej. ?q=o-001 o ?estado=borrador)
+                # Si al quitar _export y page todavía quedan filtros (p.ej. ?q=o-001)
                 if save_params:
                     request.session[session_key] = save_params.urlencode()
                 else:
-                    # Si el ÚNICO parámetro de la URL era _export=xls, no sobrescribimos con una cadena vacía
+                    # Si los ÚNICOS parámetros eran _export o page, no sobrescribimos los filtros guardados
                     pass
 
-            # 3. Si la URL NO trae parámetros, restauramos los de la sesión
+            # 3. Si la URL NO trae parámetros de filtrado, restauramos los de la sesión
             else:
                 saved_query = request.session.get(session_key)
                 if saved_query:
                     restored_get = QueryDict(saved_query, mutable=True)
-                    restored_get.pop(self.export_param, None)  # Seguridad extra: remover si existía previamente
-                    # Inyectamos los parámetros guardados directamente en request.GET
+                    restored_get.pop(self.export_param, None)  # Seguridad extra
+                    restored_get.pop(self.page_param, None)  # Seguridad extra
+
+                    # Inyectamos los filtros guardados directamente en request.GET
                     request.GET = restored_get

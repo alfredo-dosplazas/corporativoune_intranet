@@ -1,0 +1,129 @@
+<c-layouts.app>
+    <c-slot name="header">
+        <!-- BARRA DE ACCIONES Y ENCABEZADO -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="{% url 'regalos:invitados__list' object.evento.slug %}"
+                   class="btn btn-ghost btn-xs btn-square border border-base-300 bg-base-100"
+                   title="Volver a invitados">
+                    <span class="icon-[tabler--arrow-left] text-xs"></span>
+                </a>
+                <span class="icon-[tabler--user] text-primary text-base"></span>
+                <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">Detalle del Invitado</h1>
+            </div>
+
+            <div class="flex items-center gap-2">
+                {% if perms.regalos.change_invitado %}
+                    <a href="{% url 'regalos:invitados__update' object.pk %}"
+                       class="btn btn-ghost btn-xs h-7 min-h-0 px-3 border border-base-300 bg-base-100 font-normal text-xs gap-1">
+                        <span class="icon-[tabler--edit] text-xs"></span>
+                        <span>Editar</span>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </c-slot>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="flex-1 overflow-y-auto p-3 sm:p-5 max-w-4xl mx-auto w-full text-xs space-y-4">
+
+        <!-- TARJETA DE PERFIL -->
+        <div class="card bg-base-100 border border-base-200 shadow-2xs p-5 rounded-xl">
+            <div class="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+
+                <!-- FOTO / AVATAR GRANDE -->
+                <div class="avatar shrink-0">
+                    <div class="w-24 h-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden bg-base-200 flex items-center justify-center shadow-md">
+                        {% if object.foto %}
+                            <img src="{{ object.foto.url }}" alt="{{ object.nombre_completo }}"
+                                 class="object-cover w-full h-full"/>
+                        {% else %}
+                            <span class="icon-[tabler--user] text-4xl text-primary/60"></span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- DATOS GENERALES -->
+                <div class="flex-1 text-center sm:text-left space-y-2">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <h2 class="text-base sm:text-lg font-bold text-base-content">{{ object.nombre_completo }}</h2>
+                            <p class="text-[11px] text-base-content/60 font-mono">Evento: <span
+                                    class="font-semibold text-base-content">{{ object.evento.nombre }}</span></p>
+                        </div>
+                        <div>
+                            {% if object.asistio %}
+                                <span class="badge badge-success badge-sm font-semibold gap-1 px-3 py-2">
+                                    <span class="icon-[tabler--check] text-xs"></span> Asistió al Evento
+                                </span>
+                            {% else %}
+                                <span class="badge badge-ghost badge-sm text-base-content/60 gap-1 px-3 py-2">
+                                    <span class="icon-[tabler--clock] text-xs"></span> Pendiente de Asistencia
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- DATOS DE IDENTIFICACIÓN -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3 border-t border-base-200">
+                        <div class="bg-base-200/50 p-2.5 rounded-lg border border-base-200">
+                            <span class="text-[10px] text-base-content/50 uppercase font-medium block">Código QR Único</span>
+                            <span class="font-mono text-xs text-base-content font-bold select-all">{{ object.codigo_qr }}</span>
+                        </div>
+                        <div class="bg-base-200/50 p-2.5 rounded-lg border border-base-200 flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] text-base-content/50 uppercase font-medium block">Regalos Ganados</span>
+                                <span class="font-bold text-sm text-primary">{{ regalos_ganados.count|default:"0" }}</span>
+                            </div>
+                            <span class="icon-[tabler--gift] text-primary text-xl opacity-80"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN DE REGALOS GANADOS POR EL INVITADO -->
+        <div class="card bg-base-100 border border-base-200 shadow-2xs p-5 rounded-xl space-y-3">
+            <h3 class="font-bold text-xs uppercase tracking-wider text-base-content flex items-center gap-1.5 border-b border-base-200 pb-2.5">
+                <span class="icon-[tabler--trophy] text-primary text-sm"></span>
+                Premios y Regalos Asignados
+            </h3>
+
+            {% if regalos_ganados %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {% for regalo in regalos_ganados %}
+                        <div class="flex items-center gap-3 p-3 rounded-xl bg-base-200/40 border border-base-200">
+                            {% if regalo.imagen %}
+                                <div class="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-base-300">
+                                    <img src="{{ regalo.imagen.url }}" alt="{{ regalo.nombre }}"
+                                         class="w-full h-full object-cover">
+                                </div>
+                            {% else %}
+                                <div class="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                    <span class="icon-[tabler--gift] text-xl"></span>
+                                </div>
+                            {% endif %}
+                            <div class="flex-1 overflow-hidden">
+                                <div class="flex items-center justify-between">
+                                    <span class="badge badge-primary badge-xs font-mono">Boleto #{{ regalo.numero|stringformat:"03d" }}</span>
+                                    {% if regalo.canjeado %}
+                                        <span class="text-[10px] text-success font-semibold">Canjeado</span>
+                                    {% else %}
+                                        <span class="text-[10px] text-warning font-semibold">Pendiente</span>
+                                    {% endif %}
+                                </div>
+                                <h4 class="font-bold text-base-content truncate mt-0.5">{{ regalo.nombre }}</h4>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-8 text-base-content/50 space-y-1">
+                    <span class="icon-[tabler--gift-off] text-3xl block opacity-40 mx-auto"></span>
+                    <p class="text-xs">Este invitado aún no ha ganado ningún regalo en este evento.</p>
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+</c-layouts.app>

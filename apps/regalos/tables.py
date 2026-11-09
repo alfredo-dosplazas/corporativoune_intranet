@@ -1,22 +1,72 @@
+from django.urls import reverse
 from django.utils.html import format_html
-from django_tables2 import tables
+from django.utils.safestring import mark_safe
+from django_tables2 import tables, LinkColumn, A, BooleanColumn, TemplateColumn
 
 from apps.core.tables import TableWithActions
-from apps.regalos.models import Regalo, Evento
+from apps.regalos.models import Regalo, Evento, Invitado
 
-class InvitadoTable(TableWithActions):
-    actions_template = 'components/apps/regalos/invitados/table/actions.html'
+
+class InvitadoTable(tables.Table):
+    foto = tables.Column(empty_values=(), orderable=False, verbose_name="Foto")
+
+    nombre_completo = tables.Column(verbose_name="Colaborador", accessor='nombre_completo')
+
+    asistio = BooleanColumn(verbose_name="Asistencia",
+                            attrs={
+                                'td': {'class': 'text-center'},
+                                'th': {'class': 'text-center'}
+                            })
+
+    actions = TemplateColumn(
+        template_name='components/apps/regalos/invitados/table/actions.html',
+        orderable=False,
+        verbose_name="Acciones"
+    )
 
     class Meta:
-        model = Evento
-        fields = [
-            'nombre_completo',
-            'asistio',
-        ]
+        model = Invitado
+        fields = ['foto', 'nombre_completo', 'asistio']
+
+    def render_foto(self, record):
+        if record.foto:
+            return mark_safe(f'''
+                <div class="avatar">
+                    <div class="w-9 h-9 rounded-full ring ring-primary/30 ring-offset-base-100 ring-offset-1 overflow-hidden">
+                        <img src="{record.foto.url}" alt="{record.nombre_completo}" class="object-cover w-full h-full" />
+                    </div>
+                </div>
+            ''')
+        else:
+            return mark_safe(f'''
+                <div class="avatar placeholder">
+                    <div class="w-9 h-9 rounded-full bg-neutral text-neutral-content flex items-center justify-center font-bold text-xs">
+                        {record.primer_nombre}{record.primer_apellido}
+                    </div>
+                </div>
+            ''')
+
+    def render_nombre_completo(self, record):
+        detail_url = reverse('regalos:invitados__detail', args=[record.pk])
+        return mark_safe(f'''
+            <div class="font-bold text-base-content hover:text-primary transition-colors">
+                <a href="{detail_url}" class="hover:underline">{record.nombre_completo}</a>
+            </div>
+            <div class="text-[10px] text-base-content/50 font-mono">QR: {record.codigo_qr}...</div>
+        ''')
+
+    def render_asistio(self, value):
+        if value:
+            return mark_safe('<span class="badge badge-success badge-xs font-semibold px-2.5 py-1">Asistió</span>')
+        else:
+            return mark_safe(
+                '<span class="badge badge-ghost badge-xs text-base-content/50 px-2.5 py-1">Pendiente</span>')
 
 
 class EventoTable(TableWithActions):
     actions_template = 'components/apps/regalos/eventos/table/actions.html'
+
+    nombre = LinkColumn("regalos:eventos__detail", args=[A("pk")], attrs={"a": {"class": "link link-primary"}})
 
     class Meta:
         model = Evento
