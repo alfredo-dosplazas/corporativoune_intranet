@@ -1,271 +1,660 @@
 <c-layouts.base>
-    <!-- SCRIPT DE LOTTIE-WEB Y HTML5-QRCODE -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- TIPOGRAFÍA, LECTOR QR Y CANVAS-CONFETTI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-    <div class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-base-300 via-base-200 to-base-300 relative overflow-hidden">
+    <!-- ESTILOS Y ANIMACIONES CINEMÁTICAS AWWWARDS -->
+    <style>
+        :root {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
 
-        <!-- DECORACIONES DE FONDO -->
-        <div class="absolute -top-12 -left-12 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div class="absolute -bottom-12 -right-12 w-48 h-48 bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
 
-        <div class="card w-full max-w-md bg-base-100/95 backdrop-blur-xl shadow-2xl border border-base-300/80 overflow-hidden relative z-10">
-            <div class="card-body text-center p-6 md:p-6">
+        @keyframes ambientDrift {
+            0%, 100% {
+                transform: scale(1) translate3d(0, 0, 0);
+                opacity: 0.35;
+            }
+            50% {
+                transform: scale(1.18) translate3d(25px, -20px, 0);
+                opacity: 0.65;
+            }
+        }
 
-                <!-- ENCABEZADO -->
-                <div class="inline-flex p-3 bg-secondary/10 rounded-2xl mb-1 mx-auto text-secondary shadow-inner">
-                    <span class="text-3xl">🎰</span>
+        @keyframes laserSweep {
+            0% {
+                top: 0%;
+                opacity: 0;
+            }
+            20% {
+                opacity: 0.9;
+            }
+            80% {
+                opacity: 0.9;
+            }
+            100% {
+                top: 98%;
+                opacity: 0;
+            }
+        }
+
+        /* ANIMACIÓN DE SLOT MACHINE / TÓMBOLA DE ALTA VELOCIDAD */
+        @keyframes slotRapidRoll {
+            0% {
+                transform: translateY(0);
+                filter: blur(0px);
+            }
+            50% {
+                filter: blur(2.5px);
+            }
+            100% {
+                transform: translateY(-50%);
+                filter: blur(0px);
+            }
+        }
+
+        /* ANIMACIÓN CINEMÁTICA DE LA CAJA DE REGALO ABRIÉNDOSE */
+        @keyframes giftLidOpen {
+            0% {
+                transform: translateY(0) rotate(0deg);
+            }
+            40% {
+                transform: translateY(-28px) rotate(-14deg);
+            }
+            70% {
+                transform: translateY(-40px) rotate(-18deg) scale(1.05);
+                opacity: 0.95;
+            }
+            100% {
+                transform: translateY(-55px) rotate(-22deg) scale(1.1);
+                opacity: 0;
+            }
+        }
+
+        @keyframes giftBoxPulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            30% {
+                transform: scale(1.06);
+            }
+            60% {
+                transform: scale(0.98);
+            }
+        }
+
+        @keyframes giftRadialGlow {
+            0% {
+                opacity: 0;
+                transform: scale(0.6);
+            }
+            50% {
+                opacity: 0.95;
+                transform: scale(1.25);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(1.6);
+            }
+        }
+
+        .animate-ambient-1 {
+            animation: ambientDrift 16s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .animate-ambient-2 {
+            animation: ambientDrift 20s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .scanner-laser {
+            animation: laserSweep 2s ease-in-out infinite;
+        }
+
+        .slot-ticker-fast {
+            animation: slotRapidRoll 0.45s linear infinite;
+        }
+
+        .anim-lid-open {
+            animation: giftLidOpen 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .anim-box-body {
+            animation: giftBoxPulse 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .anim-radial-glow {
+            animation: giftRadialGlow 1.4s ease-out forwards;
+        }
+
+        .glass-panel-luxury {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.012) 100%);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8), inset 0 1px 1px 0 rgba(255, 255, 255, 0.12);
+        }
+
+        .glass-card {
+            background: linear-gradient(145deg, rgba(24, 24, 27, 0.7) 0%, rgba(9, 9, 11, 0.85) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        /* Estilización para el viewport de la cámara html5-qrcode */
+        #reader video {
+            border-radius: 1rem;
+            object-fit: cover !important;
+            width: 100% !important;
+        }
+        #reader {
+            border: none !important;
+        }
+    </style>
+
+    <!-- PANTALLA COMPLETA EN DARK MODE PROFUNDO (#050507) -->
+    <div data-theme="{{ evento.empresa.theme }}"
+         class="min-h-screen w-full bg-[#050507] text-white flex flex-col justify-between p-4 md:p-8 relative overflow-x-hidden select-none">
+
+        <!-- MALLA DE GRADIENTES AMBIENTALES Y MICRO-PUNTOS -->
+        <div class="absolute inset-0 pointer-events-none overflow-hidden">
+            <div class="absolute inset-0 opacity-[0.14] bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px]"></div>
+            <div class="absolute -top-32 left-1/4 w-[750px] h-[750px] bg-gradient-to-br from-amber-500/18 via-orange-600/10 to-transparent rounded-full blur-[150px] animate-ambient-1 mix-blend-screen"></div>
+            <div class="absolute -bottom-40 right-1/4 w-[850px] h-[850px] bg-gradient-to-tl from-indigo-600/18 via-purple-900/10 to-transparent rounded-full blur-[170px] animate-ambient-2 mix-blend-screen"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-amber-400/5 rounded-full blur-[130px]"></div>
+        </div>
+
+        <!-- 1. HEADER OPERATIVO MINIMALISTA -->
+        <header class="relative z-20 w-full max-w-2xl mx-auto glass-panel-luxury rounded-2xl px-6 py-4 mb-6 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-300">
+                    <svg class="w-5 h-5 stroke-[1.75]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-sm font-black uppercase tracking-wider text-white">Canje Aleatorio</h1>
+                    <p class="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">{{ evento.nombre }}</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                <span class="text-xs font-mono text-zinc-300">Modo Tómbola</span>
+            </div>
+        </header>
+
+        <!-- 2. CONTENEDOR PRINCIPAL: CÁMARA, TÓMBOLA Y REVELACIÓN -->
+        <main class="relative z-20 flex-1 flex flex-col items-center justify-center max-w-xl mx-auto w-full my-auto">
+
+            <!-- ALERTA DINÁMICA DE ERROR -->
+            <div id="alerta-error" class="hidden w-full mb-4 p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center space-x-2.5">
+                <svg class="w-4 h-4 shrink-0 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+                <span id="texto-error">Error en el proceso</span>
+            </div>
+
+            <!-- FASE 1: TARJETA DEL ESCÁNER (1 SOLO QR: INVITADO) -->
+            <div id="section-escaneo" class="w-full glass-panel-luxury rounded-3xl p-6 md:p-8 flex flex-col items-center relative overflow-hidden">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-[10px] font-mono font-bold uppercase tracking-widest mb-4">
+                    <span>Paso Único</span> • <span>Escaneo de Invitado</span>
                 </div>
 
-                <h1 class="card-title text-2xl font-black justify-center text-transparent bg-clip-text bg-gradient-to-r from-secondary via-primary to-accent">
-                    Canje Aleatorio
-                </h1>
-                <p class="text-xs text-base-content/70 font-bold uppercase tracking-wider mt-0.5">
-                    Evento: <span class="text-secondary font-black">{{ evento.nombre }}</span>
-                </p>
+                <!-- CONTENEDOR CÁMARA CON HAZ LÁSER -->
+                <div class="relative w-full aspect-square max-w-[340px] rounded-2xl overflow-hidden border border-white/10 bg-black/60 shadow-2xl flex items-center justify-center">
+                    <!-- Haz Láser Animado -->
+                    <div class="scanner-laser absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_15px_#f59e0b] z-20 pointer-events-none"></div>
 
-                <!-- ALERTA DE MENSAJES DINÁMICOS (AHORA FUERA DE SECTION-ESCANEO PARA QUE SIEMPRE SEA VISIBLE) -->
-                <div id="alerta-error" class="hidden alert alert-error text-xs shadow-md py-2 px-3 mt-3">
-                    <span class="icon-[tabler--alert-triangle] text-base shrink-0"></span>
-                    <span id="texto-error">Error en el proceso</span>
-                </div>
-
-                <!-- CONTENEDOR DE CÁMARA Y ESTADOS -->
-                <div id="section-escaneo" class="mt-4 space-y-4 text-left">
-                    <!-- (Ya no tiene adentro la alerta de error) -->
-
-                    <!-- LECTOR DE CÁMARA VISIBLE -->
-                    <div class="relative bg-neutral rounded-xl overflow-hidden border border-base-300 shadow-inner">
-                        <div id="reader" style="width: 100%; min-height: 250px;"></div>
+                    <!-- Esquinas de Guía del Escáner -->
+                    <div class="absolute inset-4 pointer-events-none z-10 flex flex-col justify-between">
+                        <div class="flex justify-between">
+                            <span class="w-4 h-4 border-t-2 border-l-2 border-amber-400"></span>
+                            <span class="w-4 h-4 border-t-2 border-r-2 border-amber-400"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="w-4 h-4 border-b-2 border-l-2 border-amber-400"></span>
+                            <span class="w-4 h-4 border-b-2 border-r-2 border-amber-400"></span>
+                        </div>
                     </div>
 
-                    <!-- ESTADO ACTUAL -->
-                    <div id="status-card" class="p-3 rounded-xl bg-base-200/80 border border-base-300 text-center">
-                        <div class="badge badge-secondary font-bold mb-1">MODO SORTEO RÁPIDO</div>
-                        <p class="text-xs font-bold text-base-content">
-                            Escanea el QR del <span class="text-secondary underline">Invitado</span> para sortear su
-                            regalo automáticamente.
+                    <!-- Lector nativo html5-qrcode -->
+                    <div id="reader" class="w-full h-full"></div>
+                </div>
+
+                <!-- INSTRUCCIÓN ACTIVA PARA EL OPERADOR -->
+                <div class="mt-6 text-center">
+                    <p class="text-sm font-bold text-white tracking-wide">
+                        Apunta la cámara al código QR del <span class="text-amber-400 font-black underline">Invitado</span>.
+                    </p>
+                    <p class="text-[11px] text-zinc-400 font-mono mt-1">El sistema asignará automáticamente un regalo aleatorio disponible</p>
+                </div>
+            </div>
+
+            <!-- FASE 2: ANIMACIÓN DE ASIGNACIÓN ALEATORIA (MOMENTO DE TENSIÓN) -->
+            <div id="section-sorteo" class="hidden w-full glass-panel-luxury rounded-3xl p-8 md:p-10 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                <!-- Haz Láser de Escaneo -->
+                <div class="scanner-laser absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_15px_#f59e0b] pointer-events-none"></div>
+
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-mono font-bold uppercase tracking-widest mb-6 animate-pulse">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                    Sorteo Aleatorio en Proceso
+                </div>
+
+                <!-- SLOT MACHINE: SIMULACIÓN DE RULETA DE ALTA VELOCIDAD -->
+                <div class="w-full max-w-sm h-28 rounded-2xl bg-black/50 border border-white/10 overflow-hidden relative flex flex-col items-center justify-center mb-6">
+                    <div class="absolute inset-x-0 top-0 h-7 bg-gradient-to-b from-black/90 to-transparent z-10"></div>
+                    <div class="absolute inset-x-0 bottom-0 h-7 bg-gradient-to-t from-black/90 to-transparent z-10"></div>
+                    <span class="absolute top-2 left-3 text-[9px] font-mono uppercase tracking-widest text-zinc-500 z-20">Bóveda de Premios</span>
+
+                    <div class="slot-ticker-fast flex flex-col items-center space-y-3 pt-6">
+                        <span class="text-base font-bold text-amber-300 tracking-wide">Smart TV 65" UHD 4K</span>
+                        <span class="text-base font-bold text-white tracking-wide">Bocina Marshall Stanmore</span>
+                        <span class="text-base font-bold text-amber-300 tracking-wide">MacBook Air M2 Space Gray</span>
+                        <span class="text-base font-bold text-white tracking-wide">Audífonos Sony WH-1000XM5</span>
+                        <span class="text-base font-bold text-amber-300 tracking-wide">Cafetera Espresso De'Longhi</span>
+                        <span class="text-base font-bold text-white tracking-wide">iPad 10th Gen 64GB</span>
+                        <span class="text-base font-bold text-amber-300 tracking-wide">Reloj Apple Watch Series 9</span>
+                        <span class="text-base font-bold text-white tracking-wide">Dron DJI Mini 3 Fly More</span>
+                    </div>
+                </div>
+
+                <!-- BARRA DE PROGRESO DE NEÓN -->
+                <div class="w-full max-w-sm mb-4">
+                    <div class="relative w-full h-2.5 rounded-full bg-zinc-900 border border-white/10 p-0.5 overflow-hidden">
+                        <div id="tensa-progress-bar"
+                             class="h-full rounded-full bg-gradient-to-r from-amber-500 via-orange-400 to-amber-200 transition-all duration-300 shadow-[0_0_15px_#f59e0b] w-0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TEXTO DINÁMICO DE ESTADO -->
+                <p id="txt-estado-sorteo" class="text-xs font-mono text-zinc-400">
+                    Buscando en la bóveda de regalos...
+                </p>
+            </div>
+
+            <!-- FASE 3: SECCIÓN CINEMÁTICA DE APERTURA Y REVELACIÓN -->
+            <div id="section-revelacion" class="hidden w-full glass-panel-luxury rounded-3xl p-8 md:p-10 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                <!-- Aura de Luz Radial -->
+                <div id="box-glow" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-amber-400/25 rounded-full blur-3xl pointer-events-none opacity-0"></div>
+
+                <!-- CAJA DE REGALO VECTORIAL ANIMADA -->
+                <div id="vector-gift-box" class="relative w-44 h-44 flex items-center justify-center cursor-pointer my-4" onclick="ejecutarAperturaCinematica()">
+                    <svg class="w-36 h-36 drop-shadow-[0_15px_30px_rgba(245,158,11,0.35)]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Tapa del Regalo (Animada con Clase anim-lid-open) -->
+                        <g id="gift-lid" class="transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]">
+                            <path d="M50 20 C42 10, 32 18, 48 24 C50 24, 50 24, 50 24 C50 24, 50 24, 52 24 C68 18, 58 10, 50 20 Z" fill="#fbbf24"/>
+                            <rect x="20" y="24" width="60" height="12" rx="3" fill="#f59e0b"/>
+                            <rect x="45" y="24" width="10" height="12" fill="#fbbf24"/>
+                        </g>
+
+                        <!-- Cuerpo del Regalo (Animada con Clase anim-box-body) -->
+                        <g id="gift-body">
+                            <rect x="25" y="36" width="50" height="46" rx="4" fill="#d97706"/>
+                            <rect x="45" y="36" width="10" height="46" fill="#fbbf24"/>
+                            <rect x="25" y="54" width="50" height="10" fill="#fbbf24"/>
+                        </g>
+                    </svg>
+
+                    <div id="click-tap-hint" class="absolute -bottom-2 px-4 py-1.5 rounded-full bg-amber-400 text-zinc-950 font-black font-mono text-[10px] uppercase tracking-widest animate-bounce shadow-lg">
+                        Toca para Abrir
+                    </div>
+                </div>
+
+                <!-- TARJETA FINAL DE RESULTADO CON MANEJO DE IMÁGENES FALTANTES -->
+                <div id="premio-revealed" class="hidden w-full flex-col items-center space-y-4">
+                    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-400/15 border border-emerald-400/40 text-emerald-300 font-mono text-xs font-bold uppercase tracking-widest">
+                        <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                        ¡Premio Asignado!
+                    </div>
+
+                    <div class="px-3.5 py-1 rounded-xl bg-amber-400 text-zinc-950 font-mono text-xs font-black" id="txt-premio-numero">
+                        Folio #000
+                    </div>
+
+                    <h2 id="txt-premio-nombre" class="text-2xl md:text-3xl font-black text-white tracking-tight">
+                        Nombre del Premio
+                    </h2>
+
+                    <!-- Ganador Confirmado -->
+                    <div class="py-2.5 px-6 rounded-2xl bg-white/[0.04] border border-white/10 w-full max-w-sm">
+                        <span class="text-[9px] font-mono text-zinc-400 uppercase tracking-widest block">Colaborador(a) Ganador(a)</span>
+                        <p id="txt-ganador-nombre" class="text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-white truncate mt-0.5">
+                            Nombre del Colaborador
                         </p>
                     </div>
+
+                    <!-- Contenedor Media con Fallback Blindado -->
+                    <div id="premio-media-container" class="w-full max-w-xs h-40 rounded-2xl overflow-hidden border border-white/10 relative my-2">
+                        <!-- Inyectado por JS -->
+                    </div>
+
+                    <button onclick="location.reload()"
+                            class="mt-4 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-600 text-zinc-950 font-black text-xs font-mono uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(245,158,11,0.3)] hover:scale-102 transition-transform cursor-pointer">
+                        Escanear Siguiente Invitado
+                    </button>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- 3. MODAL DE CONFIRMACIÓN DEL INVITADO -->
+        <div id="modal-confirmar-invitado"
+             class="fixed inset-0 bg-black/85 backdrop-blur-xl z-50 flex items-center justify-center p-4 hidden">
+            <div class="w-full max-w-md glass-panel-luxury rounded-3xl p-6 md:p-8 text-center relative border border-amber-400/40 shadow-[0_25px_60px_rgba(0,0,0,0.9)]">
+                <!-- Glifo Escultórico -->
+                <div class="w-14 h-14 rounded-2xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center mx-auto mb-4 text-amber-300">
+                    <svg class="w-7 h-7 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                    </svg>
                 </div>
 
-                <!-- EFECTO DE RULETA / SORTEO EN PROCESO -->
-                <div id="section-sorteo"
-                     class="hidden relative min-h-[350px] flex flex-col justify-center items-center my-4 space-y-4">
-                    <div class="relative w-28 h-28 flex items-center justify-center">
-                        <!-- Anillo giratorio de ruleta -->
-                        <div class="absolute inset-0 border-4 border-dashed border-secondary rounded-full animate-spin"></div>
-                        <span class="text-5xl animate-bounce">🎁</span>
-                    </div>
-                    <div class="space-y-1">
-                        <h3 class="text-lg font-black text-secondary animate-pulse">¡Girando la Tómbola!</h3>
-                        <p id="txt-estado-sorteo" class="text-xs text-base-content/70 font-bold">Seleccionando premio al
-                            azar...</p>
-                    </div>
+                <span class="text-[10px] font-mono text-amber-400 uppercase tracking-[0.25em] font-bold">Invitado Identificado</span>
+                <h3 class="text-xl md:text-2xl font-black text-white mt-1 mb-4" id="modal-invitado-nombre">
+                    Nombre del Invitado
+                </h3>
+
+                <div class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 mb-6 text-left">
+                    <span class="text-[9px] font-mono uppercase tracking-widest text-zinc-500 block">Código Identificador</span>
+                    <p class="text-xs font-mono text-zinc-300 truncate mt-0.5" id="modal-invitado-qr">QR-0000</p>
                 </div>
 
-                <!-- SECCIÓN DE REVELACIÓN DEL PREMIO -->
-                <div id="section-revelacion"
-                     class="hidden relative min-h-[380px] flex flex-col justify-center items-center my-2">
-
-                    <!-- CONTENEDOR DE LA ANIMACIÓN LOTTIE-WEB -->
-                    <div id="gift-box-container"
-                         class="cursor-pointer flex flex-col items-center group transition-transform hover:scale-105"
-                         onclick="revelarPremioMovil()">
-
-                        <div id="lottie-gift" style="width: 180px; height: 180px;"></div>
-
-                        <div id="click-prompt"
-                             class="badge badge-secondary badge-lg font-black uppercase tracking-widest px-6 py-3 shadow-lg shadow-secondary/20 animate-bounce mt-2">
-                            👇 ¡Toca para abrir! 👇
-                        </div>
-                    </div>
-
-                    <!-- REVELACIÓN DEL PREMIO -->
-                    <div id="premio-revealed"
-                         class="hidden flex-col items-center justify-center space-y-3 w-full animate-fade-in">
-                        <div class="badge badge-success badge-lg text-white font-black tracking-wider px-6 py-3 shadow-lg shadow-success/30 uppercase text-xs">
-                            🎉 ¡PREMIO ASIGNADO AL AZAR! 🎉
-                        </div>
-
-                        <h2 id="txt-premio-nombre"
-                            class="text-2xl font-black text-secondary leading-tight mt-1 drop-shadow-sm">
-                            -
-                        </h2>
-
-                        <div class="bg-base-200/80 py-2 px-6 rounded-full border border-base-300 shadow-sm">
-                            <span class="text-xs text-base-content/60 font-bold uppercase tracking-wider">Ganador(a):</span>
-                            <strong id="txt-ganador-nombre" class="text-info text-sm ml-1 font-black">-</strong>
-                        </div>
-
-                        <div class="badge badge-warning badge-lg font-mono font-black mt-2" id="txt-premio-numero">
-                            #000
-                        </div>
-
-                        <div class="card-actions justify-center mt-4">
-                            <button class="btn btn-secondary btn-sm font-bold text-white shadow-md"
-                                    onclick="location.reload()">Escanear Siguiente Invitado 🔄
-                            </button>
-                        </div>
-                    </div>
-
+                <div class="flex items-center gap-3">
+                    <button onclick="cancelarModal()"
+                            class="flex-1 py-3.5 px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-zinc-300 text-xs font-mono uppercase tracking-wider transition-colors cursor-pointer">
+                        Cancelar
+                    </button>
+                    <button onclick="confirmarYDispararSorteo()"
+                            class="flex-1 py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-zinc-950 text-xs font-mono uppercase font-black tracking-wider shadow-lg hover:scale-102 transition-transform cursor-pointer">
+                        Asignar Regalo Aleatorio ›
+                    </button>
                 </div>
-
             </div>
         </div>
+
+        <!-- FOOTER CORPORATIVO -->
+        <footer class="relative z-20 w-full max-w-2xl mx-auto py-3 text-center text-zinc-500 text-[11px] font-mono">
+            <span>TÓMBOLA ALEATORIA • CORPORATIVO UNE</span>
+        </footer>
+
     </div>
 
-    <!-- SCRIPT DE CÁMARA Y LÓGICA ALEATORIA -->
+    <!-- AUDIO PARA ACIERTOS Y FANFARRIA -->
+    <audio id="sound-success" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3" preload="auto"></audio>
+    <audio id="sound-fanfare" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+    <!-- CONTROLADOR JAVASCRIPT: LECTURA QR, MODAL, TÓMBOLA DE TENSIÓN Y APERTURA -->
     <script>
-        let animacionRegalo;
-        let html5QrCode;
+        let html5QrCode = null;
         let escaneoBloqueado = false;
+        let invitadoQrActual = null;
+        let datosCanjeFinal = null;
+
+        const MENSAJES_TENSIÓN = [
+            "Buscando en la bóveda de regalos...",
+            "Mezclando combinaciones criptográficas...",
+            "Seleccionando el premio perfecto...",
+            "Sellando la asignación del ganador...",
+            "¡Casi listo!"
+        ];
+
+        // Generador de Placeholder Blindado de Lujo
+        function generarPlaceholderLujoso(titulo, alturaClase = "h-40") {
+            return `
+                <div class="w-full ${alturaClase} rounded-xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 border border-white/[0.06] flex flex-col items-center justify-center p-4 relative overflow-hidden">
+                    <div class="absolute inset-0 opacity-[0.08] bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                    <div class="relative w-10 h-10 rounded-xl bg-amber-400/[0.08] border border-amber-400/20 flex items-center justify-center mb-2.5 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                        <svg class="w-5 h-5 text-amber-300 stroke-[1.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H4.5a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h17.25" />
+                        </svg>
+                    </div>
+                    <span class="relative text-[11px] font-mono uppercase tracking-[0.2em] text-zinc-400 line-clamp-1 text-center font-medium">
+                        ${titulo}
+                    </span>
+                </div>
+            `;
+        }
 
         document.addEventListener("DOMContentLoaded", function () {
-            // Inicializar Lottie
-            const contenedor = document.getElementById('lottie-gift');
-            if (contenedor) {
-                animacionRegalo = lottie.loadAnimation({
-                    container: contenedor,
-                    renderer: 'svg',
-                    loop: false,
-                    autoplay: false,
-                    path: 'https://lottie.host/0f731e26-b070-4897-8746-aa468049e827/FhDrqdRK7d.json'
-                });
-            }
-
-            // Inicializar Lector de Cámara
-            html5QrCode = new Html5Qrcode("reader");
-            const configQR = {fps: 10, qrbox: {width: 220, height: 220}};
-
-            html5QrCode.start(
-                {facingMode: "environment"},
-                configQR,
-                onScanSuccess,
-                onScanFailure
-            ).catch(err => {
-                console.error("Error al iniciar la cámara: ", err);
-                mostrarError("No se pudo acceder a la cámara. Asegúrate de dar permisos HTTPS.");
-            });
+            iniciarLectorCamara();
         });
+
+        function iniciarLectorCamara() {
+            try {
+                html5QrCode = new Html5Qrcode("reader");
+                const configQR = {
+                    fps: 10,
+                    qrbox: function(viewfinderWidth, viewfinderHeight) {
+                        const edge = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.75);
+                        return { width: edge, height: edge };
+                    },
+                    aspectRatio: 1.0
+                };
+
+                html5QrCode.start(
+                    { facingMode: "environment" },
+                    configQR,
+                    onScanSuccess,
+                    () => {} // Ignorar cuadros sin QR
+                ).catch(err => {
+                    console.error("Cámara error: ", err);
+                    mostrarError("No se pudo iniciar la cámara trasera. Asegúrate de otorgar permisos.");
+                });
+            } catch (err) {
+                console.error("Error al instanciar Html5Qrcode: ", err);
+                mostrarError("Error al cargar el motor del escáner: " + (err.message || err));
+            }
+        }
 
         function mostrarError(mensaje) {
             const alerta = document.getElementById('alerta-error');
             const texto = document.getElementById('texto-error');
             texto.textContent = mensaje;
             alerta.classList.remove('hidden');
-            setTimeout(() => {
-                alerta.classList.add('hidden');
-            }, 5000);
+            setTimeout(() => { alerta.classList.add('hidden'); }, 5000);
         }
 
-        function onScanSuccess(decodedText, decodedResult) {
+        // Lectura de código QR
+        function onScanSuccess(decodedText) {
             if (escaneoBloqueado) return;
             escaneoBloqueado = true;
 
-            // Apagar cámara de forma segura
+            const qrLimpio = decodedText.trim();
+            validarInvitadoQR(qrLimpio);
+        }
+
+        // Validación inicial por AJAX y despliegue del modal de confirmación
+        function validarInvitadoQR(codigoQr) {
+            const formData = new FormData();
+            formData.append('invitado_qr', codigoQr);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            fetch("{% url 'regalos:api_validar_invitado' evento.slug %}", {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    invitadoQrActual = codigoQr;
+
+                    const s = document.getElementById('sound-success');
+                    if (s) s.play().catch(e => console.log(e));
+
+                    document.getElementById('modal-invitado-nombre').textContent = data.nombre_completo;
+                    document.getElementById('modal-invitado-qr').textContent = codigoQr;
+                    document.getElementById('modal-confirmar-invitado').classList.remove('hidden');
+                } else {
+                    mostrarError(data.message || "Invitado no encontrado o ya canjeó regalo.");
+                    escaneoBloqueado = false;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                mostrarError("Error al conectar con el servidor.");
+                escaneoBloqueado = false;
+            });
+        }
+
+        function cancelarModal() {
+            document.getElementById('modal-confirmar-invitado').classList.add('hidden');
+            invitadoQrActual = null;
+            escaneoBloqueado = false;
+        }
+
+        // Confirmación: Apagar cámara y disparar la tómbola de tensión
+        function confirmarYDispararSorteo() {
+            document.getElementById('modal-confirmar-invitado').classList.add('hidden');
+
             if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().catch(err => console.log(err));
+                html5QrCode.stop().catch(e => console.log(e));
             }
 
-            // Ocultar escáner y mostrar efecto de ruleta/sorteo
             document.getElementById('section-escaneo').classList.add('hidden');
             const secSorteo = document.getElementById('section-sorteo');
             secSorteo.classList.remove('hidden');
             secSorteo.classList.add('flex');
 
-            // Enviar petición para procesar el canje aleatorio
-            procesarCanjeAleatorio(decodedText.trim());
+            iniciarProcesoAleatorio();
         }
 
-        function onScanFailure(error) {
-            // Ignorar errores continuos de lectura
-        }
+        function iniciarProcesoAleatorio() {
+            const progressBar = document.getElementById('tensa-progress-bar');
+            const txtEstado = document.getElementById('txt-estado-sorteo');
 
-        function procesarCanjeAleatorio(invitadoQr) {
+            let porcentaje = 0;
+            let msgIdx = 0;
+
+            // Enviar petición al backend de Django
             const formData = new FormData();
-            formData.append('invitado_qr', invitadoQr);
+            formData.append('invitado_qr', invitadoQrActual);
             formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
-            // Pequeño retardo simulado para que luzca la ruleta/animación de sorteo (1.5 segundos)
-            setTimeout(() => {
-                fetch("{% url 'regalos:api_procesar_canje_aleatorio' evento.slug %}", {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then(response => response.json().then(data => ({status: response.status, body: data})))
-                    .then(res => {
+            const peticionBackend = fetch("{% url 'regalos:api_procesar_canje_aleatorio' evento.slug %}", {
+                method: 'POST',
+                body: formData
+            }).then(res => res.json());
+
+            // Animación de barra de tensión de 2.8 segundos
+            const intervalo = setInterval(() => {
+                porcentaje += 3;
+                if (porcentaje > 92) porcentaje = 92;
+
+                progressBar.style.width = porcentaje + '%';
+
+                const stepThreshold = Math.floor(92 / MENSAJES_TENSIÓN.length);
+                const nuevoIdx = Math.min(Math.floor(porcentaje / stepThreshold), MENSAJES_TENSIÓN.length - 1);
+                if (nuevoIdx !== msgIdx) {
+                    msgIdx = nuevoIdx;
+                    txtEstado.textContent = MENSAJES_TENSIÓN[msgIdx];
+                }
+            }, 80);
+
+            Promise.all([
+                peticionBackend,
+                new Promise(resolve => setTimeout(resolve, 2800)) // 2.8 segundos de suspenso cinemático
+            ])
+            .then(([data]) => {
+                clearInterval(intervalo);
+
+                if (data.status === 'success') {
+                    progressBar.style.width = '100%';
+                    txtEstado.textContent = '¡Regalo seleccionado!';
+
+                    datosCanjeFinal = data;
+
+                    setTimeout(() => {
                         document.getElementById('section-sorteo').classList.add('hidden');
+                        const secRev = document.getElementById('section-revelacion');
+                        secRev.classList.remove('hidden');
+                        secRev.classList.add('flex');
 
-                        if (res.status === 200 && res.body.status === 'success') {
-                            // Rellenar datos del premio obtenido
-                            document.getElementById('txt-premio-nombre').textContent = res.body.premio;
-                            document.getElementById('txt-ganador-nombre').textContent = res.body.ganador;
-                            document.getElementById('txt-premio-numero').textContent = "#" + res.body.numero;
-
-                            const secRevelacion = document.getElementById('section-revelacion');
-                            secRevelacion.classList.remove('hidden');
-                            secRevelacion.classList.add('flex');
-
-                            setTimeout(revelarPremioMovil, 400);
-                        } else {
-                            // Mostrar el mensaje de error en la alerta que ahora es visible
-                            mostrarError(res.body.message || "Error al procesar el sorteo.");
-
-                            // Volver a mostrar la sección de escaneo para que el usuario pueda intentar con otro invitado
-                            document.getElementById('section-escaneo').classList.remove('hidden');
-
-                            // Reiniciar el lector QR / desbloquear
-                            escaneoBloqueado = false;
-                            if (html5QrCode && !html5QrCode.isScanning) {
-                                html5QrCode.start(
-                                    {facingMode: "environment"},
-                                    {fps: 10, qrbox: {width: 220, height: 220}},
-                                    onScanSuccess,
-                                    onScanFailure
-                                ).catch(err => console.error(err));
-                            }
-                        }
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        document.getElementById('section-sorteo').classList.add('hidden');
-                        mostrarError("Error de red al procesar el sorteo.");
-                        setTimeout(() => {
-                            location.reload();
-                        }, 3500);
-                    });
-            }, 1500);
+                        setTimeout(ejecutarAperturaCinematica, 400);
+                    }, 400);
+                } else {
+                    mostrarError(data.message || "Error al procesar el sorteo aleatorio.");
+                    setTimeout(() => { location.reload(); }, 3000);
+                }
+            })
+            .catch(err => {
+                clearInterval(intervalo);
+                console.error(err);
+                mostrarError("Error de red al procesar el sorteo.");
+                setTimeout(() => { location.reload(); }, 3500);
+            });
         }
 
-        let yaAbierto = false;
+        let aperturaEjecutada = false;
 
-        function revelarPremioMovil() {
-            if (yaAbierto) return;
-            yaAbierto = true;
+        // ANIMACIÓN CINEMÁTICA DE APERTURA DE REGALO
+        function ejecutarAperturaCinematica() {
+            if (aperturaEjecutada || !datosCanjeFinal) return;
+            aperturaEjecutada = true;
 
-            const clickPrompt = document.getElementById('click-prompt');
-            const boxContainer = document.getElementById('gift-box-container');
-            const premio = document.getElementById('premio-revealed');
+            const lid = document.getElementById('gift-lid');
+            const body = document.getElementById('gift-body');
+            const glow = document.getElementById('box-glow');
+            const hint = document.getElementById('click-tap-hint');
+            const boxContainer = document.getElementById('vector-gift-box');
+            const revealedSection = document.getElementById('premio-revealed');
 
-            if (!boxContainer || !premio) return;
-            if (clickPrompt) clickPrompt.style.display = 'none';
+            if (hint) hint.remove();
 
-            if (animacionRegalo) {
-                animacionRegalo.play();
-            }
+            lid.classList.add('anim-lid-open');
+            body.classList.add('anim-box-body');
+            glow.classList.add('anim-radial-glow');
+
+            const sound = document.getElementById('sound-fanfare');
+            if (sound) sound.play().catch(e => console.log(e));
 
             setTimeout(() => {
-                boxContainer.style.transform = "scale(0.8)";
-                boxContainer.style.opacity = "0";
-                boxContainer.style.transition = "all 0.4s ease-in-out";
+                if (typeof confetti === 'function') {
+                    confetti({
+                        particleCount: 75,
+                        spread: 85,
+                        origin: { y: 0.6 },
+                        colors: ['#f59e0b', '#fbbf24', '#fef3c7', '#ffffff']
+                    });
+                }
+            }, 400);
+
+            setTimeout(() => {
+                boxContainer.style.transition = 'all 0.5s ease-out';
+                boxContainer.style.transform = 'scale(0.85)';
+                boxContainer.style.opacity = '0';
 
                 setTimeout(() => {
                     boxContainer.classList.add('hidden');
-                    premio.classList.remove('hidden');
-                    premio.classList.add('flex');
-                }, 300);
-            }, 1400);
+
+                    document.getElementById('txt-premio-numero').textContent = `Folio #${datosCanjeFinal.numero}`;
+                    document.getElementById('txt-premio-nombre').textContent = datosCanjeFinal.premio;
+                    document.getElementById('txt-ganador-nombre').textContent = datosCanjeFinal.ganador;
+
+                    const mediaContainer = document.getElementById('premio-media-container');
+                    if (datosCanjeFinal.imagen_url) {
+                        mediaContainer.innerHTML = `
+                            <img src="${datosCanjeFinal.imagen_url}" alt="${datosCanjeFinal.premio}"
+                                 class="h-full w-full object-cover"
+                                 onerror="this.parentElement.outerHTML = generarPlaceholderLujoso('${datosCanjeFinal.premio}', 'h-40');"/>
+                        `;
+                    } else {
+                        mediaContainer.innerHTML = generarPlaceholderLujoso(datosCanjeFinal.premio, 'h-40');
+                    }
+
+                    revealedSection.classList.remove('hidden');
+                    revealedSection.classList.add('flex');
+                }, 350);
+
+            }, 1200);
         }
     </script>
 </c-layouts.base>

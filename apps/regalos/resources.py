@@ -25,6 +25,7 @@ class RegaloResource(resources.ModelResource):
         if self.evento:
             row['evento'] = self.evento.slug
 
+
 class InvitadoResource(resources.ModelResource):
     evento = fields.Field(
         column_name='evento',
@@ -34,9 +35,9 @@ class InvitadoResource(resources.ModelResource):
 
     class Meta:
         model = Invitado
-        fields = ('id', 'evento', 'nombre_completo')
+        fields = ('id', 'evento', 'primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido')
         export_order = fields
-        import_id_fields = ('nombre_completo',)
+        import_id_fields = ('primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido')
 
     def __init__(self, evento=None, *args, **kwargs):
         super().__init__(*args, **kwargs)

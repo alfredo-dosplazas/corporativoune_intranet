@@ -12,10 +12,30 @@ class EventoVotacion(models.Model):
         ("seleccion", "Selección Única / Radio"),
     )
 
+    TEMATICAS = (
+        ('halloween', 'Halloween / Disfraces'),
+        ('navidad', 'Fiesta de Diciembre / Fin de Año'),
+        ('corporativo', 'Estándar Corporativo / General'),
+    )
+    tematica = models.CharField(max_length=20, choices=TEMATICAS, default='corporativo')
+
     titulo = models.CharField(max_length=200)
+    subtitulo = models.CharField(
+        max_length=250,
+        blank=True,
+        null=True,
+        help_text="Ej: Selecciona la temática que más te guste para nuestro evento"
+    )
+    imagen_fondo = models.ImageField(upload_to="votaciones/fondos/", blank=True, null=True)
+
+    etiqueta_opciones = models.CharField(
+        max_length=50,
+        default="Opción",
+        help_text="Ejemplo: 'Disfraz', 'Temática', 'Candidato', 'Plato'"
+    )
+
     descripcion = models.TextField(blank=True, null=True)
     activo = models.BooleanField(default=True)
-    # Define si requiere identificación o es completamente anónimo libre
     requiere_identificador = models.BooleanField(
         default=True,
         help_text="Pide número de empleado o correo para evitar duplicados",

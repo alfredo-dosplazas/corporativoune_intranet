@@ -1,0 +1,52 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⏳ Votación no disponible - {{ evento.titulo }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-image: linear-gradient(rgba(13, 10, 26, 0.92), rgba(13, 10, 26, 0.96)),
+            url('{% static 'img/votaciones/concurso_disfraces_2026.jpg' %}');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+    </style>
+    <!-- Recargar la página automáticamente cada 15 segundos para comprobar si ya abrió -->
+    <meta http-equiv="refresh" content="15">
+</head>
+<body class="text-slate-100 min-h-screen py-10 px-4 flex justify-center items-center">
+
+<div class="max-w-md w-full bg-slate-900/90 backdrop-blur-md border-2 border-purple-900/60 rounded-3xl p-8 shadow-[0_0_50px_rgba(147,51,234,0.2)] text-center relative z-10">
+
+    <div class="text-6xl mb-4 animate-pulse">🔒</div>
+
+    <span class="bg-amber-500/15 text-amber-400 text-xs font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider border border-amber-500/30">
+        Votación Bloqueada
+    </span>
+
+    <h1 class="text-2xl font-black text-white mt-4">
+        {{ evento.titulo }}
+    </h1>
+
+    <p class="text-slate-300 text-sm mt-3">
+        Aún no es hora de votar. La votación se abrirá oficialmente el:
+    </p>
+
+    <div class="my-6 bg-purple-950/50 border border-purple-800/60 p-4 rounded-2xl">
+        <span class="text-xs text-purple-300 uppercase tracking-widest block font-bold mb-1">Fecha y Hora de Apertura</span>
+        <span class="text-lg font-mono font-bold text-amber-400">
+            📅 {{ evento.fecha_inicio|date:"d/m/Y - H:i" }} hrs
+        </span>
+    </div>
+
+    <p class="text-xs text-slate-500">
+        Esta pantalla se actualizará automáticamente cuando las votaciones queden habilitadas.
+    </p>
+</div>
+
+</body>
+</html>

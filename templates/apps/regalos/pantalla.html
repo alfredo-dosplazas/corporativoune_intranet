@@ -1,218 +1,631 @@
-{% load money %}
-{% load humanize %}
-
 <c-layouts.base>
-    <!-- ESTILOS DE ANIMACIONES Y EFECTOS DE GALA CORPORATIVA -->
+    <!-- TIPOGRAFÍA Y CANVAS-CONFETTI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- ESTILOS Y ANIMACIONES CINEMÁTICAS AWWWARDS -->
     <style>
-        @keyframes galaEntry {
+        :root {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        @keyframes ambientDrift {
+            0%, 100% {
+                transform: scale(1) translate3d(0, 0, 0);
+                opacity: 0.35;
+            }
+            50% {
+                transform: scale(1.18) translate3d(25px, -20px, 0);
+                opacity: 0.65;
+            }
+        }
+
+        @keyframes cardRevealNormal {
             0% {
                 opacity: 0;
-                transform: translateY(-30px) scale(0.96);
+                transform: translateY(20px) scale(0.95);
+                filter: blur(8px);
             }
             100% {
                 opacity: 1;
                 transform: translateY(0) scale(1);
+                filter: blur(0px);
             }
         }
 
-        @keyframes corporateGoldGlow {
-            0%, 100% {
-                box-shadow: 0 0 30px rgba(212, 175, 55, 0.3), inset 0 0 15px rgba(212, 175, 55, 0.15);
-                border-color: rgba(212, 175, 55, 0.8);
+        @keyframes cardRevealDestacado {
+            0% {
+                opacity: 0;
+                transform: translateY(24px) scale(0.92);
+                filter: blur(10px);
             }
-            50% {
-                box-shadow: 0 0 60px rgba(212, 175, 55, 0.6), inset 0 0 25px rgba(212, 175, 55, 0.3);
-                border-color: rgba(212, 175, 55, 1);
+            60% {
+                opacity: 1;
+                transform: translateY(-3px) scale(1.02);
+                filter: blur(0px);
             }
-        }
-
-        @keyframes ambientFloat {
-            0%, 100% {
+            100% {
+                opacity: 1;
                 transform: translateY(0) scale(1);
+                filter: blur(0px);
+            }
+        }
+
+        @keyframes cinematicZoomPulse {
+            0%, 100% {
+                box-shadow: 0 0 50px -10px rgba(245, 158, 11, 0.3), inset 0 0 20px rgba(245, 158, 11, 0.15);
+                border-color: rgba(245, 158, 11, 0.4);
             }
             50% {
-                transform: translateY(-10px) scale(1.03);
+                box-shadow: 0 0 85px -5px rgba(245, 158, 11, 0.6), inset 0 0 35px rgba(245, 158, 11, 0.3);
+                border-color: rgba(251, 191, 36, 0.9);
             }
         }
 
-        .animate-gala-entry {
-            animation: galaEntry 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        @keyframes lightSweep {
+            0% {
+                transform: translateX(-150%) skewX(-20deg);
+                opacity: 0;
+            }
+            20% {
+                opacity: 0.45;
+            }
+            50% {
+                transform: translateX(200%) skewX(-20deg);
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(200%) skewX(-20deg);
+                opacity: 0;
+            }
         }
 
-        .animate-corporate-gold {
-            animation: corporateGoldGlow 3.5s infinite ease-in-out;
+        @keyframes spotlightPulseEpic {
+            0%, 100% {
+                opacity: 0.7;
+                transform: scale(0.98);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.04);
+            }
         }
 
-        .animate-ambient {
-            animation: ambientFloat 6s infinite ease-in-out;
+        .animate-ambient-1 {
+            animation: ambientDrift 16s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .glass-corporate {
-            background: rgba(18, 24, 38, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+        .animate-ambient-2 {
+            animation: ambientDrift 20s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card-enter-normal {
+            animation: cardRevealNormal 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            will-change: transform, opacity;
+        }
+
+        .card-enter-destacado {
+            animation: cardRevealDestacado 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            will-change: transform, opacity;
+        }
+
+        .cinematic-featured-card {
+            animation: cinematicZoomPulse 7s infinite ease-in-out;
+            will-change: box-shadow, border-color;
+        }
+
+        .light-sweep-beam {
+            animation: lightSweep 6s infinite ease-in-out;
+        }
+
+        .spotlight-pulse {
+            animation: spotlightPulseEpic 3s infinite ease-in-out;
+        }
+
+        .glass-panel-luxury {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.012) 100%);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8), inset 0 1px 1px 0 rgba(255, 255, 255, 0.12);
         }
 
         .glass-card {
-            background: rgba(26, 34, 52, 0.9);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: linear-gradient(145deg, rgba(24, 24, 27, 0.7) 0%, rgba(9, 9, 11, 0.85) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-4px) scale(1.015);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 25px 50px -10px rgba(0, 0, 0, 0.9), 0 0 30px -5px rgba(245, 158, 11, 0.2);
+        }
+
+        /* TRANSICIÓN SPOTLIGHT FLIP (GPU ACCELERATED) */
+        #spotlight-clone {
+            transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+                        width 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+                        height 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+                        border-radius 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+                        box-shadow 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+                        border-color 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: transform, width, height, box-shadow;
         }
     </style>
 
-    <!-- FONDO DE GALA EXCLUSIVO -->
+    <!-- PANTALLA COMPLETA EN DARK MODE PROFUNDO (#050507) -->
     <div data-theme="{{ evento.empresa.theme }}"
-         class="h-screen w-screen bg-gradient-to-tr from-[#0b0f19] via-[#111827] to-[#0f172a] p-4 md:p-6 flex flex-col justify-between overflow-hidden relative text-slate-100">
+         class="h-screen w-screen bg-[#050507] text-white p-5 md:p-8 flex flex-col justify-between overflow-hidden relative select-none">
 
-        <!-- DESTELLOS DE LUZ AMBIENTAL CORPORATIVA -->
-        <div class="absolute -top-20 left-1/3 w-[500px] h-[500px] bg-primary/15 rounded-full blur-[140px] pointer-events-none animate-ambient"></div>
-        <div class="absolute -bottom-20 right-1/4 w-[500px] h-[500px] bg-secondary/15 rounded-full blur-[140px] pointer-events-none animate-ambient"
-             style="animation-delay: 3s;"></div>
+        <!-- MALLA DE GRADIENTES AMBIENTALES Y MICRO-PUNTOS -->
+        <div class="absolute inset-0 pointer-events-none overflow-hidden">
+            <div class="absolute inset-0 opacity-[0.14] bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px]"></div>
+            <div class="absolute -top-32 left-1/4 w-[750px] h-[750px] bg-gradient-to-br from-amber-500/18 via-orange-600/10 to-transparent rounded-full blur-[150px] animate-ambient-1 mix-blend-screen"></div>
+            <div class="absolute -bottom-40 right-1/4 w-[850px] h-[850px] bg-gradient-to-tl from-indigo-600/18 via-purple-900/10 to-transparent rounded-full blur-[170px] animate-ambient-2 mix-blend-screen"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-amber-400/5 rounded-full blur-[130px]"></div>
+        </div>
 
-        <div class="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
-
-        <!-- ENCABEZADO DE GALA -->
-        <header class="text-center mb-2 relative z-10 shrink-0">
-            <div class="inline-flex items-center gap-2.5 px-6 py-1.5 rounded-full bg-gradient-to-r from-primary/20 via-secondary/20 to-primary/20 border border-primary/30 mb-2 shadow-lg backdrop-blur-md">
-                <span class="text-xs">✨</span>
-                <span class="text-[11px] font-extrabold tracking-[0.2em] text-primary uppercase">Evento Corporativo Oficial</span>
-                <span class="text-xs">✨</span>
+        <!-- 1. HERO SECTION MINIMALISTA FLOTANTE -->
+        <header class="relative z-20 w-full glass-panel-luxury rounded-2xl px-6 md:px-8 py-4 mb-3 shrink-0 flex items-center justify-between">
+            <!-- Insignia En Vivo con indicador WebSocket -->
+            <div class="flex items-center space-x-3.5">
+                <div class="relative flex items-center justify-center w-3 h-3">
+                    <span id="ws-pulse" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span id="ws-dot" class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-emerald-400" id="ws-status-text">Monitor en Vivo</span>
+                    <span class="text-xs text-zinc-400 font-medium">Asignaciones en Tiempo Real</span>
+                </div>
             </div>
-            <h1 class="text-3xl md:text-5xl font-black tracking-wide uppercase text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
-                {{ evento.nombre }}
-            </h1>
+
+            <!-- Título Central del Evento -->
+            <div class="text-center px-4">
+                <h1 class="text-xl md:text-3xl font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-100 to-zinc-400 drop-shadow-sm">
+                    {{ evento.nombre }}
+                </h1>
+            </div>
+
+            <!-- Badge de Estado de Sesión -->
+            <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-2 px-4 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs font-mono">
+                    <span class="text-zinc-500">ÚLTIMOS CANJES:</span>
+                    <span class="text-amber-400 font-bold" id="counter-entregados">{{ historial|length }}</span>
+                </div>
+            </div>
         </header>
 
-        <!-- CONTENEDOR PRINCIPAL DE TARJETAS -->
-        <main class="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 items-center justify-center max-w-7xl mx-auto w-full px-4 relative z-10 overflow-hidden my-auto"
+        <!-- 2. BENTO GRID DINÁMICO DE PREMIOS CANJEADOS (MÁXIMO 6 PREMIOS EN PANTALLA) -->
+        <main class="flex-1 w-full max-w-[1700px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 items-stretch justify-center relative z-10 overflow-hidden my-auto py-2"
               id="historial-container">
-
             {% for item in historial %}
-                <div class="card glass-card shadow-2xl border transition-all duration-500 relative overflow-hidden group max-h-full rounded-2xl
-                    {% if forloop.first and item.destacado %}
-                        border-amber-400/80 ring-4 ring-amber-400/30 animate-corporate-gold bg-gradient-to-b from-amber-500/15 via-[#1a2234] to-[#1a2234] scale-102 col-span-1 md:col-span-2 lg:col-span-1 animate-gala-entry
-                    {% elif forloop.first %}
-                        border-primary/80 ring-2 ring-primary/40 animate-gala-entry bg-gradient-to-b from-primary/10 via-[#1a2234] to-[#1a2234] shadow-primary/20
-                    {% else %}
-                        border-slate-700/60 opacity-90 hover:opacity-100 shadow-xl
-                    {% endif %}">
+                <div id="card-historial-{{ item.id }}"
+                     data-id="{{ item.id }}"
+                     data-destacado="{% if item.destacado %}1{% else %}0{% endif %}"
+                     class="glass-card rounded-2xl p-5 md:p-6 flex flex-col justify-between relative overflow-hidden group {% if item.destacado %}card-enter-destacado cinematic-featured-card{% else %}card-enter-normal{% endif %}">
 
-                    <!-- DISTINTIVO SUPERIOR -->
                     {% if item.destacado %}
-                        <div class="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-yellow-600 text-slate-950 text-[10px] font-black px-3 py-1 rounded-bl-xl shadow-md uppercase tracking-wider z-10 flex items-center gap-1">
-                            <span class="icon-[tabler--trophy] text-xs"></span> ¡GRAN PREMIO ESPECIAL!
-                        </div>
-                    {% elif forloop.first %}
-                        <div class="absolute top-0 right-0 bg-primary text-primary-content text-[10px] font-black px-3 py-1 rounded-bl-xl shadow-md uppercase tracking-wider z-10 flex items-center gap-1">
-                            <span class="icon-[tabler--sparkles] text-xs"></span> Último Ganador
-                        </div>
+                        <div class="light-sweep-beam absolute -inset-full bg-gradient-to-r from-transparent via-white/[0.08] to-transparent pointer-events-none"></div>
                     {% endif %}
 
-                    <!-- CUERPO DE LA TARJETA -->
-                    <div class="card-body p-3.5 md:p-4 text-center flex flex-col justify-between">
-                        <!-- NÚMERO DE BOLETO / PREMIO -->
-                        <div class="badge {% if forloop.first and item.destacado %}badge-warning font-black text-sm px-4 py-2 shadow-md text-slate-950 border-0{% elif forloop.first %}badge-primary font-bold text-xs px-3 py-1.5 text-primary-content border-0{% else %}badge-neutral font-bold text-[11px] bg-slate-800 text-slate-300 border-slate-700{% endif %} mx-auto font-mono">
-                            Boleto #{{ item.numero }}
-                        </div>
+                    <!-- Distintivo Superior / Folio -->
+                    <div class="flex items-center justify-between mb-3.5 relative z-10">
+                        <span class="px-3 py-1 rounded-lg {% if item.destacado %}bg-amber-400 text-zinc-950 font-black border-amber-400{% else %}bg-white/[0.06] text-zinc-400 font-semibold border-white/10{% endif %} font-mono text-xs tracking-wider border">
+                            Folio #{{ item.numero }}
+                        </span>
 
-                        <!-- TÍTULO DEL PREMIO -->
-                        <h2 class="text-base md:text-lg font-black text-white mt-0.5 line-clamp-1 group-hover:text-primary transition-colors drop-shadow-sm">
-                            {{ item.premio }}
-                        </h2>
+                        {% if item.destacado %}
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/15 border border-amber-400/40 text-amber-300 text-[10px] font-bold uppercase tracking-widest font-mono shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+                                <svg class="w-3 h-3 fill-current animate-pulse" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                Gran Premio
+                            </span>
+                        {% elif forloop.first %}
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-400/15 border border-emerald-400/40 text-emerald-300 text-[10px] font-bold uppercase tracking-widest font-mono">
+                                Reciente
+                            </span>
+                        {% else %}
+                            <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                                Canjeado
+                            </span>
+                        {% endif %}
+                    </div>
 
-                        <!-- SECCIÓN DEL GANADOR CON FOTO Y NOMBRE -->
-                        <div class="py-2 px-3 bg-slate-900/90 rounded-xl border border-slate-700/60 shadow-inner my-1 flex items-center gap-3">
-                            <!-- FOTO DEL INVITADO O AVATAR POR DEFECTO -->
-                            <div class="avatar shrink-0">
-                                <div class="w-12 h-12 md:w-14 md:h-14 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden bg-slate-800 flex items-center justify-center">
-                                    {% if item.invitado_foto_url %}
-                                        <img src="{{ item.invitado_foto_url }}" alt="{{ item.ganador }}"
-                                             class="object-cover w-full h-full"/>
-                                    {% else %}
-                                        <span class="icon-[tabler--user] text-xl text-primary"></span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <!-- NOMBRE DEL COLABORADOR -->
-                            <div class="text-left overflow-hidden">
-                                <span class="text-[9px] text-slate-400 uppercase tracking-[0.15em] font-extrabold block">Ganador(a)</span>
-                                <p class="text-sm md:text-base font-black text-cyan-300 truncate drop-shadow-sm">
-                                    {{ item.ganador }}
-                                </p>
-                            </div>
-                        </div>
+                    <!-- Título del Regalo -->
+                    <h3 class="text-base md:text-lg font-bold text-white tracking-tight line-clamp-1 mb-3 group-hover:text-amber-300 transition-colors relative z-10">
+                        {{ item.premio }}
+                    </h3>
 
-                        <!-- IMAGEN DEL PREMIO -->
-                        <div class="mt-1 h-24 md:h-28 w-full bg-slate-950/60 rounded-xl overflow-hidden flex items-center justify-center border border-slate-700/60 relative group-hover:border-primary/60 transition-all shadow-inner">
-                            {% if item.imagen_url %}
-                                <img src="{{ item.imagen_url }}" alt="{{ item.premio }}"
-                                     class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"/>
+                    <!-- Ganador / Asignación -->
+                    <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] mb-3.5 flex items-center gap-3 relative z-10">
+                        <!-- Avatar / Foto del invitado -->
+                        <div class="w-10 h-10 rounded-full overflow-hidden border border-amber-400/30 shrink-0 bg-zinc-900 flex items-center justify-center">
+                            {% if item.invitado_foto_url %}
+                                <img src="{{ item.invitado_foto_url }}" alt="{{ item.ganador }}" class="w-full h-full object-cover"/>
                             {% else %}
-                                <div class="flex flex-col items-center justify-center text-slate-500">
-                                    <span class="icon-[tabler--gift] text-3xl mb-0.5 animate-bounce text-primary/80"></span>
-                                    <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Premio Corporativo</span>
-                                </div>
+                                <svg class="w-5 h-5 text-amber-300/80 stroke-[1.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                </svg>
                             {% endif %}
                         </div>
+                        <div class="overflow-hidden text-left">
+                            <span class="text-[9px] font-mono uppercase tracking-[0.25em] text-zinc-500 block">Colaborador Ganador</span>
+                            <p class="text-sm md:text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-zinc-200 truncate mt-0.5">
+                                {{ item.ganador }}
+                            </p>
+                        </div>
                     </div>
+
+                    <!-- Media: Imagen real o Placeholder elegante -->
+                    <div class="w-full relative z-10">
+                        {% if item.imagen_url %}
+                            <div class="h-32 md:h-36 w-full rounded-xl overflow-hidden border border-white/[0.08] relative group-hover:border-amber-400/40 transition-all duration-500">
+                                <img src="{{ item.imagen_url }}" alt="{{ item.premio }}"
+                                     class="h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105"
+                                     onerror="this.parentElement.outerHTML = generarPlaceholderLujoso('{{ item.premio }}', 'h-32 md:h-36');"/>
+                            </div>
+                        {% else %}
+                            <div class="w-full h-32 md:h-36 rounded-xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 border border-white/[0.06] flex flex-col items-center justify-center p-4 relative overflow-hidden group-hover:border-amber-400/30 transition-all duration-500">
+                                <div class="absolute inset-0 opacity-[0.08] bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                                <div class="relative w-10 h-10 rounded-xl bg-amber-400/[0.08] border border-amber-400/20 flex items-center justify-center mb-2 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                                    <svg class="w-5 h-5 text-amber-300 stroke-[1.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H4.5a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h17.25" />
+                                    </svg>
+                                </div>
+                                <span class="relative text-[11px] font-mono uppercase tracking-[0.2em] text-zinc-400 line-clamp-1 text-center font-medium">
+                                    {{ item.premio }}
+                                </span>
+                            </div>
+                        {% endif %}
+                    </div>
+
                 </div>
             {% empty %}
-                <div class="col-span-full text-center py-12 text-slate-400">
-                    <span class="icon-[tabler--gift-off] text-6xl mb-3 inline-block animate-pulse text-primary/70"></span>
-                    <p class="text-xl font-black text-slate-200">Esperando el inicio de los canjes y rifas...</p>
-                    <p class="text-xs text-slate-400 mt-1">Los ganadores aparecerán automáticamente en tiempo real</p>
+                <div id="empty-state" class="col-span-full flex flex-col items-center justify-center py-24 text-center">
+                    <div class="w-20 h-20 rounded-3xl glass-panel-luxury flex items-center justify-center text-amber-400 mb-4 animate-pulse">
+                        <svg class="w-10 h-10 stroke-[1.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 00-2 2v6a2 2 0 002 2h14a2 2 0 002-2v-6a2 2 0 00-2-2H5z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white tracking-wide">Esperando Primer Canje</h3>
+                    <p class="text-xs text-zinc-500 font-mono mt-1">Escanea los códigos QR para proyectar a los ganadores en vivo.</p>
                 </div>
             {% endfor %}
-
         </main>
 
-        <!-- FOOTER CORPORATIVO DE GALA -->
-        <footer class="mt-2 flex justify-center items-center gap-8 py-2.5 border-t border-slate-800 relative z-10 glass-corporate rounded-2xl px-6 max-w-3xl mx-auto w-full shadow-2xl shrink-0">
-            {% for empresa in empresas %}
-                {% if empresa.logo %}
-                    <img src="{{ empresa.logo.url }}" alt="{{ empresa.nombre_corto }}"
-                         class="h-8 object-contain drop-shadow-md filter brightness-110 opacity-90 hover:opacity-100 transition-all duration-300"/>
-                {% endif %}
-            {% endfor %}
+        <!-- 3. FOOTER CORPORATIVO CON LOGOTIPOS -->
+        <footer class="mt-3 flex justify-between items-center py-3 border-t border-white/[0.08] relative z-20 px-8 glass-panel-luxury rounded-2xl w-full shrink-0">
+            <div class="flex items-center space-x-2 text-xs font-mono text-zinc-500">
+                <span class="w-1.5 h-1.5 rounded-full bg-zinc-600"></span>
+                <span class="tracking-widest uppercase">Gala de Premiación Corporativa</span>
+            </div>
+
+            <div class="flex items-center gap-8">
+                {% for empresa in empresas %}
+                    {% if empresa.logo %}
+                        <img src="{{ empresa.logo.url }}" alt="{{ empresa.nombre_corto }}"
+                             class="h-7 max-w-[110px] object-contain opacity-70 hover:opacity-100 filter brightness-200 transition-all duration-300"/>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <div class="text-xs font-mono text-zinc-500 tracking-wider">
+                SISTEMA UNE • PANTALLA EN VIVO
+            </div>
         </footer>
+
+        <!-- BACKDROP OVERLAY PARA SPOTLIGHT (Full Screen en Vivo) -->
+        <div id="spotlight-backdrop"
+             class="fixed inset-0 bg-black/85 backdrop-blur-xl z-40 opacity-0 pointer-events-none transition-opacity duration-700">
+            <div class="spotlight-pulse absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-amber-400/15 rounded-full blur-[140px] pointer-events-none"></div>
+        </div>
+
+        <!-- TARJETA CLON SPOTLIGHT FLIP (Animada dinámicamente) -->
+        <div id="spotlight-clone"
+             class="fixed z-50 pointer-events-none opacity-0 glass-card overflow-hidden">
+        </div>
 
     </div>
 
-    <!-- EFECTOS DE AUDIO -->
-    <audio id="sound-destacado" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
-           preload="auto"></audio>
-    <audio id="sound-normal" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"
-           preload="auto"></audio>
+    <!-- AUDIO PARA EFECTOS DE DESTACADO Y CANJE -->
+    <audio id="sound-destacado" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+    <audio id="sound-normal" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3" preload="auto"></audio>
 
-    <!-- SCRIPT DE WEBSOCKETS -->
+    <!-- CONTROLADOR JAVASCRIPT: WEBSOCKET Y ANIMACIÓN FLIP SPOTLIGHT EN VIVO -->
     <script>
         const eventoSlug = "{{ evento.slug }}";
-        const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
-        const pantallaSocket = new WebSocket(`${wsScheme}://${window.location.host}/ws/regalos/pantalla/${eventoSlug}/`);
+        const container = document.getElementById('historial-container');
+        const counterEntregados = document.getElementById('counter-entregados');
+        const backdrop = document.getElementById('spotlight-backdrop');
+        const clone = document.getElementById('spotlight-clone');
 
-        pantallaSocket.onmessage = function (e) {
-            const data = JSON.parse(e.data);
+        // Generador de Placeholder Blindado de Lujo
+        function generarPlaceholderLujoso(titulo, alturaClase = "h-36") {
+            return `
+                <div class="w-full ${alturaClase} rounded-xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 border border-white/[0.06] flex flex-col items-center justify-center p-4 relative overflow-hidden group-hover:border-amber-400/30 transition-all duration-500">
+                    <div class="absolute inset-0 opacity-[0.08] bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                    <div class="relative w-10 h-10 rounded-xl bg-amber-400/[0.08] border border-amber-400/20 flex items-center justify-center mb-2.5 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                        <svg class="w-5 h-5 text-amber-300 stroke-[1.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H4.5a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h17.25" />
+                        </svg>
+                    </div>
+                    <span class="relative text-[11px] font-mono uppercase tracking-[0.2em] text-zinc-400 line-clamp-1 text-center font-medium">
+                        ${titulo}
+                    </span>
+                </div>
+            `;
+        }
 
-            if (data.type === "NUEVO_GANADOR") {
-                if (data.ultimo_ganador && data.ultimo_ganador.destacado) {
-                    const audioEpic = document.getElementById('sound-destacado');
-                    if (audioEpic) audioEpic.play().catch(err => console.log("Audio play blocked:", err));
-                } else {
-                    const audioNormal = document.getElementById('sound-normal');
-                    if (audioNormal) audioNormal.play().catch(err => console.log("Audio play blocked:", err));
-                }
+        // Efecto de Confeti Dorado Elegante
+        function dispararConfettiLujoso() {
+            if (typeof confetti !== 'function') return;
+
+            confetti({
+                particleCount: 65,
+                spread: 85,
+                origin: { y: 0.55 },
+                colors: ['#f59e0b', '#fbbf24', '#fef3c7', '#ffffff']
+            });
+        }
+
+        // Renderizado de tarjeta HTML para la cuadrícula
+        function crearTarjetaHTML(item, esReciente = false) {
+            const esDestacado = item.destacado;
+            return `
+                <div id="card-historial-${item.id}"
+                     data-id="${item.id}"
+                     data-destacado="${esDestacado ? '1' : '0'}"
+                     class="glass-card rounded-2xl p-5 md:p-6 flex flex-col justify-between relative overflow-hidden group ${esDestacado ? 'card-enter-destacado cinematic-featured-card' : 'card-enter-normal'}">
+
+                    ${esDestacado ? `
+                        <div class="light-sweep-beam absolute -inset-full bg-gradient-to-r from-transparent via-white/[0.08] to-transparent pointer-events-none"></div>
+                    ` : ''}
+
+                    <!-- Distintivo Superior -->
+                    <div class="flex items-center justify-between mb-3.5 relative z-10">
+                        <span class="px-3 py-1 rounded-lg ${esDestacado ? 'bg-amber-400 text-zinc-950 font-black border-amber-400' : 'bg-white/[0.06] text-zinc-400 font-semibold border-white/10'} font-mono text-xs tracking-wider border">
+                            Folio #${item.numero}
+                        </span>
+
+                        ${esDestacado ? `
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/15 border border-amber-400/40 text-amber-300 text-[10px] font-bold uppercase tracking-widest font-mono shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+                                <svg class="w-3 h-3 fill-current animate-pulse" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                Gran Premio
+                            </span>
+                        ` : (esReciente ? `
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-400/15 border border-emerald-400/40 text-emerald-300 text-[10px] font-bold uppercase tracking-widest font-mono">
+                                ¡Nuevo Ganador!
+                            </span>
+                        ` : `
+                            <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                                Canjeado
+                            </span>
+                        `)}
+                    </div>
+
+                    <!-- Título -->
+                    <h3 class="text-base md:text-lg font-bold text-white tracking-tight line-clamp-1 mb-3 group-hover:text-amber-300 transition-colors relative z-10">
+                        ${item.premio}
+                    </h3>
+
+                    <!-- Ganador -->
+                    <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] mb-3.5 flex items-center gap-3 relative z-10">
+                        <div class="w-10 h-10 rounded-full overflow-hidden border border-amber-400/30 shrink-0 bg-zinc-900 flex items-center justify-center">
+                            ${item.invitado_foto_url ? `
+                                <img src="${item.invitado_foto_url}" alt="${item.ganador}" class="w-full h-full object-cover"/>
+                            ` : `
+                                <svg class="w-5 h-5 text-amber-300/80 stroke-[1.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                </svg>
+                            `}
+                        </div>
+                        <div class="overflow-hidden text-left">
+                            <span class="text-[9px] font-mono uppercase tracking-[0.25em] text-zinc-500 block">Colaborador Ganador</span>
+                            <p class="text-sm md:text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-zinc-200 truncate mt-0.5">
+                                ${item.ganador}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Media -->
+                    <div class="w-full relative z-10">
+                        ${item.imagen_url ? `
+                            <div class="h-32 md:h-36 w-full rounded-xl overflow-hidden border border-white/[0.08] relative group-hover:border-amber-400/40 transition-all duration-500">
+                                <img src="${item.imagen_url}" alt="${item.premio}"
+                                     class="h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105"
+                                     onerror="this.parentElement.outerHTML = generarPlaceholderLujoso('${item.premio}', 'h-32 md:h-36');"/>
+                            </div>
+                        ` : generarPlaceholderLujoso(item.premio, 'h-32 md:h-36')}
+                    </div>
+
+                </div>
+            `;
+        }
+
+        // ==============================================================
+        // SECUENCIA CINEMÁTICA EN VIVO: FLIP SPOTLIGHT DEL NUEVO GANADOR
+        // ==============================================================
+        function ejecutarSpotlightNuevoGanador(nuevoGanador, tarjetaOriginal) {
+            const rect = tarjetaOriginal.getBoundingClientRect();
+
+            // Preparar el clon en alta resolución
+            clone.innerHTML = `
+                <div class="relative w-full h-full p-8 md:p-10 flex flex-col justify-between overflow-hidden">
+                    <div class="light-sweep-beam absolute -inset-full bg-gradient-to-r from-transparent via-white/[0.12] to-transparent pointer-events-none"></div>
+
+                    <!-- Header -->
+                    <div class="flex items-center justify-between mb-4 relative z-10">
+                        <span class="px-4 py-1.5 rounded-xl bg-amber-400 text-zinc-950 font-black font-mono text-sm tracking-wider shadow-md">
+                            Folio #${nuevoGanador.numero}
+                        </span>
+                        <div class="inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-amber-400/20 border border-amber-400/50 text-amber-300 text-xs font-bold uppercase tracking-widest font-mono shadow-[0_0_20px_rgba(245,158,11,0.35)]">
+                            <svg class="w-4 h-4 fill-current animate-pulse" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                            ¡Nuevo Canje Registrado!
+                        </div>
+                    </div>
+
+                    <!-- Título -->
+                    <h2 class="text-2xl md:text-4xl font-black text-white tracking-tight drop-shadow-md mb-4 relative z-10">
+                        ${nuevoGanador.premio}
+                    </h2>
+
+                    <!-- Ganador -->
+                    <div class="py-3.5 px-6 rounded-2xl bg-white/[0.04] border border-amber-400/30 max-w-lg mb-4 relative z-10 flex items-center gap-4">
+                        <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-amber-400/40 shrink-0 bg-zinc-900 flex items-center justify-center">
+                            ${nuevoGanador.invitado_foto_url ? `
+                                <img src="${nuevoGanador.invitado_foto_url}" alt="${nuevoGanador.ganador}" class="w-full h-full object-cover"/>
+                            ` : `
+                                <svg class="w-7 h-7 text-amber-300/80 stroke-[1.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                </svg>
+                            `}
+                        </div>
+                        <div class="overflow-hidden">
+                            <span class="text-[10px] font-mono text-zinc-400 uppercase tracking-[0.3em] block">Colaborador(a) Afortunado(a)</span>
+                            <p class="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-100 to-white truncate mt-0.5">
+                                ${nuevoGanador.ganador}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Media -->
+                    <div class="w-full flex-1 min-h-[220px] max-h-[300px] rounded-2xl overflow-hidden border border-white/10 relative z-10">
+                        ${nuevoGanador.imagen_url ? `
+                            <img src="${nuevoGanador.imagen_url}" alt="${nuevoGanador.premio}"
+                                 class="h-full w-full object-cover"
+                                 onerror="this.parentElement.outerHTML = generarPlaceholderLujoso('${nuevoGanador.premio}', 'h-full');"/>
+                        ` : generarPlaceholderLujoso(nuevoGanador.premio, 'h-full')}
+                    </div>
+                </div>
+            `;
+
+            // Colocar clon sobre la tarjeta
+            clone.style.top = `${rect.top}px`;
+            clone.style.left = `${rect.left}px`;
+            clone.style.width = `${rect.width}px`;
+            clone.style.height = `${rect.height}px`;
+            clone.style.transform = `translate3d(0, 0, 0)`;
+            clone.style.borderRadius = `1rem`;
+            clone.style.opacity = '1';
+
+            tarjetaOriginal.style.opacity = '0.05';
+
+            // Encender backdrop
+            backdrop.classList.remove('pointer-events-none');
+            backdrop.classList.add('opacity-100');
+
+            // Audio
+            const audioEpic = document.getElementById(nuevoGanador.destacado ? 'sound-destacado' : 'sound-normal');
+            if (audioEpic) audioEpic.play().catch(e => console.log(e));
+
+            // FLIP ZOOM IN al centro
+            requestAnimationFrame(() => {
+                const targetWidth = Math.min(window.innerWidth * 0.85, 760);
+                const targetHeight = Math.min(window.innerHeight * 0.78, 580);
+                const targetLeft = (window.innerWidth - targetWidth) / 2;
+                const targetTop = (window.innerHeight - targetHeight) / 2;
+
+                const deltaX = targetLeft - rect.left;
+                const deltaY = targetTop - rect.top;
+
+                clone.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0)`;
+                clone.style.width = `${targetWidth}px`;
+                clone.style.height = `${targetHeight}px`;
+                clone.style.borderRadius = `1.75rem`;
+                clone.style.borderColor = `rgba(245, 158, 11, 0.7)`;
+                clone.style.boxShadow = `0 35px 80px -10px rgba(0, 0, 0, 0.95), 0 0 100px 10px rgba(245, 158, 11, 0.45)`;
 
                 setTimeout(() => {
-                    window.location.reload();
-                }, 800);
-            }
-        };
+                    dispararConfettiLujoso();
+                }, 400);
+            });
 
-        pantallaSocket.onclose = function (e) {
-            console.log('Socket cerrado. Intentando reconectar...');
-            setTimeout(function () {
-                window.location.reload();
-            }, 5000);
-        };
+            // ZOOM OUT inverso a su celda tras 3.8 segundos
+            setTimeout(() => {
+                const rectRegreso = tarjetaOriginal.getBoundingClientRect();
+
+                clone.style.transform = `translate3d(0, 0, 0)`;
+                clone.style.width = `${rectRegreso.width}px`;
+                clone.style.height = `${rectRegreso.height}px`;
+                clone.style.borderRadius = `1rem`;
+                clone.style.borderColor = `rgba(255, 255, 255, 0.07)`;
+                clone.style.boxShadow = `none`;
+
+                backdrop.classList.remove('opacity-100');
+                backdrop.classList.add('opacity-0', 'pointer-events-none');
+
+                setTimeout(() => {
+                    clone.style.opacity = '0';
+                    tarjetaOriginal.style.opacity = '1';
+                }, 850);
+
+            }, 3800);
+        }
+
+        // ==============================================================
+        // CONEXIÓN WEBSOCKET Y SINCRONIZACIÓN EN TIEMPO REAL
+        // ==============================================================
+        const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+        const socketUrl = `${wsScheme}://${window.location.host}/ws/regalos/pantalla/${eventoSlug}/`;
+        let pantallaSocket = null;
+
+        function conectarWebSocket() {
+            pantallaSocket = new WebSocket(socketUrl);
+
+            pantallaSocket.onopen = function () {
+                document.getElementById('ws-pulse').classList.remove('bg-rose-400');
+                document.getElementById('ws-pulse').classList.add('bg-emerald-400');
+                document.getElementById('ws-dot').classList.remove('bg-rose-400');
+                document.getElementById('ws-dot').classList.add('bg-emerald-400');
+                document.getElementById('ws-status-text').textContent = 'Monitor en Vivo';
+            };
+
+            pantallaSocket.onmessage = function (e) {
+                const data = JSON.parse(e.data);
+
+                if (data.type === "NUEVO_GANADOR" && data.ultimo_ganador) {
+                    const emptyState = document.getElementById('empty-state');
+                    if (emptyState) emptyState.remove();
+
+                    // Re-renderizar todo el historial de 6 items entregados por el socket
+                    if (Array.isArray(data.historial) && data.historial.length > 0) {
+                        let html = '';
+                        data.historial.forEach((item, idx) => {
+                            html += crearTarjetaHTML(item, idx === 0);
+                        });
+                        container.innerHTML = html;
+                        counterEntregados.textContent = data.historial.length;
+
+                        // Tomar la primera tarjeta recién inyectada y ejecutar el momento mágico Spotlight
+                        const nuevaTarjeta = container.firstElementChild;
+                        if (nuevaTarjeta) {
+                            ejecutarSpotlightNuevoGanador(data.ultimo_ganador, nuevaTarjeta);
+                        }
+                    }
+                }
+            };
+
+            pantallaSocket.onclose = function () {
+                document.getElementById('ws-pulse').classList.remove('bg-emerald-400');
+                document.getElementById('ws-pulse').classList.add('bg-rose-400');
+                document.getElementById('ws-dot').classList.remove('bg-emerald-400');
+                document.getElementById('ws-dot').classList.add('bg-rose-400');
+                document.getElementById('ws-status-text').textContent = 'Reconectando...';
+
+                setTimeout(conectarWebSocket, 4000);
+            };
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            conectarWebSocket();
+        });
     </script>
 </c-layouts.base>

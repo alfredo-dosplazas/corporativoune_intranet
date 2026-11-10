@@ -1,0 +1,104 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎃 Acceso y Conexión - {{ evento.titulo }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-image: linear-gradient(rgba(13, 10, 26, 0.94), rgba(13, 10, 26, 0.98)),
+            url('{% static 'img/votaciones/concurso_disfraces_2026.jpg' %}');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen py-8 px-4 flex justify-center items-center">
+
+<div class="max-w-4xl w-full bg-slate-900/95 backdrop-blur-md border-2 border-purple-900/60 rounded-3xl p-6 sm:p-10 shadow-[0_0_60px_rgba(147,51,234,0.3)] relative z-10 text-center space-y-8">
+
+    <!-- BARRA SUPERIOR / NAVEGACIÓN -->
+    <div class="flex justify-between items-center border-b border-purple-900/40 pb-4">
+        <span class="bg-orange-500/15 text-orange-400 text-xs font-bold px-4 py-2 rounded-full uppercase tracking-wider border border-orange-500/30 flex items-center gap-2 shadow-inner">
+            <span>🎃</span> Panel Informativo de Acceso
+        </span>
+        <a href="{% url 'votaciones:votar_evento' evento.id %}"
+           class="text-xs font-semibold bg-purple-950 hover:bg-purple-900 text-purple-300 px-4 py-2 rounded-xl border border-purple-700/50 transition">
+            &larr; Ir a la boleta de votación
+        </a>
+    </div>
+
+    <!-- TÍTULO PRINCIPAL -->
+    <header class="space-y-2">
+        <h1 class="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-purple-400">
+            {{ evento.titulo }} 👻
+        </h1>
+        <p class="text-slate-400 text-sm max-w-xl mx-auto">
+            ¿Problemas con la red? Sigue los pasos inferiores para conectarte al Wi-Fi institucional y emite tu voto de
+            inmediato.
+        </p>
+    </header>
+
+    <!-- SECCIÓN DE DOBLE QR (WIFI & VOTACIÓN) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center pt-2">
+
+        <!-- PASO 1: CONEXIÓN WI-FI -->
+        <div class="bg-slate-950/80 border border-purple-900/80 rounded-3xl p-6 shadow-xl flex flex-col items-center space-y-4">
+            <div class="bg-purple-500/15 text-purple-300 text-xs font-bold px-3 py-1 rounded-full border border-purple-500/30">
+                Paso 1: ¿Sin conexión a Internet?
+            </div>
+
+            <!-- Código QR de Wi-Fi -->
+            <div class="bg-white p-3 rounded-2xl shadow-lg inline-block">
+                <img src="{{ qr_wifi }}" alt="QR Wi-Fi" class="w-44 h-44 object-contain">
+            </div>
+
+            <div class="space-y-1 text-center">
+                <h3 class="text-sm font-bold text-slate-200">Conéctate a la Red Wi-Fi</h3>
+                <p class="text-xs text-slate-400">Escanea para conectarte automáticamente o busca la red:</p>
+                <div class="bg-slate-900 border border-purple-800/60 rounded-xl p-2 mt-2 font-mono text-xs text-amber-400 select-all">
+                    📶 Red: <strong class="text-white">{{ wifi_ssid }}</strong><br>
+                    🔑 Clave: <strong class="text-white">{{ wifi_pass }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- PASO 2: ESCANEAR PARA VOTAR -->
+        <div class="bg-slate-950/80 border border-orange-500/40 rounded-3xl p-6 shadow-xl flex flex-col items-center space-y-4 relative overflow-hidden">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl"></div>
+
+            <div class="bg-orange-500/15 text-orange-400 text-xs font-bold px-3 py-1 rounded-full border border-orange-500/30">
+                Paso 2: Emitir Voto
+            </div>
+
+            <!-- Código QR de Votación -->
+            <div class="bg-white p-3 rounded-2xl shadow-lg inline-block">
+                <img src="{{ qr_votacion }}" alt="QR Votación" class="w-44 h-44 object-contain">
+            </div>
+
+            <div class="space-y-1 text-center">
+                <h3 class="text-sm font-bold text-slate-200">Boleta de Votación Digital</h3>
+                <p class="text-xs text-slate-400">Apunta tu cámara para abrir el formulario y calificar los
+                    disfraces.</p>
+                <div class="mt-3">
+                    <span class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700/50 px-3 py-1 rounded-full font-mono">
+                        ✨ ¡Listo para recibir votos!
+                    </span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- PIE DE PÁGINA INFORMATIVO -->
+    <footer class="pt-4 border-t border-purple-900/40 text-xs text-slate-500">
+        Intranet Corporativa UNE &bull; {{ evento }}
+    </footer>
+
+</div>
+
+</body>
+</html>

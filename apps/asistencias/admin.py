@@ -61,7 +61,7 @@ class ControlDiarioAsistenciaAdmin(admin.ModelAdmin):
 
 
 @admin.register(Empleado)
-class EmpleadoAdmin(admin.ModelAdmin):
+class EmpleadoAdmin(ExportActionModelAdmin):
     search_fields = ['number', 'badge', 'name1', 'name2', 'last_name1', 'last_name2']
     list_display = ('number', 'badge', 'full_name', 'status_val')
     list_filter = ['status_val']

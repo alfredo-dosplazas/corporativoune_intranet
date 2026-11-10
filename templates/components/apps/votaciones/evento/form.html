@@ -6,8 +6,8 @@
         <div class="flex items-center gap-2">
             <span class="icon-[tabler--alert-triangle] text-base shrink-0"></span>
             <div>
-                <span class="font-bold">Faltan campos obligatorios:</span> Por favor complete todos los datos marcados
-                en rojo.
+                <span class="font-bold">Faltan campos obligatorios o hay errores de validación:</span>
+                Por favor complete todos los datos requeridos marcados en rojo.
             </div>
         </div>
     </div>
@@ -24,7 +24,7 @@
             <div class="flex items-center gap-2">
                 <span class="icon-[tabler--ballot] text-primary text-base"></span>
                 <span class="font-bold text-base-content text-sm">
-                    {% if object.pk %}{{ object.titulo }}{% else %}NUEVO EVENTO DE VOTACIÓN{% endif %}
+                    {% if object.pk %}{{ object.titulo }}{% else %}NUEVO EVENTO / VOTACIÓN{% endif %}
                 </span>
             </div>
             <div class="text-[11px] text-base-content/60 font-mono">
@@ -32,20 +32,21 @@
             </div>
         </div>
 
-        <!-- DATOS DEL EVENTO (ENCABEZADO GENERAL) -->
+        <!-- DATOS DEL EVENTO (ENCABEZADO GENERAL CON TODAS LAS PROPIEDADES) -->
         <div class="p-4 text-xs bg-base-100">
             {% crispy form %}
         </div>
 
-        <!-- SECCIÓN 1: CRITERIOS / CATEGORÍAS DE EVALUACIÓN -->
+        <!-- SECCIÓN 1: CRITERIOS / PREGUNTAS DE EVALUACIÓN -->
         <div class="border-t border-base-200 bg-base-100">
             <div class="px-4 py-2 flex items-center justify-between bg-base-200/30 border-b border-base-200">
                 <div class="flex items-center gap-2">
                     <span class="icon-[tabler--category] text-primary text-base"></span>
-                    <h2 class="font-bold text-xs text-base-content uppercase tracking-wider">Criterios de Evaluación /
-                        Categorías</h2>
+                    <h2 class="font-bold text-xs text-base-content uppercase tracking-wider">
+                        Criterios / Preguntas de Evaluación
+                    </h2>
                 </div>
-                <span class="text-[11px] text-base-content/50">Mínimo 1 criterio requerido</span>
+                <span class="text-[11px] text-base-content/50">Mínimo 1 criterio requerido (ej. Categoría a premiar, Pregunta de votación)</span>
             </div>
 
             {{ Criterios.management_form }}
@@ -55,8 +56,8 @@
                     <thead>
                     <tr class="bg-base-200/60 text-[11px] uppercase tracking-wider text-base-content/70 border-b border-base-200">
                         <th class="w-8 py-1.5 px-2 text-center">#</th>
-                        <th class="py-1.5 px-2">Criterio / Categoría *</th>
-                        <th class="w-48 py-1.5 px-2">Tipo de Evaluación *</th>
+                        <th class="py-1.5 px-2">Criterio / Pregunta / Categoría *</th>
+                        <th class="w-56 py-1.5 px-2">Tipo de Evaluación *</th>
                         <th class="w-28 py-1.5 px-2 text-right">Peso *</th>
                         <th class="w-8 py-1.5 px-2 text-center"></th>
                     </tr>
@@ -77,7 +78,7 @@
                                        id="{{ inline_form.texto.id_for_label }}"
                                        value="{{ inline_form.texto.value|default_if_none:'' }}" required
                                        class="input input-xs input-bordered w-full h-7 text-xs {% if inline_form.texto.errors %}input-error{% endif %}"
-                                       placeholder="Ej. Creatividad, Caracterización...">
+                                       placeholder="Ej. Creatividad, Mejor Disfraz, Temática de Fiesta...">
                                 {% if inline_form.texto.errors %}
                                     <div class="text-[10px] text-error px-1 py-0.5 bg-error/10 rounded mt-0.5">
                                         {% for error in inline_form.texto.errors %}{{ error }}{% endfor %}
@@ -130,20 +131,21 @@
                 <button type="button" id="add-criterio"
                         class="btn btn-xs btn-outline btn-primary gap-1 font-semibold rounded-md h-7">
                     <span class="text-xs font-bold">+</span>
-                    <span>Agregar Criterio</span>
+                    <span>Agregar Criterio / Pregunta</span>
                 </button>
             </div>
         </div>
 
-        <!-- SECCIÓN 2: PARTICIPANTES / EQUIPOS -->
+        <!-- SECCIÓN 2: OPCIONES / PARTICIPANTES / TEMÁTICAS A VOTAR -->
         <div class="border-t border-base-200 bg-base-100">
             <div class="px-4 py-2 flex items-center justify-between bg-base-200/30 border-b border-base-200">
                 <div class="flex items-center gap-2">
-                    <span class="icon-[tabler--users] text-primary text-base"></span>
-                    <h2 class="font-bold text-xs text-base-content uppercase tracking-wider">Participantes /
-                        Equipos</h2>
+                    <span class="icon-[tabler--list-check] text-primary text-base"></span>
+                    <h2 class="font-bold text-xs text-base-content uppercase tracking-wider">
+                        Opciones / Participantes / Propuestas
+                    </h2>
                 </div>
-                <span class="text-[11px] text-base-content/50">Mínimo 1 participante requerido</span>
+                <span class="text-[11px] text-base-content/50">Mínimo 1 opción disponible para votar</span>
             </div>
 
             {{ Participantes.management_form }}
@@ -153,9 +155,9 @@
                     <thead>
                     <tr class="bg-base-200/60 text-[11px] uppercase tracking-wider text-base-content/70 border-b border-base-200">
                         <th class="w-8 py-1.5 px-2 text-center">#</th>
-                        <th class="w-64 py-1.5 px-2">Nombre del Participante / Equipo *</th>
-                        <th class="py-1.5 px-2">Descripción / Detalle del Disfraz</th>
-                        <th class="w-56 py-1.5 px-2">Imagen / Fotografía</th>
+                        <th class="w-64 py-1.5 px-2">Nombre de la Opción / Participante *</th>
+                        <th class="py-1.5 px-2">Descripción / Propuesta / Detalles</th>
+                        <th class="w-56 py-1.5 px-2">Imagen / Foto Referencial</th>
                         <th class="w-8 py-1.5 px-2 text-center"></th>
                     </tr>
                     </thead>
@@ -175,7 +177,7 @@
                                        id="{{ inline_form.nombre.id_for_label }}"
                                        value="{{ inline_form.nombre.value|default_if_none:'' }}" required
                                        class="input input-xs input-bordered w-full h-7 text-xs {% if inline_form.nombre.errors %}input-error{% endif %}"
-                                       placeholder="Ej. Equipo Los Fantasmas...">
+                                       placeholder="Ej. Fiesta Gatsby / Años 20, Equipo Fantasmas...">
                                 {% if inline_form.nombre.errors %}
                                     <div class="text-[10px] text-error px-1 py-0.5 bg-error/10 rounded mt-0.5">
                                         {% for error in inline_form.nombre.errors %}{{ error }}{% endfor %}
@@ -189,7 +191,7 @@
                                        id="{{ inline_form.descripcion.id_for_label }}"
                                        value="{{ inline_form.descripcion.value|default_if_none:'' }}"
                                        class="input input-xs input-bordered w-full h-7 text-xs"
-                                       placeholder="Detalles del disfraz o integrantes...">
+                                       placeholder="Breve reseña, vestimenta o detalles...">
                             </td>
 
                             <td class="p-1 align-middle">
@@ -209,7 +211,7 @@
                                 {% endif %}
                                 <button type="button"
                                         class="btn btn-ghost btn-xs btn-square text-error/60 hover:text-error hover:bg-error/10 size-6 rounded btn-delete-row"
-                                        title="Eliminar participante">
+                                        title="Eliminar opción">
                                     ✕
                                 </button>
                             </td>
@@ -223,7 +225,7 @@
                 <button type="button" id="add-participante"
                         class="btn btn-xs btn-outline btn-primary gap-1 font-semibold rounded-md h-7">
                     <span class="text-xs font-bold">+</span>
-                    <span>Agregar Participante</span>
+                    <span>Agregar Opción / Participante</span>
                 </button>
             </div>
         </div>

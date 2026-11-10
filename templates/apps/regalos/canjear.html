@@ -1,139 +1,419 @@
 <c-layouts.base>
-    <!-- SCRIPT DE LOTTIE-WEB OFICIAL -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
-    <!-- SCRIPT DE HTML5-QRCODE PARA USAR LA CÁMARA -->
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- TIPOGRAFÍA, LECTOR QR Y CANVAS-CONFETTI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-    <div class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-base-300 via-base-200 to-base-300 relative overflow-hidden">
+    <!-- ESTILOS Y ANIMACIONES CINEMÁTICAS AWWWARDS -->
+    <style>
+        :root {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
 
-        <!-- DECORACIONES DE FONDO -->
-        <div class="absolute -top-12 -left-12 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div class="absolute -bottom-12 -right-12 w-48 h-48 bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
 
-        <div class="card w-full max-w-md bg-base-100/95 backdrop-blur-xl shadow-2xl border border-base-300/80 overflow-hidden relative z-10">
-            <div class="card-body text-center p-6 md:p-6">
+        @keyframes ambientDrift {
+            0%, 100% {
+                transform: scale(1) translate3d(0, 0, 0);
+                opacity: 0.35;
+            }
+            50% {
+                transform: scale(1.18) translate3d(25px, -20px, 0);
+                opacity: 0.65;
+            }
+        }
 
-                <!-- ENCABEZADO -->
-                <div class="inline-flex p-3 bg-primary/10 rounded-2xl mb-1 mx-auto text-primary shadow-inner">
-                    <span class="text-3xl">🎁</span>
+        @keyframes laserSweep {
+            0% {
+                top: 0%;
+                opacity: 0;
+            }
+            20% {
+                opacity: 0.9;
+            }
+            80% {
+                opacity: 0.9;
+            }
+            100% {
+                top: 98%;
+                opacity: 0;
+            }
+        }
+
+        /* ANIMACIÓN CINEMÁTICA DE LA CAJA DE REGALO ABRIÉNDOSE */
+        @keyframes giftLidOpen {
+            0% {
+                transform: translateY(0) rotate(0deg);
+            }
+            40% {
+                transform: translateY(-28px) rotate(-14deg);
+            }
+            70% {
+                transform: translateY(-40px) rotate(-18deg) scale(1.05);
+                opacity: 0.95;
+            }
+            100% {
+                transform: translateY(-55px) rotate(-22deg) scale(1.1);
+                opacity: 0;
+            }
+        }
+
+        @keyframes giftBoxPulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            30% {
+                transform: scale(1.06);
+            }
+            60% {
+                transform: scale(0.98);
+            }
+        }
+
+        @keyframes giftRadialGlow {
+            0% {
+                opacity: 0;
+                transform: scale(0.6);
+            }
+            50% {
+                opacity: 0.95;
+                transform: scale(1.25);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(1.6);
+            }
+        }
+
+        .animate-ambient-1 {
+            animation: ambientDrift 16s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .animate-ambient-2 {
+            animation: ambientDrift 20s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .scanner-laser {
+            animation: laserSweep 2s ease-in-out infinite;
+        }
+
+        .anim-lid-open {
+            animation: giftLidOpen 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .anim-box-body {
+            animation: giftBoxPulse 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .anim-radial-glow {
+            animation: giftRadialGlow 1.4s ease-out forwards;
+        }
+
+        .glass-panel-luxury {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.012) 100%);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8), inset 0 1px 1px 0 rgba(255, 255, 255, 0.12);
+        }
+
+        .glass-card {
+            background: linear-gradient(145deg, rgba(24, 24, 27, 0.7) 0%, rgba(9, 9, 11, 0.85) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        /* Estilización para el viewport de la cámara html5-qrcode */
+        #reader video {
+            border-radius: 1rem;
+            object-fit: cover !important;
+            width: 100% !important;
+        }
+        #reader {
+            border: none !important;
+        }
+    </style>
+
+    <!-- PANTALLA COMPLETA EN DARK MODE PROFUNDO (#050507) -->
+    <div data-theme="{{ evento.empresa.theme }}"
+         class="min-h-screen w-full bg-[#050507] text-white flex flex-col justify-between p-4 md:p-8 relative overflow-x-hidden select-none">
+
+        <!-- MALLA DE GRADIENTES AMBIENTALES Y MICRO-PUNTOS -->
+        <div class="absolute inset-0 pointer-events-none overflow-hidden">
+            <div class="absolute inset-0 opacity-[0.14] bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px]"></div>
+            <div class="absolute -top-32 left-1/4 w-[750px] h-[750px] bg-gradient-to-br from-amber-500/18 via-orange-600/10 to-transparent rounded-full blur-[150px] animate-ambient-1 mix-blend-screen"></div>
+            <div class="absolute -bottom-40 right-1/4 w-[850px] h-[850px] bg-gradient-to-tl from-indigo-600/18 via-purple-900/10 to-transparent rounded-full blur-[170px] animate-ambient-2 mix-blend-screen"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-amber-400/5 rounded-full blur-[130px]"></div>
+        </div>
+
+        <!-- 1. HEADER OPERATIVO MINIMALISTA -->
+        <header class="relative z-20 w-full max-w-2xl mx-auto glass-panel-luxury rounded-2xl px-6 py-4 mb-6 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-300">
+                    <svg class="w-5 h-5 stroke-[1.75]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5zM6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-sm font-black uppercase tracking-wider text-white">Canje de Regalos</h1>
+                    <p class="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">{{ evento.nombre }}</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-xs font-mono text-zinc-400">Escáner Activo</span>
+            </div>
+        </header>
+
+        <!-- 2. CONTENEDOR PRINCIPAL: ASISTENTE DE PASOS Y LECTOR -->
+        <main class="relative z-20 flex-1 flex flex-col items-center justify-center max-w-xl mx-auto w-full my-auto">
+
+            <!-- BARRA ASISTENTE DE PASOS VISUAL (STEP 1 -> STEP 2) -->
+            <div class="w-full grid grid-cols-2 gap-3 mb-5" id="stepper-bar">
+                <!-- Step 1: Invitado -->
+                <div id="step-1-indicator"
+                     class="p-3.5 rounded-2xl glass-card border border-amber-400/60 bg-amber-400/10 flex items-center space-x-3 transition-all duration-500">
+                    <div id="step-1-badge"
+                         class="w-7 h-7 rounded-xl bg-amber-400 text-zinc-950 font-black font-mono text-xs flex items-center justify-center shrink-0">
+                        1
+                    </div>
+                    <div class="overflow-hidden">
+                        <span class="text-[9px] font-mono uppercase tracking-widest text-amber-300 font-bold block">Paso 1</span>
+                        <p class="text-xs font-bold text-white truncate">QR Invitado</p>
+                    </div>
                 </div>
 
-                <h1 class="card-title text-2xl font-black justify-center text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">
-                    Escáner de Canje
-                </h1>
-                <p class="text-xs text-base-content/70 font-bold uppercase tracking-wider mt-0.5">
-                    Evento: <span class="text-primary font-black">{{ evento.nombre }}</span>
-                </p>
+                <!-- Step 2: Regalo -->
+                <div id="step-2-indicator"
+                     class="p-3.5 rounded-2xl glass-card border border-white/10 opacity-50 flex items-center space-x-3 transition-all duration-500">
+                    <div id="step-2-badge"
+                         class="w-7 h-7 rounded-xl bg-white/10 text-zinc-400 font-black font-mono text-xs flex items-center justify-center shrink-0">
+                        2
+                    </div>
+                    <div class="overflow-hidden">
+                        <span class="text-[9px] font-mono uppercase tracking-widest text-zinc-500 font-bold block">Paso 2</span>
+                        <p class="text-xs font-bold text-zinc-400 truncate">QR Regalo</p>
+                    </div>
+                </div>
+            </div>
 
-                <!-- CONTENEDOR DE CÁMARA Y ESTADOS -->
-                <div id="section-escaneo" class="mt-4 space-y-4 text-left">
+            <!-- TARJETA DEL ESCÁNER PRINCIPAL -->
+            <div id="section-escaneo" class="w-full glass-panel-luxury rounded-3xl p-6 md:p-8 flex flex-col items-center relative overflow-hidden">
+                <!-- ALERTA DINÁMICA DE ERROR -->
+                <div id="alerta-error" class="hidden w-full mb-4 p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center space-x-2.5">
+                    <svg class="w-4 h-4 shrink-0 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                    </svg>
+                    <span id="texto-error">Error al escanear</span>
+                </div>
 
-                    <!-- ALERTA DE MENSAJES DINÁMICOS -->
-                    <div id="alerta-error" class="hidden alert alert-error text-xs shadow-md py-2 px-3">
-                        <span class="icon-[tabler--alert-triangle] text-base shrink-0"></span>
-                        <span id="texto-error">Error en el proceso</span>
+                <!-- CONTENEDOR CÁMARA CON HAZ LÁSER -->
+                <div class="relative w-full aspect-square max-w-[340px] rounded-2xl overflow-hidden border border-white/10 bg-black/60 shadow-2xl flex items-center justify-center">
+                    <!-- Haz Láser Animado -->
+                    <div class="scanner-laser absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_15px_#f59e0b] z-20 pointer-events-none"></div>
+
+                    <!-- Esquinas de Guía del Escáner -->
+                    <div class="absolute inset-4 pointer-events-none z-10 flex flex-col justify-between">
+                        <div class="flex justify-between">
+                            <span class="w-4 h-4 border-t-2 border-l-2 border-amber-400"></span>
+                            <span class="w-4 h-4 border-t-2 border-r-2 border-amber-400"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="w-4 h-4 border-b-2 border-l-2 border-amber-400"></span>
+                            <span class="w-4 h-4 border-b-2 border-r-2 border-amber-400"></span>
+                        </div>
                     </div>
 
-                    <!-- LECTOR DE CÁMARA VISIBLE -->
-                    <div class="relative bg-neutral rounded-xl overflow-hidden border border-base-300 shadow-inner">
-                        <div id="reader" style="width: 100%; min-height: 250px;"></div>
+                    <!-- Lector nativo html5-qrcode -->
+                    <div id="reader" class="w-full h-full"></div>
+                </div>
+
+                <!-- INSTRUCCIÓN ACTIVA PARA EL OPERADOR -->
+                <div class="mt-6 text-center">
+                    <p id="instrucciones-escaneo" class="text-sm font-bold text-white tracking-wide">
+                        Apunta la cámara al código QR del <span class="text-amber-400 font-black underline">Invitado</span>.
+                    </p>
+                    <p class="text-[11px] text-zinc-400 font-mono mt-1">Coloca el código QR dentro del marco iluminado</p>
+                </div>
+            </div>
+
+            <!-- SECCIÓN CINEMÁTICA DE APERTURA DE REGALO (EL MOMENTO MÁGICO) -->
+            <div id="section-revelacion" class="hidden w-full glass-panel-luxury rounded-3xl p-8 md:p-10 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                <!-- Aura de Luz Radial -->
+                <div id="box-glow" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-amber-400/25 rounded-full blur-3xl pointer-events-none opacity-0"></div>
+
+                <!-- CAJA DE REGALO VECTORIAL ANIMADA -->
+                <div id="vector-gift-box" class="relative w-44 h-44 flex items-center justify-center cursor-pointer my-4" onclick="ejecutarAperturaCinematica()">
+                    <svg class="w-36 h-36 drop-shadow-[0_15px_30px_rgba(245,158,11,0.35)]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Tapa del Regalo (Animada con Clase anim-lid-open) -->
+                        <g id="gift-lid" class="transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]">
+                            <!-- Lazo superior -->
+                            <path d="M50 20 C42 10, 32 18, 48 24 C50 24, 50 24, 50 24 C50 24, 50 24, 52 24 C68 18, 58 10, 50 20 Z" fill="#fbbf24"/>
+                            <rect x="20" y="24" width="60" height="12" rx="3" fill="#f59e0b"/>
+                            <!-- Cinta vertical de tapa -->
+                            <rect x="45" y="24" width="10" height="12" fill="#fbbf24"/>
+                        </g>
+
+                        <!-- Cuerpo del Regalo (Animada con Clase anim-box-body) -->
+                        <g id="gift-body">
+                            <rect x="25" y="36" width="50" height="46" rx="4" fill="#d97706"/>
+                            <!-- Cinta vertical de cuerpo -->
+                            <rect x="45" y="36" width="10" height="46" fill="#fbbf24"/>
+                            <!-- Cinta horizontal de cuerpo -->
+                            <rect x="25" y="54" width="50" height="10" fill="#fbbf24"/>
+                        </g>
+                    </svg>
+
+                    <div id="click-tap-hint" class="absolute -bottom-2 px-4 py-1.5 rounded-full bg-amber-400 text-zinc-950 font-black font-mono text-[10px] uppercase tracking-widest animate-bounce shadow-lg">
+                        Toca para Abrir
+                    </div>
+                </div>
+
+                <!-- TARJETA FINAL DE RESULTADO CON MANEJO DE IMÁGENES FALTANTES -->
+                <div id="premio-revealed" class="hidden w-full flex-col items-center space-y-4">
+                    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-400/15 border border-emerald-400/40 text-emerald-300 font-mono text-xs font-bold uppercase tracking-widest">
+                        <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                        ¡Canje Exitoso!
                     </div>
 
-                    <!-- ESTADO ACTUAL DEL PROCESO -->
-                    <div id="status-card" class="p-3 rounded-xl bg-base-200/80 border border-base-300 text-center">
-                        <div class="badge badge-primary font-bold mb-1" id="badge-paso">PASO 1 DE 2</div>
-                        <p id="instrucciones-escaneo" class="text-xs font-bold text-base-content">
-                            Apunta la cámara al código QR del <span class="text-primary underline">Invitado</span>.
+                    <div class="px-3.5 py-1 rounded-xl bg-amber-400 text-zinc-950 font-mono text-xs font-black" id="txt-premio-numero">
+                        Boleto #000
+                    </div>
+
+                    <h2 id="txt-premio-nombre" class="text-2xl md:text-3xl font-black text-white tracking-tight">
+                        Nombre del Premio
+                    </h2>
+
+                    <!-- Ganador Confirmado -->
+                    <div class="py-2.5 px-6 rounded-2xl bg-white/[0.04] border border-white/10 w-full max-w-sm">
+                        <span class="text-[9px] font-mono text-zinc-400 uppercase tracking-widest block">Ganador(a) Oficial</span>
+                        <p id="txt-ganador-nombre" class="text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-white truncate mt-0.5">
+                            Nombre del Colaborador
                         </p>
-                        <div id="info-invitado-validado" class="hidden mt-2 text-xs font-bold text-success flex items-center justify-center gap-1">
-                            <span class="icon-[tabler--circle-check] text-sm"></span>
-                            <span>Invitado: <strong id="lbl-nombre-invitado" class="underline"></strong></span>
-                        </div>
                     </div>
 
+                    <!-- Contenedor Media con Fallback Blindado -->
+                    <div id="premio-media-container" class="w-full max-w-xs h-40 rounded-2xl overflow-hidden border border-white/10 relative my-2">
+                        <!-- Inyectado por JS -->
+                    </div>
+
+                    <button onclick="location.reload()"
+                            class="mt-4 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-600 text-zinc-950 font-black text-xs font-mono uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(245,158,11,0.3)] hover:scale-102 transition-transform cursor-pointer">
+                        Escanear Siguiente Canje
+                    </button>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- 3. MODAL DE CONFIRMACIÓN DE INVITADO (PASO 1 -> PASO 2) -->
+        <div id="modal-confirmar-invitado"
+             class="fixed inset-0 bg-black/85 backdrop-blur-xl z-50 flex items-center justify-center p-4 hidden">
+            <div class="w-full max-w-md glass-panel-luxury rounded-3xl p-6 md:p-8 text-center relative border border-amber-400/40 shadow-[0_25px_60px_rgba(0,0,0,0.9)]">
+                <!-- Insignia Paso 1 Completado -->
+                <div class="w-14 h-14 rounded-2xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center mx-auto mb-4 text-amber-300">
+                    <svg class="w-7 h-7 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                    </svg>
                 </div>
 
-                <!-- SECCIÓN DE APERTURA Y REVELACIÓN DEL REGALO -->
-                <div id="section-revelacion" class="hidden relative min-h-[380px] flex flex-col justify-center items-center my-2">
+                <span class="text-[10px] font-mono text-amber-400 uppercase tracking-[0.25em] font-bold">Invitado Verificado</span>
+                <h3 class="text-xl md:text-2xl font-black text-white mt-1 mb-4" id="modal-invitado-nombre">
+                    Nombre del Invitado
+                </h3>
 
-                    <!-- CONTENEDOR DE LA ANIMACIÓN LOTTIE-WEB -->
-                    <div id="gift-box-container"
-                         class="cursor-pointer flex flex-col items-center group transition-transform hover:scale-105"
-                         onclick="revelarPremioMovil()">
-
-                        <div id="lottie-gift" style="width: 180px; height: 180px;"></div>
-
-                        <div id="click-prompt" class="badge badge-primary badge-lg font-black uppercase tracking-widest px-6 py-3 shadow-lg shadow-primary/20 animate-bounce mt-2">
-                            👇 ¡Toca para abrir! 👇
-                        </div>
-                    </div>
-
-                    <!-- REVELACIÓN DEL PREMIO -->
-                    <div id="premio-revealed"
-                         class="hidden flex-col items-center justify-center space-y-3 w-full animate-fade-in">
-                        <div class="badge badge-success badge-lg text-white font-black tracking-wider px-6 py-3 shadow-lg shadow-success/30 uppercase text-xs">
-                            🎉 ¡PREMIO DESBLOQUEADO! 🎉
-                        </div>
-
-                        <h2 id="txt-premio-nombre" class="text-2xl font-black text-primary leading-tight mt-1 drop-shadow-sm">
-                            -
-                        </h2>
-
-                        <div class="bg-base-200/80 py-2 px-6 rounded-full border border-base-300 shadow-sm">
-                            <span class="text-xs text-base-content/60 font-bold uppercase tracking-wider">Ganador(a):</span>
-                            <strong id="txt-ganador-nombre" class="text-info text-sm ml-1 font-black">-</strong>
-                        </div>
-
-                        <div class="badge badge-warning badge-lg font-mono font-black mt-2" id="txt-premio-numero">
-                            #000
-                        </div>
-
-                        <div class="card-actions justify-center mt-4">
-                            <button class="btn btn-primary btn-sm font-bold text-white shadow-md" onclick="location.reload()">Escanear Siguiente Canje 🔄</button>
-                        </div>
-                    </div>
-
+                <div class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 mb-6 text-left">
+                    <span class="text-[9px] font-mono uppercase tracking-widest text-zinc-500 block">Identificador de Acceso</span>
+                    <p class="text-xs font-mono text-zinc-300 truncate mt-0.5" id="modal-invitado-qr">QR-0000</p>
                 </div>
 
+                <div class="flex items-center gap-3">
+                    <button onclick="cancelarInvitado()"
+                            class="flex-1 py-3.5 px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-zinc-300 text-xs font-mono uppercase tracking-wider transition-colors cursor-pointer">
+                        Cancelar
+                    </button>
+                    <button onclick="confirmarInvitadoYContinuar()"
+                            class="flex-1 py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-zinc-950 text-xs font-mono uppercase font-black tracking-wider shadow-lg hover:scale-102 transition-transform cursor-pointer">
+                        Continuar al Regalo ›
+                    </button>
+                </div>
             </div>
         </div>
+
+        <!-- FOOTER CORPORATIVO -->
+        <footer class="relative z-20 w-full max-w-2xl mx-auto py-3 text-center text-zinc-500 text-[11px] font-mono">
+            <span>TERMINAL DE CANJE • CORPORATIVO UNE</span>
+        </footer>
+
     </div>
 
-    <!-- SCRIPT DE CÁMARA Y LÓGICA DE ESCANEO -->
+    <!-- AUDIO PARA DESTACADOS Y ACIERTOS -->
+    <audio id="sound-success" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3" preload="auto"></audio>
+    <audio id="sound-fanfare" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+    <!-- CONTROLADOR JAVASCRIPT: LECTURA DUAL QR, MODAL Y APERTURA DE REGALO -->
     <script>
-        let animacionRegalo;
-        let html5QrCode;
-        let pasoActual = 1; // 1: Escanear Invitado, 2: Escanear Regalo
+        let html5QrCode = null;
+        let pasoActual = 1; // 1: Invitado, 2: Regalo, 0: Bloqueado
         let invitadoQrActual = null;
+        let invitadoNombreActual = "";
+        let datosCanjeFinal = null;
+
+        // Generador de Placeholder Blindado de Lujo
+        function generarPlaceholderLujoso(titulo, alturaClase = "h-40") {
+            return `
+                <div class="w-full ${alturaClase} rounded-xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 border border-white/[0.06] flex flex-col items-center justify-center p-4 relative overflow-hidden">
+                    <div class="absolute inset-0 opacity-[0.08] bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                    <div class="relative w-10 h-10 rounded-xl bg-amber-400/[0.08] border border-amber-400/20 flex items-center justify-center mb-2.5 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                        <svg class="w-5 h-5 text-amber-300 stroke-[1.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H4.5a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h17.25" />
+                        </svg>
+                    </div>
+                    <span class="relative text-[11px] font-mono uppercase tracking-[0.2em] text-zinc-400 line-clamp-1 text-center font-medium">
+                        ${titulo}
+                    </span>
+                </div>
+            `;
+        }
 
         document.addEventListener("DOMContentLoaded", function () {
-            // Inicializar Lottie
-            const contenedor = document.getElementById('lottie-gift');
-            if (contenedor) {
-                animacionRegalo = lottie.loadAnimation({
-                    container: contenedor,
-                    renderer: 'svg',
-                    loop: false,
-                    autoplay: false,
-                    path: 'https://lottie.host/0f731e26-b070-4897-8746-aa468049e827/FhDrqdRK7d.json'
-                });
-            }
-
-            // Inicializar Lector de Cámara con html5-qrcode
-            html5QrCode = new Html5Qrcode("reader");
-            const configQR = { fps: 10, qrbox: { width: 220, height: 220 } };
-
-            // Iniciar escaneo en la cámara trasera por defecto
-            html5QrCode.start(
-                { facingMode: "environment" },
-                configQR,
-                onScanSuccess,
-                onScanFailure
-            ).catch(err => {
-                console.error("Error al iniciar la cámara: ", err);
-                mostrarError("No se pudo acceder a la cámara. Asegúrate de dar permisos HTTPS.");
-            });
+            iniciarLectorCamara();
         });
+
+        function iniciarLectorCamara() {
+            try {
+                html5QrCode = new Html5Qrcode("reader");
+                const configQR = {
+                    fps: 10,
+                    qrbox: function(viewfinderWidth, viewfinderHeight) {
+                        const edge = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.75);
+                        return { width: edge, height: edge };
+                    },
+                    aspectRatio: 1.0
+                };
+
+                html5QrCode.start(
+                    { facingMode: "environment" },
+                    configQR,
+                    onScanSuccess,
+                    () => {} // Ignorar cuadros sin QR
+                ).catch(err => {
+                    console.error("Cámara error al iniciar: ", err);
+                    mostrarError("No se pudo iniciar la cámara trasera. Asegúrate de otorgar permisos de cámara en el navegador.");
+                });
+            } catch (err) {
+                console.error("Error al instanciar Html5Qrcode: ", err);
+                mostrarError("Error al cargar el motor del escáner: " + (err.message || err));
+            }
+        }
 
         function mostrarError(mensaje) {
             const alerta = document.getElementById('alerta-error');
@@ -143,25 +423,20 @@
             setTimeout(() => { alerta.classList.add('hidden'); }, 5000);
         }
 
-        // Esta función se ejecuta cada vez que la cámara lee un código QR con éxito
-        function onScanSuccess(decodedText, decodedResult) {
-            // Pausamos brevemente el escaneo para evitar lecturas duplicadas en milisegundos
+        // Detección de lectura QR
+        function onScanSuccess(decodedText) {
+            const qrLimpio = decodedText.trim();
+
             if (pasoActual === 1) {
-                // Procesar Paso 1: Invitado
-                pasoActual = 0; // Bloquear temporalmente lecturas
-                validarInvitadoQR(decodedText.trim());
+                pasoActual = 0; // Bloqueo momentáneo
+                validarInvitadoQR(qrLimpio);
             } else if (pasoActual === 2) {
-                // Procesar Paso 2: Regalo
-                pasoActual = 0; // Bloquear temporalmente lecturas
-                enviarCanjeFinal(decodedText.trim());
+                pasoActual = 0; // Bloqueo momentáneo
+                procesarCanjeFinal(qrLimpio);
             }
         }
 
-        function onScanFailure(error) {
-            // Se ignora para que siga buscando continuamente sin llenar la consola
-        }
-
-        // Validación AJAX del Invitado
+        // PASO 1: Validación de Invitado por AJAX y apertura de Modal de Seguridad
         function validarInvitadoQR(codigoQr) {
             const formData = new FormData();
             formData.append('invitado_qr', codigoQr);
@@ -171,34 +446,70 @@
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json().then(data => ({ status: response.status, body: data })))
-            .then(res => {
-                if (res.status === 200 && res.body.status === 'success') {
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
                     invitadoQrActual = codigoQr;
-                    pasoActual = 2; // Avanzar al paso 2
+                    invitadoNombreActual = data.nombre_completo;
 
-                    // Actualizar interfaz visual
-                    document.getElementById('badge-paso').textContent = "PASO 2 DE 2";
-                    document.getElementById('badge-paso').className = "badge badge-success font-bold mb-1";
-                    document.getElementById('instrucciones-escaneo').innerHTML = 'Invitado validado. Ahora apunta al QR del <span class="text-success underline">Regalo</span>.';
+                    // Sonido confirmación
+                    const s = document.getElementById('sound-success');
+                    if (s) s.play().catch(e => console.log(e));
 
-                    const lblNombre = document.getElementById('lbl-nombre-invitado');
-                    lblNombre.textContent = res.body.nombre_completo;
-                    document.getElementById('info-invitado-validado').classList.remove('hidden');
+                    // Desplegar Modal de Confirmación
+                    document.getElementById('modal-invitado-nombre').textContent = data.nombre_completo;
+                    document.getElementById('modal-invitado-qr').textContent = codigoQr;
+                    document.getElementById('modal-confirmar-invitado').classList.remove('hidden');
                 } else {
-                    mostrarError(res.body.message || "Invitado no encontrado.");
-                    pasoActual = 1; // Reintentar paso 1
+                    mostrarError(data.message || "Invitado no encontrado o ya canjeó regalo.");
+                    pasoActual = 1;
                 }
             })
             .catch(err => {
                 console.error(err);
-                mostrarError("Error de red al validar invitado.");
+                mostrarError("Error al conectar con el servidor.");
                 pasoActual = 1;
             });
         }
 
-        // Envío final del Canje
-        function enviarCanjeFinal(regaloQr) {
+        // Cancelar Invitado en el Modal
+        function cancelarInvitado() {
+            document.getElementById('modal-confirmar-invitado').classList.add('hidden');
+            invitadoQrActual = null;
+            invitadoNombreActual = "";
+            pasoActual = 1;
+        }
+
+        // Confirmar Invitado y Pasar al Paso 2 (Escanear Regalo)
+        function confirmarInvitadoYContinuar() {
+            document.getElementById('modal-confirmar-invitado').classList.add('hidden');
+
+            // Actualizar interfaz visual al Paso 2
+            pasoActual = 2;
+
+            // Transición en el Stepper
+            const step1 = document.getElementById('step-1-indicator');
+            const step2 = document.getElementById('step-2-indicator');
+            const badge1 = document.getElementById('step-1-badge');
+            const badge2 = document.getElementById('step-2-badge');
+
+            step1.classList.remove('border-amber-400/60', 'bg-amber-400/10');
+            step1.classList.add('border-emerald-400/40', 'bg-emerald-400/10', 'opacity-80');
+            badge1.classList.remove('bg-amber-400', 'text-zinc-950');
+            badge1.classList.add('bg-emerald-400', 'text-zinc-950');
+            badge1.innerHTML = '✓';
+
+            step2.classList.remove('border-white/10', 'opacity-50');
+            step2.classList.add('border-amber-400/60', 'bg-amber-400/10');
+            badge2.classList.remove('bg-white/10', 'text-zinc-400');
+            badge2.classList.add('bg-amber-400', 'text-zinc-950');
+
+            document.getElementById('instrucciones-escaneo').innerHTML =
+                `Invitado validado: <strong class="text-emerald-400">${invitadoNombreActual}</strong>.<br>Ahora apunta al QR del <span class="text-amber-400 font-black underline">Regalo</span>.`;
+        }
+
+        // PASO 2: Validación del Regalo y Canje Final
+        function procesarCanjeFinal(regaloQr) {
             const formData = new FormData();
             formData.append('invitado_qr', invitadoQrActual);
             formData.append('regalo_qr', regaloQr);
@@ -208,66 +519,104 @@
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json().then(data => ({ status: response.status, body: data })))
-            .then(res => {
-                if (res.status === 200 && res.body.status === 'success') {
-                    // Apagar la cámara de forma segura
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Detener cámara
                     if (html5QrCode && html5QrCode.isScanning) {
-                        html5QrCode.stop().catch(err => console.log(err));
+                        html5QrCode.stop().catch(e => console.log(e));
                     }
 
-                    // Mostrar animación de éxito
+                    datosCanjeFinal = data;
+
+                    // Ocultar sección de escaneo y mostrar revelación
+                    document.getElementById('stepper-bar').classList.add('hidden');
                     document.getElementById('section-escaneo').classList.add('hidden');
 
-                    document.getElementById('txt-premio-nombre').textContent = res.body.premio;
-                    document.getElementById('txt-ganador-nombre').textContent = res.body.ganador;
-                    document.getElementById('txt-premio-numero').textContent = "#" + res.body.numero;
+                    const secRev = document.getElementById('section-revelacion');
+                    secRev.classList.remove('hidden');
+                    secRev.classList.add('flex');
 
-                    const secRevelacion = document.getElementById('section-revelacion');
-                    secRevelacion.classList.remove('hidden');
-                    secRevelacion.classList.add('flex');
-
-                    setTimeout(revelarPremioMovil, 400);
+                    // Auto-disparar apertura cinemática
+                    setTimeout(ejecutarAperturaCinematica, 500);
                 } else {
-                    mostrarError(res.body.message || "Error al procesar canje.");
-                    pasoActual = 2; // Permitir reintentar escanear otro regalo si este falló
+                    mostrarError(data.message || "Error al validar el regalo.");
+                    pasoActual = 2; // Permitir escanear otro regalo
                 }
             })
             .catch(err => {
                 console.error(err);
-                mostrarError("Error de red al procesar el canje.");
+                mostrarError("Error al procesar el canje.");
                 pasoActual = 2;
             });
         }
 
-        let yaAbierto = false;
+        let aperturaEjecutada = false;
 
-        function revelarPremioMovil() {
-            if (yaAbierto) return;
-            yaAbierto = true;
+        // ANIMACIÓN CINEMÁTICA DE APERTURA DE REGALO
+        function ejecutarAperturaCinematica() {
+            if (aperturaEjecutada || !datosCanjeFinal) return;
+            aperturaEjecutada = true;
 
-            const clickPrompt = document.getElementById('click-prompt');
-            const boxContainer = document.getElementById('gift-box-container');
-            const premio = document.getElementById('premio-revealed');
+            const lid = document.getElementById('gift-lid');
+            const body = document.getElementById('gift-body');
+            const glow = document.getElementById('box-glow');
+            const hint = document.getElementById('click-tap-hint');
+            const boxContainer = document.getElementById('vector-gift-box');
+            const revealedSection = document.getElementById('premio-revealed');
 
-            if (!boxContainer || !premio) return;
-            if (clickPrompt) clickPrompt.style.display = 'none';
+            if (hint) hint.remove();
 
-            if (animacionRegalo) {
-                animacionRegalo.play();
-            }
+            // 1. Desencadenar animación CSS de tapa elevándose y caja pulsando
+            lid.classList.add('anim-lid-open');
+            body.classList.add('anim-box-body');
+            glow.classList.add('anim-radial-glow');
 
+            // Fanfarria / Sonido épico
+            const sound = document.getElementById('sound-fanfare');
+            if (sound) sound.play().catch(e => console.log(e));
+
+            // 2. Disparo de Confeti Dorado en el ápice de la apertura
             setTimeout(() => {
-                boxContainer.style.transform = "scale(0.8)";
-                boxContainer.style.opacity = "0";
-                boxContainer.style.transition = "all 0.4s ease-in-out";
+                if (typeof confetti === 'function') {
+                    confetti({
+                        particleCount: 70,
+                        spread: 85,
+                        origin: { y: 0.6 },
+                        colors: ['#f59e0b', '#fbbf24', '#fef3c7', '#ffffff']
+                    });
+                }
+            }, 400);
+
+            // 3. Revelar tarjeta final
+            setTimeout(() => {
+                boxContainer.style.transition = 'all 0.5s ease-out';
+                boxContainer.style.transform = 'scale(0.85)';
+                boxContainer.style.opacity = '0';
 
                 setTimeout(() => {
                     boxContainer.classList.add('hidden');
-                    premio.classList.remove('hidden');
-                    premio.classList.add('flex');
-                }, 300);
-            }, 1400);
+
+                    document.getElementById('txt-premio-numero').textContent = `Folio #${datosCanjeFinal.numero}`;
+                    document.getElementById('txt-premio-nombre').textContent = datosCanjeFinal.premio;
+                    document.getElementById('txt-ganador-nombre').textContent = datosCanjeFinal.ganador;
+
+                    const mediaContainer = document.getElementById('premio-media-container');
+                    if (datosCanjeFinal.imagen_url) {
+                        mediaContainer.innerHTML = `
+                            <img src="${datosCanjeFinal.imagen_url}" alt="${datosCanjeFinal.premio}"
+                                 class="h-full w-full object-cover"
+                                 onerror="this.parentElement.outerHTML = generarPlaceholderLujoso('${datosCanjeFinal.premio}', 'h-40');"/>
+                        `;
+                    } else {
+                        mediaContainer.innerHTML = generarPlaceholderLujoso(datosCanjeFinal.premio, 'h-40');
+                    }
+
+                    revealedSection.classList.remove('hidden');
+                    revealedSection.classList.add('flex');
+                }, 350);
+
+            }, 1200);
         }
     </script>
 </c-layouts.base>

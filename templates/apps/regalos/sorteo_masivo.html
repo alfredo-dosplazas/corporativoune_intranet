@@ -1,122 +1,587 @@
 <c-layouts.base>
-    <!-- ESTILOS DE RULETA CINEMÁTICA -->
+    <!-- CDN CANVAS-CONFETTI -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- ESTILOS Y EFECTOS CINEMÁTICOS AWWWARDS -->
     <style>
-        @keyframes slotSpin {
-            0% {
-                transform: translateY(0);
+        @keyframes pulseGlow {
+            0%, 100% {
+                transform: scale(1) translate3d(0, 0, 0);
+                opacity: 0.45;
             }
-            100% {
-                transform: translateY(-300px);
+            50% {
+                transform: scale(1.15) translate3d(20px, -20px, 0);
+                opacity: 0.75;
             }
         }
 
-        .slot-animation {
-            animation: slotSpin 0.4s infinite linear;
+        /* Ruleta con animación por JS para cálculo preciso de altura */
+        @keyframes countdownBeat {
+            0% {
+                transform: scale(0.6);
+                opacity: 0;
+                filter: blur(14px);
+            }
+            45% {
+                transform: scale(1.08);
+                opacity: 1;
+                filter: blur(0px);
+            }
+            75% {
+                transform: scale(1);
+                opacity: 1;
+                filter: blur(0px);
+            }
+            100% {
+                transform: scale(1.35);
+                opacity: 0;
+                filter: blur(18px);
+            }
+        }
+
+        @keyframes scanLaser {
+            0% {
+                top: -10%;
+                opacity: 0;
+            }
+            25% {
+                opacity: 0.9;
+            }
+            75% {
+                opacity: 0.9;
+            }
+            100% {
+                top: 110%;
+                opacity: 0;
+            }
+        }
+
+        @keyframes flashEffect {
+            0% { opacity: 0.85; }
+            100% { opacity: 0; }
+        }
+
+        .animate-aurora-1 {
+            animation: pulseGlow 14s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .animate-aurora-2 {
+            animation: pulseGlow 18s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .anim-count-beat {
+            animation: countdownBeat 0.95s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .anim-flash {
+            animation: flashEffect 0.8s ease-out forwards;
+        }
+
+        .laser-line {
+            animation: scanLaser 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        .glass-panel-luxury {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.015) 100%);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            box-shadow: 0 35px 70px -15px rgba(0, 0, 0, 0.85), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
         }
     </style>
 
-    <div class="h-screen w-screen bg-gradient-to-tr from-slate-100 via-sky-50 to-indigo-100 flex items-center justify-center p-4 overflow-hidden relative">
+    <!-- PANTALLA COMPLETA DARK MODE PROFUNDO (#050507) -->
+    <div class="fixed inset-0 w-screen h-screen bg-[#050507] text-white overflow-hidden flex flex-col justify-between select-none font-sans"
+         id="sorteo-screen-container">
 
-        <!-- ORBES AMBIENTALES -->
-        <div class="absolute -top-20 left-1/4 w-[450px] h-[450px] bg-primary/15 rounded-full blur-[120px] pointer-events-none"></div>
-        <div class="absolute -bottom-20 right-1/4 w-[450px] h-[450px] bg-secondary/15 rounded-full blur-[120px] pointer-events-none"></div>
+        <!-- DESTELLO DE PANTALLA COMPLETA (FLASH CLÍMAX) -->
+        <div id="screen-flash"
+             class="pointer-events-none fixed inset-0 z-50 bg-amber-100 opacity-0 transition-opacity"></div>
 
-        <div class="card w-full max-w-lg bg-white/95 backdrop-blur-2xl shadow-2xl border border-slate-200/80 p-8 md:p-10 text-center relative z-10 rounded-3xl">
+        <!-- CAPAS DE AMBIENTE Y LUCES EN MALLA (AURORA MESH GRADIENT) -->
+        <div class="absolute inset-0 pointer-events-none overflow-hidden">
+            <!-- Malla de micro-puntos de lujo -->
+            <div class="absolute inset-0 opacity-[0.14] bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px]"></div>
 
-            <div class="inline-flex p-5 bg-primary/10 rounded-3xl mx-auto text-primary mb-5 shadow-sm">
-                <span class="text-6xl animate-bounce">🎁</span>
-            </div>
+            <!-- Orbe 1: Ámbar / Dorado Neón -->
+            <div class="absolute -top-32 left-1/4 w-[750px] h-[750px] bg-gradient-to-br from-amber-500/20 via-orange-600/10 to-transparent rounded-full blur-[140px] animate-aurora-1 mix-blend-screen"></div>
 
-            <h1 class="text-2xl md:text-3xl font-black uppercase text-slate-900 tracking-wide">Sorteo General en
-                Vivo</h1>
-            <p class="text-xs text-slate-500 mt-2 uppercase font-extrabold tracking-wider">Evento: <span
-                    class="text-primary">{{ evento.nombre }}</span></p>
+            <!-- Orbe 2: Indigo / Violeta Ultrasensible -->
+            <div class="absolute -bottom-40 right-1/4 w-[850px] h-[850px] bg-gradient-to-tl from-indigo-600/20 via-purple-900/10 to-transparent rounded-full blur-[160px] animate-aurora-2 mix-blend-screen"></div>
 
-            <!-- PANEL INICIAL: BOTÓN DE INICIO -->
-            <div id="panel-inicio" class="mt-8">
-                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 mb-6 text-left">
-                    <p class="text-xs text-slate-700 font-medium leading-relaxed">
-                        {% if modo_automatico_ofuscado %}
-                            🔒 <strong>Modo Sistema:</strong> Archivo cifrado de asignación detectado y listo para
-                            procesar de forma segura.
-                        {% else %}
-                            🎲 <strong>Modo Automático:</strong> Sistema listo para distribuir los premios de manera
-                            completamente aleatoria entre los asistentes.
-                        {% endif %}
-                    </p>
-                </div>
-
-                <button onclick="iniciarSorteoMasivo()"
-                        class="btn btn-primary btn-lg w-full font-black tracking-widest uppercase shadow-xl hover:scale-102 transition-transform text-white">
-                    🚀 Iniciar Sorteo General
-                </button>
-            </div>
-
-            <!-- PANEL RULETA / ANIMACIÓN CINEMÁTICA DE CÁLCULO -->
-            <div id="panel-ruleta" class="hidden py-8 flex flex-col items-center justify-center space-y-6">
-                <div class="relative w-36 h-36 flex items-center justify-center bg-slate-900 rounded-full shadow-2xl border-4 border-primary/40 overflow-hidden">
-                    <div class="absolute inset-0 border-8 border-dashed border-primary/60 rounded-full animate-spin"
-                         style="animation-duration: 3s;"></div>
-                    <div class="absolute inset-2 border-4 border-secondary/40 rounded-full animate-spin"
-                         style="animation-duration: 2s; animation-direction: reverse;"></div>
-                    <span class="text-6xl z-10 animate-pulse">🎰</span>
-                </div>
-                <div>
-                    <h3 class="text-xl font-black text-slate-900 animate-pulse">Calculando asignaciones...</h3>
-                    <p class="text-xs text-slate-500 mt-1 font-medium">Cruzando bases de datos y generando
-                        ganadores...</p>
-                </div>
-            </div>
-
-            <!-- PANEL DE ÉXITO -->
-            <div id="panel-exito" class="hidden py-6 flex flex-col items-center space-y-4 animate-page-in">
-                <span class="text-6xl animate-bounce">🎉</span>
-                <h2 class="text-2xl font-black text-emerald-600">¡Sorteo Concluido con Éxito!</h2>
-                <p class="text-xs text-slate-600 font-medium">Todos los regalos han sido asignados correctamente.
-                    Redirigiendo a la transmisión...</p>
-                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div class="bg-emerald-500 h-full animate-pulse w-full"></div>
-                </div>
-            </div>
-
+            <!-- Halo Central de Enfoque -->
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-amber-400/5 rounded-full blur-[120px]"></div>
         </div>
+
+        <!-- HEADER CINEMÁTICO SUPERIOR -->
+        <header class="relative z-20 w-full px-8 py-7 flex items-center justify-between">
+            <div class="flex items-center space-x-3.5">
+                <div class="relative flex items-center justify-center w-3 h-3">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-[11px] font-bold tracking-[0.35em] text-amber-400/90 uppercase font-mono">Modo Transmisión en Vivo</span>
+                    <span class="text-xs text-zinc-500 tracking-wider">Sistema de Asignación Cuántica</span>
+                </div>
+            </div>
+
+            <!-- Insignia del Evento -->
+            <div class="px-5 py-2 rounded-full glass-panel-luxury flex items-center space-x-2.5">
+                <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
+                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+                <span class="text-xs font-semibold uppercase tracking-widest text-zinc-300">{{ evento.nombre }}</span>
+            </div>
+        </header>
+
+        <!-- CONTENEDOR PRINCIPAL: EXPERIENCIA MULTI-FASE -->
+        <main class="relative z-20 flex-1 flex items-center justify-center px-4 w-full max-w-5xl mx-auto">
+
+            <!-- ========================================== -->
+            <!-- FASE 1: STANDBY / BOTÓN MAJESTUOSO          -->
+            <!-- ========================================== -->
+            <div id="fase-standby"
+                 class="w-full max-w-xl text-center flex flex-col items-center transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]">
+                <!-- Glifo Escultórico -->
+                <div class="relative group mb-10">
+                    <div class="absolute -inset-4 bg-gradient-to-r from-amber-500/30 to-amber-200/20 rounded-full blur-2xl group-hover:blur-3xl group-hover:scale-110 transition-all duration-700"></div>
+                    <div class="relative w-28 h-28 rounded-3xl glass-panel-luxury flex items-center justify-center border border-amber-500/30 shadow-[0_0_50px_rgba(245,158,11,0.25)] group-hover:border-amber-400/60 transition-all duration-500">
+                        <svg class="w-12 h-12 text-amber-300 stroke-[1.25]" fill="none" stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 00-2 2v6a2 2 0 002 2h14a2 2 0 002-2v-6a2 2 0 00-2-2H5z"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Tipografía de Entrada -->
+                <h1 class="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-100 to-zinc-400">
+                    Gran Sorteo Masivo
+                </h1>
+                <p class="text-sm md:text-base text-zinc-400 font-light mt-3.5 tracking-wide max-w-md">
+                    Algoritmo de asignación automatizada de regalos corporativos y premios de gala.
+                </p>
+
+                <!-- Estado del Sistema -->
+                <div class="mt-7 inline-flex items-center gap-2.5 px-4 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-xs font-mono text-zinc-400">
+                    {% if modo_automatico_ofuscado %}
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span class="tracking-wide">Modo Criptográfico: Configuración de asignación verificada</span>
+                    {% else %}
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span class="tracking-wide">Modo Aleatorio Puro: Distribución estocástica lista</span>
+                    {% endif %}
+                </div>
+
+                <!-- Botón de Inicio con Aura y Pulso -->
+                <div class="relative mt-11 w-full max-w-sm">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-300 rounded-2xl blur-lg opacity-60 group-hover:opacity-100 animate-pulse transition duration-1000"></div>
+                    <button onclick="comenzarExperiencia()"
+                            id="btn-iniciar"
+                            class="relative w-full py-5 px-8 rounded-2xl bg-gradient-to-b from-amber-400 to-amber-600 text-zinc-950 font-black text-sm uppercase tracking-[0.25em] shadow-[0_20px_40px_rgba(245,158,11,0.35)] hover:shadow-[0_25px_50px_rgba(245,158,11,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer flex items-center justify-center gap-3">
+                        <span>Iniciar Sorteo Masivo</span>
+                        <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- FASE 2: CONTEO REGRESIVO CINEMÁTICO        -->
+            <!-- ========================================== -->
+            <div id="fase-countdown" class="hidden flex-col items-center justify-center text-center">
+                <span class="text-xs uppercase font-mono tracking-[0.5em] text-amber-400/80 mb-4 block">Iniciando protocolo</span>
+                <div id="countdown-number"
+                     class="text-[140px] md:text-[220px] font-black leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-amber-200 to-amber-600 drop-shadow-[0_0_80px_rgba(245,158,11,0.5)] font-mono">
+                    3
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- FASE 3: PROCESAMIENTO MASIVO (SLOT & TERMINAL) -->
+            <!-- ========================================== -->
+            <div id="fase-procesamiento" class="hidden w-full max-w-3xl flex-col items-center">
+                <!-- Panel Central Flotante Glassmorphic -->
+                <div class="w-full rounded-3xl glass-panel-luxury p-8 md:p-10 relative overflow-hidden">
+                    <!-- Haz Láser de Escaneo -->
+                    <div class="laser-line absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_15px_#f59e0b] pointer-events-none"></div>
+
+                    <!-- Cabecera de Estado -->
+                    <div class="flex items-center justify-between pb-5 border-b border-white/[0.08]">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></div>
+                            <span class="text-xs font-mono uppercase tracking-[0.25em] text-zinc-300">Asignación Masiva Activa</span>
+                        </div>
+                        <span id="label-porcentaje" class="text-sm font-mono font-bold text-amber-400">0%</span>
+                    </div>
+
+                    <!-- SLOT MACHINE: DISEÑO AJUSTADO Y REFINADO PARA NOMBRES LARGOS -->
+                    <div class="my-7 grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                        <!-- Ruleta Invitados (Card Altura 136px con degradado de profundidad y padding optimizado) -->
+                        <div class="relative h-[136px] rounded-2xl bg-zinc-950/80 border border-white/[0.08] overflow-hidden flex flex-col justify-center shadow-inner">
+                            <!-- Difuminados superior e inferior de desvanecimiento -->
+                            <div class="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-[#050507] via-[#050507]/80 to-transparent z-20 pointer-events-none"></div>
+                            <div class="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#050507] via-[#050507]/80 to-transparent z-20 pointer-events-none"></div>
+                            
+                            <!-- Línea de mira central sutil -->
+                            <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[48px] bg-white/[0.03] border-y border-white/[0.05] pointer-events-none z-10"></div>
+
+                            <!-- Etiqueta Flotante -->
+                            <div class="absolute top-2.5 left-3.5 z-30 flex items-center space-x-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                                <span class="text-[9px] font-mono uppercase tracking-[0.2em] text-zinc-400 font-bold">Invitado / Colaborador</span>
+                            </div>
+
+                            <!-- Ticker Desplazable -->
+                            <div id="ticker-invitados" class="flex flex-col items-center will-change-transform pt-4">
+                                <!-- Se inyecta dinámicamente con estilo de alta gama -->
+                            </div>
+                        </div>
+
+                        <!-- Ruleta Regalos -->
+                        <div class="relative h-[136px] rounded-2xl bg-zinc-950/80 border border-white/[0.08] overflow-hidden flex flex-col justify-center shadow-inner">
+                            <div class="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-[#050507] via-[#050507]/80 to-transparent z-20 pointer-events-none"></div>
+                            <div class="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#050507] via-[#050507]/80 to-transparent z-20 pointer-events-none"></div>
+
+                            <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[48px] bg-amber-400/[0.03] border-y border-amber-400/[0.1] pointer-events-none z-10"></div>
+
+                            <div class="absolute top-2.5 left-3.5 z-30 flex items-center space-x-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                <span class="text-[9px] font-mono uppercase tracking-[0.2em] text-amber-300 font-bold">Premio / Asignación</span>
+                            </div>
+
+                            <div id="ticker-regalos" class="flex flex-col items-center will-change-transform pt-4">
+                                <!-- Se inyecta dinámicamente con estilo de alta gama -->
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- BARRA DE PROGRESO DE NEÓN -->
+                    <div class="w-full">
+                        <div class="relative w-full h-2.5 rounded-full bg-zinc-900/90 border border-white/[0.08] p-0.5 overflow-hidden">
+                            <div id="progress-bar"
+                                 class="h-full rounded-full bg-gradient-to-r from-amber-500 via-orange-400 to-amber-200 transition-all duration-300 shadow-[0_0_20px_#f59e0b] w-0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TERMINAL DE ESTADO DINÁMICA -->
+                    <div class="mt-5 flex items-center justify-between">
+                        <div class="flex items-center space-x-2 text-xs font-mono text-zinc-400">
+                            <span class="text-amber-400">›</span>
+                            <span id="terminal-status-text">Inicializando motor de selección...</span>
+                        </div>
+                        <span class="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">Protocolo SHA-256</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- FASE 4: CLÍMAX Y CONFIRMACIÓN REDIRECT     -->
+            <!-- ========================================== -->
+            <div id="fase-climax" class="hidden w-full max-w-xl text-center flex-col items-center">
+                <!-- Corona de Victoria -->
+                <div class="relative mb-6">
+                    <div class="absolute -inset-6 bg-gradient-to-r from-amber-400 to-yellow-200 rounded-full blur-3xl opacity-60"></div>
+                    <div class="relative w-24 h-24 rounded-full bg-gradient-to-b from-amber-400 to-amber-600 flex items-center justify-center text-zinc-950 shadow-[0_0_60px_rgba(245,158,11,0.6)]">
+                        <svg class="w-12 h-12 stroke-[2.25]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <h2 class="text-3xl md:text-5xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-amber-100 to-amber-500">
+                    ¡Sorteo Concluido!
+                </h2>
+                <p class="text-sm md:text-base text-zinc-300 font-light mt-3 tracking-wide">
+                    Todas las asignaciones han sido procesadas y validadas con éxito.
+                </p>
+
+                <!-- Barra de Redirección Inminente -->
+                <div class="mt-8 w-full max-w-xs flex flex-col items-center">
+                    <span class="text-xs font-mono uppercase tracking-[0.25em] text-zinc-400 mb-2.5">
+                        Cargando pantalla de ganadores...
+                    </span>
+                    <div class="w-full h-1.5 rounded-full bg-zinc-900 overflow-hidden border border-white/10">
+                        <div class="h-full bg-amber-400 rounded-full animate-[pageFadeIn_2.5s_linear_forwards] w-full"></div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- FOOTER CINEMÁTICO INFERIOR -->
+        <footer class="relative z-20 w-full px-8 py-6 flex items-center justify-between text-zinc-500 text-[11px] font-mono">
+            <div class="flex items-center space-x-2">
+                <span class="inline-block w-1.5 h-1.5 rounded-full bg-zinc-600"></span>
+                <span>CORPORATIVO UNE © TRANSMISIÓN OFICIAL</span>
+            </div>
+            <div class="tracking-widest uppercase">
+                ID SESIÓN: {{ evento.slug|upper }}
+            </div>
+        </footer>
+
     </div>
 
+    <!-- INYECCIÓN SEGURA DE DATOS DESDE DJANGO -->
+    {{ nombres_invitados|json_script:"invitados-data" }}
+    {{ nombres_regalos|json_script:"regalos-data" }}
+
+    <!-- CONTROLADOR JAVASCRIPT: LÓGICA DE FASES, CONFETTI Y LLAMADA AJAX -->
     <script>
-        function iniciarSorteoMasivo() {
-            document.getElementById('panel-inicio').classList.add('hidden');
-            document.getElementById('panel-ruleta').classList.remove('hidden');
+        let rawInvitados = [];
+        let rawRegalos = [];
+
+        try {
+            const elInv = document.getElementById('invitados-data');
+            if (elInv && elInv.textContent) rawInvitados = JSON.parse(elInv.textContent) || [];
+        } catch(e) { console.warn("No se pudo parsear invitados-data", e); }
+
+        try {
+            const elReg = document.getElementById('regalos-data');
+            if (elReg && elReg.textContent) rawRegalos = JSON.parse(elReg.textContent) || [];
+        } catch(e) { console.warn("No se pudo parsear regalos-data", e); }
+
+        // Fallbacks por si la base de datos está vacía en pruebas
+        const invitadosReales = rawInvitados.length > 0 ? rawInvitados : [
+            "Carlos Mendoza Ruiz", "Sofía Alarcón Domínguez", "Alejandro Morales Vega",
+            "Mariana Benítez Tovar", "Rodrigo Navarro Garza", "Fernanda Castillo Ponce"
+        ];
+        const regalosReales = rawRegalos.length > 0 ? rawRegalos : [
+            "Smart TV 65\" UHD 4K", "Bocina Marshall Stanmore", "MacBook Air M2 Space Gray",
+            "Audífonos Sony WH-1000XM5", "Cafetera Espresso De'Longhi", "iPad 10th Gen 64GB"
+        ];
+
+        const URL_API_SORTEO = "{% url 'regalos:api_sorteo_masivo' evento.slug %}";
+        const URL_REDIRECT_PANTALLA = "{% url 'regalos:all_pantalla_gigante' evento.slug %}";
+        const CSRF_TOKEN = "{{ csrf_token }}";
+
+        // Elementos DOM
+        const faseStandby = document.getElementById('fase-standby');
+        const faseCountdown = document.getElementById('fase-countdown');
+        const countdownNumber = document.getElementById('countdown-number');
+        const faseProcesamiento = document.getElementById('fase-procesamiento');
+        const faseClimax = document.getElementById('fase-climax');
+        const progressBar = document.getElementById('progress-bar');
+        const labelPorcentaje = document.getElementById('label-porcentaje');
+        const terminalStatusText = document.getElementById('terminal-status-text');
+        const screenFlash = document.getElementById('screen-flash');
+
+        const tickerInvitados = document.getElementById('ticker-invitados');
+        const tickerRegalos = document.getElementById('ticker-regalos');
+
+        let animFrameId = null;
+
+        // Secuencia de estados de terminal
+        const MENSAJES_TERMINAL = [
+            "Conectando con base de datos del evento...",
+            "Validando quórum de asistentes registrados...",
+            "Ejecutando partición de categorías y premios mayores...",
+            "Generando matrices de compatibilidad y entropía...",
+            "Asignando folios únicos a cada invitado...",
+            "Sellando transacciones criptográficas en base de datos...",
+            "Sincronizando estado general de ganadores..."
+        ];
+
+        // Función para alimentar las ruletas con diseño impecable para textos largos
+        function poblarTickersReales() {
+            // Duplicar listas para efecto de loop continuo infinito y suave
+            let listaInv = [...invitadosReales];
+            while (listaInv.length < 12) listaInv = listaInv.concat(invitadosReales);
+            const muestraInv = listaInv.slice(0, 24).concat(listaInv.slice(0, 24));
+
+            let listaReg = [...regalosReales];
+            while (listaReg.length < 12) listaReg = listaReg.concat(regalosReales);
+            const muestraReg = listaReg.slice(0, 24).concat(listaReg.slice(0, 24));
+
+            // Plantilla de celda de slot de lujo: altura fija de 48px, texto truncado limpio con ellipsis y tipografía ajustada
+            tickerInvitados.innerHTML = muestraInv.map((nombre, i) => `
+                <div class="h-[48px] w-full px-5 flex items-center justify-center shrink-0">
+                    <span class="text-sm md:text-[15px] font-semibold text-zinc-200 tracking-wide truncate max-w-full text-center" title="${nombre}">
+                        ${nombre}
+                    </span>
+                </div>
+            `).join('');
+
+            tickerRegalos.innerHTML = muestraReg.map((regalo, i) => `
+                <div class="h-[48px] w-full px-5 flex items-center justify-center shrink-0">
+                    <span class="text-sm md:text-[15px] font-bold text-amber-300 tracking-wide truncate max-w-full text-center" title="${regalo}">
+                        ${regalo}
+                    </span>
+                </div>
+            `).join('');
+
+            // Iniciar scroll suave infinito controlado por requestAnimationFrame (sin saltos bruscos)
+            iniciarScrollContinuo();
+        }
+
+        function iniciarScrollContinuo() {
+            let offsetInv = 0;
+            let offsetReg = 0;
+            const itemHeight = 48; // Altura de cada fila
+            const medioInv = (tickerInvitados.children.length / 2) * itemHeight;
+            const medioReg = (tickerRegalos.children.length / 2) * itemHeight;
+
+            const velocidad = 4.8; // Píxeles por frame para ritmo cinematográfico
+
+            function step() {
+                offsetInv += velocidad;
+                offsetReg += (velocidad * 1.08); // Ligera variación armónica
+
+                if (offsetInv >= medioInv) offsetInv = 0;
+                if (offsetReg >= medioReg) offsetReg = 0;
+
+                tickerInvitados.style.transform = `translate3d(0, -${offsetInv}px, 0)`;
+                tickerRegalos.style.transform = `translate3d(0, -${offsetReg}px, 0)`;
+
+                animFrameId = requestAnimationFrame(step);
+            }
+
+            animFrameId = requestAnimationFrame(step);
+        }
+
+        function dispararConfettiLujoso() {
+            if (typeof confetti !== 'function') return;
+
+            confetti({
+                particleCount: 80,
+                spread: 100,
+                origin: {y: 0.6},
+                colors: ['#f59e0b', '#fbbf24', '#fef3c7', '#ffffff', '#e2e8f0']
+            });
+
+            const duracion = 2200;
+            const end = Date.now() + duracion;
+
+            (function frame() {
+                confetti({
+                    particleCount: 4,
+                    angle: 60,
+                    spread: 65,
+                    origin: {x: 0, y: 0.7},
+                    colors: ['#f59e0b', '#ffd700', '#ffffff']
+                });
+                confetti({
+                    particleCount: 4,
+                    angle: 120,
+                    spread: 65,
+                    origin: {x: 1, y: 0.7},
+                    colors: ['#f59e0b', '#ffd700', '#ffffff']
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        }
+
+        function comenzarExperiencia() {
+            faseStandby.classList.add('opacity-0', 'scale-95');
+            setTimeout(() => {
+                faseStandby.classList.add('hidden');
+                faseCountdown.classList.remove('hidden');
+                faseCountdown.classList.add('flex');
+                iniciarConteo(3);
+            }, 500);
+        }
+
+        function iniciarConteo(numero) {
+            if (numero > 0) {
+                countdownNumber.textContent = numero;
+                countdownNumber.classList.remove('anim-count-beat');
+                void countdownNumber.offsetWidth;
+                countdownNumber.classList.add('anim-count-beat');
+
+                setTimeout(() => {
+                    iniciarConteo(numero - 1);
+                }, 1000);
+            } else {
+                faseCountdown.classList.add('hidden');
+                faseCountdown.classList.remove('flex');
+
+                poblarTickersReales();
+                iniciarProcesamiento();
+            }
+        }
+
+        function iniciarProcesamiento() {
+            faseProcesamiento.classList.remove('hidden');
+            faseProcesamiento.classList.add('flex');
+
+            let porcentaje = 0;
+            let msgIndex = 0;
 
             const formData = new FormData();
-            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            formData.append('csrfmiddlewaretoken', CSRF_TOKEN);
+
+            const peticionBackend = fetch(URL_API_SORTEO, {
+                method: 'POST',
+                body: formData
+            }).then(res => res.json());
+
+            const intervalo = setInterval(() => {
+                porcentaje += 2;
+                if (porcentaje > 95) porcentaje = 95;
+
+                progressBar.style.width = porcentaje + '%';
+                labelPorcentaje.textContent = porcentaje + '%';
+
+                const stepThreshold = Math.floor(95 / MENSAJES_TERMINAL.length);
+                const nuevoIndex = Math.min(Math.floor(porcentaje / stepThreshold), MENSAJES_TERMINAL.length - 1);
+                if (nuevoIndex !== msgIndex) {
+                    msgIndex = nuevoIndex;
+                    terminalStatusText.textContent = MENSAJES_TERMINAL[msgIndex];
+                }
+            }, 100);
+
+            Promise.all([
+                peticionBackend,
+                new Promise(resolve => setTimeout(resolve, 4500))
+            ])
+            .then(([data]) => {
+                clearInterval(intervalo);
+
+                if (data.status === 'success') {
+                    progressBar.style.width = '100%';
+                    labelPorcentaje.textContent = '100%';
+                    terminalStatusText.textContent = '¡Sorteo finalizado y verificado con éxito!';
+
+                    setTimeout(() => {
+                        culminarSorteo();
+                    }, 600);
+                } else {
+                    alert(data.message || 'Error al ejecutar el sorteo.');
+                    window.location.reload();
+                }
+            })
+            .catch(err => {
+                clearInterval(intervalo);
+                console.error(err);
+                alert('Ocurrió un error al procesar el sorteo masivo en el servidor.');
+                window.location.reload();
+            });
+        }
+
+        function culminarSorteo() {
+            if (animFrameId) cancelAnimationFrame(animFrameId);
+
+            screenFlash.classList.add('anim-flash');
+
+            faseProcesamiento.classList.add('hidden');
+            faseProcesamiento.classList.remove('flex');
+            faseClimax.classList.remove('hidden');
+            faseClimax.classList.add('flex');
+
+            dispararConfettiLujoso();
 
             setTimeout(() => {
-                fetch("{% url 'regalos:api_sorteo_masivo' evento.slug %}", {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        document.getElementById('panel-ruleta').classList.add('hidden');
-                        if (data.status === 'success') {
-                            document.getElementById('panel-exito').classList.remove('hidden');
-
-                            // REDIRECCIÓN AUTOMÁTICA A LA PANTALLA GIGANTE EN 2.5 SEGUNDOS
-                            setTimeout(() => {
-                                window.location.href = "{% url 'regalos:all_pantalla_gigante' evento.slug %}";
-                            }, 2500);
-                        } else {
-                            alert(data.message || 'Error al procesar el sorteo.');
-                            document.getElementById('panel-inicio').classList.remove('hidden');
-                        }
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        document.getElementById('panel-ruleta').classList.add('hidden');
-                        document.getElementById('panel-inicio').classList.remove('hidden');
-                        alert('Error de red al ejecutar el sorteo.');
-                    });
-            }, 4000); // 4 segundos de ruleta cinemática para mayor emoción
+                window.location.href = URL_REDIRECT_PANTALLA;
+            }, 2500);
         }
     </script>
 </c-layouts.base>

@@ -14,6 +14,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import select_template
 from django.utils import timezone
 
 from apps.codigos_qr.utils import generar_qr_base64
@@ -28,6 +29,24 @@ from apps.core.mixins.modulo_required import ModuloRequiredMixin
 from apps.core.mixins.title import PageTitleMixin
 from apps.votaciones.tables import EventoVotacionTable
 
+
+
+TEMATICA_DEFAULT = 'corporativo'
+
+
+def resolver_template_evento(evento, nombre_plantilla: str) -> str:
+    """
+    Resuelve dinamicamente la plantilla adecuada segun la tematica del evento.
+    Permite fallback seguro en caso de que alguna plantilla no exista.
+    Ejemplo: 'votar.html' -> busca 'apps/votaciones/temas/navidad/votar.html'
+    """
+    tematica = getattr(evento, 'tematica', TEMATICA_DEFAULT) or TEMATICA_DEFAULT
+    candidatos = [
+        f'apps/votaciones/temas/{tematica}/{nombre_plantilla}',
+        f'apps/votaciones/temas/{TEMATICA_DEFAULT}/{nombre_plantilla}',
+        f'apps/votaciones/{nombre_plantilla}',
+    ]
+    return select_template(candidatos).template.name
 
 @modulo_required('Votaciones')
 def acceso_qr_wifi_evento(request, evento_id):
@@ -44,7 +63,7 @@ def acceso_qr_wifi_evento(request, evento_id):
 
     return render(
         request,
-        'apps/votaciones/acceso_qr_wifi.html',
+        resolver_template_evento(evento, 'acceso_qr_wifi.html'),
         {
             'evento': evento,
             'qr_votacion': qr_votacion,
@@ -173,7 +192,7 @@ def votar_evento(request, evento_id):
         if ahora < evento.fecha_inicio:
             return render(
                 request,
-                'apps/votaciones/proximamente.html',
+                resolver_template_evento(evento, 'proximamente.html'),
                 {'evento': evento},
             )
 
@@ -200,7 +219,7 @@ def votar_evento(request, evento_id):
             )
             return render(
                 request,
-                'apps/votaciones/votar.html',
+                resolver_template_evento(evento, 'votar.html'),
                 {
                     'evento': evento,
                     'criterios': criterios,
@@ -220,7 +239,7 @@ def votar_evento(request, evento_id):
             )
             return render(
                 request,
-                'apps/votaciones/votar.html',
+                resolver_template_evento(evento, 'votar.html'),
                 {
                     'evento': evento,
                     'criterios': criterios,
@@ -275,7 +294,7 @@ def votar_evento(request, evento_id):
 
     return render(
         request,
-        'apps/votaciones/votar.html',
+        resolver_template_evento(evento, 'votar.html'),
         {
             'evento': evento,
             'criterios': criterios,
@@ -349,7 +368,7 @@ def resultados_evento(request, evento_id):
 
     return render(
         request,
-        'apps/votaciones/resultados.html',
+        resolver_template_evento(evento, 'resultados.html'),
         {
             'evento': evento,
             'criterios': criterios,

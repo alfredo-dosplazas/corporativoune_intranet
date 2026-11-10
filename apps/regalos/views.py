@@ -590,6 +590,11 @@ class SorteoMasivoView(TemplateView):
 
         context['modo_automatico_ofuscado'] = os.path.exists(archivo_esperado)
 
+        context['nombres_invitados'] = [i.nombre_completo for i in Invitado.objects.filter(evento=evento)]
+        context['nombres_regalos'] = list(
+            Regalo.objects.filter(evento=evento, canjeado=False).values_list('nombre', flat=True)
+        )
+
         return context
 
 
@@ -841,6 +846,8 @@ class ProcesarSorteoMasivoApiView(View):
 
         invitados = list(Invitado.objects.filter(evento=evento))
         regalos_disponibles = list(Regalo.objects.filter(evento=evento, canjeado=False))
+
+        print(f"Total invitados: {len(invitados)}, Total regalos: {len(regalos_disponibles)}")
 
         if not invitados:
             return JsonResponse({'status': 'error', 'message': 'No hay invitados registrados para este evento.'},
