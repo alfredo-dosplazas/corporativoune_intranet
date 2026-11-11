@@ -46,4 +46,7 @@ urlpatterns = [
     path('pantalla/<slug:evento_slug>/', views.RegaloPantallaView.as_view(), name='pantalla_gigante'),
     path('todos-pantalla/<slug:evento_slug>/', views.AllRegaloPantallaView.as_view(), name='all_pantalla_gigante'),
     path('api/ultimo-ganador/<slug:evento_slug>/', views.UltimoGanadorApiView.as_view(), name='ultimo_ganador_api'),
+
+    # Acciones masivas (bulk actions) sobre regalos de un evento
+    path('api/bulk/<slug:evento_slug>/', views.RegaloBulkActionView.as_view(), name='api_bulk_regalos'),
 ]

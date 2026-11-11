@@ -43,14 +43,51 @@ class EventoVotacion(models.Model):
     fecha_inicio = models.DateTimeField()
     fecha_fin = models.DateTimeField()
 
+    restringir_por_red = models.BooleanField(
+        default=False,
+        help_text="Si está activo, solo se podrá votar desde las redes permitidas configuradas para este evento."
+    )
+
     @property
     def qr_imagen(self):
         url = f'{settings.APP_URL}{reverse('votaciones:votar_evento', args=[self.pk])}'
         qr_base64 = generar_qr_base64(url)
         return f'data:image/png;base64,{qr_base64}'
 
+    def ip_permitida(self, ip_str: str) -> bool:
+        """Verifica si la IP está dentro de los rangos permitidos para este evento."""
+        import ipaddress
+        if not self.restringir_por_red:
+            return True  # Si no requiere restricción, pasa cualquier IP
+
+        try:
+            ip_obj = ipaddress.ip_address(ip_str)
+            rangos = self.allowed_networks.filter(activa=True)
+            if not rangos.exists():
+                return True  # Si no hay rangos definidos pero el flag está activo, decide si bloquear o permitir (por defecto permitimos si no hay reglas)
+            for rango in rangos:
+                if ip_obj in ipaddress.ip_network(rango.cidr):
+                    return True
+            return False
+        except ValueError:
+            return False
+
     def __str__(self):
         return self.titulo
+
+
+class EventoIPRange(models.Model):
+    evento = models.ForeignKey(
+        EventoVotacion,
+        on_delete=models.CASCADE,
+        related_name="allowed_networks"
+    )
+    cidr = models.CharField(max_length=50, help_text="Ej: 172.17.4.0/24 o 127.0.0.1/32")
+    descripcion = models.CharField(max_length=255, blank=True, null=True)
+    activa = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.evento.titulo} -> {self.cidr}"
 
 
 class Criterio(models.Model):

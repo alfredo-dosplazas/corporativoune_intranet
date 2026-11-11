@@ -37,7 +37,9 @@ from apps.regalos.forms import RegaloForm, EventoForm, CanjearForm, InvitadoForm
 from apps.regalos.inlines import CategoriaRegaloInline
 from apps.regalos.mixins import SedePermissionMixin
 from apps.regalos.models import Regalo, Evento, Invitado
+from apps.regalos.notifications import notificar_ejecucion_sorteo_masivo
 from apps.regalos.resources import RegaloResource, InvitadoResource
+from apps.regalos.services import asignar_regalo_aleatorio, _asignar_regalo_aleatorio
 from apps.regalos.tables import RegaloTable, EventoTable, InvitadoTable
 from apps.rrhh.models.sedes import Sede
 
@@ -763,9 +765,21 @@ class ProcesarCanjeAleatorioApiView(View):
                 'message': f'¡El invitado "{invitado.nombre_completo}" ya canjeó un regalo anteriormente (Premio #{regalo_previo.numero}: {regalo_previo.nombre}).'
             }, status=400)
 
-        # 4. Buscar regalos disponibles
+        # 4. Buscar regalos disponibles según la regla de categoría
         def obtener_regalos_disponibles():
-            return list(Regalo.objects.filter(evento=evento, canjeado=False))
+            regalos_disponibles = []
+
+            # Si el invitado tiene categoría, intentamos buscar de su categoría primero
+            if invitado.categoria:
+                regalos_disponibles = list(
+                    Regalo.objects.filter(evento=evento, categoria=invitado.categoria, canjeado=False))
+
+            # Si no tiene categoría, o si tenía categoría pero ya no quedan regalos en ella,
+            # permitimos tomar cualquier regalo disponible general.
+            if not regalos_disponibles:
+                regalos_disponibles = list(Regalo.objects.filter(evento=evento, canjeado=False))
+
+            return regalos_disponibles
 
         regalos_disponibles = await sync_to_async(obtener_regalos_disponibles)()
         if not regalos_disponibles:
@@ -836,81 +850,49 @@ class ProcesarCanjeAleatorioApiView(View):
 
 
 class ProcesarSorteoMasivoApiView(View):
-    """
-    API que procesa el sorteo masivo leyendo automáticamente el archivo cifrado del sistema
-    si existe, o aplicando aleatoriedad pura en caso contrario.
-    """
 
     def post(self, request, evento_slug):
         evento = get_object_or_404(Evento, slug=evento_slug)
 
-        invitados = list(Invitado.objects.filter(evento=evento))
-        regalos_disponibles = list(Regalo.objects.filter(evento=evento, canjeado=False))
-
-        print(f"Total invitados: {len(invitados)}, Total regalos: {len(regalos_disponibles)}")
-
-        if not invitados:
-            return JsonResponse({'status': 'error', 'message': 'No hay invitados registrados para este evento.'},
-                                status=400)
-
-        directorio_configs = os.path.join(settings.BASE_DIR, 'apps', 'regalos', 'config')
-        archivo_esperado = os.path.join(directorio_configs, f"{evento_slug}.enc")
-
-        modo = 'aleatorio'
-        contenido_json = None
-
-        if os.path.exists(archivo_esperado):
-            try:
-                with open(archivo_esperado, 'r', encoding='utf-8') as f:
-                    contenido_raw = f.read()
-                    # Decodificar Base64 / ofuscación del archivo del sistema
-                    contenido_json = json.loads(base64.b64decode(contenido_raw).decode('utf-8'))
-                    modo = 'ofuscado'
-            except Exception as e:
-                print(f"Aviso: No se pudo leer el archivo cifrado de configuración: {e}")
-
         try:
             with transaction.atomic():
-                # CASO A: MODO OFUSCADO (Leyendo el archivo cifrado del directorio)
-                if modo == 'ofuscado' and contenido_json:
-                    for regla in contenido_json.get('asignaciones', []):
-                        inv = Invitado.objects.filter(evento=evento, codigo_qr=regla.get('i')).first()
-                        reg = Regalo.objects.filter(evento=evento, codigo_qr=regla.get('r'), canjeado=False).first()
+                Regalo.objects.filter(evento=evento).update(
+                    invitado=None,
+                    ganador_nombre=None,
+                    canjeado=False,
+                    fecha_canje=None
+                )
+                Invitado.objects.filter(evento=evento).update(asistio=False)
 
-                        if inv and reg:
-                            reg.invitado = inv
-                            reg.ganador_nombre = inv.nombre_completo
-                            regalo_destacado = reg.destacado  # Mantiene sus propiedades
-                            reg.canjeado = True
-                            reg.fecha_canje = timezone.now()
-                            reg.save()
-                            inv.asistio = True
-                            inv.save()
+                invitados = list(Invitado.objects.filter(evento=evento))
+                regalos_disponibles = list(Regalo.objects.filter(evento=evento, canjeado=False))
 
-                            if reg in regalos_disponibles:
-                                regalos_disponibles.remove(reg)
-                            if inv in invitados:
-                                invitados.remove(inv)
+                if not invitados:
+                    return JsonResponse(
+                        {'status': 'error', 'message': 'No hay invitados registrados para este evento.'}, status=400)
 
-                # CASO B: ALEATORIO PURO (Para los invitados restantes o si no hay archivo)
-                random.shuffle(regalos_disponibles)
-                for invitado in invitados:
-                    if not regalos_disponibles:
-                        break
-                    regalo = regalos_disponibles.pop(0)
+                directorio_configs = os.path.join(settings.BASE_DIR, 'apps', 'regalos', 'config')
+                archivo_esperado = os.path.join(directorio_configs, f"{evento_slug}.enc")
 
-                    regalo.invitado = invitado
-                    regalo.ganador_nombre = invitado.nombre_completo
-                    regalo.canjeado = True
-                    regalo.fecha_canje = timezone.now()
-                    regalo.save()
+                contenido_json = None
+                if os.path.exists(archivo_esperado):
+                    try:
+                        with open(archivo_esperado, 'r', encoding='utf-8') as f:
+                            contenido_json = json.loads(base64.b64decode(f.read()).decode('utf-8'))
+                    except Exception:
+                        pass
 
-                    invitado.asistio = True
-                    invitado.save()
+                if contenido_json:
+                    _asignar_regalo_aleatorio(evento, contenido_json, regalos_disponibles, invitados)
+
+                regalos_disponibles_restantes = list(Regalo.objects.filter(evento=evento, canjeado=False))
+                asignar_regalo_aleatorio(regalos_disponibles_restantes, invitados)
+
+            notificar_ejecucion_sorteo_masivo(request, evento, ejecutor=request.user)
 
             return JsonResponse({
                 'status': 'success',
-                'message': '¡Sorteo masivo ejecutado con éxito!'
+                'message': '¡Sorteo re-ejecutado con éxito e informe actualizado!'
             })
 
         except Exception as e:
@@ -971,7 +953,9 @@ class InvitadoListView(
 
     def get_queryset(self):
         self.evento = get_object_or_404(Evento, slug=self.kwargs['evento_slug'])
-        return Invitado.objects.filter(evento=self.evento).order_by('primer_nombre', 'primer_apellido')
+        qs = super().get_queryset()
+        qs = qs.filter(evento=self.evento)
+        return qs
 
     def get_breadcrumbs(self):
         return [
@@ -995,6 +979,11 @@ class InvitadoCreateView(
     model = Invitado
     form_class = InvitadoForm
     success_message = 'Invitado registrado correctamente.'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['evento'] = self.evento
+        return kwargs
 
     def dispatch(self, request, *args, **kwargs):
         self.evento = get_object_or_404(Evento, slug=self.kwargs['evento_slug'])
@@ -1033,6 +1022,11 @@ class InvitadoUpdateView(
     model = Invitado
     form_class = InvitadoForm
     success_message = 'Invitado actualizado correctamente.'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['evento'] = self.evento
+        return kwargs
 
     def dispatch(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -1208,3 +1202,105 @@ class InvitadoPDFView(
         if pk:
             return f'credencial_invitado_{pk}.pdf'
         return f'credenciales_invitados_{self.evento.slug}.pdf'
+
+
+# =============================================================================
+# BULK ACTIONS — Acciones masivas sobre regalos de un evento
+# =============================================================================
+
+class RegaloBulkActionView(PermissionRequiredMixin, View):
+    """
+    API endpoint para ejecutar acciones masivas sobre regalos seleccionados.
+
+    POST body:
+      - action   : str  — 'delete' | 'marcar_destacado' | 'quitar_destacado' | 'resetear_canje'
+      - ids[]    : list — PKs de los regalos a procesar (deben pertenecer al evento)
+
+    Responde con JSON: { status, message, affected }
+    """
+    permission_required = 'regalos.change_regalo'
+
+    # Para delete se requiere permiso adicional; lo chequeamos dentro del handler.
+    ALLOWED_ACTIONS = {
+        'delete',
+        'marcar_destacado',
+        'quitar_destacado',
+        'resetear_canje',
+    }
+
+    def post(self, request, evento_slug):
+        evento = get_object_or_404(Evento, slug=evento_slug)
+
+        action = request.POST.get('action', '').strip()
+        raw_ids = request.POST.getlist('ids[]')
+
+        # --- Validaciones básicas ---
+        if action not in self.ALLOWED_ACTIONS:
+            return JsonResponse(
+                {'status': 'error', 'message': f'Acción "{action}" no reconocida.'},
+                status=400
+            )
+
+        try:
+            ids = [int(pk) for pk in raw_ids if pk]
+        except ValueError:
+            return JsonResponse({'status': 'error', 'message': 'IDs inválidos.'}, status=400)
+
+        if not ids:
+            return JsonResponse(
+                {'status': 'error', 'message': 'No se seleccionaron registros.'},
+                status=400
+            )
+
+        # Restringir siempre al evento para evitar escalada de privilegios
+        qs = Regalo.objects.filter(pk__in=ids, evento=evento)
+
+        if not qs.exists():
+            return JsonResponse(
+                {'status': 'error', 'message': 'Los registros seleccionados no pertenecen a este evento.'},
+                status=404
+            )
+
+        try:
+            with transaction.atomic():
+                if action == 'delete':
+                    if not request.user.has_perm('regalos.delete_regalo'):
+                        return JsonResponse(
+                            {'status': 'error', 'message': 'No tienes permiso para eliminar regalos.'},
+                            status=403
+                        )
+                    # Proteger regalos ya canjeados: advertir pero no impedir (opcional)
+                    canjeados = qs.filter(canjeado=True).count()
+                    affected, _ = qs.delete()
+                    msg = f'{affected} regalo(s) eliminado(s).'
+                    if canjeados:
+                        msg += f' ({canjeados} ya estaban canjeados)'
+
+                elif action == 'marcar_destacado':
+                    affected = qs.update(destacado=True)
+                    msg = f'{affected} regalo(s) marcado(s) como destacado.'
+
+                elif action == 'quitar_destacado':
+                    affected = qs.update(destacado=False)
+                    msg = f'{affected} regalo(s) quitado(s) de destacados.'
+
+                elif action == 'resetear_canje':
+                    # Solo permitir si tiene permiso de cambio sobre el modelo
+                    affected = qs.update(
+                        canjeado=False,
+                        invitado=None,
+                        ganador_nombre=None,
+                        fecha_canje=None,
+                    )
+                    msg = f'Canje reseteado en {affected} regalo(s).'
+
+                else:
+                    return JsonResponse({'status': 'error', 'message': 'Acción inválida.'}, status=400)
+
+        except Exception as exc:
+            return JsonResponse(
+                {'status': 'error', 'message': f'Error al ejecutar la acción: {exc}'},
+                status=500
+            )
+
+        return JsonResponse({'status': 'success', 'message': msg, 'affected': affected})

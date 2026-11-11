@@ -3,7 +3,7 @@
         <!-- BARRA DE ACCIONES Y ENCABEZADO DE DETALLE -->
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
 
-            <!-- TÍTULO DE LA VISTA + BOTÓN VOLVER / EDITAR -->
+            <!-- TÍTULO DE LA VISTA + BOTÓN VOLVER -->
             <div class="flex items-center gap-2 shrink-0">
                 <a href="{% url 'regalos:eventos__list' %}"
                    class="btn btn-ghost btn-xs btn-square border border-base-300 bg-base-100"
@@ -47,7 +47,7 @@
                         <span class="icon-[tabler--dots-vertical] text-xs"></span>
                     </button>
                     <ul tabindex="0"
-                        class="dropdown-content menu menu-xs bg-base-100 rounded-md border border-base-200 shadow-lg w-48 z-50 p-1">
+                        class="dropdown-content menu menu-xs bg-base-100 rounded-md border border-base-200 shadow-lg w-52 z-50 p-1">
                         <li>
                             <a href="{% url 'regalos:list' object.slug %}">
                                 <span class="icon-[tabler--gift]"></span> Gestionar Regalos
@@ -58,6 +58,18 @@
                                 <span class="icon-[tabler--users]"></span> Gestionar Invitados
                             </a>
                         </li>
+                        <li class="divider my-0.5"></li>
+                        <li>
+                            <a href="{% url 'regalos:canjear_regalo' object.slug %}" target="_blank">
+                                <span class="icon-[tabler--qrcode]"></span> Canje por QR
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'regalos:canjear_regalo_aleatorio' object.slug %}" target="_blank">
+                                <span class="icon-[tabler--player-shuffle]"></span> Canje Aleatorio
+                            </a>
+                        </li>
+                        <li class="divider my-0.5"></li>
                         <li>
                             <a href="{% url 'regalos:pantalla_gigante' object.slug %}" target="_blank">
                                 <span class="icon-[tabler--device-desktop]"></span> Pantalla Gigante
@@ -88,7 +100,7 @@
                             class="font-semibold text-base-content">{{ object.fecha_evento|date:"d \d\e F \d\e Y" }}</span>
                     </p>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
                     <div class="badge badge-ghost text-xs py-2 px-3 font-normal">
                         Empresa: <strong
                             class="ml-1">{{ object.empresa.nombre_corto|default:object.empresa.nombre }}</strong>
@@ -149,35 +161,102 @@
                     </h3>
 
                     <div class="divide-y divide-base-200">
-                        <div class="py-2.5 flex items-center justify-between">
-                            <div>
-                                <p class="font-semibold text-base-content">Pantalla Gigante del Evento</p>
-                                <p class="text-[11px] text-base-content/60">Carrusel dinámico con zoom automático para
-                                    proyectores en salón.</p>
+
+                        <!-- PANTALLA GIGANTE -->
+                        <div class="py-3 flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-8 h-8 rounded-lg bg-base-200 flex items-center justify-center shrink-0">
+                                    <span class="icon-[tabler--device-desktop] text-base-content/60 text-base"></span>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="font-semibold text-base-content truncate">Pantalla Gigante del Evento</p>
+                                    <p class="text-[11px] text-base-content/60">Carrusel dinámico con zoom automático para
+                                        proyectores en salón.</p>
+                                </div>
                             </div>
                             <a href="{% url 'regalos:pantalla_gigante' object.slug %}" target="_blank"
-                               class="btn btn-outline btn-xs">Abrir ↗</a>
+                               class="btn btn-outline btn-xs shrink-0">
+                                <span class="icon-[tabler--external-link] text-xs"></span>
+                                Abrir
+                            </a>
                         </div>
 
-                        <div class="py-2.5 flex items-center justify-between">
-                            <div>
-                                <p class="font-semibold text-base-content">Consola de Sorteo Masivo</p>
-                                <p class="text-[11px] text-base-content/60">Ejecución de asignación masiva con soporte
-                                    de archivo cifrado .enc.</p>
+                        <!-- CONSOLA DE SORTEO MASIVO -->
+                        <div class="py-3 flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                    <span class="icon-[tabler--rocket] text-primary text-base"></span>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="font-semibold text-base-content truncate">Consola de Sorteo Masivo</p>
+                                    <p class="text-[11px] text-base-content/60">Ejecución de asignación masiva con soporte
+                                        de archivo cifrado .enc.</p>
+                                </div>
                             </div>
-                            <a href="{% url 'regalos:sorteo_masivo' object.slug %}" class="btn btn-primary btn-xs">Ejecutar
-                                🚀</a>
+                            <a href="{% url 'regalos:sorteo_masivo' object.slug %}"
+                               class="btn btn-primary btn-xs shrink-0">
+                                <span class="icon-[tabler--rocket] text-xs"></span>
+                                Ejecutar
+                            </a>
                         </div>
 
-                        <div class="py-2.5 flex items-center justify-between">
-                            <div>
-                                <p class="font-semibold text-base-content">Módulo de Canjes Individuales</p>
-                                <p class="text-[11px] text-base-content/60">Búsqueda rápida por QR o autocompletado para
-                                    entrega presencial.</p>
+                        <!-- CANJE INDIVIDUAL POR QR -->
+                        <div class="py-3 flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-8 h-8 rounded-lg bg-base-200 flex items-center justify-center shrink-0">
+                                    <span class="icon-[tabler--qrcode] text-base-content/60 text-base"></span>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="font-semibold text-base-content truncate">Canje Individual por QR</p>
+                                    <p class="text-[11px] text-base-content/60">Escaneo de boleto + invitado para entrega
+                                        presencial directa.</p>
+                                </div>
                             </div>
                             <a href="{% url 'regalos:canjear_regalo' object.slug %}" target="_blank"
-                               class="btn btn-outline btn-xs">Abrir ↗</a>
+                               class="btn btn-outline btn-xs shrink-0">
+                                <span class="icon-[tabler--external-link] text-xs"></span>
+                                Abrir
+                            </a>
                         </div>
+
+                        <!-- VOTACIÓN / CANJE ALEATORIO POR USUARIO -->
+                        <div class="py-3 flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
+                                    <span class="icon-[tabler--player-shuffle] text-secondary text-base"></span>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="font-semibold text-base-content truncate">Sorteo Aleatorio por Invitado</p>
+                                    <p class="text-[11px] text-base-content/60">Escanea el QR del invitado y el sistema
+                                        asigna un regalo al azar de su categoría.</p>
+                                </div>
+                            </div>
+                            <a href="{% url 'regalos:canjear_regalo_aleatorio' object.slug %}" target="_blank"
+                               class="btn btn-secondary btn-xs shrink-0">
+                                <span class="icon-[tabler--external-link] text-xs"></span>
+                                Abrir
+                            </a>
+                        </div>
+
+                        <!-- REGALOS CANJEADOS -->
+                        <div class="py-3 flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+                                    <span class="icon-[tabler--checks] text-success text-base"></span>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="font-semibold text-base-content truncate">Reporte de Canjeados</p>
+                                    <p class="text-[11px] text-base-content/60">Listado completo de regalos entregados y
+                                        sus ganadores.</p>
+                                </div>
+                            </div>
+                            <a href="{% url 'regalos:canjeados' object.slug %}" target="_blank"
+                               class="btn btn-outline btn-xs shrink-0">
+                                <span class="icon-[tabler--external-link] text-xs"></span>
+                                Ver
+                            </a>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -194,12 +273,12 @@
                         <div class="space-y-2">
                             {% for cat in categorias %}
                                 <div class="flex items-center justify-between p-2 rounded-md bg-base-200/40 border border-base-200">
-                                    <div class="flex items-center gap-2">
-                                        <span class="w-3 h-3 rounded-full shadow-2xs"
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        <span class="w-3 h-3 rounded-full shadow-2xs shrink-0"
                                               style="background-color: {{ cat.color }};"></span>
-                                        <span class="font-medium text-base-content">{{ cat.nombre }}</span>
+                                        <span class="font-medium text-base-content truncate">{{ cat.nombre }}</span>
                                     </div>
-                                    <span class="badge badge-ghost badge-xs">{{ cat.regalos.count }} regalos</span>
+                                    <span class="badge badge-ghost badge-xs shrink-0">{{ cat.regalos.count }} regalos</span>
                                 </div>
                             {% endfor %}
                         </div>
@@ -217,9 +296,51 @@
                         </a>
                     </div>
                 </div>
+
+                <!-- ACCESOS RÁPIDOS A GESTIÓN -->
+                <div class="card bg-base-100 border border-base-200 shadow-xs rounded-lg p-4">
+                    <h3 class="font-bold text-xs text-base-content uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                        <span class="icon-[tabler--settings] text-primary text-sm"></span>
+                        Gestión del Evento
+                    </h3>
+                    <div class="space-y-1.5">
+                        <a href="{% url 'regalos:list' object.slug %}"
+                           class="flex items-center gap-2.5 p-2 rounded-md hover:bg-base-200/60 transition-colors group">
+                            <span class="icon-[tabler--gift] text-sm text-base-content/50 group-hover:text-primary transition-colors"></span>
+                            <span class="text-base-content/80 group-hover:text-base-content transition-colors">Gestionar Regalos</span>
+                            <span class="ml-auto icon-[tabler--chevron-right] text-xs text-base-content/30"></span>
+                        </a>
+                        <a href="{% url 'regalos:invitados__list' object.slug %}"
+                           class="flex items-center gap-2.5 p-2 rounded-md hover:bg-base-200/60 transition-colors group">
+                            <span class="icon-[tabler--users] text-sm text-base-content/50 group-hover:text-primary transition-colors"></span>
+                            <span class="text-base-content/80 group-hover:text-base-content transition-colors">Gestionar Invitados</span>
+                            <span class="ml-auto icon-[tabler--chevron-right] text-xs text-base-content/30"></span>
+                        </a>
+                        <a href="{% url 'regalos:import_regalos' object.slug %}"
+                           class="flex items-center gap-2.5 p-2 rounded-md hover:bg-base-200/60 transition-colors group">
+                            <span class="icon-[tabler--file-import] text-sm text-base-content/50 group-hover:text-primary transition-colors"></span>
+                            <span class="text-base-content/80 group-hover:text-base-content transition-colors">Importar Regalos</span>
+                            <span class="ml-auto icon-[tabler--chevron-right] text-xs text-base-content/30"></span>
+                        </a>
+                        <a href="{% url 'regalos:import_invitados' object.slug %}"
+                           class="flex items-center gap-2.5 p-2 rounded-md hover:bg-base-200/60 transition-colors group">
+                            <span class="icon-[tabler--file-import] text-sm text-base-content/50 group-hover:text-primary transition-colors"></span>
+                            <span class="text-base-content/80 group-hover:text-base-content transition-colors">Importar Invitados</span>
+                            <span class="ml-auto icon-[tabler--chevron-right] text-xs text-base-content/30"></span>
+                        </a>
+                        <a href="{% url 'regalos:pdf' object.slug %}" target="_blank"
+                           class="flex items-center gap-2.5 p-2 rounded-md hover:bg-base-200/60 transition-colors group">
+                            <span class="icon-[tabler--file-type-pdf] text-sm text-base-content/50 group-hover:text-primary transition-colors"></span>
+                            <span class="text-base-content/80 group-hover:text-base-content transition-colors">Imprimir Tickets PDF</span>
+                            <span class="ml-auto icon-[tabler--chevron-right] text-xs text-base-content/30"></span>
+                        </a>
+                    </div>
+                </div>
+
             </div>
 
         </div>
 
     </div>
+
 </c-layouts.app>

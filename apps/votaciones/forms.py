@@ -20,6 +20,7 @@ class EventoVotacionForm(forms.ModelForm):
             'requiere_identificador',
             'fecha_inicio',
             'fecha_fin',
+            'restringir_por_red',
         ]
         widgets = {
             'fecha_inicio': DateTimeInput(attrs={'type': 'datetime-local'}, format="%Y-%m-%dT%H:%M"),
@@ -66,6 +67,7 @@ class EventoVotacionForm(forms.ModelForm):
                     Row(
                         Column('activo', css_class="col-span-12 sm:col-span-6 pt-1"),
                         Column('requiere_identificador', css_class="col-span-12 sm:col-span-6 pt-1"),
+                        Column('restringir_por_red', css_class="col-span-12 sm:col-span-6 pt-1"),
                         css_class="grid grid-cols-12 gap-2"
                     ),
                     css_class="col-span-12 lg:col-span-4 space-y-1.5 lg:border-l lg:border-r border-base-200/60 lg:px-4"

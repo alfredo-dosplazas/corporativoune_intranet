@@ -127,16 +127,21 @@ class InvitadoForm(forms.ModelForm):
             'segundo_nombre',
             'primer_apellido',
             'segundo_apellido',
+            'categoria',
             'asistio',
         ]
 
     def __init__(self, *args, **kwargs):
+        self.evento = kwargs.pop("evento", None)
         super().__init__(*args, **kwargs)
 
         self.helper = FormHelper()
         self.helper.form_id = 'invitado-form'
         self.helper.attrs = {'novalidate': 'novalidate'}
         self.helper.include_media = False
+
+        if self.evento:
+            self.fields['categoria'].queryset = CategoriaRegalo.objects.filter(evento=self.evento)
 
 
 class ImportarRegalosForm(forms.Form):

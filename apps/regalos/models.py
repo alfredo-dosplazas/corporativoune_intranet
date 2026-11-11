@@ -11,8 +11,17 @@ from intranet import settings
 
 class Invitado(models.Model):
     evento = models.ForeignKey('Evento', on_delete=models.CASCADE, related_name='invitados', verbose_name="Evento")
-    codigo_qr = models.CharField(max_length=50, unique=True, default=uuid.uuid4, editable=False)
 
+    categoria = models.ForeignKey(
+        'CategoriaRegalo',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='invitados',
+        verbose_name="Categoría del Invitado"
+    )
+
+    codigo_qr = models.CharField(max_length=50, unique=True, default=uuid.uuid4, editable=False)
     primer_nombre = models.CharField(max_length=200)
     segundo_nombre = models.CharField(max_length=200, blank=True, null=True)
     primer_apellido = models.CharField(max_length=200)
@@ -40,6 +49,7 @@ class Invitado(models.Model):
         verbose_name = "Invitado"
         verbose_name_plural = "Invitados"
         unique_together = ('evento', 'primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido')
+        ordering = ('primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido')
 
     def __str__(self):
         return f"{self.nombre_completo} - {self.evento.nombre}"

@@ -2,6 +2,7 @@ from import_export import resources, fields
 from import_export.widgets import ForeignKeyWidget
 
 from apps.regalos.models import Evento, Regalo, Invitado
+from apps.regalos.tasks import descargar_imagen_regalo_task
 
 
 class RegaloResource(resources.ModelResource):
@@ -24,6 +25,25 @@ class RegaloResource(resources.ModelResource):
     def before_import_row(self, row, **kwargs):
         if self.evento:
             row['evento'] = self.evento.slug
+
+    def skip_row(self, instance, original, *args, **kwargs):
+        """
+        Omite la fila si no tiene un número o un nombre válido,
+        evitando errores de base de datos por nulos en Regalos.
+        """
+        if not getattr(instance, 'numero', None) or not getattr(instance, 'nombre', None):
+            return True
+        return super().skip_row(instance, original, *args, **kwargs)
+
+    def after_save_instance(self, instance, original, *args, **kwargs):
+        """
+        Se ejecuta después de guardar cada regalo. Si es nuevo y no tiene imagen,
+        lanza la tarea de Celery en segundo plano.
+        """
+        super().after_save_instance(instance, original, *args, **kwargs)
+
+        if not original and not instance.imagen:
+            descargar_imagen_regalo_task.delay(instance.pk, instance.nombre)
 
 
 class InvitadoResource(resources.ModelResource):

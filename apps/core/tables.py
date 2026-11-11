@@ -44,7 +44,16 @@ class TableWithActions(Table):
     actions = Column(
         empty_values=(),
         verbose_name='Acciones',
-        attrs={'th': {'class': 'text-right'}},
+        attrs={
+            'th': {
+                'class': 'text-right',
+                'style': 'width: 1%; white-space: nowrap;'
+            },
+            'td': {
+                'class': 'text-right',
+                'style': 'white-space: nowrap;'
+            }
+        },
         orderable=False,
         exclude_from_export=True
     )

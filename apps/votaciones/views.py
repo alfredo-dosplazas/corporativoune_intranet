@@ -1,4 +1,5 @@
 import openpyxl
+from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.urls import reverse
@@ -29,8 +30,6 @@ from apps.core.mixins.modulo_required import ModuloRequiredMixin
 from apps.core.mixins.title import PageTitleMixin
 from apps.votaciones.tables import EventoVotacionTable
 
-
-
 TEMATICA_DEFAULT = 'corporativo'
 
 
@@ -47,6 +46,7 @@ def resolver_template_evento(evento, nombre_plantilla: str) -> str:
         f'apps/votaciones/{nombre_plantilla}',
     ]
     return select_template(candidatos).template.name
+
 
 @modulo_required('Votaciones')
 def acceso_qr_wifi_evento(request, evento_id):
@@ -179,11 +179,34 @@ class EventoVotacionDetailView(
         ]
 
 
-@modulo_required('Votaciones')
 def votar_evento(request, evento_id):
     evento = get_object_or_404(EventoVotacion, id=evento_id, activo=True)
     ahora = timezone.now()
     user = request.user
+
+    # Obtener IP del cliente de forma segura
+    ip = request.META.get('HTTP_X_FORWARDED_FOR')
+    if ip:
+        ip = ip.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+
+    # -------------------------------------------------------------
+    # 0. CONTROL DE RESTRICCIÓN POR RED (NUEVO)
+    # -------------------------------------------------------------
+    if evento.restringir_por_red and not user.is_superuser:
+        if not evento.ip_permitida(ip):
+            messages.error(
+                request,
+                'Acceso denegado: Este evento de votación solo está disponible desde la red interna autorizada.'
+            )
+            # Puedes renderizar una plantilla de error o redirigir
+            return render(
+                request,
+                resolver_template_evento(evento, 'acceso_restringido.html'),
+                {'evento': evento},
+                status=403
+            )
 
     # -------------------------------------------------------------
     # 1. CONTROL DE TIEMPOS DE VOTACIÓN
@@ -247,12 +270,6 @@ def votar_evento(request, evento_id):
                 },
             )
 
-        ip = request.META.get('HTTP_X_FORWARDED_FOR')
-        if ip:
-            ip = ip.split(',')[0]
-        else:
-            ip = request.META.get('REMOTE_ADDR')
-
         try:
             with transaction.atomic():
                 sesion_voto = VotoSesion.objects.create(
@@ -304,7 +321,7 @@ def votar_evento(request, evento_id):
     )
 
 
-@modulo_required('Votaciones')
+@permission_required("votaciones.view_votosesion", raise_exception=True)
 def resultados_evento(request, evento_id):
     evento = get_object_or_404(EventoVotacion, id=evento_id)
     criterios = evento.criterios.all()
@@ -383,7 +400,7 @@ def resultados_evento(request, evento_id):
     )
 
 
-@modulo_required('Votaciones')
+@permission_required("votaciones.view_votosesion", raise_exception=True)
 def exportar_reporte_excel(request, evento_id):
     evento = get_object_or_404(EventoVotacion, id=evento_id)
     criterios = list(evento.criterios.all())

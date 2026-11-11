@@ -1,40 +1,53 @@
+import random
 import time
-from duckduckgo_search import DDGS
-from duckduckgo_search.exceptions import RatelimitException
+import re
+from ddgs import DDGS
 
 
 def get_placeholder_image(query):
-  """Busca la primera imagen en DuckDuckGo basada en texto.
+    """Busca la primera imagen real usando 'ddgs' pidiendo explícitamente
+    que sea de tipo fotografía (photo) para evitar formatos no deseados.
+    """
+    if not query:
+        return "https://placehold.co/600x400/e2e8f0/1e293b?text=Sin+Imagen"
 
-  Si ocurre un límite de tasa (Ratelimit) o falla, retorna una imagen placeholder
-  limpia generada con el texto de la consulta.
-  """
-  # Limpiar la consulta para evitar problemas en la URL/búsqueda
-  clean_query = query.strip()
+    # 1. Limpieza estricta para evitar "malformed headers"
+    clean_query = query.replace('“', '').replace('”', '').replace('"', '').replace('‘', '').replace('’', '')
+    clean_query = clean_query.encode('ascii', 'ignore').decode('ascii').strip()
 
-  try:
-    # Usar un bloque protegido para capturar restricciones de tráfico
-    with DDGS() as ddgs:
-      # Añadimos un pequeño delay aleatorio si es necesario,
-      # o simplemente ejecutamos la búsqueda de 1 solo resultado
-      results = list(ddgs.images(clean_query, max_results=1))
+    if not clean_query:
+        clean_query = "producto"
 
-      if results and "image" in results[0]:
-        return results[0]["image"]
+    max_intentos = 3
 
-  except RatelimitException:
-    # DuckDuckGo detectó mucho tráfico temporalmente desde tu IP
-    print(
-        f"[AVISO] Rate limit alcanzado en DDG para la búsqueda: {clean_query}"
-    )
-  except Exception as e:
-    # Cualquier otro error de conexión o estructura
-    print(f"[ERROR] Falló la búsqueda de imagen para '{clean_query}': {e}")
+    for intento in range(max_intentos):
+        try:
+            # Agregamos type_image="photo" para filtrar preferentemente fotos reales
+            results = DDGS().images(
+                query=clean_query,
+                region="us-en",
+                safesearch="off",
+                max_results=5,  # Traemos un par más por si el primero falla el filtro
+                backend="bing",
+                type_image="photo",  # <--- Filtro clave para fotos puras
+            )
 
-  # -------------------------------------------------------------------------
-  # FALLBACK DEFINITIVO
-  # -------------------------------------------------------------------------
-  # Si DuckDuckGo nos bloquea, usamos un servicio de SVG/Placeholder dinámico
-  # que pinte exactamente lo que el usuario buscó, sin romper el diseño web.
-  formatted_query = clean_query.replace(" ", "+")
-  return f"https://placehold.co/600x400/e2e8f0/1e293b?text={formatted_query}"
+            if results and isinstance(results, list):
+                # Recorremos los resultados hasta encontrar uno que tenga extensión clásica o URL limpia
+                for img in results:
+                    if "image" in img:
+                        url_imagen = img["image"]
+                        # Opcional: Evitar URLs que terminen sospechosamente en svg o webp si las quieres prohibir tajantemente
+                        time.sleep(random.uniform(2.0, 3.5))
+                        return url_imagen
+
+        except Exception as e:
+            print(f"[AVISO] Intento {intento + 1}/{max_intentos} fallido para '{clean_query}': {e}")
+            if intento < max_intentos - 1:
+                time.sleep(5 + (intento * 3))
+
+    # -------------------------------------------------------------------------
+    # FALLBACK DEFINITIVO
+    # -------------------------------------------------------------------------
+    formatted_query = clean_query.replace(" ", "+")
+    return f"https://placehold.co/600x400/e2e8f0/1e293b?text={formatted_query}"

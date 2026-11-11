@@ -154,8 +154,35 @@
     </c-slot>
 
     <!-- VISTA TABLA PRINCIPAL (DESKTOP) -->
-    <div class="{% if view_mode == 'kanban' %}hidden{% else %}hidden sm:flex flex-col flex-1 min-h-0 h-full w-full{% endif %}">
+    <div class="{% if view_mode == 'kanban' %}hidden{% else %}hidden sm:flex flex-col flex-1 min-h-0 h-full w-full relative{% endif %}">
         {% render_table table %}
+
+        <!-- BARRA FLOTANTE DE ACCIONES MASIVAS (BULK ACTIONS BAR) -->
+        <div id="bulk-actions-bar"
+             class="hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-30 bg-neutral text-neutral-content px-4 py-2 rounded-lg shadow-xl flex items-center gap-3 text-xs animate-fade-in">
+            <span class="font-medium">
+                <span id="bulk-selected-count">0</span> seleccionados
+            </span>
+            <div class="h-4 w-px bg-neutral-content/20"></div>
+
+            <div class="flex items-center gap-1.5">
+                <button type="button" onclick="ejecutarAccionMasiva('marcar_destacado')" class="btn btn-xs btn-primary">
+                    Destacar
+                </button>
+                <button type="button" onclick="ejecutarAccionMasiva('quitar_destacado')"
+                        class="btn btn-xs btn-ghost text-neutral-content">
+                    Quitar destacado
+                </button>
+                <button type="button" onclick="ejecutarAccionMasiva('resetear_canje')" class="btn btn-xs btn-warning">
+                    Resetear canje
+                </button>
+                {% if perms.regalos.delete_regalo %}
+                    <button type="button" onclick="ejecutarAccionMasiva('delete')" class="btn btn-xs btn-error">
+                        Eliminar
+                    </button>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
     <!-- VISTA TARJETAS / KANBAN / MOBILE -->
@@ -233,4 +260,108 @@
             <button>close</button>
         </form>
     </dialog>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const selectAllCheckbox = document.getElementById('bulk-select-all');
+            const rowCheckboxes = document.querySelectorAll('.bulk-row-checkbox');
+            const bulkBar = document.getElementById('bulk-actions-bar');
+            const selectedCountSpan = document.getElementById('bulk-selected-count');
+
+            function actualizarBarraBulk() {
+                const checkedBoxes = document.querySelectorAll('.bulk-row-checkbox:checked');
+                const count = checkedBoxes.length;
+
+                if (count > 0) {
+                    selectedCountSpan.textContent = count;
+                    bulkBar.classList.remove('hidden');
+                } else {
+                    bulkBar.classList.add('hidden');
+                    if (selectAllCheckbox) selectAllCheckbox.checked = false;
+                }
+            }
+
+            // Evento "Seleccionar todos"
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener('change', function () {
+                    rowCheckboxes.forEach(checkbox => {
+                        checkbox.checked = selectAllCheckbox.checked;
+                    });
+                    actualizarBarraBulk();
+                });
+            }
+
+            // Eventos en cada checkbox individual de las filas
+            rowCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function () {
+                    actualizarBarraBulk();
+                    if (!checkbox.checked && selectAllCheckbox) {
+                        selectAllCheckbox.checked = false;
+                    }
+                });
+            });
+        });
+
+        // Función global que ejecuta la acción masiva vía AJAX
+        function ejecutarAccionMasiva(action) {
+            const checkedBoxes = document.querySelectorAll('.bulk-row-checkbox:checked');
+            const ids = Array.from(checkedBoxes).map(cb => cb.value);
+
+            if (ids.length === 0) return;
+
+            let mensajeConfirmacion = `¿Estás seguro de ejecutar la acción "${action}" en ${ids.length} registro(s)?`;
+            if (action === 'delete') {
+                mensajeConfirmacion = `¡Atención! Estás a punto de eliminar ${ids.length} regalo(s). ¿Deseas continuar?`;
+            }
+
+            if (!confirm(mensajeConfirmacion)) {
+                return;
+            }
+
+            // Preparar FormData para la petición POST
+            const formData = new FormData();
+            formData.append('action', action);
+            ids.forEach(id => formData.append('ids[]', id));
+
+            // Obtener el token CSRF de Django de las cookies
+            const csrftoken = getCookie('csrftoken');
+
+            fetch("{% url 'regalos:api_bulk_regalos' evento.slug %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken
+                },
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Recargar la página para ver los cambios aplicados
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error en la petición bulk:', error);
+                    alert('Ocurrió un error de red al procesar la solicitud.');
+                });
+        }
+
+        // Utilidad auxiliar para leer la cookie CSRF en Django
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
 </c-layouts.app>

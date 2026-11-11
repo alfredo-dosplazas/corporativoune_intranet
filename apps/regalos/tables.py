@@ -1,13 +1,15 @@
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from django_tables2 import tables, LinkColumn, A, BooleanColumn, TemplateColumn
+from django_tables2 import tables, LinkColumn, A, BooleanColumn, TemplateColumn, CheckBoxColumn
 
 from apps.core.tables import TableWithActions
 from apps.regalos.models import Regalo, Evento, Invitado
 
 
-class InvitadoTable(tables.Table):
+class InvitadoTable(TableWithActions):
+    actions_template = 'components/apps/regalos/invitados/table/actions.html'
+
     foto = tables.Column(empty_values=(), orderable=False, verbose_name="Foto")
 
     nombre_completo = tables.Column(verbose_name="Colaborador", accessor='nombre_completo')
@@ -18,15 +20,9 @@ class InvitadoTable(tables.Table):
                                 'th': {'class': 'text-center'}
                             })
 
-    actions = TemplateColumn(
-        template_name='components/apps/regalos/invitados/table/actions.html',
-        orderable=False,
-        verbose_name="Acciones"
-    )
-
     class Meta:
         model = Invitado
-        fields = ['foto', 'nombre_completo', 'asistio']
+        fields = ['foto', 'nombre_completo', 'asistio', 'categoria']
 
     def render_foto(self, record):
         if record.foto:
@@ -82,6 +78,26 @@ class EventoTable(TableWithActions):
 class RegaloTable(TableWithActions):
     actions_template = 'components/apps/regalos/table/actions.html'
 
+    # Columna de selección para acciones masivas (bulk)
+    selection = CheckBoxColumn(
+        accessor='pk',
+        verbose_name='',
+        orderable=False,
+        exclude_from_export=True,
+        attrs={
+            'th': {'class': 'w-8 text-center'},
+            'td': {'class': 'text-center'},
+            'th__input': {
+                'id': 'bulk-select-all',
+                'class': 'checkbox checkbox-xs checkbox-primary',
+                'title': 'Seleccionar todos',
+            },
+            'td__input': {
+                'class': 'bulk-row-checkbox checkbox checkbox-xs checkbox-primary',
+            },
+        }
+    )
+
     # Sobrescribimos columnas con etiquetas personalizadas y estilos
     imagen = tables.Column(verbose_name='Vista', orderable=False, exclude_from_export=True)
     numero = tables.Column(verbose_name='# Premio',
@@ -101,6 +117,7 @@ class RegaloTable(TableWithActions):
     class Meta:
         model = Regalo
         fields = [
+            'selection',
             'imagen',
             'numero',
             'nombre',

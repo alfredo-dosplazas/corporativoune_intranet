@@ -471,6 +471,8 @@ RABBITMQ_PORT = os.getenv('RABBITMQ_PORT', '5672')
 RABBITMQ_USER = os.getenv('RABBITMQ_USER', 'guest')
 RABBITMQ_PASS = os.getenv('RABBITMQ_PASSWORD', 'guest')
 
+CELERY_WORKER_CANCEL_LONG_RUNNING_TASKS_ON_CONNECTION_LOSS = False
+
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_rabbitmq.core.RabbitmqChannelLayer',
@@ -480,12 +482,17 @@ CHANNEL_LAYERS = {
     },
 }
 
-ONLYOFFICE_SERVER_URL = env('ONLYOFFICE_SERVER_URL', default='http://localhost/')  # O la IP/dominio de tu servidor OnlyOffice
+ONLYOFFICE_SERVER_URL = env('ONLYOFFICE_SERVER_URL',
+                            default='http://localhost/')  # O la IP/dominio de tu servidor OnlyOffice
 ONLYOFFICE_SECRET_KEY = env('ONLYOFFICE_SECRET_KEY')
 
 ZABBIX_TOKEN = env('ZABBIX_TOKEN')
 ZABBIX_API_URL = env('ZABBIX_API_URL')
 
+WAHA_API_URL = env('WAHA_API_URL', default='http://localhost:3000')
+WAHA_API_KEY = env('WAHA_API_KEY', default='')
+
 if DEBUG:
     import os
+
     os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
