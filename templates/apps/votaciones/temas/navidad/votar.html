@@ -42,7 +42,7 @@
             <span>✨</span> Fiesta de Fin de Año &middot; Votación de Temática
         </span>
 
-        {% if request.user.is_staff %}
+        {% if perms.votaciones.view_votosesion or request.user.is_superuser %}
             <a href="{% url 'votaciones:resultados_evento' evento.id %}"
                class="text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-100 px-4 py-2 rounded-xl border border-amber-500/40 transition flex items-center gap-2 shadow-sm">
                 <span>📊</span> Ver Tendencias <span

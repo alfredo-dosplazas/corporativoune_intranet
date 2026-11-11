@@ -85,7 +85,7 @@ class EventoVotacionListView(
     SingleTableMixin,
     FilterView
 ):
-    permission_required = 'votaciones.eventovotacion'
+    permission_required = 'votaciones.view_eventovotacion'
     template_name = 'apps/votaciones/list.html'
     page_title = 'Votaciones'
     model = EventoVotacion
