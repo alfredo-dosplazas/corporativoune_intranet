@@ -491,6 +491,7 @@ ZABBIX_API_URL = env('ZABBIX_API_URL')
 
 WAHA_API_URL = env('WAHA_API_URL', default='http://localhost:3000')
 WAHA_API_KEY = env('WAHA_API_KEY', default='')
+WAHA_VERIFY_SSL = env('WAHA_VERIFY_SSL', cast=bool, default=True)
 
 if DEBUG:
     import os

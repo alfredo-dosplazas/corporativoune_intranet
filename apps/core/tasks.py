@@ -87,12 +87,11 @@ def enviar_correo_task(
 
 @shared_task
 def enviar_whatsapp_task(numero: str, mensaje: str, file_data: dict = None):
-    """
-    Task de Celery para enviar mensajes y archivos de WhatsApp a través de WAHA API HTTP.
-    file_data esperado: {"mimetype": "...", "filename": "...", "data": "base64_string_puro..."}
-    """
     base_url = getattr(settings, 'WAHA_API_URL', 'http://localhost:3000')
     api_key = getattr(settings, 'WAHA_API_KEY', '')
+
+    # Obtenemos la configuración de verificación SSL desde settings
+    verify_ssl = getattr(settings, 'WAHA_VERIFY_SSL', True)
 
     numero_limpio = "".join(filter(str.isdigit, numero))
     chat_id = f"{numero_limpio}@c.us"
@@ -104,23 +103,19 @@ def enviar_whatsapp_task(numero: str, mensaje: str, file_data: dict = None):
         headers["X-Api-Key"] = api_key
 
     try:
-        # 1. Envío con archivo adjunto en Base64
         if file_data and file_data.get("data"):
             endpoint = f"{base_url.rstrip('/')}/api/sendFile"
-
             payload = {
                 "session": "default",
                 "chatId": chat_id,
                 "file": {
                     "mimetype": file_data["mimetype"],
                     "filename": file_data["filename"],
-                    # Usamos 'data' con el string Base64 limpio (sin el prefijo 'data:...;base64,')
                     "data": file_data["data"]
                 },
                 "caption": mensaje
             }
         else:
-            # 2. Envío de texto plano
             endpoint = f"{base_url.rstrip('/')}/api/sendText"
             payload = {
                 "session": "default",
@@ -129,7 +124,9 @@ def enviar_whatsapp_task(numero: str, mensaje: str, file_data: dict = None):
             }
 
         logger.info(f"Enviando WhatsApp vía WAHA a {chat_id}...")
-        response = requests.post(endpoint, json=payload, headers=headers, timeout=30)
+
+        # Pasamos el parámetro verify dinámicamente
+        response = requests.post(endpoint, json=payload, headers=headers, timeout=30, verify=verify_ssl)
 
         if response.status_code in [200, 201]:
             logger.info(f"✓ Mensaje/Archivo de WhatsApp enviado con éxito a {chat_id}.")
@@ -140,4 +137,3 @@ def enviar_whatsapp_task(numero: str, mensaje: str, file_data: dict = None):
 
     except requests.exceptions.RequestException as e:
         logger.error(f"Error de conexión con el servidor WAHA: {str(e)}")
-        raise enviar_whatsapp_task.retry(exc=e, countdown=60, max_retries=3)
