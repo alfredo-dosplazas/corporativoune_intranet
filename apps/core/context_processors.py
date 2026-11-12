@@ -1,9 +1,16 @@
+from django.conf import settings
 from django.urls import NoReverseMatch, reverse
 
 from apps.core.models import Empresa
 from apps.core.navigation import build_default_menu, build_compras_menu, build_directorio_menu, build_default_dock, \
     build_compras_dock
 from apps.core.utils.network import get_client_ip, get_empresa_from_ip
+
+
+def app(request):
+    return {
+        'APP_URL': settings.APP_URL,
+    }
 
 
 def empresas(request):

@@ -428,7 +428,7 @@
 
     </div>
 
-    <!-- SCRIPT DE CONTROL PARA ONLYOFFICE Y LIGHTBOX -->
+    <!-- SCRIPT DE CONTROL PARA ONLYOFFICE, LIGHTBOX Y ZONA DE CARGA -->
     <script>
         let docEditorInstance = null;
 
@@ -442,11 +442,9 @@
                 .then(data => {
                     if (data.status === 'success') {
                         const containerId = "onlyoffice-editor-container";
-                        console.log(data);
                         document.getElementById(containerId).innerHTML = "";
 
                         if (window.DocsAPI && window.DocsAPI.DocEditor) {
-                            // Se pasa data.documentConfig directamente, el cual ya contiene el token interno
                             docEditorInstance = new window.DocsAPI.DocEditor(containerId, data.documentConfig);
                         } else {
                             console.error("OnlyOffice API no está disponible.");
@@ -473,7 +471,7 @@
             }
             document.getElementById('onlyoffice-editor-container').innerHTML = "";
             document.getElementById('modal_onlyoffice').close();
-            window.location.reload(); // Recargar para ver cambios guardados
+            window.location.reload();
         }
 
         function abrirLightbox(url, titulo) {
@@ -483,5 +481,92 @@
             document.getElementById('lightbox-download').href = url;
             document.getElementById('modal_lightbox').showModal();
         }
+
+        // Control de la Zona de Carga (Drag & Drop y Preview)
+        function toggleZonaCarga() {
+            const panel = document.getElementById('panel-zona-carga');
+            if (panel) {
+                panel.classList.toggle('hidden');
+            }
+        }
+
+        function manejarArchivosSeleccionados(files) {
+            const resumen = document.getElementById('resumen-subida');
+            const lista = document.getElementById('lista-archivos-preview');
+            const totalNum = document.getElementById('total-archivos-num');
+
+            if (!files || files.length === 0) {
+                resumen.classList.add('hidden');
+                return;
+            }
+
+            lista.innerHTML = '';
+            totalNum.innerText = files.length;
+            resumen.classList.remove('hidden');
+
+            Array.from(files).forEach((file) => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between py-1.5 px-2 text-xs';
+                item.innerHTML = `
+                    <div class="flex items-center gap-2 truncate">
+                        <span class="icon-[ph--file-bold] size-4 text-primary shrink-0"></span>
+                        <span class="truncate text-base-content font-medium">${file.name}</span>
+                    </div>
+                    <span class="text-base-content/50 text-[10px] shrink-0 font-mono">${(file.size / 1024).toFixed(1)} KB</span>
+                `;
+                lista.appendChild(item);
+            });
+        }
+
+        function limpiarSeleccion() {
+            const fileInput = document.getElementById('file-input');
+            if (fileInput) fileInput.value = '';
+            document.getElementById('resumen-subida').classList.add('hidden');
+            document.getElementById('lista-archivos-preview').innerHTML = '';
+        }
+
+        function confirmarYSubir(event) {
+            const btnSubmit = document.getElementById('btn-submit-upload');
+            const btnText = document.getElementById('btn-text');
+            const btnIcon = document.getElementById('btn-icon');
+
+            if (btnSubmit) {
+                btnSubmit.setAttribute('disabled', 'true');
+                if (btnText) btnText.innerText = 'Subiendo archivos...';
+                if (btnIcon) btnIcon.className = 'icon-[ph--spinner-bold] size-4 animate-spin';
+            }
+        }
+
+        // Configuración de eventos de arrastre (Drag and Drop)
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropZone = document.getElementById('drop-zone');
+            if (dropZone) {
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropZone.classList.add('drop-zone-active');
+                    }, false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropZone.classList.remove('drop-zone-active');
+                    }, false);
+                });
+
+                dropZone.addEventListener('drop', (e) => {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    const fileInput = document.getElementById('file-input');
+                    if (fileInput && files.length > 0) {
+                        fileInput.files = files;
+                        manejarArchivosSeleccionados(files);
+                    }
+                }, false);
+            }
+        });
     </script>
 </c-layouts.app>

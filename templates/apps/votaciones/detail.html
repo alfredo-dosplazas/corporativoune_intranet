@@ -82,7 +82,7 @@
                         <!-- Botón copiar link directo de votación -->
                         <button type="button"
                                 id="btn-copy-link"
-                                data-url="{{ request.scheme }}://{{ request.get_host }}{% url 'votaciones:votar_evento' evento.pk %}"
+                                data-url="{{ APP_URL }}{% url 'votaciones:votar_evento' evento.pk %}"
                                 class="btn btn-xs btn-outline border-base-300 bg-base-100 hover:bg-base-200 text-xs gap-1.5 h-8">
                             <span class="icon-[tabler--copy] text-sm"></span>
                             <span id="copy-text">Copiar Link Boleta</span>
