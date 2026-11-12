@@ -15,7 +15,6 @@
             }
         }
 
-        /* Ruleta con animación por JS para cálculo preciso de altura */
         @keyframes countdownBeat {
             0% {
                 transform: scale(0.6);
@@ -104,51 +103,50 @@
 
         <!-- CAPAS DE AMBIENTE Y LUCES EN MALLA (AURORA MESH GRADIENT) -->
         <div class="absolute inset-0 pointer-events-none overflow-hidden">
-            <!-- Malla de micro-puntos de lujo -->
             <div class="absolute inset-0 opacity-[0.14] bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px]"></div>
-
-            <!-- Orbe 1: Ámbar / Dorado Neón -->
             <div class="absolute -top-32 left-1/4 w-[750px] h-[750px] bg-gradient-to-br from-amber-500/20 via-orange-600/10 to-transparent rounded-full blur-[140px] animate-aurora-1 mix-blend-screen"></div>
-
-            <!-- Orbe 2: Indigo / Violeta Ultrasensible -->
             <div class="absolute -bottom-40 right-1/4 w-[850px] h-[850px] bg-gradient-to-tl from-indigo-600/20 via-purple-900/10 to-transparent rounded-full blur-[160px] animate-aurora-2 mix-blend-screen"></div>
-
-            <!-- Halo Central de Enfoque -->
             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-amber-400/5 rounded-full blur-[120px]"></div>
         </div>
 
         <!-- HEADER CINEMÁTICO SUPERIOR -->
-        <header class="relative z-20 w-full px-8 py-7 flex items-center justify-between">
+        <header class="relative z-30 w-full px-8 py-6 flex items-center justify-between pointer-events-auto">
             <div class="flex items-center space-x-3.5">
                 <div class="relative flex items-center justify-center w-3 h-3">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
                 </div>
                 <div class="flex flex-col">
-                    <span class="text-[11px] font-bold tracking-[0.35em] text-amber-400/90 uppercase font-mono">Modo Transmisión en Vivo</span>
-                    <span class="text-xs text-zinc-500 tracking-wider">Sistema de Asignación Cuántica</span>
+                    <span class="text-[11px] font-bold tracking-[0.35em] text-amber-400/90 uppercase font-mono">Consola de Sorteo Cuántico</span>
+                    <span class="text-xs text-zinc-500 tracking-wider">Modo Remezcla y Auditoría Activa</span>
                 </div>
             </div>
 
-            <!-- Insignia del Evento -->
-            <div class="px-5 py-2 rounded-full glass-panel-luxury flex items-center space-x-2.5">
-                <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
-                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                </svg>
-                <span class="text-xs font-semibold uppercase tracking-widest text-zinc-300">{{ evento.nombre }}</span>
+            <!-- Insignia del Evento y Botón de Historial Funcional -->
+            <div class="flex items-center gap-3">
+                {% if total_corridas > 0 %}
+                    <a href="{% url 'regalos:canjeados' evento.slug %}"
+                       class="px-4 py-2.5 rounded-xl glass-panel-luxury flex items-center space-x-2 text-xs font-mono text-amber-300 hover:text-white hover:border-amber-400/80 transition-all cursor-pointer shadow-lg">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>Ver Historial (Corrida #{{ ultima_corrida.numero_corrida }})</span>
+                    </a>
+                {% endif %}
+                <div class="px-5 py-2.5 rounded-full glass-panel-luxury flex items-center space-x-2.5">
+                    <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
+                              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                    <span class="text-xs font-semibold uppercase tracking-widest text-zinc-300">{{ evento.nombre }}</span>
+                </div>
             </div>
         </header>
 
         <!-- CONTENEDOR PRINCIPAL: EXPERIENCIA MULTI-FASE -->
         <main class="relative z-20 flex-1 flex items-center justify-center px-4 w-full max-w-5xl mx-auto">
 
-            <!-- ========================================== -->
-            <!-- FASE 1: STANDBY / BOTÓN MAJESTUOSO          -->
-            <!-- ========================================== -->
+            <!-- FASE 1: STANDBY -->
             <div id="fase-standby"
                  class="w-full max-w-xl text-center flex flex-col items-center transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]">
-                <!-- Glifo Escultórico -->
                 <div class="relative group mb-10">
                     <div class="absolute -inset-4 bg-gradient-to-r from-amber-500/30 to-amber-200/20 rounded-full blur-2xl group-hover:blur-3xl group-hover:scale-110 transition-all duration-700"></div>
                     <div class="relative w-28 h-28 rounded-3xl glass-panel-luxury flex items-center justify-center border border-amber-500/30 shadow-[0_0_50px_rgba(245,158,11,0.25)] group-hover:border-amber-400/60 transition-all duration-500">
@@ -160,15 +158,13 @@
                     </div>
                 </div>
 
-                <!-- Tipografía de Entrada -->
                 <h1 class="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-100 to-zinc-400">
                     Gran Sorteo Masivo
                 </h1>
                 <p class="text-sm md:text-base text-zinc-400 font-light mt-3.5 tracking-wide max-w-md">
-                    Algoritmo de asignación automatizada de regalos corporativos y premios de gala.
+                    Algoritmo de asignación automatizada con persistencia de logs y bitácora histórica.
                 </p>
 
-                <!-- Botón de Inicio con Aura y Pulso -->
                 <div class="relative mt-11 w-full max-w-sm">
                     <div class="absolute -inset-1 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-300 rounded-2xl blur-lg opacity-60 group-hover:opacity-100 animate-pulse transition duration-1000"></div>
                     <button onclick="comenzarExperiencia(false)"
@@ -183,9 +179,7 @@
                 </div>
             </div>
 
-            <!-- ========================================== -->
-            <!-- FASE 2: CONTEO REGRESIVO CINEMÁTICO        -->
-            <!-- ========================================== -->
+            <!-- FASE 2: CONTEO REGRESIVO -->
             <div id="fase-countdown" class="hidden flex-col items-center justify-center text-center">
                 <span class="text-xs uppercase font-mono tracking-[0.5em] text-amber-400/80 mb-4 block"
                       id="countdown-label">Iniciando protocolo</span>
@@ -195,16 +189,11 @@
                 </div>
             </div>
 
-            <!-- ========================================== -->
-            <!-- FASE 3: PROCESAMIENTO MASIVO (SLOT & TERMINAL) -->
-            <!-- ========================================== -->
+            <!-- FASE 3: PROCESAMIENTO MASIVO -->
             <div id="fase-procesamiento" class="hidden w-full max-w-3xl flex-col items-center">
-                <!-- Panel Central Flotante Glassmorphic -->
                 <div class="w-full rounded-3xl glass-panel-luxury p-8 md:p-10 relative overflow-hidden">
-                    <!-- Haz Láser de Escaneo -->
                     <div class="laser-line absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_15px_#f59e0b] pointer-events-none"></div>
 
-                    <!-- Cabecera de Estado -->
                     <div class="flex items-center justify-between pb-5 border-b border-white/[0.08]">
                         <div class="flex items-center space-x-3">
                             <div class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></div>
@@ -214,68 +203,51 @@
                         <span id="label-porcentaje" class="text-sm font-mono font-bold text-amber-400">0%</span>
                     </div>
 
-                    <!-- SLOT MACHINE: DISEÑO AJUSTADO Y REFINADO PARA NOMBRES LARGOS -->
                     <div class="my-7 grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                        <!-- Ruleta Invitados -->
                         <div class="relative h-[136px] rounded-2xl bg-zinc-950/80 border border-white/[0.08] overflow-hidden flex flex-col justify-center shadow-inner">
                             <div class="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-[#050507] via-[#050507]/80 to-transparent z-20 pointer-events-none"></div>
                             <div class="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#050507] via-[#050507]/80 to-transparent z-20 pointer-events-none"></div>
-
                             <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[48px] bg-white/[0.03] border-y border-white/[0.05] pointer-events-none z-10"></div>
-
                             <div class="absolute top-2.5 left-3.5 z-30 flex items-center space-x-1.5">
                                 <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
                                 <span class="text-[9px] font-mono uppercase tracking-[0.2em] text-zinc-400 font-bold">Invitado / Colaborador</span>
                             </div>
-
                             <div id="ticker-invitados"
                                  class="flex flex-col items-center will-change-transform pt-4"></div>
                         </div>
 
-                        <!-- Ruleta Regalos -->
                         <div class="relative h-[136px] rounded-2xl bg-zinc-950/80 border border-white/[0.08] overflow-hidden flex flex-col justify-center shadow-inner">
                             <div class="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-[#050507] via-[#050507]/80 to-transparent z-20 pointer-events-none"></div>
                             <div class="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#050507] via-[#050507]/80 to-transparent z-20 pointer-events-none"></div>
-
                             <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[48px] bg-amber-400/[0.03] border-y border-amber-400/[0.1] pointer-events-none z-10"></div>
-
                             <div class="absolute top-2.5 left-3.5 z-30 flex items-center space-x-1.5">
                                 <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
                                 <span class="text-[9px] font-mono uppercase tracking-[0.2em] text-amber-300 font-bold">Premio / Asignación</span>
                             </div>
-
                             <div id="ticker-regalos"
                                  class="flex flex-col items-center will-change-transform pt-4"></div>
                         </div>
-
                     </div>
 
-                    <!-- BARRA DE PROGRESO DE NEÓN -->
                     <div class="w-full">
                         <div class="relative w-full h-2.5 rounded-full bg-zinc-900/90 border border-white/[0.08] p-0.5 overflow-hidden">
                             <div id="progress-bar"
-                                 class="h-full rounded-full bg-gradient-to-r from-amber-500 via-orange-400 to-amber-200 transition-all duration-300 shadow-[0_0_20px_#f59e0b] w-0">
-                            </div>
+                                 class="h-full rounded-full bg-gradient-to-r from-amber-500 via-orange-400 to-amber-200 transition-all duration-300 shadow-[0_0_20px_#f59e0b] w-0"></div>
                         </div>
                     </div>
 
-                    <!-- TERMINAL DE ESTADO DINÁMICA -->
                     <div class="mt-5 flex items-center justify-between">
                         <div class="flex items-center space-x-2 text-xs font-mono text-zinc-400">
                             <span class="text-amber-400">›</span>
-                            <span id="terminal-status-text">Inicializando motor de selección...</span>
+                            <span id="terminal-status-text">Generando bitácora criptográfica...</span>
                         </div>
                         <span class="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">Protocolo SHA-256</span>
                     </div>
                 </div>
             </div>
 
-            <!-- ========================================== -->
-            <!-- FASE 4: CLÍMAX Y OPCIONES DE CONTROL       -->
-            <!-- ========================================== -->
+            <!-- FASE 4: CLÍMAX -->
             <div id="fase-climax" class="hidden w-full max-w-xl text-center flex-col items-center">
-                <!-- Corona de Victoria -->
                 <div class="relative mb-6">
                     <div class="absolute -inset-6 bg-gradient-to-r from-amber-400 to-yellow-200 rounded-full blur-3xl opacity-60"></div>
                     <div class="relative w-24 h-24 rounded-full bg-gradient-to-b from-amber-400 to-amber-600 flex items-center justify-center text-zinc-950 shadow-[0_0_60px_rgba(245,158,11,0.6)]">
@@ -286,13 +258,12 @@
                 </div>
 
                 <h2 class="text-3xl md:text-5xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-amber-100 to-amber-500">
-                    ¡Sorteo Concluido!
+                    ¡Sorteo Concluido y Guardado!
                 </h2>
                 <p class="text-sm md:text-base text-zinc-300 font-light mt-3 tracking-wide">
-                    Las asignaciones han sido procesadas con éxito y se han notificado a dirección.
+                    La corrida ha sido registrada en el log histórico, se generó el PDF y se notificó a directiva.
                 </p>
 
-                <!-- Panel de Decisiones del Ejecutor (Re-ejecutar vs Avanzar) -->
                 <div id="panel-opciones-finales"
                      class="mt-8 flex flex-col sm:flex-row gap-4 items-center justify-center w-full">
                     <button onclick="comenzarExperiencia(true)"
@@ -301,12 +272,12 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                         </svg>
-                        Volver a Mezclar
+                        Volver a Mezclar (Remezcla)
                     </button>
 
-                    <a href="{{ url_redirect_pantalla }}"
+                    <a href="{% url 'regalos:canjeados' evento.slug %}"
                        class="px-8 py-4 rounded-xl bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-zinc-950 font-black text-xs uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(245,158,11,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2.5 cursor-pointer">
-                        Avanzar a Pantalla de Premios
+                        Ver Historial y Canjeados
                         <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                   d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
@@ -315,57 +286,44 @@
                 </div>
 
                 <p class="text-[11px] font-mono text-emerald-400 mt-4 tracking-wider">
-                    ✓ Notificación por Correo y WhatsApp enviada a directivos.
+                    ✓ Log persistente y notificación asíncrona completadas.
                 </p>
             </div>
 
         </main>
 
-        <!-- FOOTER CINEMÁTICO INFERIOR -->
         <footer class="relative z-20 w-full px-8 py-6 flex items-center justify-between text-zinc-500 text-[11px] font-mono">
             <div class="flex items-center space-x-2">
                 <span class="inline-block w-1.5 h-1.5 rounded-full bg-zinc-600"></span>
-                <span>CORPORATIVO UNE © TRANSMISIÓN OFICIAL</span>
+                <span>CORPORATIVO UNE © AUDITORÍA CUÁNTICA</span>
             </div>
             <div class="tracking-widest uppercase">
                 ID SESIÓN: {{ evento.slug|upper }}
             </div>
         </footer>
-
     </div>
 
-    <!-- INYECCIÓN SEGURA DE DATOS DESDE DJANGO -->
     {{ nombres_invitados|json_script:"invitados-data" }}
     {{ nombres_regalos|json_script:"regalos-data" }}
 
-    <!-- CONTROLADOR JAVASCRIPT -->
     <script>
         let rawInvitados = [];
         let rawRegalos = [];
 
         try {
-            const elInv = document.getElementById('invitados-data');
-            if (elInv && elInv.textContent) rawInvitados = JSON.parse(elInv.textContent) || [];
+            rawInvitados = JSON.parse(document.getElementById('invitados-data').textContent) || [];
         } catch (e) {
-            console.warn("No se pudo parsear invitados-data", e);
         }
 
         try {
-            const elReg = document.getElementById('regalos-data');
-            if (elReg && elReg.textContent) rawRegalos = JSON.parse(elReg.textContent) || [];
+            rawRegalos = JSON.parse(document.getElementById('regalos-data').textContent) || [];
         } catch (e) {
-            console.warn("No se pudo parsear regalos-data", e);
         }
 
-        const invitadosReales = rawInvitados.length > 0 ? rawInvitados : [
-            "Carlos Mendoza Ruiz", "Sofía Alarcón Domínguez", "Alejandro Morales Vega"
-        ];
-        const regalosReales = rawRegalos.length > 0 ? rawRegalos : [
-            "Smart TV 65\" UHD 4K", "Bocina Marshall Stanmore", "MacBook Air M2 Space Gray"
-        ];
+        const invitadosReales = rawInvitados.length > 0 ? rawInvitados : ["Carlos Mendoza", "Sofía Alarcón"];
+        const regalosReales = rawRegalos.length > 0 ? rawRegalos : ["Smart TV 4K", "MacBook Air"];
 
         const URL_API_SORTEO = "{% url 'regalos:api_sorteo_masivo' evento.slug %}";
-        const URL_REDIRECT_PANTALLA = "{% url 'regalos:all_pantalla_gigante' evento.slug %}";
         const CSRF_TOKEN = "{{ csrf_token }}";
 
         const faseStandby = document.getElementById('fase-standby');
@@ -382,120 +340,53 @@
 
         const tickerInvitados = document.getElementById('ticker-invitados');
         const tickerRegalos = document.getElementById('ticker-regalos');
-
         let animFrameId = null;
 
         const MENSAJES_TERMINAL = [
             "Conectando con base de datos del evento...",
             "Validando quórum de asistentes registrados...",
-            "Ejecutando partición de categorías y premios mayores...",
-            "Generando matrices de compatibilidad y entropía...",
-            "Asignando folios únicos a cada invitado...",
-            "Sellando transacciones criptográficas en base de datos...",
-            "Sincronizando estado general de ganadores..."
+            "Generando registros inmutables en CorridaSorteo...",
+            "Calculando hashes SHA-256 de integridad...",
+            "Despachando tarea WeasyPrint a Celery...",
+            "Sincronizando bitácora con directiva..."
         ];
 
         function poblarTickersReales() {
             let listaInv = [...invitadosReales];
             while (listaInv.length < 12) listaInv = listaInv.concat(invitadosReales);
-            const muestraInv = listaInv.slice(0, 24).concat(listaInv.slice(0, 24));
+            tickerInvitados.innerHTML = listaInv.slice(0, 24).map(n => `<div class="h-[48px] w-full px-5 flex items-center justify-center shrink-0"><span class="text-sm font-semibold text-zinc-200 truncate">${n}</span></div>`).join('');
 
             let listaReg = [...regalosReales];
             while (listaReg.length < 12) listaReg = listaReg.concat(regalosReales);
-            const muestraReg = listaReg.slice(0, 24).concat(listaReg.slice(0, 24));
-
-            tickerInvitados.innerHTML = muestraInv.map(nombre => `
-                <div class="h-[48px] w-full px-5 flex items-center justify-center shrink-0">
-                    <span class="text-sm md:text-[15px] font-semibold text-zinc-200 tracking-wide truncate max-w-full text-center" title="${nombre}">
-                        ${nombre}
-                    </span>
-                </div>
-            `).join('');
-
-            tickerRegalos.innerHTML = muestraReg.map(regalo => `
-                <div class="h-[48px] w-full px-5 flex items-center justify-center shrink-0">
-                    <span class="text-sm md:text-[15px] font-bold text-amber-300 tracking-wide truncate max-w-full text-center" title="${regalo}">
-                        ${regalo}
-                    </span>
-                </div>
-            `).join('');
+            tickerRegalos.innerHTML = listaReg.slice(0, 24).map(r => `<div class="h-[48px] w-full px-5 flex items-center justify-center shrink-0"><span class="text-sm font-bold text-amber-300 truncate">${r}</span></div>`).join('');
 
             iniciarScrollContinuo();
         }
 
         function iniciarScrollContinuo() {
-            let offsetInv = 0;
-            let offsetReg = 0;
-            const itemHeight = 48;
-            const medioInv = (tickerInvitados.children.length / 2) * itemHeight;
-            const medioReg = (tickerRegalos.children.length / 2) * itemHeight;
-            const velocidad = 4.8;
+            let offsetInv = 0, offsetReg = 0;
+            const itemHeight = 48, medioInv = (tickerInvitados.children.length / 2) * itemHeight;
 
             function step() {
-                offsetInv += velocidad;
-                offsetReg += (velocidad * 1.08);
-
+                offsetInv += 4.8;
+                offsetReg += 5.18;
                 if (offsetInv >= medioInv) offsetInv = 0;
-                if (offsetReg >= medioReg) offsetReg = 0;
-
+                if (offsetReg >= medioInv) offsetReg = 0;
                 tickerInvitados.style.transform = `translate3d(0, -${offsetInv}px, 0)`;
                 tickerRegalos.style.transform = `translate3d(0, -${offsetReg}px, 0)`;
-
                 animFrameId = requestAnimationFrame(step);
             }
 
             animFrameId = requestAnimationFrame(step);
         }
 
-        function dispararConfettiLujoso() {
-            if (typeof confetti !== 'function') return;
-
-            confetti({
-                particleCount: 80,
-                spread: 100,
-                origin: {y: 0.6},
-                colors: ['#f59e0b', '#fbbf24', '#fef3c7', '#ffffff', '#e2e8f0']
-            });
-
-            const duracion = 2200;
-            const end = Date.now() + duracion;
-
-            (function frame() {
-                confetti({
-                    particleCount: 4,
-                    angle: 60,
-                    spread: 65,
-                    origin: {x: 0, y: 0.7},
-                    colors: ['#f59e0b', '#ffd700', '#ffffff']
-                });
-                confetti({
-                    particleCount: 4,
-                    angle: 120,
-                    spread: 65,
-                    origin: {x: 1, y: 0.7},
-                    colors: ['#f59e0b', '#ffd700', '#ffffff']
-                });
-
-                if (Date.now() < end) {
-                    requestAnimationFrame(frame);
-                }
-            }());
-        }
-
         function comenzarExperiencia(esReejecucion = false) {
-            // Ocultar vistas activas previas
             faseStandby.classList.add('hidden', 'opacity-0', 'scale-95');
             faseClimax.classList.add('hidden');
             faseClimax.classList.remove('flex');
 
-            // Configurar textos según corresponda
-            if (esReejecucion) {
-                countdownLabel.textContent = "Re-mezclando asignaciones";
-                headerEstadoProcesamiento.textContent = "Re-ejecutando Sorteo Masivo";
-            } else {
-                countdownLabel.textContent = "Iniciando protocolo";
-                headerEstadoProcesamiento.textContent = "Asignación Masiva Activa";
-            }
+            countdownLabel.textContent = esReejecucion ? "Re-mezclando y registrando bitácora" : "Iniciando protocolo";
+            headerEstadoProcesamiento.textContent = esReejecucion ? "Guardando Remezcla en Logs" : "Asignación Masiva Activa";
 
             faseCountdown.classList.remove('hidden');
             faseCountdown.classList.add('flex');
@@ -508,14 +399,10 @@
                 countdownNumber.classList.remove('anim-count-beat');
                 void countdownNumber.offsetWidth;
                 countdownNumber.classList.add('anim-count-beat');
-
-                setTimeout(() => {
-                    iniciarConteo(numero - 1, esReejecucion);
-                }, 1000);
+                setTimeout(() => iniciarConteo(numero - 1, esReejecucion), 1000);
             } else {
                 faseCountdown.classList.add('hidden');
                 faseCountdown.classList.remove('flex');
-
                 poblarTickersReales();
                 iniciarProcesamiento(esReejecucion);
             }
@@ -525,24 +412,16 @@
             faseProcesamiento.classList.remove('hidden');
             faseProcesamiento.classList.add('flex');
 
-            let porcentaje = 0;
-            let msgIndex = 0;
-
+            let porcentaje = 0, msgIndex = 0;
             const formData = new FormData();
             formData.append('csrfmiddlewaretoken', CSRF_TOKEN);
-            if (esReejecucion) {
-                formData.append('reiniciar', 'true');
-            }
+            if (esReejecucion) formData.append('reiniciar', 'true');
 
-            const peticionBackend = fetch(URL_API_SORTEO, {
-                method: 'POST',
-                body: formData
-            }).then(res => res.json());
+            const peticionBackend = fetch(URL_API_SORTEO, {method: 'POST', body: formData}).then(res => res.json());
 
             const intervalo = setInterval(() => {
                 porcentaje += 2;
                 if (porcentaje > 95) porcentaje = 95;
-
                 progressBar.style.width = porcentaje + '%';
                 labelPorcentaje.textContent = porcentaje + '%';
 
@@ -554,45 +433,38 @@
                 }
             }, 100);
 
-            Promise.all([
-                peticionBackend,
-                new Promise(resolve => setTimeout(resolve, 4500))
-            ])
+            Promise.all([peticionBackend, new Promise(resolve => setTimeout(resolve, 4000))])
                 .then(([data]) => {
                     clearInterval(intervalo);
-
                     if (data.status === 'success') {
                         progressBar.style.width = '100%';
                         labelPorcentaje.textContent = '100%';
-                        terminalStatusText.textContent = '¡Sorteo finalizado, verificado y notificado!';
-
-                        setTimeout(() => {
-                            culminarSorteo();
-                        }, 600);
+                        terminalStatusText.textContent = '¡Corrida guardada y notificada con éxito!';
+                        setTimeout(() => culminarSorteo(), 600);
                     } else {
-                        alert(data.message || 'Error al ejecutar el sorteo.');
+                        alert(data.message || 'Error en el sorteo.');
                         window.location.reload();
                     }
                 })
                 .catch(err => {
                     clearInterval(intervalo);
                     console.error(err);
-                    alert('Ocurrió un error al procesar el sorteo masivo en el servidor.');
+                    alert('Ocurrió un error en el servidor.');
                     window.location.reload();
                 });
         }
 
         function culminarSorteo() {
             if (animFrameId) cancelAnimationFrame(animFrameId);
-
             screenFlash.classList.add('anim-flash');
-
             faseProcesamiento.classList.add('hidden');
             faseProcesamiento.classList.remove('flex');
             faseClimax.classList.remove('hidden');
             faseClimax.classList.add('flex');
 
-            dispararConfettiLujoso();
+            if (typeof confetti === 'function') {
+                confetti({particleCount: 80, spread: 100, origin: {y: 0.6}, colors: ['#f59e0b', '#fbbf24', '#ffffff']});
+            }
         }
     </script>
 </c-layouts.base>

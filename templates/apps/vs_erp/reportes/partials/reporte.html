@@ -1,410 +1,312 @@
 {% load money %}
 
-<style>
-    .reporte-container {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        color: #1e293b;
-        max-width: 1300px;
-        margin: 20px auto;
-        padding: 0 15px;
-    }
+<div class="space-y-8 animate-fadeIn">
+    {% if reporte %}
+        <div class="flex items-center justify-between bg-base-200/60 px-6 py-4 rounded-xl border border-base-300">
+            <div>
+                <h3 class="font-bold text-lg text-base-content flex items-center gap-2">
+                    <span class="icon-[ph--buildings-bold] text-primary"></span>
+                    Reporte Financiero Consolidado
+                </h3>
+                <p class="text-xs text-base-content/60">Se han procesado exitosamente {{ reporte|length }} obra(s) en
+                    esta consulta.</p>
+            </div>
+            <div class="badge badge-primary badge-lg font-semibold">Generado con éxito</div>
+        </div>
 
-    .obra-card {
-        background: #ffffff;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        margin-bottom: 40px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        overflow: hidden;
-    }
+        {% for reporte_item in reporte %}
+            {% with obra_id=forloop.counter %}
+                <div class="card bg-base-100 shadow-xl border border-base-300 overflow-hidden obra-card"
+                     id="obra-card-{{ obra_id }}">
 
-    .obra-header {
-        background-color: #0f172a;
-        color: #ffffff;
-        padding: 16px 20px;
-        margin: 0;
-        font-size: 1.2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    /* Navegación por Pestañas */
-    .tabs-nav {
-        display: flex;
-        background-color: #f1f5f9;
-        border-bottom: 2px solid #cbd5e1;
-        list-style: none;
-        margin: 0;
-        padding: 0 10px;
-    }
-
-    .tab-btn {
-        padding: 12px 20px;
-        cursor: pointer;
-        font-weight: 600;
-        color: #64748b;
-        border-bottom: 3px solid transparent;
-        transition: all 0.2s ease;
-    }
-
-    .tab-btn:hover {
-        color: #0f172a;
-    }
-
-    .tab-btn.active {
-        color: #2563eb;
-        border-bottom-color: #2563eb;
-        background-color: #ffffff;
-    }
-
-    /* Contenido Pestañas */
-    .tab-content {
-        display: none;
-        padding: 20px;
-    }
-
-    .tab-content.active {
-        display: block;
-    }
-
-    /* Tablas */
-    .reporte-tabla {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.875rem;
-    }
-
-    .reporte-tabla th {
-        background-color: #f8fafc;
-        color: #475569;
-        text-align: left;
-        padding: 10px 12px;
-        border-bottom: 2px solid #e2e8f0;
-        font-weight: 600;
-    }
-
-    .reporte-tabla td {
-        padding: 8px 12px;
-        border-bottom: 1px solid #f1f5f9;
-    }
-
-    .reporte-tabla tfoot tr {
-        background-color: #0f172a;
-        color: #ffffff;
-        font-weight: bold;
-    }
-
-    .reporte-tabla tfoot td {
-        padding: 12px;
-        border-top: 2px solid #0284c7;
-        font-size: 0.95rem;
-    }
-
-    .monto {
-        text-align: right;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: 0.9rem;
-    }
-
-    /* Filas Especiales */
-    .row-agrupador {
-        background-color: #f8fafc;
-        font-weight: bold;
-    }
-
-    .toggle-tree {
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 22px;
-        height: 22px;
-        border-radius: 4px;
-        background-color: #2563eb;
-        color: #ffffff;
-        font-size: 0.75rem;
-        margin-right: 6px;
-        user-select: none;
-        font-weight: bold;
-        transition: background-color 0.2s;
-    }
-
-    .toggle-tree:hover {
-        background-color: #1d4ed8;
-    }
-
-    .diferencia-negativa {
-        color: #dc2626;
-        font-weight: 600;
-    }
-
-    .tfoot-negativo {
-        color: #f87171 !important;
-    }
-
-    /* Acordeón de Familias */
-    .familia-group {
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        margin-bottom: 16px;
-        overflow: hidden;
-    }
-
-    .familia-header {
-        background-color: #f1f5f9;
-        padding: 12px 16px;
-        font-weight: 600;
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .familia-header:hover {
-        background-color: #e2e8f0;
-    }
-
-    .badge-retenciones {
-        background-color: #ef4444;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        margin-left: 6px;
-    }
-</style>
-
-<div class="reporte-container">
-    {% for reporte_item in reporte %}
-        {% with obra_id=forloop.counter %}
-            <div class="obra-card" id="obra-card-{{ obra_id }}">
-                <h2 class="obra-header">
-                    <span>{{ reporte_item.empresa }} | {{ reporte_item.obra }}</span>
-                </h2>
-
-                <!-- Navegación por Pestañas Aisladas por Obra -->
-                <ul class="tabs-nav">
-                    <li class="tab-btn active" onclick="switchTab(this, 'conceptos-{{ obra_id }}')">
-                        Árbol de Conceptos
-                    </li>
-                    <li class="tab-btn" onclick="switchTab(this, 'familias-{{ obra_id }}')">
-                        Por Familia
-                    </li>
-                    <li class="tab-btn" onclick="switchTab(this, 'materiales-{{ obra_id }}')">
-                        Detalle Materiales
-                    </li>
-                    <li class="tab-btn" onclick="switchTab(this, 'retenciones-{{ obra_id }}')">
-                        Retenciones
-                        {% if reporte_item.retenciones %}
-                            <span class="badge-retenciones">{{ reporte_item.retenciones|length }}</span>
-                        {% endif %}
-                    </li>
-                </ul>
-
-                <!-- PESTAÑA 1: ÁRBOLES DE CONCEPTOS -->
-                <div id="conceptos-{{ obra_id }}" class="tab-content active">
-                    <table class="reporte-tabla">
-                        <thead>
-                        <tr>
-                            <th>Concepto</th>
-                            <th class="monto">Presupuesto</th>
-                            <th class="monto">Comprado / Egreso</th>
-                            <th class="monto">Diferencia</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for concepto in reporte_item.conceptos %}
-                            <tr class="{% if concepto.EsAgrupador or concepto.NivelIdentacion < 3 %}row-agrupador{% endif %}"
-                                data-node-id="{{ concepto.IdConceptoObra }}"
-                                data-parent-id="{{ concepto.IdConceptoPadre|default:0 }}"
-                                style="{% if concepto.NivelIdentacion > 1 %}display:none;{% endif %}">
-
-                                <td style="padding-left: calc(12px + {{ concepto.NivelIdentacion|default:1|add:'-1' }} * 1.5rem);">
-                                    {% if concepto.EsAgrupador or concepto.es_agrupador or concepto.NivelIdentacion < 3 %}
-                                        <span class="toggle-tree" onclick="toggleTreeNode(this)">▶</span>
-                                    {% else %}
-                                        <span style="display:inline-block; width:28px;"></span>
-                                    {% endif %}
-                                    <strong>{{ concepto.ClaveConceptoObra }}</strong> {{ concepto.Concepto }}
-                                </td>
-                                <td class="monto">{{ concepto.PresupuestoMateriales|money }}</td>
-                                <td class="monto">{{ concepto.EgresosMateriales|money }}</td>
-                                <td class="monto {% if concepto.DiferenciaMateriales < 0 %}diferencia-negativa{% endif %}">
-                                    {{ concepto.DiferenciaMateriales|money }}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                        <!-- TOTALES GENERALES DE CONCEPTOS (Solo Nivel 1) -->
-                        <tfoot>
-                        {% with total_presupuesto=0 total_egresos=0 %}
-                            <tr>
-                                <td>TOTAL GENERAL OBRA</td>
-                                <td class="monto" id="tot-pres-conceptos-{{ obra_id }}">$0.00</td>
-                                <td class="monto" id="tot-egr-conceptos-{{ obra_id }}">$0.00</td>
-                                <td class="monto" id="tot-dif-conceptos-{{ obra_id }}">$0.00</td>
-                            </tr>
-                        {% endwith %}
-                        </tfoot>
-                    </table>
-                </div>
-
-                <!-- PESTAÑA 2: RESUMEN POR FAMILIA -->
-                <div id="familias-{{ obra_id }}" class="tab-content">
-                    <table class="reporte-tabla">
-                        <thead>
-                        <tr>
-                            <th>Familia</th>
-                            <th class="monto">Presupuesto</th>
-                            <th class="monto">Egresos</th>
-                            <th class="monto">Diferencia</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for familia in reporte_item.familias %}
-                            <tr>
-                                <td><strong>{{ familia.Familia }}</strong></td>
-                                <td class="monto">{{ familia.PresupuestoMateriales|money }}</td>
-                                <td class="monto">{{ familia.EgresosMateriales|money }}</td>
-                                <td class="monto {% if familia.DiferenciaMateriales < 0 %}diferencia-negativa{% endif %}">
-                                    {{ familia.DiferenciaMateriales|money }}
-                                </td>
-                            </tr>
-                        {% empty %}
-                            <tr>
-                                <td colspan="4" style="text-align:center;">No hay registros de familias.</td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                        <tfoot>
-                        <tr>
-                            <td>TOTAL FAMILIAS</td>
-                            <td class="monto" id="tot-pres-familias-{{ obra_id }}">$0.00</td>
-                            <td class="monto" id="tot-egr-familias-{{ obra_id }}">$0.00</td>
-                            <td class="monto" id="tot-dif-familias-{{ obra_id }}">$0.00</td>
-                        </tr>
-                        </tfoot>
-                    </table>
-                </div>
-
-                <!-- PESTAÑA 3: DETALLE MATERIALES AGRUPADOS POR FAMILIA -->
-                <div id="materiales-{{ obra_id }}" class="tab-content">
-                    {% regroup reporte_item.materiales by Familia as materiales_por_familia %}
-
-                    {% for fam_group in materiales_por_familia %}
-                        <div class="familia-group">
-                            <div class="familia-header" onclick="toggleFamiliaGroup(this)">
-                                <span>📂 <strong>{{ fam_group.grouper }}</strong> ({{ fam_group.list|length }} insumos)</span>
-                                <span>Desplegar / Ocultar ▼</span>
+                    <!-- Header de la Obra -->
+                    <div class="bg-slate-900 text-white px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-primary/20 p-2 rounded-lg text-primary-content">
+                                <span class="icon-[ph--factory-bold] text-2xl"></span>
                             </div>
-                            <div class="familia-body" style="display: none; padding: 10px;">
-                                <table class="reporte-tabla">
+                            <div>
+                                <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Empresa: {{ reporte_item.empresa }}</span>
+                                <h2 class="text-lg font-bold text-white">Obra: {{ reporte_item.obra }}</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sistema de Pestañas (DaisyUI Tabs estilizadas) -->
+                    <div class="bg-base-200/50 px-6 pt-3 border-b border-base-300 flex overflow-x-auto gap-2 tabs-nav">
+                        <button type="button" class="tab tab-bordered tab-active font-semibold text-sm transition-all"
+                                onclick="switchTab(this, 'conceptos-{{ obra_id }}')">
+                            <span class="icon-[ph--tree-structure-bold] mr-1.5"></span> Árbol de Conceptos
+                        </button>
+                        <button type="button" class="tab tab-bordered font-semibold text-sm transition-all"
+                                onclick="switchTab(this, 'familias-{{ obra_id }}')">
+                            <span class="icon-[ph--squares-four-bold] mr-1.5"></span> Por Familia
+                        </button>
+                        <button type="button" class="tab tab-bordered font-semibold text-sm transition-all"
+                                onclick="switchTab(this, 'materiales-{{ obra_id }}')">
+                            <span class="icon-[ph--package-bold] mr-1.5"></span> Detalle Materiales
+                        </button>
+                        <button type="button" class="tab tab-bordered font-semibold text-sm transition-all"
+                                onclick="switchTab(this, 'retenciones-{{ obra_id }}')">
+                            <span class="icon-[ph--shield-warning-bold] mr-1.5"></span> Retenciones
+                            {% if reporte_item.retenciones %}
+                                <span class="badge badge-error badge-xs ml-1.5 text-white">{{ reporte_item.retenciones|length }}</span>
+                            {% endif %}
+                        </button>
+                    </div>
+
+                    <div class="p-6">
+                        <!-- PESTAÑA 1: ÁRBOL DE CONCEPTOS -->
+                        <div id="conceptos-{{ obra_id }}" class="tab-content active">
+                            <div class="overflow-x-auto border border-base-200 rounded-xl">
+                                <table class="table table-zebra table-pin-rows w-full text-sm">
                                     <thead>
-                                    <tr>
-                                        <th>Insumo / Material</th>
-                                        <th>Unidad</th>
-                                        <th class="monto">Cant. Presup.</th>
-                                        <th class="monto">Cant. Comprada</th>
-                                        <th class="monto">Presupuesto</th>
-                                        <th class="monto">Egresos</th>
-                                        <th class="monto">Diferencia</th>
+                                    <tr class="bg-base-200 text-base-content/70">
+                                        <th>Concepto</th>
+                                        <th class="text-right">Presupuesto</th>
+                                        <th class="text-right">Comprado / Egreso</th>
+                                        <th class="text-right">Diferencia</th>
                                     </tr>
                                     </thead>
                                     <tbody>
-                                    {% for mat in fam_group.list %}
-                                        <tr>
-                                            <td><strong>{{ mat.IdInsumo }}</strong> - {{ mat.Material }}</td>
-                                            <td>{{ mat.UnidadInsumo }}</td>
-                                            <td class="monto">{{ mat.CantidadPresupuestada|floatformat:2 }}</td>
-                                            <td class="monto">{{ mat.CantidadComprada|floatformat:2 }}</td>
-                                            <td class="monto mat-presupuesto">{{ mat.PresupuestoMateriales|money }}</td>
-                                            <td class="monto mat-egreso">{{ mat.EgresosMateriales|money }}</td>
-                                            <td class="monto mat-diferencia {% if mat.DiferenciaMateriales < 0 %}diferencia-negativa{% endif %}">
-                                                {{ mat.DiferenciaMateriales|money }}
+                                    {% for concepto in reporte_item.conceptos %}
+                                        <tr class="{% if concepto.EsAgrupador or concepto.NivelIdentacion < 3 %}font-bold bg-base-200/40{% endif %}"
+                                            data-node-id="{{ concepto.IdConceptoObra }}"
+                                            data-parent-id="{{ concepto.IdConceptoPadre|default:0 }}"
+                                            style="{% if concepto.NivelIdentacion > 1 %}display:none;{% endif %}">
+
+                                            <td style="padding-left: calc(1rem + {{ concepto.NivelIdentacion|default:1|add:'-1' }} * 1.5rem);">
+                                                <div class="flex items-center gap-2">
+                                                    {% if concepto.EsAgrupador or concepto.es_agrupador or concepto.NivelIdentacion < 3 %}
+                                                        <button type="button"
+                                                                class="btn btn-xs btn-square btn-primary text-white toggle-tree font-mono"
+                                                                onclick="toggleTreeNode(this)">▶
+                                                        </button>
+                                                    {% else %}
+                                                        <span class="w-6 inline-block"></span>
+                                                    {% endif %}
+                                                    <span><span
+                                                            class="text-primary font-mono">{{ concepto.ClaveConceptoObra }}</span> {{ concepto.Concepto }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="text-right font-mono">{{ concepto.PresupuestoMateriales|money }}</td>
+                                            <td class="text-right font-mono">{{ concepto.EgresosMateriales|money }}</td>
+                                            <td class="text-right font-mono font-semibold {% if concepto.DiferenciaMateriales < 0 %}text-error{% else %}text-success{% endif %}">
+                                                {{ concepto.DiferenciaMateriales|money }}
                                             </td>
                                         </tr>
                                     {% endfor %}
                                     </tbody>
+                                    <tfoot>
+                                    <tr class="bg-slate-900 text-white font-bold">
+                                        <td>TOTAL GENERAL OBRA</td>
+                                        <td class="text-right font-mono" id="tot-pres-conceptos-{{ obra_id }}">$0.00
+                                        </td>
+                                        <td class="text-right font-mono" id="tot-egr-conceptos-{{ obra_id }}">$0.00</td>
+                                        <td class="text-right font-mono" id="tot-dif-conceptos-{{ obra_id }}">$0.00</td>
+                                    </tr>
+                                    </tfoot>
                                 </table>
                             </div>
                         </div>
-                    {% empty %}
-                        <p style="text-align: center;">No hay detalle de materiales disponible.</p>
-                    {% endfor %}
 
-                    <!-- TOTAL GENERAL DE MATERIALES -->
-                    <table class="reporte-tabla" style="margin-top: 15px;">
-                        <tfoot>
-                        <tr>
-                            <td>TOTAL GENERAL MATERIALES</td>
-                            <td class="monto" id="tot-pres-mat-{{ obra_id }}">$0.00</td>
-                            <td class="monto" id="tot-egr-mat-{{ obra_id }}">$0.00</td>
-                            <td class="monto" id="tot-dif-mat-{{ obra_id }}">$0.00</td>
-                        </tr>
-                        </tfoot>
-                    </table>
+                        <!-- PESTAÑA 2: RESUMEN POR FAMILIA -->
+                        <div id="familias-{{ obra_id }}" class="tab-content hidden">
+                            <div class="overflow-x-auto border border-base-200 rounded-xl">
+                                <table class="table table-zebra w-full text-sm">
+                                    <thead>
+                                    <tr class="bg-base-200 text-base-content/70">
+                                        <th>Familia</th>
+                                        <th class="text-right">Presupuesto</th>
+                                        <th class="text-right">Egresos</th>
+                                        <th class="text-right">Diferencia</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for familia in reporte_item.familias %}
+                                        <tr>
+                                            <td class="font-semibold">{{ familia.Familia }}</td>
+                                            <td class="text-right font-mono">{{ familia.PresupuestoMateriales|money }}</td>
+                                            <td class="text-right font-mono">{{ familia.EgresosMateriales|money }}</td>
+                                            <td class="text-right font-mono font-semibold {% if familia.DiferenciaMateriales < 0 %}text-error{% else %}text-success{% endif %}">
+                                                {{ familia.DiferenciaMateriales|money }}
+                                            </td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="4" class="text-center py-6 text-base-content/50 italic">No hay
+                                                registros de familias para esta obra.
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                    <tfoot>
+                                    <tr class="bg-slate-900 text-white font-bold">
+                                        <td>TOTAL FAMILIAS</td>
+                                        <td class="text-right font-mono" id="tot-pres-familias-{{ obra_id }}">$0.00</td>
+                                        <td class="text-right font-mono" id="tot-egr-familias-{{ obra_id }}">$0.00</td>
+                                        <td class="text-right font-mono" id="tot-dif-familias-{{ obra_id }}">$0.00</td>
+                                    </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- PESTAÑA 3: DETALLE MATERIALES -->
+                        <script>
+                            function toggleFamiliaGroup(header) {
+                                const body = header.nextElementSibling;
+                                body.classList.toggle('hidden');
+                                const icon = header.querySelector('.toggle-icon');
+                                icon.textContent = body.classList.contains('hidden') ? '▼' : '▲';
+                            }
+                        </script>
+                        <div id="materiales-{{ obra_id }}" class="tab-content hidden space-y-4">
+                            {% regroup reporte_item.materiales by Familia as materiales_por_familia %}
+
+                            {% for fam_group in materiales_por_familia %}
+                                <div class="border border-base-300 rounded-xl overflow-hidden bg-base-100 shadow-sm">
+                                    <div class="bg-base-200/80 px-4 py-3 font-semibold cursor-pointer flex justify-between items-center hover:bg-base-200 transition-colors"
+                                         onclick="toggleFamiliaGroup(this)">
+                                        <span class="flex items-center gap-2 text-base-content font-medium">
+                                            <span class="icon-[ph--folder-open-bold] text-primary"></span>
+                                            {{ fam_group.grouper }}
+                                            <span class="badge badge-sm badge-ghost font-normal">{{ fam_group.list|length }} insumos</span>
+                                        </span>
+                                        <span class="toggle-icon text-xs text-base-content/60 font-bold">▼</span>
+                                    </div>
+                                    <div class="hidden p-4 border-t border-base-200 overflow-x-auto">
+                                        <table class="table table-xs table-zebra w-full">
+                                            <thead>
+                                            <tr class="text-base-content/70">
+                                                <th>Insumo / Material</th>
+                                                <th>Unidad</th>
+                                                <th class="text-right">Cant. Presup.</th>
+                                                <th class="text-right">Cant. Comprada</th>
+                                                <th class="text-right">Presupuesto</th>
+                                                <th class="text-right">Egresos</th>
+                                                <th class="text-right">Diferencia</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {% for mat in fam_group.list %}
+                                                <tr>
+                                                    <td><span
+                                                            class="font-mono text-primary font-semibold">{{ mat.IdInsumo }}</span> {{ mat.Material }}
+                                                    </td>
+                                                    <td><span
+                                                            class="badge badge-ghost badge-sm">{{ mat.UnidadInsumo }}</span>
+                                                    </td>
+                                                    <td class="text-right font-mono">{{ mat.CantidadPresupuestada|floatformat:2 }}</td>
+                                                    <td class="text-right font-mono">{{ mat.CantidadComprada|floatformat:2 }}</td>
+                                                    <td class="text-right font-mono mat-presupuesto">{{ mat.PresupuestoMateriales|money }}</td>
+                                                    <td class="text-right font-mono mat-egreso">{{ mat.EgresosMateriales|money }}</td>
+                                                    <td class="text-right font-mono font-semibold mat-diferencia {% if mat.DiferenciaMateriales < 0 %}text-error{% else %}text-success{% endif %}">
+                                                        {{ mat.DiferenciaMateriales|money }}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            {% empty %}
+                                <p class="text-center py-6 text-base-content/50 italic">No hay detalle de materiales
+                                    disponible.</p>
+                            {% endfor %}
+
+                            <!-- TOTAL GENERAL MATERIALES -->
+                            <div class="overflow-x-auto border border-base-300 rounded-xl mt-4">
+                                <table class="table w-full">
+                                    <tfoot>
+                                    <tr class="bg-slate-900 text-white font-bold">
+                                        <td>TOTAL GENERAL MATERIALES</td>
+                                        <td class="text-right font-mono" id="tot-pres-mat-{{ obra_id }}">$0.00</td>
+                                        <td class="text-right font-mono" id="tot-egr-mat-{{ obra_id }}">$0.00</td>
+                                        <td class="text-right font-mono" id="tot-dif-mat-{{ obra_id }}">$0.00</td>
+                                    </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- PESTAÑA 4: RETENCIONES -->
+                        <div id="retenciones-{{ obra_id }}" class="tab-content hidden">
+                            <div class="overflow-x-auto border border-base-200 rounded-xl">
+                                <table class="table table-zebra w-full text-sm">
+                                    <thead>
+                                    <tr class="bg-base-200 text-base-content/70">
+                                        <th>Insumo</th>
+                                        <th>Orden de Compra</th>
+                                        <th class="text-right">Importe Retención</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for ret in reporte_item.retenciones %}
+                                        <tr>
+                                            <td><span
+                                                    class="font-mono text-primary font-semibold">{{ ret.IdInsumo }}</span>
+                                            </td>
+                                            <td><span
+                                                    class="badge badge-outline badge-sm font-mono">{{ ret.IdOrdenCompra }}</span>
+                                            </td>
+                                            <td class="text-right font-mono font-semibold text-error ret-importe">{{ ret.importeR|money }}</td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="3" class="text-center py-6 text-base-content/50 italic">No se
+                                                encontraron retenciones para esta obra.
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                    <tfoot>
+                                    <tr class="bg-slate-900 text-white font-bold">
+                                        <td colspan="2">TOTAL RETENCIONES</td>
+                                        <td class="text-right font-mono" id="tot-ret-{{ obra_id }}">$0.00</td>
+                                    </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
-
-                <!-- PESTAÑA 4: RETENCIONES -->
-                <div id="retenciones-{{ obra_id }}" class="tab-content">
-                    <table class="reporte-tabla">
-                        <thead>
-                        <tr>
-                            <th>Insumo</th>
-                            <th>Orden de Compra</th>
-                            <th class="monto">Importe Retención</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for ret in reporte_item.retenciones %}
-                            <tr>
-                                <td><strong>{{ ret.IdInsumo }}</strong></td>
-                                <td>{{ ret.IdOrdenCompra }}</td>
-                                <td class="monto ret-importe">{{ ret.importeR|money }}</td>
-                            </tr>
-                        {% empty %}
-                            <tr>
-                                <td colspan="3" style="text-align: center;">No se encontraron retenciones para esta
-                                    obra.
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                        <tfoot>
-                        <tr>
-                            <td colspan="2">TOTAL RETENCIONES</td>
-                            <td class="monto" id="tot-ret-{{ obra_id }}">$0.00</td>
-                        </tr>
-                        </tfoot>
-                    </table>
-                </div>
-
+            {% endwith %}
+        {% endfor %}
+    {% else %}
+        <div class="card bg-base-100 shadow-md border border-base-200 text-center py-16">
+            <div class="card-body items-center">
+                <span class="icon-[ph--folder-notch-open-bold] text-6xl text-base-content/30 mb-2"></span>
+                <h3 class="font-bold text-lg text-base-content">Sin resultados para mostrar</h3>
+                <p class="text-sm text-base-content/60 max-w-sm">Selecciona una empresa, elige una o varias obras en el
+                    buscador superior y haz clic en "Generar Reporte en Pantalla".</p>
             </div>
-        {% endwith %}
-    {% endfor %}
+        </div>
+    {% endif %}
 </div>
 
+<!-- Scripts de Comportamiento (Pestañas, Árbol y Totales) -->
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         calcularTotalesAutomaticos();
     });
 
-    // 1. Manejo independiente de Pestañas
+    // Manejo de Pestañas con DaisyUI Tabs
     function switchTab(button, tabId) {
         const card = button.closest('.obra-card');
 
-        card.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        card.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        card.querySelectorAll('.tab').forEach(tab => tab.classList.remove('tab-active'));
+        card.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
 
-        button.classList.add('active');
+        button.classList.add('tab-active');
         const targetTab = card.querySelector('#' + tabId);
         if (targetTab) {
-            targetTab.classList.add('active');
+            targetTab.classList.remove('hidden');
         }
     }
 
-    // 2. Despliegue del Árbol de Conceptos (Treeview Fix)
+    // Despliegue de Árbol de Conceptos
     function toggleTreeNode(toggleBtn) {
         const currentRow = toggleBtn.closest('tr');
         const nodeId = String(currentRow.getAttribute('data-node-id')).trim();
@@ -436,24 +338,15 @@
             const rowParentId = String(row.getAttribute('data-parent-id')).trim();
             if (rowParentId === parentId) {
                 row.style.display = 'none';
-
                 const toggle = row.querySelector('.toggle-tree');
                 if (toggle) toggle.innerText = '▶';
-
                 const childNodeId = String(row.getAttribute('data-node-id')).trim();
                 hideChildren(tbody, childNodeId);
             }
         });
     }
 
-    // 3. Acordeón para Grupos de Materiales
-    function toggleFamiliaGroup(header) {
-        const body = header.nextElementSibling;
-        const isHidden = body.style.display === 'none';
-        body.style.display = isHidden ? 'block' : 'none';
-    }
-
-    // 4. Cálculo de Totales por JS para no sobrecargar las funciones Python
+    // Utilidades de Montos
     function parseMonto(texto) {
         if (!texto) return 0.0;
         return parseFloat(texto.replace(/[^0-9.-]+/g, "")) || 0.0;
@@ -465,11 +358,12 @@
         return num < 0 ? "-" + formatted : formatted;
     }
 
+    // Cálculo automático de Totales
     function calcularTotalesAutomaticos() {
         document.querySelectorAll('.obra-card').forEach(card => {
             const obraId = card.id.replace('obra-card-', '');
 
-            // --- Totales Conceptos (Sumamos solo el nivel raíz/1 para no duplicar agrupadores) ---
+            // Conceptos Nivel 1
             let presConceptos = 0, egrConceptos = 0;
             card.querySelectorAll('#conceptos-' + obraId + ' tbody tr[data-parent-id="0"]').forEach(row => {
                 const tds = row.querySelectorAll('td');
@@ -481,11 +375,9 @@
             let difConceptos = presConceptos - egrConceptos;
             card.querySelector('#tot-pres-conceptos-' + obraId).innerText = formatMoney(presConceptos);
             card.querySelector('#tot-egr-conceptos-' + obraId).innerText = formatMoney(egrConceptos);
-            const elemDifC = card.querySelector('#tot-dif-conceptos-' + obraId);
-            elemDifC.innerText = formatMoney(difConceptos);
-            if (difConceptos < 0) elemDifC.classList.add('tfoot-negativo');
+            card.querySelector('#tot-dif-conceptos-' + obraId).innerText = formatMoney(difConceptos);
 
-            // --- Totales Familias ---
+            // Familias
             let presFam = 0, egrFam = 0;
             card.querySelectorAll('#familias-' + obraId + ' tbody tr').forEach(row => {
                 const tds = row.querySelectorAll('td');
@@ -497,25 +389,22 @@
             let difFam = presFam - egrFam;
             card.querySelector('#tot-pres-familias-' + obraId).innerText = formatMoney(presFam);
             card.querySelector('#tot-egr-familias-' + obraId).innerText = formatMoney(egrFam);
-            const elemDifF = card.querySelector('#tot-dif-familias-' + obraId);
-            elemDifF.innerText = formatMoney(difFam);
-            if (difFam < 0) elemDifF.classList.add('tfoot-negativo');
+            card.querySelector('#tot-dif-familias-' + obraId).innerText = formatMoney(difFam);
 
-            // --- Totales Materiales ---
+            // Materiales
             let presMat = 0, egrMat = 0;
             card.querySelectorAll('#materiales-' + obraId + ' .mat-presupuesto').forEach(td => presMat += parseMonto(td.innerText));
             card.querySelectorAll('#materiales-' + obraId + ' .mat-egreso').forEach(td => egrMat += parseMonto(td.innerText));
             let difMat = presMat - egrMat;
             card.querySelector('#tot-pres-mat-' + obraId).innerText = formatMoney(presMat);
             card.querySelector('#tot-egr-mat-' + obraId).innerText = formatMoney(egrMat);
-            const elemDifM = card.querySelector('#tot-dif-mat-' + obraId);
-            elemDifM.innerText = formatMoney(difMat);
-            if (difMat < 0) elemDifM.classList.add('tfoot-negativo');
+            card.querySelector('#tot-dif-mat-' + obraId).innerText = formatMoney(difMat);
 
-            // --- Totales Retenciones ---
+            // Retenciones
             let totRet = 0;
             card.querySelectorAll('#retenciones-' + obraId + ' .ret-importe').forEach(td => totRet += parseMonto(td.innerText));
-            card.querySelector('#tot-ret-' + obraId).innerText = formatMoney(totRet);
+            const elemRet = card.querySelector('#tot-ret-' + obraId);
+            if (elemRet) elemRet.innerText = formatMoney(totRet);
         });
     }
 </script>

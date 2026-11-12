@@ -1,14 +1,20 @@
 import json
-
+from datetime import datetime
 from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import render
 from django.views import View
-from inertia import render
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
-from apps.vs_erp.helpers import obtener_desglose_obra, obtener_conceptos_materiales, obtener_totales_por_familia, \
-    obtener_totales_por_material, obtener_retenciones_por_obra, obtener_resumen_compras_reales
+from apps.vs_erp.helpers import (
+    obtener_desglose_obra,
+    obtener_conceptos_materiales,
+    obtener_totales_por_familia,
+    obtener_totales_por_material,
+    obtener_retenciones_por_obra,
+    obtener_resumen_compras_reales
+)
 from apps.vs_erp.models import Obras
 from apps.vs_erp.services.reporte_excel import generar_excel_reporte_completo
 
@@ -32,7 +38,7 @@ def recuperar_obras_por_empresa(request):
     elif empresa in EMPRESAS:
         aliases = [(empresa, EMPRESAS[empresa])]
     else:
-        return JsonResponse({"obras": []})
+        return render(request, "apps/vs_erp/reportes/partials/select_obras.html", {"obras": []})
 
     for nombre_empresa, alias in aliases:
         queryset = (
@@ -50,17 +56,18 @@ def recuperar_obras_por_empresa(request):
             })
 
     obras.sort(key=lambda x: x["descripcion"])
-    return JsonResponse({"obras": obras})
+
+    return render(request, "apps/vs_erp/reportes/partials/select_obras.html", {"obras": obras})
 
 
 class ReportePresupuestosView(BreadcrumbsMixin, PermissionRequiredMixin, View):
     permission_required = ['core.generar_reporte_presupuestos_vs']
 
-    def _get_breadcrumbs(self):
+    def get_breadcrumbs(self):
         return [
-            {'label': 'Inicio', 'url': '/', 'icon': 'icon-[lucide--home]'},
-            {'label': 'VS ERP'},
-            {'label': 'Reporte Estatus Financiero de Obras'},
+            {'title': 'Inicio', 'url': '/', 'icon': 'icon-[lucide--home]'},
+            {'title': 'VS ERP'},
+            {'title': 'Reporte Estatus Financiero de Obras'},
         ]
 
     def _generar_data_reporte(self, lista_obras_post):
@@ -92,63 +99,45 @@ class ReportePresupuestosView(BreadcrumbsMixin, PermissionRequiredMixin, View):
         return reporte
 
     def get(self, request, *args, **kwargs):
-        # Opciones fijas de empresas para el select
         empresas_list = [
             {"value": key, "label": label} for key, label in EMPRESAS.items()
         ]
 
-        return render(
-            request,
-            'VS_ERP/Reportes/EstatusFinancieroObra',
-            props={
-                'empresas': empresas_list,
-                'reporte': None,
-                'obras_seleccionadas': [],
-                'breadcrumbs': self._get_breadcrumbs(),
-            }
-        )
+        context = {
+            'empresas': empresas_list,
+            'reporte': None,
+            'obras_seleccionadas': [],
+        }
+        return render(request, 'apps/vs_erp/reportes/presupuestos.html', context)
 
     def post(self, request, *args, **kwargs):
-        # 1. Detectar si el request viene de Inertia (Headers o JSON Content-Type)
-        is_inertia = request.headers.get('X-Inertia') or request.content_type == 'application/json'
+        export_excel = request.POST.get("export_excel") == "1"
 
-        if is_inertia:
-            # Petición vía Inertia (JSON)
-            try:
-                data = json.loads(request.body)
-            except (json.JSONDecodeError, TypeError):
-                data = {}
-            obras_seleccionadas = data.get("obras", [])
-            export_excel = data.get("export_excel", False)
-        else:
-            # Petición vía Formulario HTML tradicional (Excel Download)
-            export_excel = request.POST.get("export_excel") == "1"
-            obras_raw = request.POST.get("obras", "[]")
+        # Obtenemos la lista de obras seleccionadas
+        obras_seleccionadas = request.POST.getlist("obras")
 
-            # Deserializar la cadena JSON enviada en el input hidden del form
-            try:
-                obras_seleccionadas = json.loads(obras_raw)
-            except (json.JSONDecodeError, TypeError):
-                # Fallback por si viniera como múltiples query params
-                obras_seleccionadas = request.POST.getlist("obras")
+        # Depuración opcional en consola para verificar qué llegó
+        print("Obras seleccionadas recibidas:", obras_seleccionadas)
 
-        # 2. Generar los datos
+        # Generar los datos del reporte (si está vacío, _generar_data_reporte devolverá [])
         reporte = self._generar_data_reporte(obras_seleccionadas)
 
-        # 3. Si solicitó exportar a Excel
+        # Si solicitó exportar a Excel, se retorna el archivo binario
         if export_excel:
             return generar_excel_reporte_completo(reporte)
 
-        # 4. Respuesta normal de Inertia
-        empresas_list = [{"value": key, "label": label} for key, label in EMPRESAS.items()]
+        context = {
+            'reporte': reporte,
+            'obras_seleccionadas': obras_seleccionadas,
+        }
 
-        return render(
-            request,
-            'VS_ERP/Reportes/EstatusFinancieroObra',
-            props={
-                'empresas': empresas_list,
-                'reporte': reporte,
-                'obras_seleccionadas': obras_seleccionadas,
-                'breadcrumbs': self._get_breadcrumbs(),
-            }
-        )
+        # Si la petición viene de HTMX, devolvemos únicamente el partial de la tabla de resultados
+        if request.headers.get('HX-Request'):
+            return render(request, 'apps/vs_erp/reportes/partials/reporte.html', context)
+
+        # Fallback por seguridad
+        empresas_list = [{"value": key, "label": label} for key, label in EMPRESAS.items()]
+        context.update({
+            'empresas': empresas_list,
+        })
+        return render(request, 'apps/vs_erp/reportes/presupuestos.html', context)

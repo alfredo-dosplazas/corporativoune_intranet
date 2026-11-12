@@ -4,15 +4,14 @@ import os
 import random
 from typing import Any
 
-from asgiref.sync import async_to_sync, sync_to_async
+from asgiref.sync import sync_to_async
 from channels.layers import get_channel_layer
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
-from django.db.models import QuerySet
-from django.http import JsonResponse, HttpRequest, HttpResponseBase
+from django.http import JsonResponse, HttpRequest
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -30,18 +29,16 @@ from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.mixins.responsive_view import ResponsiveViewModeMixin
 from apps.core.mixins.session_filter_state import SessionFilterStateMixin
 from apps.core.mixins.title import PageTitleMixin
-from apps.core.models import Empresa
 from apps.codigos_qr.utils import generar_qr_base64
-from apps.regalos.forms import RegaloForm, EventoForm, CanjearForm, InvitadoForm, ImportarRegalosForm, \
+from apps.regalos.forms import RegaloForm, EventoForm, InvitadoForm, ImportarRegalosForm, \
     ImportarInvitadoForm
 from apps.regalos.inlines import CategoriaRegaloInline
 from apps.regalos.mixins import SedePermissionMixin
-from apps.regalos.models import Regalo, Evento, Invitado
-from apps.regalos.notifications import notificar_ejecucion_sorteo_masivo
+from apps.regalos.models import Regalo, Evento, Invitado, CorridaSorteo
 from apps.regalos.resources import RegaloResource, InvitadoResource
 from apps.regalos.services import asignar_regalo_aleatorio, _asignar_regalo_aleatorio
 from apps.regalos.tables import RegaloTable, EventoTable, InvitadoTable
-from apps.rrhh.models.sedes import Sede
+from apps.regalos.tasks import procesar_y_notificar_sorteo_task
 
 
 class RegaloModuloView(
@@ -596,6 +593,18 @@ class SorteoMasivoView(TemplateView):
         context['nombres_regalos'] = list(
             Regalo.objects.filter(evento=evento, canjeado=False).values_list('nombre', flat=True)
         )
+        context['url_redirect_pantalla'] = reverse('regalos:all_pantalla_gigante', args=[evento_slug])
+
+        # ==========================================
+        # METADATOS Y LOGS DE CORRIDAS (HISTORIAL)
+        # ==========================================
+        corridas_qs = evento.corridas_sorteo.all()
+        total_corridas = corridas_qs.count()
+        ultima_corrida = corridas_qs.first()  # Gracias al ordering = ['-numero_corrida']
+
+        context['total_corridas'] = total_corridas
+        context['siguiente_corrida'] = (ultima_corrida.numero_corrida + 1) if ultima_corrida else 1
+        context['ultima_corrida'] = ultima_corrida
 
         return context
 
@@ -888,7 +897,10 @@ class ProcesarSorteoMasivoApiView(View):
                 regalos_disponibles_restantes = list(Regalo.objects.filter(evento=evento, canjeado=False))
                 asignar_regalo_aleatorio(regalos_disponibles_restantes, invitados)
 
-            notificar_ejecucion_sorteo_masivo(request, evento, ejecutor=request.user)
+            procesar_y_notificar_sorteo_task.delay(
+                evento_id=evento.id,
+                ejecutor_id=request.user.id if request.user.is_authenticated else None
+            )
 
             return JsonResponse({
                 'status': 'success',
@@ -899,30 +911,102 @@ class ProcesarSorteoMasivoApiView(View):
             return JsonResponse({'status': 'error', 'message': f'Error interno en el sorteo: {str(e)}'}, status=500)
 
 
-class RegalosCanjeadosView(BreadcrumbsMixin, ListView):
-    template_name = 'apps/regalos/canjeados.html'
-    model = Regalo
+class RegalosCanjeadosView(TemplateView):
+    template_name = "apps/regalos/canjeados.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        evento_slug = self.kwargs.get('evento_slug')
+        evento = get_object_or_404(Evento, slug=evento_slug)
+
+        # Obtener todas las corridas históricas de este evento
+        corridas = evento.corridas_sorteo.all()
+
+        # Determinar cuál corrida mostrar (por defecto la actual / vigente, o la solicitada por GET)
+        corrida_id = self.request.GET.get('corrida')
+        if corrida_id:
+            corrida_seleccionada = get_object_or_404(CorridaSorteo, id=corrida_id, evento=evento)
+        else:
+            corrida_seleccionada = corridas.filter(es_actual=True).first() or corridas.first()
+
+        # Si existe una corrida seleccionada, cargamos sus detalles inmutables
+        if corrida_seleccionada:
+            regalo_list = [
+                {
+                    "numero": detalle.numero_regalo,
+                    "nombre": detalle.nombre_regalo,
+                    "ganador_nombre": detalle.ganador_nombre,
+                    "destacado": detalle.destacado,
+                    "fecha_canje": corrida_seleccionada.fecha_ejecucion # O fecha de asignación
+                }
+                for detalle in corrida_seleccionada.detalles.all()
+            ]
+        else:
+            # Respaldo por si aún no hay corridas registradas pero sí regalos directos
+            regalos_query = evento.regalos.filter(canjeado=True).order_by('numero')
+            regalo_list = [
+                {
+                    "numero": r.numero,
+                    "nombre": r.nombre,
+                    "ganador_nombre": r.ganador_nombre,
+                    "destacado": r.destacado,
+                    "fecha_canje": r.fecha_canje
+                }
+                for r in regalos_query
+            ]
+
+        context.update({
+            "evento": evento,
+            "corridas": corridas,
+            "corrida_activa": corrida_seleccionada,
+            "regalo_list": regalo_list,
+        })
+        return context
+
+
+class RegalosCanjeadosPDFView(WeasyTemplateResponseMixin, TemplateView):
+    template_name = 'apps/regalos/pdf/reporte_sorteo_masivo.html'
 
     def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any):
         self.evento = get_object_or_404(Evento, slug=self.kwargs['evento_slug'])
         return super().dispatch(request, *args, **kwargs)
 
-    def get_queryset(self):
-        qs = super().get_queryset()
-        qs = qs.filter(canjeado=True, evento=self.evento)
-        return qs
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['evento'] = self.evento
-        return context
 
-    def get_breadcrumbs(self):
-        return [
-            {'title': 'Inicio', 'url': reverse('home')},
-            {'title': 'Regalos', 'url': reverse('regalos:list', args=[self.evento.slug])},
-            {'title': 'Canjeados'},
+        # Permitir seleccionar una corrida específica por URL (ej: ?corrida=2), por defecto la actual
+        corrida_id = self.request.GET.get('corrida')
+        if corrida_id:
+            corrida = get_object_or_404(CorridaSorteo, id=corrida_id, evento=self.evento)
+        else:
+            corrida = self.evento.corridas_sorteo.filter(es_actual=True).first() or self.evento.corridas_sorteo.first()
+
+        if not corrida:
+            raise Http404("No existen corridas o registros de sorteo generados para este evento.")
+
+        # Obtener los detalles inmutables directamente de la corrida de log
+        detalles_regalos = [
+            {
+                "numero": f"{d.numero_regalo:03d}",
+                "regalo": d.nombre_regalo,
+                "ganador": d.ganador_nombre,
+                "destacado": d.destacado
+            }
+            for d in corrida.detalles.all()
         ]
+
+        contexto_reporte = {
+            "evento": self.evento.nombre,
+            "fecha_ejecucion": corrida.fecha_ejecucion,
+            "ejecutor": corrida.ejecutado_por.get_full_name() if corrida.ejecutado_por else "Operador de Evento",
+            "total_asignados": corrida.total_regalos_asignados,
+            "numero_corrida": corrida.numero_corrida,
+            "hash_integridad": corrida.hash_integridad or "N/A",
+            "detalles": detalles_regalos,
+        }
+
+        context.update(contexto_reporte)
+        return context
 
 
 class InvitadoListView(

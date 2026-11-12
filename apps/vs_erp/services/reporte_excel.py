@@ -166,31 +166,57 @@ def construir_hoja_resumen(wb, reporte):
         cell.font = font_bold
         cell.border = total_border
 
-    # Recuadro Lateral
-    row_recuadro = 7
-    ws.cell(row=row_recuadro, column=10, value="CONCEPTO / OBRA").fill = fill_recuadro_hdr
-    ws.cell(row=row_recuadro, column=10).font = font_header
-    ws.cell(row=row_recuadro, column=11, value="PENDIENTE POR COMPRAR").fill = fill_recuadro_hdr
-    ws.cell(row=row_recuadro, column=11).font = font_header
+        # -------------------------------------------------------------------
+        # Recuadro Lateral (Modificado para agrupar las urbanizaciones)
+        # -------------------------------------------------------------------
+        row_recuadro = 7
+        ws.cell(row=row_recuadro, column=10, value="CONCEPTO / OBRA").fill = fill_recuadro_hdr
+        ws.cell(row=row_recuadro, column=10).font = font_header
+        ws.cell(row=row_recuadro, column=11, value="PENDIENTE POR COMPRAR").fill = fill_recuadro_hdr
+        ws.cell(row=row_recuadro, column=11).font = font_header
 
-    start_chart_data_row = row_recuadro + 1
-    row_recuadro += 1
-
-    for nombre_desc, celda_ref in dict_totales_obras.items():
-        c_lbl = ws.cell(row=row_recuadro, column=10, value=f"PENDIENTE {nombre_desc}")
-        c_val = ws.cell(row=row_recuadro, column=11, value=f"={celda_ref}")
-        c_lbl.border, c_val.border = box_border, box_border
-        c_val.number_format = fmt_currency
+        start_chart_data_row = row_recuadro + 1
         row_recuadro += 1
 
-    end_chart_data_row = row_recuadro - 1
+        # Definimos las categorías únicas que queremos mostrar en el recuadro y gráfica
+        # Si el nombre descriptivo contiene "URBANIZACIÓN", podemos agruparlo con SUMAR.SI
+        # O bien listar las categorías base de forma dinámica:
 
-    c_lbl_tot = ws.cell(row=row_recuadro, column=10, value="TOTAL PENDIENTE POR COMPRAR")
-    c_val_tot = ws.cell(row=row_recuadro, column=11, value=f"=SUM(K{start_chart_data_row}:K{end_chart_data_row})")
-    c_lbl_tot.font, c_val_tot.font = font_bold, font_bold
-    c_lbl_tot.fill, c_val_tot.fill = fill_total_seccion, fill_total_seccion
-    c_lbl_tot.border, c_val_tot.border = total_border, total_border
-    c_val_tot.number_format = fmt_currency
+        # Identificamos los nombres únicos limpios o agrupados
+        # Una opción robusta es usar SUMAR.SI en la columna D de la tabla resumen buscando "URBANIZACIÓN"
+
+        # Ejemplo para EDIFICACIÓN (suma todas las filas de edificación si están separadas)
+        # O si prefieres mantener las demás obras individuales y solo agrupar urbanización:
+
+        nombres_procesados = set()
+        for obra_item in reporte:
+            id_obra = obra_item['obra']
+            nombre_desc = obtener_nombre_obra_descriptivo(id_obra)
+
+            # Si es urbanización, lo agrupamos en un solo concepto global para la gráfica
+            if "URBANIZACIÓN" in nombre_desc.upper():
+                nombre_agrupado = "PENDIENTE URBANIZACIÓN"
+                celda_ref = f'=SUMIF(D$8:D{current_row - 1}, "*URBANIZACIÓN*", H$8:H{current_row - 1})'
+            else:
+                nombre_agrupado = f"PENDIENTE {nombre_desc}"
+                celda_ref = f"={dict_totales_obras[nombre_desc]}"
+
+            if nombre_agrupado not in nombres_procesados:
+                nombres_procesados.add(nombre_agrupado)
+                c_lbl = ws.cell(row=row_recuadro, column=10, value=nombre_agrupado)
+                c_val = ws.cell(row=row_recuadro, column=11, value=celda_ref)
+                c_lbl.border, c_val.border = box_border, box_border
+                c_val.number_format = fmt_currency
+                row_recuadro += 1
+
+        end_chart_data_row = row_recuadro - 1
+
+        c_lbl_tot = ws.cell(row=row_recuadro, column=10, value="TOTAL PENDIENTE POR COMPRAR")
+        c_val_tot = ws.cell(row=row_recuadro, column=11, value=f"=SUM(K{start_chart_data_row}:K{end_chart_data_row})")
+        c_lbl_tot.font, c_val_tot.font = font_bold, font_bold
+        c_lbl_tot.fill, c_val_tot.fill = fill_total_seccion, fill_total_seccion
+        c_lbl_tot.border, c_val_tot.border = total_border, total_border
+        c_val_tot.number_format = fmt_currency
 
     # -------------------------------------------------------------------
     # 2. CONFIGURACIÓN DE LA GRÁFICA PIE (TOP-DOWN & SEPARADA)
@@ -330,10 +356,10 @@ def construir_hoja_volumen_precio(wb, obra_item):
     # Filtrar insumos pertenecientes a la familia CONCRETO
     materiales = obra_item.get('materiales', [])
     for m in materiales:
-        CLAVE_FAMILIA_CONCRETO = 3
-        clave_familia = int(m.get('IdFamilia', 0))
+        FAMILIA_CONCRETO = 'concreto'
+        nombre_familia = m.get('Familia', '')
 
-        if clave_familia == CLAVE_FAMILIA_CONCRETO:
+        if FAMILIA_CONCRETO in nombre_familia.lower():
             r = current_row
 
             # Datos básicos

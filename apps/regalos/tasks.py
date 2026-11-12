@@ -1,10 +1,163 @@
+import base64
+import hashlib
 import time
 from urllib.parse import urlparse
 import requests
 from celery import shared_task
+from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
+from django.template.loader import render_to_string
+from django.utils import timezone
+from weasyprint import HTML
+
+from apps.core.models import ListaNotificacionCorreo
+from apps.core.tasks import enviar_whatsapp_task, enviar_correo_task
 from apps.image_searcher.images import get_placeholder_image
-from apps.regalos.models import Regalo
+from apps.regalos.models import Regalo, Evento, DetalleCorridaSorteo, CorridaSorteo
+
+User = get_user_model()
+
+
+@shared_task
+def procesar_y_notificar_sorteo_task(evento_id, ejecutor_id=None, ip_origen=None):
+    """
+    Tarea asíncrona de Celery que registra la corrida en los logs históricos,
+    genera el PDF del reporte del sorteo y despacha las notificaciones.
+    """
+    try:
+        evento = Evento.objects.get(id=evento_id)
+    except Evento.DoesNotExist:
+        print(f"Error: Evento con id {evento_id} no encontrado.")
+        return
+
+    ejecutor = None
+    if ejecutor_id:
+        try:
+            ejecutor = User.objects.get(id=ejecutor_id)
+        except User.DoesNotExist:
+            pass
+
+    fecha_ejecucion = timezone.now()
+
+    # 1. Obtener todos los regalos asignados del evento
+    regalos_asignados = evento.regalos.filter(canjeado=True).select_related('invitado').order_by('numero')
+    total_asignados = regalos_asignados.count()
+    total_invitados = evento.invitados.filter(asistio=True).count() or evento.invitados.count()
+
+    # 2. Registrar la Corrida en los Logs (Historial de Remezclas)
+    corrida_log = CorridaSorteo.objects.create(
+        evento=evento,
+        ejecutado_por=ejecutor,
+        es_actual=True,
+        total_invitados_participantes=total_invitados,
+        total_regalos_asignados=total_asignados,
+        ip_origen=ip_origen,
+        notas="Sorteo masivo ejecutado correctamente mediante consola cuántica."
+    )
+
+    # 3. Guardar los detalles inmutables de cada asignación en esta corrida
+    detalles_regalos = []
+    hash_string_builder = f"{evento.id}-{corrida_log.numero_corrida}-{fecha_ejecucion.isoformat()}"
+
+    for r in regalos_asignados:
+        ganador_nombre = r.ganador_nombre or "Sin Asignar"
+        DetalleCorridaSorteo.objects.create(
+            corrida=corrida_log,
+            regalo=r,
+            invitado=r.invitado,
+            numero_regalo=r.numero,
+            nombre_regalo=r.nombre,
+            categoria_nombre=r.categoria.nombre if r.categoria else "General",
+            destacado=r.destacado,
+            ganador_nombre=ganador_nombre
+        )
+        hash_string_builder += f"-{r.numero}:{ganador_nombre}"
+
+        detalles_regalos.append({
+            "numero": f"{r.numero:03d}",
+            "regalo": r.nombre,
+            "ganador": ganador_nombre,
+            "destacado": r.destacado
+        })
+
+    # Generar Hash SHA-256 de integridad para la corrida
+    corrida_log.hash_integridad = hashlib.sha256(hash_string_builder.encode('utf-8')).hexdigest()
+    corrida_log.save(update_fields=['hash_integridad'])
+
+    contexto_reporte = {
+        "evento": evento.nombre,
+        "fecha_ejecucion": fecha_ejecucion,
+        "ejecutor": ejecutor.get_full_name() if ejecutor and ejecutor.is_authenticated else "Operador de Evento",
+        "total_asignados": total_asignados,
+        "numero_corrida": corrida_log.numero_corrida,
+        "hash_integridad": corrida_log.hash_integridad[:16],
+        "detalles": detalles_regalos,
+    }
+
+    # 4. Generar PDF en memoria usando WeasyPrint
+    try:
+        html_string = render_to_string("apps/regalos/pdf/reporte_sorteo_masivo.html", contexto_reporte)
+        pdf_bytes = HTML(string=html_string).write_pdf()
+        pdf_filename = f"Reporte_Sorteo_{evento.slug}_Corrida{corrida_log.numero_corrida}_{fecha_ejecucion.strftime('%Y%m%d_%H%M%S')}.pdf"
+    except Exception as e:
+        print(f"Error generando PDF con WeasyPrint en Celery: {e}")
+        pdf_bytes = None
+        pdf_filename = "reporte.pdf"
+
+    # ==========================================
+    # ENVÍO DE CORREO ELECTRÓNICO CON ADJUNTO PDF
+    # ==========================================
+    try:
+        lista_correo = ListaNotificacionCorreo.objects.get(nombre="Directiva Eventos")
+        emails_destinatarios = list(
+            lista_correo.destinatarios.filter(activo=True).values_list('email', flat=True)
+        )
+    except ListaNotificacionCorreo.DoesNotExist:
+        emails_destinatarios = []
+
+    if emails_destinatarios:
+        attachments = []
+        if pdf_bytes:
+            attachments.append((pdf_filename, pdf_bytes, 'application/pdf'))
+
+        enviar_correo_task.delay(
+            subject=f"Reporte Oficial Sorteo Masivo [Corrida #{corrida_log.numero_corrida}] - {evento.nombre}",
+            to=emails_destinatarios,
+            template_name="apps/regalos/emails/resumen_sorteo_masivo.html",
+            context=contexto_reporte,
+            attachments=attachments
+        )
+
+    # ==========================================
+    # ENVÍO POR WHATSAPP (CON ARCHIVO BASE64)
+    # ==========================================
+    try:
+        numeros_whatsapp = ["+5214612927942"]
+
+        mensaje_wa = (
+            f"🎉 *REPORTE OFICIAL DE SORTEO (CORRIDA #{corrida_log.numero_corrida})*\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"📌 *Evento:* {evento.nombre}\n"
+            f"🔐 *Hash:* `{corrida_log.hash_integridad[:12]}`\n"
+            f"⏰ *Fecha:* {fecha_ejecucion.strftime('%d/%m/%Y %H:%M:%S')}\n"
+            f"🎁 *Total Asignados:* {total_asignados}\n\n"
+            f"Adjunto encontrará el reporte completo en PDF."
+        )
+
+        pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8') if pdf_bytes else None
+
+        for telefono in numeros_whatsapp:
+            enviar_whatsapp_task.delay(
+                numero=telefono,
+                mensaje=mensaje_wa,
+                file_data={
+                    "mimetype": "application/pdf",
+                    "filename": pdf_filename,
+                    "data": pdf_base64
+                } if pdf_base64 else None
+            )
+    except Exception as e:
+        print(f"Error preparando notificación WhatsApp en Celery: {e}")
 
 
 @shared_task(bind=True)

@@ -17,18 +17,11 @@ def _asignar_regalo_aleatorio(evento, contenido_json, regalos_disponibles, invit
         if not qrs_permitidos and regla.get('r'):
             qrs_permitidos = regla.get('r')
 
-        regalos_en_pool = [r for r in regalos_disponibles if r.codigo_qr in qrs_permitidos] if qrs_permitidos else []
-
-        if not regalos_en_pool:
-            regalos_en_pool = [r for r in regalos_disponibles if r.id != inv.ultimo_regalo_id] if any(
-                r.id != inv.ultimo_regalo_id for r in regalos_disponibles) else regalos_disponibles
+        regalos_en_pool = [r for r in regalos_disponibles if
+                           r.codigo_qr in qrs_permitidos] if qrs_permitidos else regalos_disponibles
 
         if regalos_en_pool:
-            candidatos_frescos = [r for r in regalos_en_pool if r.id != inv.ultimo_regalo_id]
-            if candidatos_frescos:
-                regalo = random.choice(candidatos_frescos)
-            else:
-                regalo = random.choice(regalos_en_pool)
+            regalo = random.choice(regalos_en_pool)
 
             regalo.invitado = inv
             regalo.ganador_nombre = inv.nombre_completo
@@ -36,7 +29,6 @@ def _asignar_regalo_aleatorio(evento, contenido_json, regalos_disponibles, invit
             regalo.fecha_canje = now()
             regalo.save()
 
-            inv.ultimo_regalo_id = regalo.id
             inv.asistio = True
             inv.save()
 
@@ -52,11 +44,7 @@ def asignar_regalo_aleatorio(regalos_disponibles, invitados):
         if not regalos_disponibles:
             break
 
-        candidatos = [r for r in regalos_disponibles if r.id != invitado.ultimo_regalo_id]
-        if not candidatos:
-            candidatos = regalos_disponibles
-
-        regalo = random.choice(candidatos)
+        regalo = random.choice(regalos_disponibles)
         regalos_disponibles.remove(regalo)
 
         regalo.invitado = invitado
@@ -65,6 +53,5 @@ def asignar_regalo_aleatorio(regalos_disponibles, invitados):
         regalo.fecha_canje = now()
         regalo.save()
 
-        invitado.ultimo_regalo_id = regalo.id
         invitado.asistio = True
         invitado.save()

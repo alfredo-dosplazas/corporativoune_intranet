@@ -34,6 +34,7 @@ urlpatterns = [
     path('api/canjear-aleatorio/<slug:evento_slug>/', views.ProcesarCanjeAleatorioApiView.as_view(),
          name='api_procesar_canje_aleatorio'),
     path('canjeados/<slug:evento_slug>/', views.RegalosCanjeadosView.as_view(), name='canjeados'),
+    path('canjeados/<slug:evento_slug>/pdf/', views.RegalosCanjeadosPDFView.as_view(), name='canjeados_pdf'),
     path('canjear/<slug:evento_slug>/', views.CanjearRegaloView.as_view(), name='canjear_regalo'),
     path('canjear-aleatorio/<slug:evento_slug>/', views.CanjearRegaloAleatorioView.as_view(),
          name='canjear_regalo_aleatorio'),

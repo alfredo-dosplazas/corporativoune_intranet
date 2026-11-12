@@ -1,73 +1,234 @@
-<c-layouts.app>
-    <!-- ESTILO PARA ANIMACIÓN DE NUEVAS FILAS -->
+<c-layouts.base>
+    <!-- CDN CANVAS-CONFETTI -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- ESTILOS Y EFECTOS CINEMÁTICOS AWWWARDS -->
     <style>
-        @keyframes highlightRow {
-            0% { background-color: rgba(var(--p) / 0.25); transform: scale(1.01); }
-            100% { background-color: transparent; transform: scale(1); }
+        @keyframes pulseGlow {
+            0%, 100% {
+                transform: scale(1) translate3d(0, 0, 0);
+                opacity: 0.45;
+            }
+            50% {
+                transform: scale(1.15) translate3d(20px, -20px, 0);
+                opacity: 0.75;
+            }
         }
+
+        @keyframes highlightRow {
+            0% {
+                background-color: rgba(245, 158, 11, 0.25);
+                transform: scale(1.01);
+            }
+            100% {
+                background-color: transparent;
+                transform: scale(1);
+            }
+        }
+
         .animate-new-row {
             animation: highlightRow 2.5s ease-out forwards;
         }
+
+        .animate-aurora-1 {
+            animation: pulseGlow 14s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .animate-aurora-2 {
+            animation: pulseGlow 18s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-panel-luxury {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.015) 100%);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            box-shadow: 0 35px 70px -15px rgba(0, 0, 0, 0.85), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+        }
     </style>
 
-    <div class="container mx-auto p-6 max-w-5xl">
+    <!-- PANTALLA COMPLETA DARK MODE PROFUNDO (#050507) -->
+    <div class="min-h-screen w-full bg-[#050507] text-white flex flex-col justify-between select-none font-sans relative overflow-x-hidden p-6 md:p-10">
 
-        <!-- ENCABEZADO Y BOTÓN DE IMPRESIÓN -->
-        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-            <div>
-                <h1 class="text-3xl font-black text-primary">📋 Historial de Regalos Canjeados</h1>
-                <p class="text-sm text-base-content/70 mt-1">
-                    Lista completa de ganadores de <strong class="text-primary">{{ evento.nombre }}</strong> registrados en tiempo real.
-                </p>
-            </div>
-            <button onclick="window.print()" class="btn btn-outline btn-primary gap-2 shadow-sm">
-                <span class="icon-[tabler--printer] text-lg"></span> Imprimir Lista
-            </button>
+        <!-- CAPAS DE AMBIENTE Y LUCES EN MALLA -->
+        <div class="absolute inset-0 pointer-events-none overflow-hidden">
+            <div class="absolute inset-0 opacity-[0.14] bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px]"></div>
+            <div class="absolute -top-32 left-1/4 w-[750px] h-[750px] bg-gradient-to-br from-amber-500/20 via-orange-600/10 to-transparent rounded-full blur-[140px] animate-aurora-1 mix-blend-screen"></div>
+            <div class="absolute -bottom-40 right-1/4 w-[850px] h-[850px] bg-gradient-to-tl from-indigo-600/20 via-purple-900/10 to-transparent rounded-full blur-[160px] animate-aurora-2 mix-blend-screen"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-amber-400/5 rounded-full blur-[120px]"></div>
         </div>
 
-        <!-- TABLA DE GANADORES -->
-        <div class="overflow-x-auto bg-base-100 rounded-2xl shadow-xl border border-base-300">
-            <table class="table table-zebra w-full" id="ganadores-table">
-                <thead>
-                    <tr class="bg-base-200 text-base-content font-bold">
-                        <th class="text-center w-24"># Folio</th>
-                        <th>Premio</th>
-                        <th>Ganador</th>
-                        <th class="text-right">Fecha y Hora de Canje</th>
+        <!-- CONTENEDOR PRINCIPAL -->
+        <div class="relative z-20 max-w-6xl mx-auto w-full flex-1 flex flex-col">
+
+            <!-- ENCABEZADO CON SELECTOR DE HISTORIAL DE CORRIDAS -->
+            <header class="flex flex-col lg:flex-row justify-between items-center mb-8 gap-4 glass-panel-luxury p-6 rounded-2xl">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+                        <svg class="w-6 h-6 stroke-[1.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M9 12.75L11.25 15 15 9.75M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-100 to-zinc-400">
+                            Historial de Sorteos y Asignaciones
+                        </h1>
+                        <p class="text-xs text-zinc-400 mt-1 font-light tracking-wide">
+                            Visualizando resultados de <strong
+                                class="text-amber-400 font-semibold">{{ evento.nombre }}</strong>
+                            {% if corrida_activa %}
+                                <span class="ml-2 px-2 py-0.5 rounded bg-amber-400/10 text-amber-300 font-mono text-[10px] border border-amber-400/30">
+                                    Corrida #{{ corrida_activa.numero_corrida }} {% if corrida_activa.es_actual %}
+                                    (Vigente){% else %}(Histórica){% endif %}
+                                </span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- CONTROLES Y SELECTOR DE REMEZCLAS -->
+                <div class="flex items-center gap-3 flex-wrap justify-end">
+                    {% if corridas %}
+                        <div class="flex items-center gap-2 bg-zinc-900/80 px-3 py-2 rounded-xl border border-white/[0.08]">
+                            <span class="text-[10px] font-mono text-zinc-400 uppercase">Versión:</span>
+                            <select onchange="cambiarCorrida(this.value)"
+                                    class="bg-transparent text-amber-400 font-mono text-xs font-bold outline-none cursor-pointer">
+                                {% for c in corridas %}
+                                    <option value="{{ c.id }}"
+                                            {% if corrida_activa and corrida_activa.id == c.id %}selected{% endif %}
+                                            class="bg-zinc-900 text-white">
+                                        Corrida #{{ c.numero_corrida }} — {{ c.fecha_ejecucion|date:"d/m/Y H:i" }}
+                                        {% if c.es_actual %}[Vigente]{% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    {% endif %}
+
+                    <!-- ENLACE PARA REGRESAR A LA CONSOLA -->
+                    <a href="{% url 'regalos:sorteo_masivo' evento.slug %}"
+                       class="px-4 py-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-amber-400 font-bold text-xs uppercase tracking-[0.2em] border border-amber-500/30 shadow-lg transition-all flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                        Sorteo
+                    </a>
+
+                    <!-- BOTÓN DE IMPRESIÓN -->
+                    <a id="btn-imprimir-pdf" target="_blank" href="#"
+                       class="px-4 py-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 font-bold text-xs uppercase tracking-[0.2em] border border-white/[0.08] shadow-lg transition-all flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
+                                  d="M6.725 14.406v2.481c0 .684.556 1.24 1.24 1.24h8.07c.684 0 1.24-.556 1.24-1.24v-2.481M6.725 10.457H4.244c-.684 0-1.24.556-1.24 1.24v3.722c0 .684.556 1.24 1.24 1.24h2.481M17.275 10.457h2.481c.684 0 1.24.556 1.24 1.24v3.722c0 .684-.556 1.24-1.24 1.24h-2.481M17.275 10.457V6.735c0-.684-.556-1.24-1.24-1.24H7.965c-.684 0-1.24.556-1.24 1.24v3.722M17.275 10.457H6.725"/>
+                        </svg>
+                        Imprimir Reporte PDF
+                    </a>
+                </div>
+            </header>
+
+            <!-- TABLA DE GANADORES -->
+            <div class="overflow-x-auto glass-panel-luxury rounded-2xl border border-white/[0.08] shadow-2xl">
+                <table class="w-full text-left border-collapse" id="ganadores-table">
+                    <thead>
+                    <tr class="border-b border-white/[0.08] text-[11px] font-mono text-zinc-400 uppercase tracking-[0.2em] bg-white/[0.02]">
+                        <th class="py-4 px-6 text-center w-28"># Folio</th>
+                        <th class="py-4 px-6">Premio / Asignación</th>
+                        <th class="py-4 px-6">Colaborador Ganador</th>
+                        <th class="py-4 px-6 text-right">Fecha de Asignación</th>
                     </tr>
-                </thead>
-                <tbody id="tabla-body">
+                    </thead>
+                    <tbody id="tabla-body" class="divide-y divide-white/[0.04] text-sm">
                     {% for regalo in regalo_list %}
-                        <tr class="hover transition-all">
-                            <th class="text-center font-mono">
-                                <span class="badge badge-ghost font-bold">#{{ regalo.numero|stringformat:"03d" }}</span>
-                            </th>
-                            <td class="font-bold text-primary">{{ regalo.nombre }}</td>
-                            <td>
-                                <span class="badge badge-info/15 text-info font-medium gap-1 py-2 px-3 border-0">
-                                    <span class="icon-[tabler--user]"></span> {{ regalo.ganador_nombre|default:"Sin Nombre" }}
+                        <tr class="hover:bg-white/[0.02] transition-colors {% if regalo.destacado %}bg-amber-500/[0.03]{% endif %}">
+                            <td class="py-4 px-6 text-center font-mono">
+                                <span class="px-3 py-1 rounded-lg bg-amber-400/10 border border-amber-400/30 text-amber-300 font-bold text-xs tracking-wider">
+                                    #{{ regalo.numero|stringformat:"03d" }}
                                 </span>
                             </td>
-                            <td class="text-right text-xs text-base-content/70 font-mono">
+                            <td class="py-4 px-6 font-bold text-white tracking-tight flex items-center gap-3">
+                                <span>{{ regalo.nombre }}</span>
+                                {% if regalo.destacado %}
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/40 text-amber-300 text-[10px] font-bold uppercase tracking-widest font-mono shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                                        <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path
+                                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                        Destacado
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="py-4 px-6">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-medium text-xs">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path
+                                            stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
+                                            d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+                                    {{ regalo.ganador_nombre|default:"Sin Nombre" }}
+                                </span>
+                            </td>
+                            <td class="py-4 px-6 text-right text-xs text-zinc-400 font-mono">
                                 {{ regalo.fecha_canje|date:"d/m/Y H:i" }}
                             </td>
                         </tr>
                     {% empty %}
                         <tr id="fila-vacia">
-                            <td colspan="4" class="text-center py-16 text-base-content/40 italic">
-                                <span class="icon-[tabler--gift-off] text-4xl mb-2 block mx-auto"></span>
-                                Aún no hay regalos canjeados en el sistema.
+                            <td colspan="4"
+                                class="text-center py-20 text-zinc-500 italic font-mono text-xs tracking-widest uppercase">
+                                <div class="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mx-auto mb-3 text-zinc-400">
+                                    <svg class="w-6 h-6 stroke-[1.5]" fill="none" stroke="currentColor"
+                                         viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                              d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H4.5a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h17.25"/>
+                                    </svg>
+                                </div>
+                                No hay registros de asignaciones para esta versión.
                             </td>
                         </tr>
                     {% endfor %}
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
+
         </div>
+
+        <!-- FOOTER -->
+        <footer class="relative z-20 w-full max-w-6xl mx-auto mt-10 pt-6 border-t border-white/[0.08] flex items-center justify-between text-zinc-500 text-[11px] font-mono">
+            <div class="flex items-center space-x-2">
+                <span class="inline-block w-1.5 h-1.5 rounded-full bg-zinc-600"></span>
+                <span>CORPORATIVO UNE © AUDITORÍA DE SORTEOS</span>
+            </div>
+            <div class="tracking-widest uppercase">
+                ID SESIÓN: {{ evento.slug|upper }}
+            </div>
+        </footer>
 
     </div>
 
-    <!-- SCRIPT DE WEBSOCKETS CON INSERCIÓN DINÁMICA -->
+    <!-- SCRIPTS -->
     <script>
+        const baseUrlPdf = "{% url 'regalos:canjeados_pdf' evento.slug %}";
+
+        function actualizarUrlImpresion() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const corridaId = urlParams.get('corrida');
+            const btnPdf = document.getElementById('btn-imprimir-pdf');
+
+            if (corridaId && btnPdf) {
+                btnPdf.href = `${baseUrlPdf}?corrida=${corridaId}`;
+            } else if (btnPdf) {
+                btnPdf.href = baseUrlPdf; // Apuntará a la vigente por defecto
+            }
+        }
+
+        // Ejecutar al cargar la página para sincronizar el href
+        document.addEventListener("DOMContentLoaded", actualizarUrlImpresion);
+
+        function cambiarCorrida(corridaId) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('corrida', corridaId);
+            window.location.href = url.toString();
+        }
+
+        // WebSocket para actualización automática en tiempo real sobre la corrida vigente
         const eventoSlug = "{{ evento.slug }}";
         const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
         const pantallaSocket = new WebSocket(`${wsScheme}://${window.location.host}/ws/regalos/pantalla/${eventoSlug}/`);
@@ -76,50 +237,11 @@
             const data = JSON.parse(e.data);
 
             if (data.type === "NUEVO_GANADOR" || data.type === "notificar_nuevo_ganador") {
-                const ganador = data.ultimo_ganador;
-                if (!ganador) return;
-
-                const tablaBody = document.getElementById('tabla-body');
-                const filaVacia = document.getElementById('fila-vacia');
-
-                // Si es el primer canje, removemos el mensaje de 'Aún no hay regalos'
-                if (filaVacia) {
-                    filaVacia.remove();
+                const urlParams = new URLSearchParams(window.location.search);
+                if (!urlParams.has('corrida')) {
+                    window.location.reload();
                 }
-
-                // Generar fecha y hora actual en formato local
-                const ahora = new Date();
-                const fechaFormateada = ahora.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
-                                       ' ' + ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
-
-                // Crear nueva fila con la animación
-                const nuevaFila = document.createElement('tr');
-                nuevaFila.className = 'hover animate-new-row transition-all';
-                nuevaFila.innerHTML = `
-                    <th class="text-center font-mono">
-                        <span class="badge badge-ghost font-bold">#${ganador.numero}</span>
-                    </th>
-                    <td class="font-bold text-primary">${ganador.premio}</td>
-                    <td>
-                        <span class="badge badge-info/15 text-info font-medium gap-1 py-2 px-3 border-0">
-                            <span class="icon-[tabler--user]"></span> ${ganador.ganador}
-                        </span>
-                    </td>
-                    <td class="text-right text-xs text-base-content/70 font-mono">
-                        ${fechaFormateada}
-                    </td>
-                `;
-
-                // Insertar al principio de la tabla (arriba de todo)
-                tablaBody.insertBefore(nuevaFila, tablaBody.firstChild);
             }
         };
-
-        pantallaSocket.onclose = function(e) {
-            console.log('WebSocket cerrado. Intentando reconectar...');
-            setTimeout(function() {
-                window.location.reload();
-            }, 5000);
-        };
     </script>
-</c-layouts.app>
+</c-layouts.base>

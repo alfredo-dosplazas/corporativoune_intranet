@@ -91,8 +91,8 @@
 </head>
 <body>
 <div class="header">
-    <h1 class="title">Reporte de Sorteo Masivo</h1>
-    <div class="subtitle">Corporativo UNE — Sistema Integral de Gestión de Eventos</div>
+    <h1 class="title">Reporte Oficial de Sorteo Masivo</h1>
+    <div class="subtitle">Corporativo UNE — Bitácora de Auditoría (Corrida #{{ numero_corrida }})</div>
 </div>
 
 <table class="meta-table">
@@ -104,18 +104,22 @@
         <td><strong>Ejecutado por:</strong> {{ ejecutor }}</td>
         <td><strong>Total Premios Asignados:</strong> {{ total_asignados }}</td>
     </tr>
+    <tr>
+        <td colspan="2"><strong>Hash de Integridad (SHA-256):</strong> <code
+                style="font-family: monospace; color: #71717a;">{{ hash_integridad }}</code></td>
+    </tr>
 </table>
 
 <h3 style="font-size: 11pt; text-transform: uppercase; color: #3f3f46; border-bottom: 1px solid #d4d4d8; padding-bottom: 5px;">
-    Desglose Oficial de Asignaciones
+    Desglose Oficial de Asignaciones (Corrida #{{ numero_corrida }})
 </h3>
 
 <table class="data-table">
     <thead>
     <tr>
-        <th style="width: 10%;">Folio</th>
-        <th style="width: 45%;">Premio Asignado</th>
-        <th style="width: 45%;">Colaborador Ganador</th>
+        <th style="width: 15%;">Folio</th>
+        <th style="width: 425%;">Premio Asignado</th>
+        <th style="width: 425%;">Colaborador Ganador</th>
     </tr>
     </thead>
     <tbody>

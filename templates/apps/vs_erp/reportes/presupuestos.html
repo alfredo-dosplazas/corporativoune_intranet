@@ -1,38 +1,48 @@
 <c-layouts.app>
-    <!-- Slot de Encabezado (Dentro del Layout) -->
+    <!-- Slot de Encabezado -->
     <c-slot name="header">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 w-full">
             <div>
                 <h1 class="font-black text-2xl text-base-content tracking-tight flex items-center gap-2">
-                    <span class="icon-[ph--calculator-bold] text-primary"></span>
-                    Estatus financiero de obras VS
+                    <span class="icon-[ph--calculator-bold] text-primary text-3xl"></span>
+                    Estatus Financiero de Obras VS
                 </h1>
-                <h2 class="text-base-content/60 text-sm">
-                    Consulta el desglose de presupuestos y compras o exporta a Excel.
-                </h2>
+                <p class="text-base-content/60 text-sm mt-1">
+                    Consulta a detalle el desglose presupuestal, control de compras, familias e insumos, o exporta la
+                    información a Excel.
+                </p>
             </div>
         </div>
     </c-slot>
 
-    <!-- Contenido Principal -->
-    <div class="card bg-base-100 shadow-sm mb-6">
-        <div class="card-body">
-            <form id="form-reporte" method="post" class="space-y-4">
+    <!-- Contenido Principal: Filtros y Selector -->
+    <div class="card bg-base-100 shadow-xl border border-base-200 mb-8">
+        <div class="card-body p-6 md:p-8">
+            <h2 class="card-title text-lg font-bold text-base-content mb-4 flex items-center gap-2">
+                <span class="icon-[ph--funnel-bold] text-primary"></span>
+                Parámetros de Consulta
+            </h2>
+
+            <form id="form-reporte" method="post" class="space-y-6">
                 {% csrf_token %}
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Selector de Empresa -->
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-semibold">Empresa</span></label>
+                        <label class="label">
+                            <span class="label-text font-semibold flex items-center gap-1.5">
+                                <span class="icon-[ph--buildings-bold] text-base-content/70"></span> Empresa / Grupo
+                            </span>
+                        </label>
                         <select
-                            class="select select-bordered w-full"
-                            name="empresa"
-                            hx-get="{% url 'vs_erp:recuperar_obras_por_empresa' %}"
-                            hx-trigger="change"
-                            hx-target="#contenedor-obras"
-                            hx-swap="innerHTML">
-                            <option value="">Seleccione...</option>
-                            <option value="TODAS">Todas</option>
+                                class="select select-bordered w-full focus:select-primary transition-all shadow-sm"
+                                name="empresa"
+                                hx-get="{% url 'vs_erp:recuperar_obras_por_empresa' %}"
+                                hx-trigger="change"
+                                hx-target="#contenedor-obras"
+                                hx-swap="innerHTML">
+                            <option value="">Seleccione una empresa...</option>
+                            <option value="TODAS">Todas las empresas</option>
                             <option value="DP">Dos Plazas</option>
                             <option value="DP 2012">Dos Plazas 2012</option>
                             <option value="TERBA">Terba</option>
@@ -42,27 +52,43 @@
                         </select>
                     </div>
 
-                    <!-- Selector Dinámico de Obras -->
+                    <!-- Selector Dinámico de Obras (TomSelect) -->
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-semibold">Obras</span></label>
-                        <div id="contenedor-obras">
+                        <label class="label">
+                            <span class="label-text font-semibold flex items-center gap-1.5">
+                                <span class="icon-[ph--hard-hat-bold] text-base-content/70"></span> Obras a Consultar
+                            </span>
+                        </label>
+                        <div id="contenedor-obras" class="w-full">
                             {% include "apps/vs_erp/reportes/partials/select_obras.html" %}
                         </div>
+                        <label class="label">
+                            <span class="label-text-alt text-base-content/50">Puedes buscar y seleccionar múltiples obras simultáneamente.</span>
+                        </label>
                     </div>
                 </div>
 
-                <div class="flex gap-3 pt-2">
-                    <button type="submit" class="btn btn-primary" hx-post="" hx-target="#resultado-reporte">
-                        Generar Reporte
-                    </button>
-                    <button type="submit" name="export_excel" value="1" class="btn btn-success text-white" hx-boost="false">
-                        Exportar Excel
+                <!-- Botones de Acción -->
+                <div class="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-base-200">
+                    <button type="submit" name="export_excel" value="1"
+                            class="btn btn-success text-white px-6 shadow-md"
+                            hx-boost="false">
+                        <span class="icon-[ph--file-xls-bold] text-lg"></span>
+                        Exportar a Excel
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- Indicador de Carga HTMX -->
+    <div id="loading-indicator" class="htmx-indicator flex flex-col items-center justify-center py-12">
+        <span class="loading loading-spinner loading-lg text-primary"></span>
+        <p class="text-sm font-medium text-base-content/60 mt-3">Procesando presupuestos y calculando estatus
+            financiero...</p>
+    </div>
+
+    <!-- Contenedor del Reporte -->
     <div id="resultado-reporte"></div>
 
     <!-- SCRIPT CENTRALIZADO DE MANEJO HTMX + TOMSELECT -->
@@ -71,37 +97,32 @@
             const selectEl = document.getElementById('select-obras');
             if (!selectEl) return;
 
-            // Destruir instancia si existía previamente
             if (selectEl.tomselect) {
                 selectEl.tomselect.destroy();
             }
 
-            // Si está vacío o deshabilitado, aplicar estilo select normal
             if (selectEl.options.length === 1 && selectEl.options[0].disabled) {
                 selectEl.classList.add('select', 'select-bordered');
                 return;
             }
 
-            // Crear la instancia de TomSelect limpia
             new TomSelect('#select-obras', {
                 plugins: ['remove_button', 'clear_button'],
                 persist: false,
                 create: false,
                 maxItems: null,
-                placeholder: 'Buscar y seleccionar obras...',
+                placeholder: 'Escribe para buscar y seleccionar obras...',
                 render: {
-                    no_results: function() {
-                        return '<div class="no-results p-2 text-sm text-base-content/60">No se encontraron obras</div>';
+                    no_results: function () {
+                        return '<div class="no-results p-3 text-sm text-base-content/60 bg-base-200 rounded">No se encontraron obras disponibles</div>';
                     }
                 }
             });
         }
 
-        // 1. Inicializar en la carga inicial de la página
         document.addEventListener('DOMContentLoaded', inicializarTomSelectObras);
 
-        // 2. Re-inicializar automáticamente cada vez que HTMX actualice el #contenedor-obras
-        document.body.addEventListener('htmx:afterSettle', function(evt) {
+        document.body.addEventListener('htmx:afterSettle', function (evt) {
             if (evt.detail.target.id === 'contenedor-obras') {
                 inicializarTomSelectObras();
             }
