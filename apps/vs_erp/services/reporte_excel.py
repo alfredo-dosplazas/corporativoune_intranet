@@ -624,6 +624,7 @@ def construir_hoja_compras_vs(wb, obra_item):
     ws = wb.create_sheet(title=sheet_title)
 
     ws.views.sheetView[0].showGridLines = True
+    ws.freeze_panes = "A6"  # Congela la vista para mantener totales y cabeceras fijos arriba
 
     # ----------------------------------------------------
     # ESTILOS
@@ -656,27 +657,66 @@ def construir_hoja_compras_vs(wb, obra_item):
     ws["A2"] = f"OBRA: {nombre_desc} | {id_obra}"
     ws["A2"].font = font_subtitulo
 
-    # Encabezados Tabla
+    conceptos = obra_item.get('conceptos', [])
+    num_items = len(conceptos)
+
+    row_totales = 4
+    row_headers = 5
+    row_datos_inicio = 6
+    row_datos_fin = row_datos_inicio + num_items - 1 if num_items > 0 else row_datos_inicio
+
+    # ----------------------------------------------------
+    # FILA 4: TOTALES GENERALES (FIJA ARRIBA)
+    # ----------------------------------------------------
+    ws.cell(row=row_totales, column=3, value="TOTAL GENERAL").font = font_nivel_1
+
+    # Identificamos de antemano las filas de Nivel 1 que van a vivir a partir de la fila 6
+    filas_nivel_1 = []
+    for idx, c in enumerate(conceptos):
+        if int(c.get('NivelIdentacion', 1)) == 1:
+            filas_nivel_1.append(row_datos_inicio + idx)
+
+    if filas_nivel_1:
+        str_suma_pres = "+".join([f"F{r}" for r in filas_nivel_1])
+        str_suma_egre = "+".join([f"G{r}" for r in filas_nivel_1])
+
+        ws.cell(row=row_totales, column=6, value=f"={str_suma_pres}").number_format = fmt_currency
+        ws.cell(row=row_totales, column=7, value=f"={str_suma_egre}").number_format = fmt_currency
+        ws.cell(row=row_totales, column=8, value=f"=F{row_totales}-G{row_totales}").number_format = fmt_currency
+    else:
+        if num_items > 0:
+            ws.cell(row=row_totales, column=6, value=f"=SUM(F{row_datos_inicio}:F{row_datos_fin})").number_format = fmt_currency
+            ws.cell(row=row_totales, column=7, value=f"=SUM(G{row_datos_inicio}:G{row_datos_fin})").number_format = fmt_currency
+            ws.cell(row=row_totales, column=8, value=f"=F{row_totales}-G{row_totales}").number_format = fmt_currency
+
+    for col in range(1, 9):
+        cell = ws.cell(row=row_totales, column=col)
+        cell.fill = fill_total
+        cell.font = font_nivel_1
+        cell.border = total_border
+
+    # ----------------------------------------------------
+    # FILA 5: ENCABEZADOS DE TABLA
+    # ----------------------------------------------------
     headers = [
         "ID CONCEPTO", "CLAVE CONCEPTO", "DESCRIPCIÓN",
         "CANTIDAD", "COSTO PRESUPUESTADO", "IMPORTE PRESUPUESTADO", "EGRESOS (O.C.)", "DIFERENCIA (IMP. PTTO - EGRESOS)"
     ]
 
-    start_row = 4
     for col_idx, text in enumerate(headers, start=1):
-        cell = ws.cell(row=start_row, column=col_idx, value=text)
+        cell = ws.cell(row=row_headers, column=col_idx, value=text)
         cell.fill = fill_header
         cell.font = font_header
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-    current_row = start_row + 1
-    conceptos = obra_item.get('conceptos', [])
+    # ----------------------------------------------------
+    # LLENADO DE DATOS (DESDE LA FILA 6)
+    # ----------------------------------------------------
+    current_row = row_datos_inicio
 
     for c in conceptos:
         nivel = int(c.get('NivelIdentacion', 1))
 
-        # 1. Agrupamiento de filas (Acordeón nativo de Excel)
-        # Nivel 1 = outline_level 0, Nivel 2 = outline_level 1, etc.
         if nivel > 1:
             ws.row_dimensions[current_row].outline_level = nivel - 1
 
@@ -684,24 +724,24 @@ def construir_hoja_compras_vs(wb, obra_item):
         ws.cell(row=current_row, column=2, value=c.get('ClaveConceptoObra', '')).alignment = Alignment(
             horizontal="center")
 
-        # 2. Sangría Visual en la descripción (indent)
-        # Sangría de nivel: Nivel 1 (0), Nivel 2 (2 de sangría), Nivel 3 (4 de sangría)
         indent_level = max(0, (nivel - 1) * 2)
         cell_desc = ws.cell(row=current_row, column=3, value=c.get('Concepto', c.get('Descripcion', '')))
         cell_desc.alignment = Alignment(horizontal="left", indent=indent_level)
 
         # Valores
-        costo_presupuestado = float(c.get('PresupuestoMateriales', 0)) / float(c.get('CantidadConcepto', 0))
+        cant_concepto = float(c.get('CantidadConcepto', 0))
+        imp_presupuesto = float(c.get('PresupuestoMateriales', 0))
+        costo_presupuestado = (imp_presupuesto / cant_concepto) if cant_concepto > 0 else 0
 
-        ws.cell(row=current_row, column=4, value=float(c.get('CantidadConcepto', 0))).number_format = fmt_number
-        ws.cell(row=current_row, column=5, value=float(costo_presupuestado)).number_format = fmt_currency
-        ws.cell(row=current_row, column=6, value=float(c.get('PresupuestoMateriales', 0))).number_format = fmt_currency
+        ws.cell(row=current_row, column=4, value=cant_concepto).number_format = fmt_number
+        ws.cell(row=current_row, column=5, value=costo_presupuestado).number_format = fmt_currency
+        ws.cell(row=current_row, column=6, value=imp_presupuesto).number_format = fmt_currency
         ws.cell(row=current_row, column=7, value=float(c.get('EgresosMateriales', 0))).number_format = fmt_currency
 
-        # Fórmula de diferencia
+        # Fórmula de diferencia por fila
         ws.cell(row=current_row, column=8, value=f"=F{current_row}-G{current_row}").number_format = fmt_currency
 
-        # 3. Estilos dinámicos según el Nivel de Identación
+        # Estilos dinámicos según el Nivel de Identación
         for col in range(1, 9):
             cell = ws.cell(row=current_row, column=col)
             cell.border = box_border
@@ -716,42 +756,21 @@ def construir_hoja_compras_vs(wb, obra_item):
 
         current_row += 1
 
-    # ----------------------------------------------------
-    # FILA DE TOTALES
-    # ----------------------------------------------------
-    fila_fin_datos = current_row - 1
-
-    # ws.cell(row=current_row, column=3, value="TOTALES").font = font_nivel_1
-    #
-    # if fila_fin_datos >= start_row + 1:
-    #     # Sumamos solo los elementos de Nivel 1 si tu data viene jerarquizada para evitar duplicar totales,
-    #     # o hacemos SUMA normal si la data solo trae los conceptos hoja.
-    #     ws.cell(row=current_row, column=5, value=f"=SUM(E{start_row + 1}:E{fila_fin_datos})").number_format = fmt_number
-    #     ws.cell(row=current_row, column=6,
-    #             value=f"=SUM(F{start_row + 1}:F{fila_fin_datos})").number_format = fmt_currency
-    #     ws.cell(row=current_row, column=7,
-    #             value=f"=SUM(G{start_row + 1}:G{fila_fin_datos})").number_format = fmt_currency
-    #     ws.cell(row=current_row, column=8, value=f"=F{current_row}-G{current_row}").number_format = fmt_currency
-
-    for col in range(1, 9):
-        cell = ws.cell(row=current_row, column=col)
-        cell.fill = fill_total
-        cell.font = font_nivel_1
-        cell.border = total_border
-
     # Anchos de columna
     ws.column_dimensions['A'].width = 15
     ws.column_dimensions['B'].width = 18
-    ws.column_dimensions['C'].width = 80  # Espacio amplio para la sangría de texto
+    ws.column_dimensions['C'].width = 80
     ws.column_dimensions['D'].width = 12
     ws.column_dimensions['E'].width = 25
     ws.column_dimensions['F'].width = 25
     ws.column_dimensions['G'].width = 25
-    ws.column_dimensions['H'].width = 25
-    ws.column_dimensions['I'].width = 30
+    ws.column_dimensions['H'].width = 30
 
     # Filtros
-    ws.auto_filter.ref = f"A4:H{fila_fin_datos}"
+    if num_items > 0:
+        ws.auto_filter.ref = f"A5:H{row_datos_fin}"
+    else:
+        ws.auto_filter.ref = "A5:H5"
 
 
 def construir_hoja_compras_familia(wb, obra_item):
