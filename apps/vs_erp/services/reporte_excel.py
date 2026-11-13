@@ -29,10 +29,8 @@ def construir_hoja_resumen(wb, reporte):
     # -------------------------------------------------------------------
     if ruta_logo and os.path.exists(ruta_logo):
         img = Image(ruta_logo)
-        # Ajusta las dimensiones según las proporciones de tu imagen
         img.width = 120
         img.height = 120
-        # Colocamos la imagen en la esquina superior izquierda
         ws.add_image(img, "B2")
 
     # Estilos
@@ -83,7 +81,7 @@ def construir_hoja_resumen(wb, reporte):
     dict_totales_obras = {}
 
     for obra_item in reporte:
-        id_obra = obra_item['obra']
+        id_obra = obra_item['obra']  # Código único de la obra (ej. URBAEXTCATANIA2A, URBAINTCATANIA2A)
         nombre_descriptivo = obtener_nombre_obra_descriptivo(id_obra)
         conceptos = obra_item['conceptos']
 
@@ -117,7 +115,8 @@ def construir_hoja_resumen(wb, reporte):
                     value=f"=SUM(B{fila_inicio_seccion}:B{fila_fin_seccion})").alignment = Alignment(
                 horizontal="center")
             ws.cell(row=current_row, column=3, value="-").alignment = Alignment(horizontal="center")
-            ws.cell(row=current_row, column=4, value=f"TOTAL {nombre_descriptivo}").font = font_bold
+            # Usamos el código de la obra directamente en lugar de agrupar por nombre
+            ws.cell(row=current_row, column=4, value=f"TOTAL {id_obra}").font = font_bold
             ws.cell(row=current_row, column=5,
                     value=f"=SUM(E{fila_inicio_seccion}:E{fila_fin_seccion})").number_format = fmt_currency
             ws.cell(row=current_row, column=6,
@@ -131,7 +130,7 @@ def construir_hoja_resumen(wb, reporte):
 
             ws.cell(row=current_row, column=2, value="-").alignment = Alignment(horizontal="center")
             ws.cell(row=current_row, column=3, value="-").alignment = Alignment(horizontal="center")
-            ws.cell(row=current_row, column=4, value=f"TOTAL {nombre_descriptivo}").font = font_bold
+            ws.cell(row=current_row, column=4, value=f"TOTAL {id_obra}").font = font_bold
             ws.cell(row=current_row, column=5, value=tot_pres).number_format = fmt_currency
             ws.cell(row=current_row, column=6, value=tot_compras).number_format = fmt_currency
             ws.cell(row=current_row, column=7,
@@ -145,7 +144,8 @@ def construir_hoja_resumen(wb, reporte):
             cell.border = total_border
 
         filas_totales_secciones.append(current_row)
-        dict_totales_obras[nombre_descriptivo] = f"H{current_row}"
+        # Guardamos la referencia usando el id_obra exacto para que no se sobrescriba
+        dict_totales_obras[id_obra] = f"H{current_row}"
         current_row += 2
 
     # Total General
@@ -166,57 +166,37 @@ def construir_hoja_resumen(wb, reporte):
         cell.font = font_bold
         cell.border = total_border
 
-        # -------------------------------------------------------------------
-        # Recuadro Lateral (Modificado para agrupar las urbanizaciones)
-        # -------------------------------------------------------------------
-        row_recuadro = 7
-        ws.cell(row=row_recuadro, column=10, value="CONCEPTO / OBRA").fill = fill_recuadro_hdr
-        ws.cell(row=row_recuadro, column=10).font = font_header
-        ws.cell(row=row_recuadro, column=11, value="PENDIENTE POR COMPRAR").fill = fill_recuadro_hdr
-        ws.cell(row=row_recuadro, column=11).font = font_header
+    # -------------------------------------------------------------------
+    # Recuadro Lateral (Basado estrictamente en Códigos de Obra)
+    # -------------------------------------------------------------------
+    row_recuadro = 7
+    ws.cell(row=row_recuadro, column=10, value="CONCEPTO / OBRA").fill = fill_recuadro_hdr
+    ws.cell(row=row_recuadro, column=10).font = font_header
+    ws.cell(row=row_recuadro, column=11, value="PENDIENTE POR COMPRAR").fill = fill_recuadro_hdr
+    ws.cell(row=row_recuadro, column=11).font = font_header
 
-        start_chart_data_row = row_recuadro + 1
+    start_chart_data_row = row_recuadro + 1
+    row_recuadro += 1
+
+    # Recorremos cada obra individualmente por su ID único para llenar el recuadro lateral y la gráfica
+    for obra_item in reporte:
+        id_obra = obra_item['obra']
+        celda_ref = dict_totales_obras[id_obra]
+
+        c_lbl = ws.cell(row=row_recuadro, column=10, value=f"PENDIENTE {id_obra}")
+        c_val = ws.cell(row=row_recuadro, column=11, value=f"={celda_ref}")
+        c_lbl.border, c_val.border = box_border, box_border
+        c_val.number_format = fmt_currency
         row_recuadro += 1
 
-        # Definimos las categorías únicas que queremos mostrar en el recuadro y gráfica
-        # Si el nombre descriptivo contiene "URBANIZACIÓN", podemos agruparlo con SUMAR.SI
-        # O bien listar las categorías base de forma dinámica:
+    end_chart_data_row = row_recuadro - 1
 
-        # Identificamos los nombres únicos limpios o agrupados
-        # Una opción robusta es usar SUMAR.SI en la columna D de la tabla resumen buscando "URBANIZACIÓN"
-
-        # Ejemplo para EDIFICACIÓN (suma todas las filas de edificación si están separadas)
-        # O si prefieres mantener las demás obras individuales y solo agrupar urbanización:
-
-        nombres_procesados = set()
-        for obra_item in reporte:
-            id_obra = obra_item['obra']
-            nombre_desc = obtener_nombre_obra_descriptivo(id_obra)
-
-            # Si es urbanización, lo agrupamos en un solo concepto global para la gráfica
-            if "URBANIZACIÓN" in nombre_desc.upper():
-                nombre_agrupado = "PENDIENTE URBANIZACIÓN"
-                celda_ref = f'=SUMIF(D$8:D{current_row - 1}, "*URBANIZACIÓN*", H$8:H{current_row - 1})'
-            else:
-                nombre_agrupado = f"PENDIENTE {nombre_desc}"
-                celda_ref = f"={dict_totales_obras[nombre_desc]}"
-
-            if nombre_agrupado not in nombres_procesados:
-                nombres_procesados.add(nombre_agrupado)
-                c_lbl = ws.cell(row=row_recuadro, column=10, value=nombre_agrupado)
-                c_val = ws.cell(row=row_recuadro, column=11, value=celda_ref)
-                c_lbl.border, c_val.border = box_border, box_border
-                c_val.number_format = fmt_currency
-                row_recuadro += 1
-
-        end_chart_data_row = row_recuadro - 1
-
-        c_lbl_tot = ws.cell(row=row_recuadro, column=10, value="TOTAL PENDIENTE POR COMPRAR")
-        c_val_tot = ws.cell(row=row_recuadro, column=11, value=f"=SUM(K{start_chart_data_row}:K{end_chart_data_row})")
-        c_lbl_tot.font, c_val_tot.font = font_bold, font_bold
-        c_lbl_tot.fill, c_val_tot.fill = fill_total_seccion, fill_total_seccion
-        c_lbl_tot.border, c_val_tot.border = total_border, total_border
-        c_val_tot.number_format = fmt_currency
+    c_lbl_tot = ws.cell(row=row_recuadro, column=10, value="TOTAL PENDIENTE POR COMPRAR")
+    c_val_tot = ws.cell(row=row_recuadro, column=11, value=f"=SUM(K{start_chart_data_row}:K{end_chart_data_row})")
+    c_lbl_tot.font, c_val_tot.font = font_bold, font_bold
+    c_lbl_tot.fill, c_val_tot.fill = fill_total_seccion, fill_total_seccion
+    c_lbl_tot.border, c_val_tot.border = total_border, total_border
+    c_val_tot.number_format = fmt_currency
 
     # -------------------------------------------------------------------
     # 2. CONFIGURACIÓN DE LA GRÁFICA PIE (TOP-DOWN & SEPARADA)
@@ -231,11 +211,10 @@ def construir_hoja_resumen(wb, reporte):
     pie.set_categories(labels)
 
     # Separación/Espaciado entre rebanadas (Explode)
-    # Define la distancia del centro hacia afuera (5 a 10 suele verse bastante bien)
     if pie.series:
         pie.series[0].explode = 8
 
-        # Configuración de Etiquetas con Porcentaje (2 decimales)
+    # Configuración de Etiquetas con Porcentaje (2 decimales)
     pie.dataLabels = DataLabelList()
     pie.dataLabels.showVal = False  # Desactiva el monto absoluto
     pie.dataLabels.showPercent = True  # Muestra el porcentaje
@@ -251,7 +230,7 @@ def construir_hoja_resumen(wb, reporte):
     ws.column_dimensions['J'].width = 38
     ws.column_dimensions['K'].width = 25
 
-    # Filros
+    # Filtros
     ws.auto_filter.ref = f"B7:H{current_row}"
 
 
@@ -263,7 +242,7 @@ def construir_hoja_volumen_precio(wb, obra_item):
     if "EDIFICACI" not in nombre_upper and "URBA" not in nombre_upper:
         return
 
-    sheet_title = f"VOL & PRECIO {nombre_desc}"[:29]
+    sheet_title = f"VOL & PRECIO {id_obra}"[:29]
     ws = wb.create_sheet(title=sheet_title)
 
     ws.views.sheetView[0].showGridLines = True
@@ -294,7 +273,7 @@ def construir_hoja_volumen_precio(wb, obra_item):
     # -------------------------------------------------------------------
     # 1. ENCABEZADO Y TARJETA DE TOTALES SUPERIOR (Filas 2 a 7)
     # -------------------------------------------------------------------
-    ws["B2"] = f"ANÁLISIS DE VOLUMEN Y PRECIO - {nombre_desc}"
+    ws["B2"] = f"ANÁLISIS DE VOLUMEN Y PRECIO - {id_obra}"
     ws["B2"].font = font_titulo
     ws["B3"] = "FAMILIA: CONCRETO"
     ws["B3"].font = font_subtitulo
@@ -520,7 +499,7 @@ def construir_hoja_retenciones(wb, obra_item):
     nombre_desc = obtener_nombre_obra_descriptivo(id_obra)
 
     # openpyxl limita el título de la pestaña a 31 caracteres
-    sheet_title = f"OC RETENCIONES {nombre_desc}"[:29]
+    sheet_title = f"OC RETENCIONES {id_obra}"[:29]
     ws = wb.create_sheet(title=sheet_title)
 
     # ----------------------------------------------------
@@ -641,7 +620,7 @@ def construir_hoja_compras_vs(wb, obra_item):
     id_obra = obra_item.get('obra', '')
     nombre_desc = obtener_nombre_obra_descriptivo(id_obra)
 
-    sheet_title = f"COMPRAS {nombre_desc} VS"[:29]
+    sheet_title = f"COMPRAS {id_obra} VS"[:29]
     ws = wb.create_sheet(title=sheet_title)
 
     ws.views.sheetView[0].showGridLines = True
@@ -780,7 +759,7 @@ def construir_hoja_compras_familia(wb, obra_item):
     id_obra = obra_item.get('obra', '')
     nombre_desc = obtener_nombre_obra_descriptivo(id_obra)
 
-    sheet_title = f"COMPRAS {nombre_desc} FAMILIA"[:29]
+    sheet_title = f"COMPRAS {id_obra} FAMILIA"[:29]
     ws = wb.create_sheet(title=sheet_title)
 
     # ----------------------------------------------------
@@ -924,7 +903,7 @@ def construir_hoja_compras_material(wb, obra_item):
     id_obra = obra_item.get('obra', '')
     nombre_desc = obtener_nombre_obra_descriptivo(id_obra)
 
-    sheet_title = f"COMPRAS {nombre_desc} MATERIAL"[:29]
+    sheet_title = f"COMPRAS {id_obra} MATERIAL"[:29]
     ws = wb.create_sheet(title=sheet_title)
 
     # ----------------------------------------------------
@@ -1135,7 +1114,7 @@ def construir_hoja_compras_material_sin_agrupar(wb, obra_item):
     id_obra = obra_item.get('obra', '')
     nombre_desc = obtener_nombre_obra_descriptivo(id_obra)
 
-    sheet_title = f"COMPRAS {nombre_desc} MATERIAL"[:29]
+    sheet_title = f"COMPRAS {id_obra} MATERIAL"[:29]
     ws = wb.create_sheet(title=sheet_title)
 
     # ----------------------------------------------------
