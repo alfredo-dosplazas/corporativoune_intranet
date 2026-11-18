@@ -1,3 +1,5 @@
+import ctypes
+
 import django.db.models
 import environ
 import os
@@ -394,6 +396,10 @@ FIREBIRD_DB_COI_PATH = env('FIREBIRD_DB_COI_PATH')
 
 FIREBIRD_DB_USER = env('FIREBIRD_DB_USER')
 FIREBIRD_DB_PASSWORD = env('FIREBIRD_DB_PASSWORD')
+
+if os.path.exists(FIREBIRD_API_PATH):
+    # Forzamos a ctypes a cargar esta DLL específica de 64 bits antes de que Django intente conectar
+    ctypes.CDLL(FIREBIRD_API_PATH)
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
 
