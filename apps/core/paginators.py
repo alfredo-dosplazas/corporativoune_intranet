@@ -1,4 +1,5 @@
 from django.core.paginator import Paginator, Page
+from django.db import connections
 
 
 class SqlPage(Page):
@@ -6,6 +7,7 @@ class SqlPage(Page):
     Subclase de Page que calcula start_index y end_index
     basándose en la página solicitada sin hacer slicing sobre object_list.
     """
+
     def start_index(self):
         if self.paginator.count == 0:
             return 0
@@ -22,6 +24,7 @@ class SqlPaginator(Paginator):
     Paginador personalizado para django-tables2 que utiliza el conteo total
     precalculado desde SQL y evita recortar nuevamente la lista obtenida por LIMIT/OFFSET.
     """
+
     def __init__(self, object_list, per_page, total_count=0, **kwargs):
         self._total_count = int(total_count)
         super().__init__(object_list, per_page, **kwargs)

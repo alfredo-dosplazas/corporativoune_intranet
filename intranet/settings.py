@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     'apps.regalos',
     'apps.votaciones',
 
+    'apps.noi',
     'apps.sae',
     'apps.interfaz_sae_coi',
     'apps.listas_precios',
@@ -205,7 +206,7 @@ DATABASES = {
     },
 }
 
-DATABASE_ROUTERS = ['intranet.routers.CoreRouter']
+DATABASE_ROUTERS = ['intranet.routers.CoreRouter', 'apps.noi.routers.NOIDatabaseRouter']
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 

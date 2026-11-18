@@ -1,4 +1,3 @@
-# apps/coi/models.py
 from types import SimpleNamespace
 from sqlalchemy import Column, String, Date, Float, DateTime, Integer, SmallInteger
 from apps.coi.db import Base

@@ -1,7 +1,6 @@
 from typing import override
 
 from babel.numbers import format_currency, format_percent
-from django.contrib.humanize.templatetags.humanize import intcomma
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 from django_tables2 import Table, Column
@@ -21,7 +20,7 @@ class ImageColumn(Column):
 
 class AmountColumn(Column):
     def __init__(self, *args, currency='MXN', **kwargs):
-        super().__init__()
+        super().__init__(*args, **kwargs)
         self.currency = currency
 
     @override

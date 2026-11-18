@@ -1,0 +1,333 @@
+{% load django_tables2 %}
+
+<c-layouts.app>
+    <c-slot name="header">
+        <!-- BARRA DE ACCIONES Y FILTROS -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+
+            <!-- TÍTULO DE LA VISTA -->
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="icon-[tabler--users-group] text-primary text-base"></span>
+                <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">
+                    Nómina y Personal NOI
+                </h1>
+            </div>
+
+            <!-- SELECTOR EMPRESA + BUSCADOR + FILTROS + EXPORTAR + CONTADOR -->
+            <div class="flex items-center gap-2 flex-1 justify-end max-w-3xl flex-wrap sm:flex-nowrap">
+
+                <!-- SELECTOR RÁPIDO DE EMPRESA AUTORIZADA -->
+                {% if empresas_disponibles %}
+                    <form method="get" action="" class="shrink-0">
+                        {% for key, value in request.GET.items %}
+                            {% if key != 'empresa' and key != 'page' and key != '_export' and value %}
+                                <input type="hidden" name="{{ key }}" value="{{ value }}">
+                            {% endif %}
+                        {% endfor %}
+                        <select name="empresa"
+                                onchange="this.form.submit()"
+                                class="select select-xs h-7 min-h-0 bg-base-100 border-base-300 text-xs rounded-md max-w-[180px]">
+                            <option value="">Todas las empresas</option>
+                            {% for emp in empresas_disponibles %}
+                                <option value="{{ emp.id }}"
+                                        {% if request.GET.empresa == emp.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ emp.nombre_corto|upper }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                {% endif %}
+
+                <!-- SELECTOR RÁPIDO DE RANGO DE FECHAS DE NÓMINA -->
+                <form method="get" action="" class="flex items-center gap-1.5 shrink-0">
+                    {% for key, value in request.GET.items %}
+                        {% if key != 'fecha_inicio' and key != 'fecha_fin' and key != 'page' and key != '_export' and value %}
+                            <input type="hidden" name="{{ key }}" value="{{ value }}">
+                        {% endif %}
+                    {% endfor %}
+                    <div class="flex items-center gap-1 bg-base-100 border border-base-300 rounded-md px-1.5 py-0.5 h-7">
+                        <span class="text-[10px] text-base-content/50 font-medium">Del:</span>
+                        <input type="date" name="fecha_inicio" value="{{ fecha_inicio }}" onchange="this.form.submit()"
+                               class="bg-transparent text-[11px] focus:outline-none cursor-pointer"/>
+                        <span class="text-[10px] text-base-content/50 font-medium">Al:</span>
+                        <input type="date" name="fecha_fin" value="{{ fecha_fin }}" onchange="this.form.submit()"
+                               class="bg-transparent text-[11px] focus:outline-none cursor-pointer"/>
+                    </div>
+                </form>
+
+                <!-- FORMULARIO DE BÚSQUEDA RÁPIDA -->
+                <form method="get" action="" id="search-form" class="flex items-center gap-2 flex-1 max-w-xs">
+                    {% for key, value in request.GET.items %}
+                        {% if key != 'q' and key != 'page' and key != '_export' and value %}
+                            <input type="hidden" name="{{ key }}" value="{{ value }}">
+                        {% endif %}
+                    {% endfor %}
+
+                    <div class="relative flex-1 flex items-center">
+                        <span class="absolute left-2.5 text-base-content/40 pointer-events-none z-10">
+                            <span class="icon-[tabler--search] text-xs block"></span>
+                        </span>
+
+                        <input
+                                type="text"
+                                name="q"
+                                value="{{ request.GET.q|default:'' }}"
+                                placeholder="Buscar clave, nombre..."
+                                class="input input-xs w-full pl-7 pr-3 bg-base-100 border-base-300 focus:border-primary focus:outline-none text-xs rounded-md h-7"
+                        />
+                    </div>
+                </form>
+
+                <!-- BOTÓN QUE DISPARA EL MODAL DE FILTROS -->
+                <button type="button"
+                        onclick="modal_filtros.showModal()"
+                        class="btn btn-ghost btn-xs h-7 min-h-0 px-2 border border-base-300 bg-base-100 font-normal text-xs text-base-content/70 relative">
+                    <span class="icon-[tabler--adjustments-horizontal] text-xs"></span>
+                    <span class="hidden sm:inline">Filtros</span>
+                    {% if request.GET.estatus or request.GET.puesto_nombre or request.GET.fecha_ingreso %}
+                        <span class="badge badge-primary badge-xs size-2 p-0 rounded-full absolute -top-1 -right-1"></span>
+                    {% endif %}
+                </button>
+
+                <!-- MENÚ EXPORTAR -->
+                <div class="dropdown dropdown-end">
+                    <button tabindex="0"
+                            class="btn btn-ghost btn-xs btn-square h-7 w-7 border border-base-300 bg-base-100"
+                            title="Exportar reporte">
+                        <span class="icon-[tabler--dots-vertical] text-xs"></span>
+                    </button>
+                    <ul tabindex="0"
+                        class="dropdown-content menu menu-xs bg-base-100 rounded-md border border-base-200 shadow-lg w-36 z-50 p-1">
+                        <li>
+                            <a href="{% url 'noi:trabajadores__exportar' %}{% querystring %}" target="_blank">
+                                <span class="icon-[tabler--file-spreadsheet]"></span> Exportar Excel
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- CONTADOR + CAMBIADOR DE VISTA -->
+                <div class="hidden sm:flex items-center gap-1.5 border-l border-base-300 pl-2 text-xs text-base-content/60">
+                    <span class="text-[11px] whitespace-nowrap" title="Total de trabajadores">
+                        <span class="font-bold text-base-content">{{ table.page.paginator.count|default:"0" }}</span>
+                    </span>
+
+                    <div class="join border border-base-300 rounded p-0.5 bg-base-100">
+                        <!-- Botón Tabla / Lista -->
+                        <a href="{% querystring "view"="list" %}"
+                           class="join-item btn btn-xs btn-ghost btn-square h-5 w-5 min-h-0 {% if view_mode == 'list' %}btn-active text-primary{% endif %}"
+                           title="Vista de tabla">
+                            <span class="icon-[tabler--list] text-xs"></span>
+                        </a>
+
+                        <!-- Botón Cards / Kanban -->
+                        <a href="{% querystring "view"="kanban" %}"
+                           class="join-item btn btn-xs btn-ghost btn-square h-5 w-5 min-h-0 {% if view_mode == 'kanban' %}btn-active text-primary{% endif %}"
+                           title="Vista de tarjetas">
+                            <span class="icon-[tabler--layout-kanban] text-xs"></span>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- CHIPS DE FILTROS ACTIVOS -->
+        {% if request.GET.q or request.GET.estatus or request.GET.empresa or request.GET.puesto_nombre %}
+            <div class="flex items-center gap-1.5 flex-wrap pt-1 border-t border-base-200/60 mt-1">
+                {% if request.GET.q %}
+                    <a href="{% querystring 'q'="" %}"
+                       class="badge badge-ghost border-base-300 badge-xs gap-1 text-[10px] h-4.5">
+                        <span>"{{ request.GET.q }}"</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+                {% if request.GET.empresa %}
+                    <a href="{% querystring 'empresa'="" %}"
+                       class="badge badge-primary badge-outline badge-xs gap-1 text-[10px] h-4.5">
+                        <span>Empresa filtrada</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+                {% if request.GET.estatus %}
+                    <a href="{% querystring 'estatus'="" %}"
+                       class="badge badge-info badge-outline badge-xs gap-1 text-[10px] h-4.5">
+                        <span>Estatus: {{ request.GET.estatus }}</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+                {% if request.GET.puesto_nombre %}
+                    <a href="{% querystring 'puesto_nombre'="" %}"
+                       class="badge badge-secondary badge-outline badge-xs gap-1 text-[10px] h-4.5">
+                        <span>Puesto: {{ request.GET.puesto_nombre }}</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+                <a href="?clean_filter=1"
+                   class="text-[10px] text-primary hover:underline ml-1">Limpiar</a>
+            </div>
+        {% endif %}
+    </c-slot>
+
+    <!-- VISTA TABLA PRINCIPAL (DESKTOP) -->
+    <div class="{% if view_mode == 'kanban' %}hidden{% else %}hidden sm:flex flex-col flex-1 min-h-0 h-full w-full relative{% endif %}">
+        {% render_table table %}
+    </div>
+
+    <!-- VISTA TARJETAS / KANBAN / MOBILE -->
+    <div class="{% if view_mode == 'kanban' %}block{% else %}block sm:hidden{% endif %}">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-2">
+            {% for trabajador in object_list %}
+                <div class="card card-compact bg-base-100 border border-base-200 shadow-2xs">
+                    <div class="card-body gap-1.5 text-xs">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <span class="badge badge-ghost badge-xs font-mono text-[10px]">
+                                    #{{ trabajador.clave }}
+                                </span>
+                                <h2 class="font-bold text-sm text-base-content mt-0.5">
+                                    {{ trabajador.nombre_completo }}
+                                </h2>
+                                <p class="text-[11px] text-base-content/60">
+                                    {{ trabajador.puesto|default:"Sin Puesto" }}
+                                </p>
+                            </div>
+                            {% if trabajador.status == "A" %}
+                                <span class="badge badge-success badge-outline badge-xs text-[10px]">ACTIVO</span>
+                            {% else %}
+                                <span class="badge badge-error badge-outline badge-xs text-[10px]">BAJA</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="divider my-0.5"></div>
+
+                        <div class="grid grid-cols-3 gap-1 text-[11px] text-base-content/70">
+                            <div>
+                                <span class="block text-[10px] text-base-content/50">Sal. Diario</span>
+                                <span class="font-medium text-base-content">${{ trabajador.sal_diario|floatformat:2 }}</span>
+                            </div>
+                            <div class="text-center">
+                                <span class="block text-[10px] text-base-content/50">Recibos</span>
+                                <span class="font-medium text-base-content">{{ trabajador.lista_recibos|length }} pago(s)</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="block text-[10px] text-base-content/50">Total Neto</span>
+                                <span class="font-semibold text-primary">${{ trabajador.total_neto|floatformat:2 }}</span>
+                            </div>
+                        </div>
+
+                        {% if trabajador.lista_recibos %}
+                            <div class="flex flex-wrap gap-1 pt-1 mt-0.5 border-t border-base-200/60">
+                                {% for recibo in trabajador.lista_recibos %}
+                                    <span class="badge badge-ghost badge-xs text-[10px] font-mono">
+                                        {{ recibo.f_nomina|date:"d/m/y" }}: ${{ recibo.neto|floatformat:2 }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-span-full text-center py-8 text-base-content/50 text-xs">
+                    No se encontraron trabajadores con los criterios seleccionados.
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Paginación para el modo Cards / Kanban -->
+        {% if table.page %}
+            <div class="flex items-center justify-between p-3 border-t border-base-200 bg-base-100 rounded-b-lg mt-2">
+                <span class="text-[11px] text-base-content/60">
+                    Página {{ table.page.number }} de {{ table.paginator.num_pages }}
+                </span>
+                <div class="join">
+                    {% if table.page.has_previous %}
+                        <a href="{% querystring "page"=table.page.previous_page_number %}"
+                           class="join-item btn btn-xs border-base-300">Anterior</a>
+                    {% endif %}
+                    {% if table.page.has_next %}
+                        <a href="{% querystring "page"=table.page.next_page_number %}"
+                           class="join-item btn btn-xs border-base-300">Siguiente</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- MODAL DE FILTROS -->
+    <dialog id="modal_filtros" class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box p-4 bg-base-100 border border-base-200">
+
+            <!-- ENCABEZADO MODAL -->
+            <div class="flex items-center justify-between border-b border-base-200 pb-2 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="icon-[tabler--adjustments-horizontal] text-primary text-base"></span>
+                    <h3 class="font-bold text-sm">Filtros Avanzados</h3>
+                </div>
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost text-base-content/60">✕</button>
+                </form>
+            </div>
+
+            <!-- FORMULARIO DE FILTROS COMPLETO -->
+            <form method="get" action="" id="advanced-filter-form" class="space-y-3 text-xs">
+                {% if request.GET.q %}
+                    <input type="hidden" name="q" value="{{ request.GET.q }}">
+                {% endif %}
+                {% if request.GET.empresa %}
+                    <input type="hidden" name="empresa" value="{{ request.GET.empresa }}">
+                {% endif %}
+
+                <!-- FILTRO POR RANGO DE FECHAS (INGRESO / NÓMINAS) -->
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="form-control">
+                        <label class="label py-1">
+                            <span class="label-text text-[11px] font-medium">Fecha Inicio:</span>
+                        </label>
+                        <input type="date" name="fecha_inicio" value="{{ fecha_inicio }}"
+                               class="input input-xs input-bordered w-full h-8 text-xs"/>
+                    </div>
+                    <div class="form-control">
+                        <label class="label py-1">
+                            <span class="label-text text-[11px] font-medium">Fecha Fin:</span>
+                        </label>
+                        <input type="date" name="fecha_fin" value="{{ fecha_fin }}"
+                               class="input input-xs input-bordered w-full h-8 text-xs"/>
+                    </div>
+                </div>
+
+                <div class="form-control">
+                    <label class="label py-1">
+                        <span class="label-text text-[11px] font-medium">Estatus:</span>
+                    </label>
+                    <select name="status" class="select select-xs select-bordered w-full h-8 text-xs">
+                        <option value="">Todos los estatus</option>
+                        <option value="A"
+                                {% if request.GET.status == 'A' or request.GET.estatus == 'A' %}selected{% endif %}>ALTA
+                            (Activo)
+                        </option>
+                        <option value="B"
+                                {% if request.GET.status == 'B' or request.GET.estatus == 'B' %}selected{% endif %}>BAJA
+                        </option>
+                    </select>
+                </div>
+
+                <!-- ACCIONES DEL MODAL -->
+                <div class="modal-action border-t border-base-200 pt-3 mt-4 flex items-center justify-end gap-2">
+                    <a href="?clean_filter=1"
+                       class="btn btn-ghost btn-xs text-xs font-normal">
+                        Limpiar filtros
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-xs px-4">
+                        Aplicar Filtros
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- BACKDROP -->
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+</c-layouts.app>
