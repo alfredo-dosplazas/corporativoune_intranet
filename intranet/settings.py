@@ -397,7 +397,10 @@ FIREBIRD_DB_COI_PATH = env('FIREBIRD_DB_COI_PATH')
 FIREBIRD_DB_USER = env('FIREBIRD_DB_USER')
 FIREBIRD_DB_PASSWORD = env('FIREBIRD_DB_PASSWORD')
 
-FIREBIRD_CLIENT_LIB = FIREBIRD_API_PATH
+_client_lib = FIREBIRD_API_PATH
+if _client_lib:
+    from firebird.driver import driver_config
+    driver_config.fb_client_library.value = _client_lib
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
 
