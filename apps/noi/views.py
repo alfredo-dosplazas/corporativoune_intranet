@@ -162,7 +162,7 @@ class TrabajadorNOIListView(
             total_records = 0
             filas_pagina = []
 
-        table = TrabajadorNOITable(data=filas_pagina)
+        table = TrabajadorNOITable(data=filas_pagina, request=self.request)
         paginator = Paginator(range(total_records), self.paginate_by)
 
         if total_records == 0:
