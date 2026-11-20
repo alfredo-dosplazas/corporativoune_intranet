@@ -261,9 +261,37 @@ class RegaloImportView(
         self.evento = get_object_or_404(Evento, slug=self.kwargs['evento_slug'])
         return super().dispatch(request, *args, **kwargs)
 
+    def get_campos_importacion(self):
+        resource = RegaloResource(evento=self.evento)
+        # Campos que el resource resuelve automáticamente y no hace falta pedir en el archivo
+        campos_automaticos = {'id', 'evento'}
+
+        campos = []
+        for field in resource.get_fields():
+            col_name = field.column_name
+            if col_name in campos_automaticos:
+                continue
+
+            # Determinar si es opcional según el modelo (si existe en Regalo)
+            opcional = False
+            try:
+                model_field = Regalo._meta.get_field(field.attribute or col_name)
+                # BooleanField con default=False suele tratarse como opcional en importaciones
+                opcional = bool(model_field.blank or model_field.null or model_field.default is not NOT_PROVIDED)
+            except Exception:
+                opcional = True
+
+            campos.append({
+                'nombre': col_name,
+                'opcional': opcional,
+            })
+
+        return campos
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['evento'] = self.evento
+        context['campos_importacion'] = self.get_campos_importacion()
         return context
 
     def form_valid(self, form):

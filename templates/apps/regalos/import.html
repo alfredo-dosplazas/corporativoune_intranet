@@ -6,9 +6,22 @@
                     📦 Importar Regalos para: {{ evento.nombre }}
                 </h2>
                 <p class="text-sm text-base-content/70 mb-4">
-                    Sube un archivo de Excel (`.xlsx`) o CSV con los premios de la rifa.
-                    El archivo debe contener las columnas: <code class="bg-base-200 px-1 py-0.5 rounded font-mono">numero</code>, <code class="bg-base-200 px-1 py-0.5 rounded font-mono">nombre</code> y opcionalmente <code class="bg-base-200 px-1 py-0.5 rounded font-mono">destacado</code> (1 o 0).
+                    Sube un archivo de Excel (<code>.xlsx</code>) o CSV con los premios de la rifa.
+                    Columnas soportadas actualmente por el importador:
                 </p>
+
+                <div class="flex flex-wrap gap-2 mb-5">
+                    {% for campo in campos_importacion %}
+                        <div class="badge {% if campo.opcional %}badge-ghost border-base-300{% else %}badge-primary badge-outline{% endif %} gap-1.5 py-3 px-3 font-mono text-xs">
+                            <span>{{ campo.nombre }}</span>
+                            {% if campo.opcional %}
+                                <span class="font-sans text-[11px] opacity-70">(opcional)</span>
+                            {% else %}
+                                <span class="font-sans text-[11px] font-semibold">(requerido)</span>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
 
                 <form method="POST" enctype="multipart/form-data" class="space-y-6">
                     {% csrf_token %}
