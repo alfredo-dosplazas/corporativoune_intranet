@@ -430,19 +430,42 @@ class RegaloPDFView(
 
         return queryset
 
+    def _get_int_param(self, name, default, min_val, max_val):
+        try:
+            val = int(self.request.GET.get(name, default))
+            return max(min_val, min(max_val, val))
+        except (TypeError, ValueError):
+            return default
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         regalos = self.get_queryset()
 
-        items = []
-        for regalo in regalos:
-            items.append({
+        # Configurable por query params: ?cols=4&rows=2 (default: 4 por fila x 2 filas = 8 por hoja)
+        cols = self._get_int_param('cols', default=4, min_val=1, max_val=8)
+        rows = self._get_int_param('rows', default=2, min_val=1, max_val=4)
+        per_page = cols * rows
+
+        items = [
+            {
                 'regalo': regalo,
-                'qr_code_base64': generar_qr_base64(regalo.codigo_qr)
-            })
+                'qr_code_base64': generar_qr_base64(regalo.codigo_qr),
+            }
+            for regalo in regalos
+        ]
+
+        # Agrupamos en páginas exactas desde Python para evitar errores de conteo en el template
+        pages = [items[i:i + per_page] for i in range(0, len(items), per_page)]
+
+        # Tamaño de QR proporcional al ancho de columna
+        qr_size_mm = 34 if cols <= 4 else (28 if cols == 5 else 23)
 
         context['evento'] = self.evento
         context['items'] = items
+        context['pages'] = pages
+        context['cols'] = cols
+        context['rows'] = rows
+        context['qr_size_mm'] = qr_size_mm
         context['es_individual'] = len(items) == 1
         return context
 
@@ -452,6 +475,7 @@ class RegaloPDFView(
 
         if pk or codigo_qr:
             return f'ticket_regalo_{pk or codigo_qr}.pdf'
+        return f'tickets_regalos_{self.evento.slug}.pdf'
         return f'tickets_regalos_{self.evento.slug}.pdf'
 
 
@@ -745,116 +769,244 @@ class ProcesarCanjeApiView(View):
         })
 
 
+import json
+import random
+from asgiref.sync import sync_to_async
+from channels.layers import get_channel_layer
+from django.db import transaction
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.views import View
+
+MAX_CAMBIOS_ALEATORIOS = 2
+
+
 class ProcesarCanjeAleatorioApiView(View):
-    """API asíncrona que procesa el canje aleatorio y es compatible con channels_rabbitmq."""
+    """
+    Maneja dos fases en el canje aleatorio:
+    1) accion='sortear' (default): busca una opción aleatoria según categoría del invitado
+       excluyendo candidatos descartados en el turno (máx. 2 cambios), sin guardar aún.
+    2) accion='confirmar': confirma definitivamente el regalo elegido, guarda en BD
+       y notifica por WebSocket a la pantalla gigante.
+    """
 
     async def post(self, request, evento_slug):
-        # 1. Obtener evento de forma asíncrona
         evento = await sync_to_async(get_object_or_404)(Evento, slug=evento_slug)
-
-        # Leer el POST de forma segura
-        invitado_qr = request.POST.get('invitado_qr')
+        invitado_qr = (request.POST.get('invitado_qr') or '').strip()
+        accion = (request.POST.get('accion') or 'sortear').strip()
 
         if not invitado_qr:
-            return JsonResponse({'status': 'error', 'message': 'Código QR de invitado no proporcionado.'}, status=400)
-
-        # 2. Buscar y validar al invitado usando sync_to_async para el ORM
-        invitado = await sync_to_async(Invitado.objects.filter(evento=evento, codigo_qr=invitado_qr).first)()
-        if not invitado:
             return JsonResponse(
-                {'status': 'error', 'message': 'No se encontró ningún invitado con ese código QR.'},
-                status=404)
-
-        # 3. Validación anti-duplicados
-        regalo_previo = await sync_to_async(
-            Regalo.objects.filter(evento=evento, invitado=invitado, canjeado=True).first)()
-        if regalo_previo:
-            return JsonResponse({
-                'status': 'error',
-                'message': f'¡El invitado "{invitado.nombre_completo}" ya canjeó un regalo anteriormente (Premio #{regalo_previo.numero}: {regalo_previo.nombre}).'
-            }, status=400)
-
-        # 4. Buscar regalos disponibles según la regla de categoría
-        def obtener_regalos_disponibles():
-            regalos_disponibles = []
-
-            # Si el invitado tiene categoría, intentamos buscar de su categoría primero
-            if invitado.categoria:
-                regalos_disponibles = list(
-                    Regalo.objects.filter(evento=evento, categoria=invitado.categoria, canjeado=False))
-
-            # Si no tiene categoría, o si tenía categoría pero ya no quedan regalos en ella,
-            # permitimos tomar cualquier regalo disponible general.
-            if not regalos_disponibles:
-                regalos_disponibles = list(Regalo.objects.filter(evento=evento, canjeado=False))
-
-            return regalos_disponibles
-
-        regalos_disponibles = await sync_to_async(obtener_regalos_disponibles)()
-        if not regalos_disponibles:
-            return JsonResponse({
-                'status': 'error',
-                'message': '¡Lo sentimos! Ya no quedan regalos disponibles para sortear.'
-            }, status=400)
-
-        # 5. Seleccionar un regalo al azar y guardarlo
-        regalo = random.choice(regalos_disponibles)
-
-        def registrar_canje():
-            regalo.invitado = invitado
-            regalo.ganador_nombre = invitado.nombre_completo
-            regalo.canjeado = True
-            regalo.fecha_canje = timezone.now()
-            regalo.save()
-
-            invitado.asistio = True
-            invitado.save()
-            return list(Regalo.objects.filter(evento=evento, canjeado=True).order_by('-fecha_canje')[:6])
-
-        regalos_entregados = await sync_to_async(registrar_canje)()
-
-        # 6. Notificar por WebSocket usando el event loop activo de Uvicorn
-        historial_data = [
-            {
-                'id': r.id,
-                'ganador': r.ganador_nombre or 'Sin Nombre',
-                'premio': r.nombre,
-                'numero': f"{r.numero:03d}",
-                'destacado': r.destacado,
-                'imagen_url': r.imagen.url if r.imagen else None,
-                'invitado_foto_url': r.invitado.foto.url if r.invitado and hasattr(r.invitado,
-                                                                                   'foto') and r.invitado.foto else None,
-            }
-            for r in regalos_entregados
-        ]
+                {'status': 'error', 'message': 'Código QR de invitado no proporcionado.'},
+                status=400,
+            )
 
         try:
-            channel_layer = get_channel_layer()
-            if channel_layer:
-                await channel_layer.group_send(
-                    f"pantalla_evento_{evento_slug}",
-                    {
-                        "type": "notificar_nuevo_ganador",
-                        "ultimo_ganador": {
-                            'id': regalo.id,
-                            'ganador': regalo.ganador_nombre,
-                            'premio': regalo.nombre,
-                            'numero': f"{regalo.numero:03d}",
-                            'imagen_url': regalo.imagen.url if regalo.imagen else None,
-                            'destacado': regalo.destacado,
-                        },
-                        "historial": historial_data
-                    }
+            cambios_realizados = int(request.POST.get('cambios_realizados', 0))
+        except (TypeError, ValueError):
+            cambios_realizados = 0
+
+        if cambios_realizados < 0 or cambios_realizados > MAX_CAMBIOS_ALEATORIOS:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Se excedió el límite de cambios permitidos.'},
+                status=400,
+            )
+
+        # Parsear IDs excluidos en este turno
+        excluir_raw = request.POST.get('excluir_ids') or '[]'
+        try:
+            excluir_ids = [
+                int(x) for x in json.loads(excluir_raw)
+                if str(x).isdigit()
+            ]
+        except (ValueError, TypeError):
+            excluir_ids = []
+
+        # ------------------------------------------------------------------
+        # FASE A: CONFIRMAR EL REGALO ELEGIDO (GUARDA EN BD + WEBSOCKET)
+        # ------------------------------------------------------------------
+        if accion == 'confirmar':
+            regalo_id = request.POST.get('regalo_id')
+            if not regalo_id or not str(regalo_id).isdigit():
+                return JsonResponse(
+                    {'status': 'error', 'message': 'No se indicó el regalo a confirmar.'},
+                    status=400,
                 )
-        except Exception as e:
-            print(f"Error al notificar por WebSocket: {e}")
+
+            def confirmar_en_bd():
+                with transaction.atomic():
+                    invitado = (
+                        Invitado.objects.select_for_update()
+                        .select_related('categoria')
+                        .filter(evento=evento, codigo_qr=invitado_qr)
+                        .first()
+                    )
+                    if not invitado:
+                        return None, 'No se encontró ningún invitado con ese código QR.', 404
+
+                    regalo_previo = Regalo.objects.filter(
+                        evento=evento, invitado=invitado, canjeado=True
+                    ).first()
+                    if regalo_previo:
+                        return (
+                            None,
+                            f'El invitado "{invitado.nombre_completo}" ya tiene asignado el Premio #{regalo_previo.numero:03d} ({regalo_previo.nombre}).',
+                            400,
+                        )
+
+                    regalo = (
+                        Regalo.objects.select_for_update()
+                        .select_related('categoria', 'evento')
+                        .filter(evento=evento, pk=int(regalo_id), canjeado=False)
+                        .first()
+                    )
+                    if not regalo:
+                        return None, 'El regalo seleccionado ya no está disponible.', 400
+
+                    regalo.invitado = invitado
+                    regalo.ganador_nombre = invitado.nombre_completo
+                    regalo.canjeado = True
+                    regalo.fecha_canje = timezone.now()
+                    regalo.save()
+
+                    invitado.asistio = True
+                    invitado.save()
+
+                    historial = list(
+                        Regalo.objects.filter(evento=evento, canjeado=True)
+                        .select_related('invitado', 'categoria')
+                        .order_by('-fecha_canje')[:8]
+                    )
+                    return (invitado, regalo, historial), None, 200
+
+            resultado, error_msg, status_code = await sync_to_async(confirmar_en_bd)()
+            if error_msg:
+                return JsonResponse({'status': 'error', 'message': error_msg}, status=status_code)
+
+            invitado, regalo, regalos_entregados = resultado
+
+            historial_data = [
+                {
+                    'id': r.id,
+                    'ganador': r.ganador_nombre or 'Sin Nombre',
+                    'premio': r.nombre,
+                    'numero': f"{r.numero:03d}",
+                    'destacado': r.destacado,
+                    'imagen_url': r.imagen.url if r.imagen else None,
+                    'invitado_foto_url': (
+                        r.invitado.foto.url
+                        if r.invitado and hasattr(r.invitado, 'foto') and r.invitado.foto
+                        else None
+                    ),
+                }
+                for r in regalos_entregados
+            ]
+
+            ultimo_ganador_payload = {
+                'id': regalo.id,
+                'ganador': regalo.ganador_nombre,
+                'premio': regalo.nombre,
+                'numero': f"{regalo.numero:03d}",
+                'imagen_url': regalo.imagen.url if regalo.imagen else None,
+                'destacado': regalo.destacado,
+                'invitado_foto_url': (
+                    invitado.foto.url if hasattr(invitado, 'foto') and invitado.foto else None
+                ),
+            }
+
+            try:
+                channel_layer = get_channel_layer()
+                if channel_layer:
+                    await channel_layer.group_send(
+                        f"pantalla_evento_{evento_slug}",
+                        {
+                            "type": "notificar_nuevo_ganador",
+                            "ultimo_ganador": ultimo_ganador_payload,
+                            "historial": historial_data,
+                        },
+                    )
+            except Exception as e:
+                print(f"Error al notificar por WebSocket: {e}")
+
+            return JsonResponse({
+                'status': 'success',
+                'message': f'¡Canje confirmado para {invitado.nombre_completo}!',
+                'id': regalo.id,
+                'ganador': invitado.nombre_completo,
+                'premio': regalo.nombre,
+                'numero': f"{regalo.numero:03d}",
+                'destacado': regalo.destacado,
+                'imagen_url': regalo.imagen.url if regalo.imagen else None,
+                'invitado_foto_url': (
+                    invitado.foto.url if hasattr(invitado, 'foto') and invitado.foto else None
+                ),
+            })
+
+        # ------------------------------------------------------------------
+        # FASE B: SORTEAR / RE-SORTEAR CANDIDATO (NO GUARDA HASTA CONFIRMAR)
+        # ------------------------------------------------------------------
+        def buscar_candidato():
+            invitado = (
+                Invitado.objects.select_related('categoria')
+                .filter(evento=evento, codigo_qr=invitado_qr)
+                .first()
+            )
+            if not invitado:
+                return None, 'No se encontró ningún invitado con ese código QR.', 404
+
+            regalo_previo = Regalo.objects.filter(
+                evento=evento, invitado=invitado, canjeado=True
+            ).first()
+            if regalo_previo:
+                return (
+                    None,
+                    f'¡El invitado "{invitado.nombre_completo}" ya canjeó un regalo anteriormente (Premio #{regalo_previo.numero:03d}: {regalo_previo.nombre}).',
+                    400,
+                )
+
+            base_qs = Regalo.objects.select_related('categoria').filter(
+                evento=evento, canjeado=False
+            )
+            if excluir_ids:
+                base_qs = base_qs.exclude(pk__in=excluir_ids)
+
+            candidatos = []
+            if invitado.categoria:
+                candidatos = list(base_qs.filter(categoria=invitado.categoria))
+
+            # Fallback a disponibles generales si no hay más en su categoría
+            if not candidatos:
+                candidatos = list(base_qs)
+
+            if not candidatos:
+                return (
+                    None,
+                    'No hay más regalos disponibles para ofrecer en este sorteo.',
+                    400,
+                )
+
+            elegido = random.choice(candidatos)
+            return (invitado, elegido), None, 200
+
+        resultado, error_msg, status_code = await sync_to_async(buscar_candidato)()
+        if error_msg:
+            return JsonResponse({'status': 'error', 'message': error_msg}, status=status_code)
+
+        invitado, elegido = resultado
 
         return JsonResponse({
             'status': 'success',
-            'message': f'¡Asignación aleatoria exitosa para {invitado.nombre_completo}!',
+            'id': elegido.id,
+            'codigo_qr': elegido.codigo_qr,
             'ganador': invitado.nombre_completo,
-            'premio': regalo.nombre,
-            'numero': f"{regalo.numero:03d}"
+            'premio': elegido.nombre,
+            'numero': f"{elegido.numero:03d}",
+            'categoria': elegido.categoria.nombre if elegido.categoria else 'General',
+            'destacado': elegido.destacado,
+            'imagen_url': elegido.imagen.url if elegido.imagen else None,
+            'cambios_realizados': cambios_realizados,
+            'cambios_restantes': max(0, MAX_CAMBIOS_ALEATORIOS - cambios_realizados),
         })
 
 
@@ -1252,7 +1404,7 @@ class InvitadoPDFView(
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        queryset = Invitado.objects.filter(evento=self.evento).order_by('nombre_completo')
+        queryset = Invitado.objects.filter(evento=self.evento)
 
         pk = self.kwargs.get('pk') or self.request.GET.get('pk')
         if pk:

@@ -93,6 +93,8 @@ INSTALLED_APPS = [
     'apps.zabbix',
 
     'apps.vs_erp',
+
+    'apps.gestor_smb',
 ]
 
 MIDDLEWARE = [

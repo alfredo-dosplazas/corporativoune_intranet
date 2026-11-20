@@ -26,6 +26,7 @@ urlpatterns = [
                   path('regalos/', include('apps.regalos.urls')),
                   path('infopantallas/', include('apps.infopantallas.urls')),
                   path('votaciones/', include('apps.votaciones.urls')),
+                  path("gestor-archivos/", include("apps.gestor_smb.urls")),
                   path('noi/', include('apps.noi.urls')),
                   path('sae/', include('apps.sae.urls')),
                   path('', include('apps.explorador.urls')),

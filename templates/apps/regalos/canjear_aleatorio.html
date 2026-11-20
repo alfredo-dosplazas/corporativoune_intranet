@@ -2,11 +2,11 @@
     <!-- TIPOGRAFÍA, LECTOR QR Y CANVAS-CONFETTI -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap"
+          rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-    <!-- ESTILOS Y ANIMACIONES CINEMÁTICAS AWWWARDS -->
     <style>
         :root {
             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -44,7 +44,6 @@
             }
         }
 
-        /* ANIMACIÓN DE SLOT MACHINE / TÓMBOLA DE ALTA VELOCIDAD */
         @keyframes slotRapidRoll {
             0% {
                 transform: translateY(0);
@@ -59,7 +58,6 @@
             }
         }
 
-        /* ANIMACIÓN CINEMÁTICA DE LA CAJA DE REGALO ABRIÉNDOSE */
         @keyframes giftLidOpen {
             0% {
                 transform: translateY(0) rotate(0deg);
@@ -104,6 +102,17 @@
             }
         }
 
+        @keyframes destacadoGlowPulse {
+            0%, 100% {
+                box-shadow: 0 0 40px -8px rgba(245, 158, 11, 0.35), inset 0 0 20px rgba(245, 158, 11, 0.12);
+                border-color: rgba(251, 191, 36, 0.55);
+            }
+            50% {
+                box-shadow: 0 0 75px -4px rgba(245, 158, 11, 0.65), inset 0 0 32px rgba(245, 158, 11, 0.24);
+                border-color: rgba(253, 224, 71, 0.95);
+            }
+        }
+
         .animate-ambient-1 {
             animation: ambientDrift 16s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -132,6 +141,10 @@
             animation: giftRadialGlow 1.4s ease-out forwards;
         }
 
+        .destacado-panel-epic {
+            animation: destacadoGlowPulse 2.8s infinite ease-in-out;
+        }
+
         .glass-panel-luxury {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.012) 100%);
             backdrop-filter: blur(28px);
@@ -147,12 +160,12 @@
             border: 1px solid rgba(255, 255, 255, 0.07);
         }
 
-        /* Estilización para el viewport de la cámara html5-qrcode */
         #reader video {
             border-radius: 1rem;
             object-fit: cover !important;
             width: 100% !important;
         }
+
         #reader {
             border: none !important;
         }
@@ -162,7 +175,7 @@
     <div data-theme="{{ evento.empresa.theme }}"
          class="min-h-screen w-full bg-[#050507] text-white flex flex-col justify-between p-4 md:p-8 relative overflow-x-hidden select-none">
 
-        <!-- MALLA DE GRADIENTES AMBIENTALES Y MICRO-PUNTOS -->
+        <!-- MALLA DE GRADIENTES AMBIENTALES -->
         <div class="absolute inset-0 pointer-events-none overflow-hidden">
             <div class="absolute inset-0 opacity-[0.14] bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px]"></div>
             <div class="absolute -top-32 left-1/4 w-[750px] h-[750px] bg-gradient-to-br from-amber-500/18 via-orange-600/10 to-transparent rounded-full blur-[150px] animate-ambient-1 mix-blend-screen"></div>
@@ -171,48 +184,49 @@
         </div>
 
         <!-- 1. HEADER OPERATIVO MINIMALISTA -->
-        <header class="relative z-20 w-full max-w-2xl mx-auto glass-panel-luxury rounded-2xl px-6 py-4 mb-6 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-300">
+        <header class="relative z-20 w-full max-w-2xl mx-auto glass-panel-luxury rounded-2xl px-6 py-4 mb-6 flex items-center justify-between gap-3">
+            <div class="flex items-center space-x-3 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
                     <svg class="w-5 h-5 stroke-[1.75]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
                     </svg>
                 </div>
-                <div>
-                    <h1 class="text-sm font-black uppercase tracking-wider text-white">Canje Aleatorio</h1>
-                    <p class="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">{{ evento.nombre }}</p>
+                <div class="min-w-0">
+                    <h1 class="text-sm font-black uppercase tracking-wider text-white truncate">Canje Aleatorio</h1>
+                    <p class="text-[10px] font-mono text-zinc-400 uppercase tracking-widest truncate">{{ evento.nombre }}</p>
                 </div>
             </div>
 
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-2 shrink-0">
                 <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                <span class="text-xs font-mono text-zinc-300">Modo Tómbola</span>
+                <span class="text-xs font-mono text-zinc-300">Máx. 2 Cambios</span>
             </div>
         </header>
 
-        <!-- 2. CONTENEDOR PRINCIPAL: CÁMARA, TÓMBOLA Y REVELACIÓN -->
+        <!-- 2. CONTENEDOR PRINCIPAL -->
         <main class="relative z-20 flex-1 flex flex-col items-center justify-center max-w-xl mx-auto w-full my-auto">
 
             <!-- ALERTA DINÁMICA DE ERROR -->
-            <div id="alerta-error" class="hidden w-full mb-4 p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center space-x-2.5">
+            <div id="alerta-error"
+                 class="hidden w-full mb-4 p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center space-x-2.5">
                 <svg class="w-4 h-4 shrink-0 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
                 </svg>
                 <span id="texto-error">Error en el proceso</span>
             </div>
 
-            <!-- FASE 1: TARJETA DEL ESCÁNER (1 SOLO QR: INVITADO) -->
-            <div id="section-escaneo" class="w-full glass-panel-luxury rounded-3xl p-6 md:p-8 flex flex-col items-center relative overflow-hidden">
+            <!-- FASE 1: ESCÁNER QR INVITADO -->
+            <div id="section-escaneo"
+                 class="w-full glass-panel-luxury rounded-3xl p-6 md:p-8 flex flex-col items-center relative overflow-hidden">
                 <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-[10px] font-mono font-bold uppercase tracking-widest mb-4">
                     <span>Paso Único</span> • <span>Escaneo de Invitado</span>
                 </div>
 
-                <!-- CONTENEDOR CÁMARA CON HAZ LÁSER -->
                 <div class="relative w-full aspect-square max-w-[340px] rounded-2xl overflow-hidden border border-white/10 bg-black/60 shadow-2xl flex items-center justify-center">
-                    <!-- Haz Láser Animado -->
                     <div class="scanner-laser absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_15px_#f59e0b] z-20 pointer-events-none"></div>
 
-                    <!-- Esquinas de Guía del Escáner -->
                     <div class="absolute inset-4 pointer-events-none z-10 flex flex-col justify-between">
                         <div class="flex justify-between">
                             <span class="w-4 h-4 border-t-2 border-l-2 border-amber-400"></span>
@@ -224,48 +238,46 @@
                         </div>
                     </div>
 
-                    <!-- Lector nativo html5-qrcode -->
                     <div id="reader" class="w-full h-full"></div>
                 </div>
 
-                <!-- INSTRUCCIÓN ACTIVA PARA EL OPERADOR -->
                 <div class="mt-6 text-center">
                     <p class="text-sm font-bold text-white tracking-wide">
-                        Apunta la cámara al código QR del <span class="text-amber-400 font-black underline">Invitado</span>.
+                        Apunta la cámara al código QR del <span
+                            class="text-amber-400 font-black underline">Invitado</span>.
                     </p>
-                    <p class="text-[11px] text-zinc-400 font-mono mt-1">El sistema asignará automáticamente un regalo aleatorio disponible</p>
+                    <p class="text-[11px] text-zinc-400 font-mono mt-1">Se sorteará un regalo según su categoría (hasta
+                        2 cambios)</p>
                 </div>
             </div>
 
-            <!-- FASE 2: ANIMACIÓN DE ASIGNACIÓN ALEATORIA (MOMENTO DE TENSIÓN) -->
-            <div id="section-sorteo" class="hidden w-full glass-panel-luxury rounded-3xl p-8 md:p-10 flex flex-col items-center justify-center text-center relative overflow-hidden">
-                <!-- Haz Láser de Escaneo -->
+            <!-- FASE 2: TÓMBOLA DE TENSIÓN -->
+            <div id="section-sorteo"
+                 class="hidden w-full glass-panel-luxury rounded-3xl p-8 md:p-10 flex-col items-center justify-center text-center relative overflow-hidden">
                 <div class="scanner-laser absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_15px_#f59e0b] pointer-events-none"></div>
 
                 <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-mono font-bold uppercase tracking-widest mb-6 animate-pulse">
                     <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-                    Sorteo Aleatorio en Proceso
+                    Sorteo Aleatorio por Categoría
                 </div>
 
-                <!-- SLOT MACHINE: SIMULACIÓN DE RULETA DE ALTA VELOCIDAD -->
                 <div class="w-full max-w-sm h-28 rounded-2xl bg-black/50 border border-white/10 overflow-hidden relative flex flex-col items-center justify-center mb-6">
                     <div class="absolute inset-x-0 top-0 h-7 bg-gradient-to-b from-black/90 to-transparent z-10"></div>
                     <div class="absolute inset-x-0 bottom-0 h-7 bg-gradient-to-t from-black/90 to-transparent z-10"></div>
                     <span class="absolute top-2 left-3 text-[9px] font-mono uppercase tracking-widest text-zinc-500 z-20">Bóveda de Premios</span>
 
                     <div class="slot-ticker-fast flex flex-col items-center space-y-3 pt-6">
-                        <span class="text-base font-bold text-amber-300 tracking-wide">Smart TV 65" UHD 4K</span>
-                        <span class="text-base font-bold text-white tracking-wide">Bocina Marshall Stanmore</span>
-                        <span class="text-base font-bold text-amber-300 tracking-wide">MacBook Air M2 Space Gray</span>
-                        <span class="text-base font-bold text-white tracking-wide">Audífonos Sony WH-1000XM5</span>
-                        <span class="text-base font-bold text-amber-300 tracking-wide">Cafetera Espresso De'Longhi</span>
-                        <span class="text-base font-bold text-white tracking-wide">iPad 10th Gen 64GB</span>
-                        <span class="text-base font-bold text-amber-300 tracking-wide">Reloj Apple Watch Series 9</span>
-                        <span class="text-base font-bold text-white tracking-wide">Dron DJI Mini 3 Fly More</span>
+                        <span class="text-base font-bold text-amber-300 tracking-wide">Pantalla Smart TV 55" 4K</span>
+                        <span class="text-base font-bold text-white tracking-wide">Motocicleta Urbana 150cc</span>
+                        <span class="text-base font-bold text-amber-300 tracking-wide">Refrigerador Duplex Inverter</span>
+                        <span class="text-base font-bold text-white tracking-wide">Laptop 15" Core i5 / 16GB</span>
+                        <span class="text-base font-bold text-amber-300 tracking-wide">iPad 10ª Generación</span>
+                        <span class="text-base font-bold text-white tracking-wide">Freidora de Aire Digital XL</span>
+                        <span class="text-base font-bold text-amber-300 tracking-wide">Cafetera Espresso</span>
+                        <span class="text-base font-bold text-white tracking-wide">Smartwatch Deportivo</span>
                     </div>
                 </div>
 
-                <!-- BARRA DE PROGRESO DE NEÓN -->
                 <div class="w-full max-w-sm mb-4">
                     <div class="relative w-full h-2.5 rounded-full bg-zinc-900 border border-white/10 p-0.5 overflow-hidden">
                         <div id="tensa-progress-bar"
@@ -274,28 +286,81 @@
                     </div>
                 </div>
 
-                <!-- TEXTO DINÁMICO DE ESTADO -->
                 <p id="txt-estado-sorteo" class="text-xs font-mono text-zinc-400">
-                    Buscando en la bóveda de regalos...
+                    Buscando en la categoría del invitado...
                 </p>
             </div>
 
-            <!-- FASE 3: SECCIÓN CINEMÁTICA DE APERTURA Y REVELACIÓN -->
-            <div id="section-revelacion" class="hidden w-full glass-panel-luxury rounded-3xl p-8 md:p-10 flex flex-col items-center justify-center text-center relative overflow-hidden">
-                <!-- Aura de Luz Radial -->
-                <div id="box-glow" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-amber-400/25 rounded-full blur-3xl pointer-events-none opacity-0"></div>
+            <!-- FASE 2.5: VISTA PREVIA CON OPCIÓN DE CAMBIAR (MÁXIMO 2 CAMBIOS) -->
+            <div id="section-seleccion-cambio"
+                 class="hidden w-full glass-panel-luxury rounded-3xl p-6 md:p-8 flex-col items-center text-center relative overflow-hidden">
+                <div class="w-full flex items-center justify-between gap-2 mb-4">
+                    <span id="badge-categoria-candidato"
+                          class="px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 text-zinc-300 font-mono text-[10px] font-bold uppercase tracking-wider truncate">
+                        Categoría
+                    </span>
+                    <span id="badge-cambios-restantes"
+                          class="px-3 py-1 rounded-full bg-amber-400/15 border border-amber-400/40 text-amber-300 font-mono text-[10px] font-bold uppercase tracking-wider shrink-0">
+                        Cambios restantes: 2 / 2
+                    </span>
+                </div>
 
-                <!-- CAJA DE REGALO VECTORIAL ANIMADA -->
-                <div id="vector-gift-box" class="relative w-44 h-44 flex items-center justify-center cursor-pointer my-4" onclick="ejecutarAperturaCinematica()">
-                    <svg class="w-36 h-36 drop-shadow-[0_15px_30px_rgba(245,158,11,0.35)]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Tapa del Regalo (Animada con Clase anim-lid-open) -->
+                <div id="candidato-media-container"
+                     class="w-full max-w-xs h-44 rounded-2xl overflow-hidden bg-zinc-950/90 border border-white/10 p-3 flex items-center justify-center mb-4">
+                    <!-- Inyectado por JS -->
+                </div>
+
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="px-3 py-0.5 rounded-lg bg-amber-400 text-zinc-950 font-mono text-xs font-black"
+                          id="candidato-numero">
+                        #000
+                    </span>
+                    <span id="candidato-destacado-pill"
+                          class="hidden items-center gap-1 px-3 py-0.5 rounded-full bg-amber-400/20 border border-amber-400/50 text-amber-300 font-mono text-[10px] font-black uppercase tracking-wider">
+                        Gran Premio
+                    </span>
+                </div>
+
+                <h2 id="candidato-nombre" class="text-xl md:text-2xl font-black text-white tracking-tight mb-2">
+                    Nombre del Premio
+                </h2>
+
+                <p class="text-xs font-mono text-zinc-400 mb-6">
+                    Invitado: <strong class="text-amber-200" id="candidato-invitado">---</strong>
+                </p>
+
+                <div class="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button id="btn-volver-sortear"
+                            onclick="volverASortear()"
+                            class="py-3.5 px-4 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-amber-300 font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer">
+                        ↻ Volver a Canjear (<span id="txt-btn-cambios">2</span>)
+                    </button>
+
+                    <button id="btn-confirmar-regalo"
+                            onclick="confirmarYRevelarCanje()"
+                            class="py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-zinc-950 font-mono text-xs font-black uppercase tracking-wider shadow-lg hover:scale-102 transition-transform cursor-pointer">
+                        ✓ Confirmar Regalo
+                    </button>
+                </div>
+            </div>
+
+            <!-- FASE 3: SECCIÓN CINEMÁTICA DE APERTURA Y REVELACIÓN -->
+            <div id="section-revelacion"
+                 class="hidden w-full glass-panel-luxury rounded-3xl p-8 md:p-10 flex-col items-center justify-center text-center relative overflow-hidden">
+                <div id="box-glow"
+                     class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-amber-400/25 rounded-full blur-3xl pointer-events-none opacity-0"></div>
+
+                <div id="vector-gift-box"
+                     class="relative w-44 h-44 flex items-center justify-center cursor-pointer my-4"
+                     onclick="ejecutarAperturaCinematica()">
+                    <svg class="w-36 h-36 drop-shadow-[0_15px_30px_rgba(245,158,11,0.35)]" viewBox="0 0 100 100"
+                         fill="none" xmlns="http://www.w3.org/2000/svg">
                         <g id="gift-lid" class="transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]">
-                            <path d="M50 20 C42 10, 32 18, 48 24 C50 24, 50 24, 50 24 C50 24, 50 24, 52 24 C68 18, 58 10, 50 20 Z" fill="#fbbf24"/>
+                            <path d="M50 20 C42 10, 32 18, 48 24 C50 24, 50 24, 50 24 C50 24, 50 24, 52 24 C68 18, 58 10, 50 20 Z"
+                                  fill="#fbbf24"/>
                             <rect x="20" y="24" width="60" height="12" rx="3" fill="#f59e0b"/>
                             <rect x="45" y="24" width="10" height="12" fill="#fbbf24"/>
                         </g>
-
-                        <!-- Cuerpo del Regalo (Animada con Clase anim-box-body) -->
                         <g id="gift-body">
                             <rect x="25" y="36" width="50" height="46" rx="4" fill="#d97706"/>
                             <rect x="45" y="36" width="10" height="46" fill="#fbbf24"/>
@@ -303,43 +368,54 @@
                         </g>
                     </svg>
 
-                    <div id="click-tap-hint" class="absolute -bottom-2 px-4 py-1.5 rounded-full bg-amber-400 text-zinc-950 font-black font-mono text-[10px] uppercase tracking-widest animate-bounce shadow-lg">
+                    <div id="click-tap-hint"
+                         class="absolute -bottom-2 px-4 py-1.5 rounded-full bg-amber-400 text-zinc-950 font-black font-mono text-[10px] uppercase tracking-widest animate-bounce shadow-lg">
                         Toca para Abrir
                     </div>
                 </div>
 
-                <!-- TARJETA FINAL DE RESULTADO CON MANEJO DE IMÁGENES FALTANTES -->
-                <div id="premio-revealed" class="hidden w-full flex-col items-center space-y-4">
-                    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-400/15 border border-emerald-400/40 text-emerald-300 font-mono text-xs font-bold uppercase tracking-widest">
-                        <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                        </svg>
-                        ¡Premio Asignado!
+                <div id="premio-revealed" class="hidden w-full flex-col items-center space-y-3.5">
+                    <div class="flex flex-wrap items-center justify-center gap-2">
+                        <div class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-400/15 border border-emerald-400/40 text-emerald-300 font-mono text-[11px] font-bold uppercase tracking-widest">
+                            <svg class="w-3.5 h-3.5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                            </svg>
+                            ¡Premio Asignado!
+                        </div>
+
+                        <div id="badge-destacado-revelado"
+                             class="hidden items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-400 text-zinc-950 font-mono text-[11px] font-black uppercase tracking-widest shadow-[0_0_20px_rgba(245,158,11,0.55)]">
+                            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            Gran Premio Destacado
+                        </div>
                     </div>
 
-                    <div class="px-3.5 py-1 rounded-xl bg-amber-400 text-zinc-950 font-mono text-xs font-black" id="txt-premio-numero">
+                    <div class="px-3.5 py-1 rounded-xl bg-amber-400 text-zinc-950 font-mono text-xs font-black"
+                         id="txt-premio-numero">
                         Folio #000
                     </div>
 
-                    <h2 id="txt-premio-nombre" class="text-2xl md:text-3xl font-black text-white tracking-tight">
+                    <div id="premio-media-container"
+                         class="w-full max-w-xs h-44 rounded-2xl overflow-hidden bg-zinc-950/90 border border-white/10 p-3 flex items-center justify-center relative my-1">
+                        <!-- Inyectado por JS -->
+                    </div>
+
+                    <h2 id="txt-premio-nombre" class="text-xl md:text-2xl font-black text-white tracking-tight">
                         Nombre del Premio
                     </h2>
 
-                    <!-- Ganador Confirmado -->
                     <div class="py-2.5 px-6 rounded-2xl bg-white/[0.04] border border-white/10 w-full max-w-sm">
                         <span class="text-[9px] font-mono text-zinc-400 uppercase tracking-widest block">Colaborador(a) Ganador(a)</span>
-                        <p id="txt-ganador-nombre" class="text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-white truncate mt-0.5">
+                        <p id="txt-ganador-nombre"
+                           class="text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-white truncate mt-0.5">
                             Nombre del Colaborador
                         </p>
                     </div>
 
-                    <!-- Contenedor Media con Fallback Blindado -->
-                    <div id="premio-media-container" class="w-full max-w-xs h-40 rounded-2xl overflow-hidden border border-white/10 relative my-2">
-                        <!-- Inyectado por JS -->
-                    </div>
-
                     <button onclick="location.reload()"
-                            class="mt-4 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-600 text-zinc-950 font-black text-xs font-mono uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(245,158,11,0.3)] hover:scale-102 transition-transform cursor-pointer">
+                            class="mt-3 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-600 text-zinc-950 font-black text-xs font-mono uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(245,158,11,0.3)] hover:scale-102 transition-transform cursor-pointer">
                         Escanear Siguiente Invitado
                     </button>
                 </div>
@@ -351,10 +427,10 @@
         <div id="modal-confirmar-invitado"
              class="fixed inset-0 bg-black/85 backdrop-blur-xl z-50 flex items-center justify-center p-4 hidden">
             <div class="w-full max-w-md glass-panel-luxury rounded-3xl p-6 md:p-8 text-center relative border border-amber-400/40 shadow-[0_25px_60px_rgba(0,0,0,0.9)]">
-                <!-- Glifo Escultórico -->
                 <div class="w-14 h-14 rounded-2xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center mx-auto mb-4 text-amber-300">
                     <svg class="w-7 h-7 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
                     </svg>
                 </div>
 
@@ -375,7 +451,7 @@
                     </button>
                     <button onclick="confirmarYDispararSorteo()"
                             class="flex-1 py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-zinc-950 text-xs font-mono uppercase font-black tracking-wider shadow-lg hover:scale-102 transition-transform cursor-pointer">
-                        Asignar Regalo Aleatorio ›
+                        Sortear Regalo ›
                     </button>
                 </div>
             </div>
@@ -388,31 +464,39 @@
 
     </div>
 
-    <!-- AUDIO PARA ACIERTOS Y FANFARRIA -->
-    <audio id="sound-success" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3" preload="auto"></audio>
-    <audio id="sound-fanfare" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+    <audio id="sound-success" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"
+           preload="auto"></audio>
+    <audio id="sound-normal" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"
+           preload="auto"></audio>
+    <audio id="sound-destacado" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+           preload="auto"></audio>
 
-    <!-- CONTROLADOR JAVASCRIPT: LECTURA QR, MODAL, TÓMBOLA DE TENSIÓN Y APERTURA -->
     <script>
+        const MAX_CAMBIOS = 2;
+
         let html5QrCode = null;
         let escaneoBloqueado = false;
         let invitadoQrActual = null;
+        let invitadoNombreActual = "";
+        let cambiosRealizados = 0;
+        let idsExcluidos = [];
+        let candidatoActual = null;
         let datosCanjeFinal = null;
+        let aperturaEjecutada = false;
+        let confirmandoCanje = false;
 
-        const MENSAJES_TENSIÓN = [
-            "Buscando en la bóveda de regalos...",
-            "Mezclando combinaciones criptográficas...",
+        const MENSAJES_TENSION = [
+            "Buscando en la categoría del invitado...",
+            "Mezclando opciones disponibles...",
             "Seleccionando el premio perfecto...",
-            "Sellando la asignación del ganador...",
+            "Preparando vista previa...",
             "¡Casi listo!"
         ];
 
-        // Generador de Placeholder Blindado de Lujo
-        function generarPlaceholderLujoso(titulo, alturaClase = "h-40") {
+        function generarPlaceholderLujoso(titulo, alturaClase = "h-full") {
             return `
                 <div class="w-full ${alturaClase} rounded-xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 border border-white/[0.06] flex flex-col items-center justify-center p-4 relative overflow-hidden">
-                    <div class="absolute inset-0 opacity-[0.08] bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:16px_16px]"></div>
-                    <div class="relative w-10 h-10 rounded-xl bg-amber-400/[0.08] border border-amber-400/20 flex items-center justify-center mb-2.5 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                    <div class="relative w-10 h-10 rounded-xl bg-amber-400/[0.08] border border-amber-400/20 flex items-center justify-center mb-2">
                         <svg class="w-5 h-5 text-amber-300 stroke-[1.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H4.5a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h17.25" />
                         </svg>
@@ -424,6 +508,56 @@
             `;
         }
 
+        function renderMediaEnContenedor(contenedor, item) {
+            const titulo = item.premio || item.nombre || 'Premio';
+            const escapado = String(titulo).replace(/'/g, "\\'");
+            if (item.imagen_url) {
+                contenedor.innerHTML = `
+                    <img src="${item.imagen_url}" alt="${titulo}"
+                         class="max-h-full max-w-full object-contain transition-transform duration-500"
+                         onerror="this.parentElement.innerHTML = generarPlaceholderLujoso('${escapado}');"/>
+                `;
+            } else {
+                contenedor.innerHTML = generarPlaceholderLujoso(titulo);
+            }
+        }
+
+        function dispararConfettiCanje(esDestacado = false) {
+            if (typeof confetti !== 'function') return;
+
+            if (esDestacado) {
+                confetti({
+                    particleCount: 120,
+                    spread: 105,
+                    origin: {y: 0.55},
+                    colors: ['#f59e0b', '#fbbf24', '#fde047', '#ffffff']
+                });
+                setTimeout(() => {
+                    confetti({
+                        particleCount: 65,
+                        angle: 60,
+                        spread: 75,
+                        origin: {x: 0.15, y: 0.65},
+                        colors: ['#f59e0b', '#fbbf24', '#ffffff']
+                    });
+                    confetti({
+                        particleCount: 65,
+                        angle: 120,
+                        spread: 75,
+                        origin: {x: 0.85, y: 0.65},
+                        colors: ['#f59e0b', '#fbbf24', '#ffffff']
+                    });
+                }, 260);
+            } else {
+                confetti({
+                    particleCount: 65,
+                    spread: 80,
+                    origin: {y: 0.6},
+                    colors: ['#f59e0b', '#fbbf24', '#fef3c7', '#ffffff']
+                });
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", function () {
             iniciarLectorCamara();
         });
@@ -433,18 +567,19 @@
                 html5QrCode = new Html5Qrcode("reader");
                 const configQR = {
                     fps: 10,
-                    qrbox: function(viewfinderWidth, viewfinderHeight) {
+                    qrbox: function (viewfinderWidth, viewfinderHeight) {
                         const edge = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.75);
-                        return { width: edge, height: edge };
+                        return {width: edge, height: edge};
                     },
                     aspectRatio: 1.0
                 };
 
                 html5QrCode.start(
-                    { facingMode: "environment" },
+                    {facingMode: "environment"},
                     configQR,
                     onScanSuccess,
-                    () => {} // Ignorar cuadros sin QR
+                    () => {
+                    }
                 ).catch(err => {
                     console.error("Cámara error: ", err);
                     mostrarError("No se pudo iniciar la cámara trasera. Asegúrate de otorgar permisos.");
@@ -460,19 +595,17 @@
             const texto = document.getElementById('texto-error');
             texto.textContent = mensaje;
             alerta.classList.remove('hidden');
-            setTimeout(() => { alerta.classList.add('hidden'); }, 5000);
+            setTimeout(() => {
+                alerta.classList.add('hidden');
+            }, 5000);
         }
 
-        // Lectura de código QR
         function onScanSuccess(decodedText) {
             if (escaneoBloqueado) return;
             escaneoBloqueado = true;
-
-            const qrLimpio = decodedText.trim();
-            validarInvitadoQR(qrLimpio);
+            validarInvitadoQR(decodedText.trim());
         }
 
-        // Validación inicial por AJAX y despliegue del modal de confirmación
         function validarInvitadoQR(codigoQr) {
             const formData = new FormData();
             formData.append('invitado_qr', codigoQr);
@@ -482,44 +615,56 @@
                 method: 'POST',
                 body: formData
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    invitadoQrActual = codigoQr;
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        invitadoQrActual = codigoQr;
+                        invitadoNombreActual = data.nombre_completo;
 
-                    const s = document.getElementById('sound-success');
-                    if (s) s.play().catch(e => console.log(e));
+                        const s = document.getElementById('sound-success');
+                        if (s) s.play().catch(() => {
+                        });
 
-                    document.getElementById('modal-invitado-nombre').textContent = data.nombre_completo;
-                    document.getElementById('modal-invitado-qr').textContent = codigoQr;
-                    document.getElementById('modal-confirmar-invitado').classList.remove('hidden');
-                } else {
-                    mostrarError(data.message || "Invitado no encontrado o ya canjeó regalo.");
+                        document.getElementById('modal-invitado-nombre').textContent = data.nombre_completo;
+                        document.getElementById('modal-invitado-qr').textContent = codigoQr;
+                        document.getElementById('modal-confirmar-invitado').classList.remove('hidden');
+                    } else {
+                        mostrarError(data.message || "Invitado no encontrado o ya canjeó regalo.");
+                        escaneoBloqueado = false;
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    mostrarError("Error al conectar con el servidor.");
                     escaneoBloqueado = false;
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                mostrarError("Error al conectar con el servidor.");
-                escaneoBloqueado = false;
-            });
+                });
         }
 
         function cancelarModal() {
             document.getElementById('modal-confirmar-invitado').classList.add('hidden');
             invitadoQrActual = null;
+            invitadoNombreActual = "";
+            cambiosRealizados = 0;
+            idsExcluidos = [];
+            candidatoActual = null;
+            datosCanjeFinal = null;
+            aperturaEjecutada = false;
+            confirmandoCanje = false;
             escaneoBloqueado = false;
         }
 
-        // Confirmación: Apagar cámara y disparar la tómbola de tensión
         function confirmarYDispararSorteo() {
             document.getElementById('modal-confirmar-invitado').classList.add('hidden');
 
             if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().catch(e => console.log(e));
+                html5QrCode.stop().catch(() => {
+                });
             }
 
             document.getElementById('section-escaneo').classList.add('hidden');
+            document.getElementById('section-seleccion-cambio').classList.add('hidden');
+            document.getElementById('section-seleccion-cambio').classList.remove('flex');
+
             const secSorteo = document.getElementById('section-sorteo');
             secSorteo.classList.remove('hidden');
             secSorteo.classList.add('flex');
@@ -527,16 +672,132 @@
             iniciarProcesoAleatorio();
         }
 
+        function volverASortear() {
+            if (cambiosRealizados >= MAX_CAMBIOS || !candidatoActual) return;
+
+            cambiosRealizados += 1;
+            if (candidatoActual.id) {
+                idsExcluidos.push(candidatoActual.id);
+            }
+
+            document.getElementById('section-seleccion-cambio').classList.add('hidden');
+            document.getElementById('section-seleccion-cambio').classList.remove('flex');
+
+            const secSorteo = document.getElementById('section-sorteo');
+            secSorteo.classList.remove('hidden');
+            secSorteo.classList.add('flex');
+
+            iniciarProcesoAleatorio();
+        }
+
+        function mostrarVistaPreviaCandidato(data) {
+            candidatoActual = data;
+            const restantes = typeof data.cambios_restantes === 'number'
+                ? data.cambios_restantes
+                : Math.max(0, MAX_CAMBIOS - cambiosRealizados);
+
+            document.getElementById('badge-categoria-candidato').textContent =
+                data.categoria || 'Categoría Asignada';
+            document.getElementById('badge-cambios-restantes').textContent =
+                `Cambios restantes: ${restantes} / ${MAX_CAMBIOS}`;
+            document.getElementById('txt-btn-cambios').textContent = restantes;
+
+            document.getElementById('candidato-numero').textContent = `#${data.numero}`;
+            document.getElementById('candidato-nombre').textContent = data.premio || data.nombre || 'Premio';
+            document.getElementById('candidato-invitado').textContent = data.ganador || invitadoNombreActual;
+
+            const pillDest = document.getElementById('candidato-destacado-pill');
+            if (Boolean(data.destacado)) {
+                pillDest.classList.remove('hidden');
+                pillDest.classList.add('inline-flex');
+            } else {
+                pillDest.classList.add('hidden');
+                pillDest.classList.remove('inline-flex');
+            }
+
+            renderMediaEnContenedor(document.getElementById('candidato-media-container'), data);
+
+            const btnReintentar = document.getElementById('btn-volver-sortear');
+            if (restantes <= 0) {
+                btnReintentar.disabled = true;
+                btnReintentar.classList.add('opacity-40', 'cursor-not-allowed');
+            } else {
+                btnReintentar.disabled = false;
+                btnReintentar.classList.remove('opacity-40', 'cursor-not-allowed');
+            }
+
+            document.getElementById('section-sorteo').classList.add('hidden');
+            document.getElementById('section-sorteo').classList.remove('flex');
+
+            const secSel = document.getElementById('section-seleccion-cambio');
+            secSel.classList.remove('hidden');
+            secSel.classList.add('flex');
+        }
+
+        function confirmarYRevelarCanje() {
+            if (!candidatoActual || confirmandoCanje) return;
+            confirmandoCanje = true;
+
+            const btnConfirmar = document.getElementById('btn-confirmar-regalo');
+            const btnReintentar = document.getElementById('btn-volver-sortear');
+            if (btnConfirmar) btnConfirmar.disabled = true;
+            if (btnReintentar) btnReintentar.disabled = true;
+
+            const formData = new FormData();
+            formData.append('accion', 'confirmar');
+            formData.append('invitado_qr', invitadoQrActual);
+            formData.append('regalo_id', candidatoActual.id);
+            formData.append('cambios_realizados', cambiosRealizados);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            fetch("{% url 'regalos:api_procesar_canje_aleatorio' evento.slug %}", {
+                method: 'POST',
+                body: formData
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        datosCanjeFinal = {...candidatoActual, ...data};
+
+                        document.getElementById('section-seleccion-cambio').classList.add('hidden');
+                        document.getElementById('section-seleccion-cambio').classList.remove('flex');
+
+                        const secRev = document.getElementById('section-revelacion');
+                        secRev.classList.remove('hidden');
+                        secRev.classList.add('flex');
+
+                        if (Boolean(datosCanjeFinal.destacado)) {
+                            secRev.classList.add('destacado-panel-epic');
+                        }
+
+                        setTimeout(ejecutarAperturaCinematica, 300);
+                    } else {
+                        confirmandoCanje = false;
+                        if (btnConfirmar) btnConfirmar.disabled = false;
+                        mostrarError(data.message || "No se pudo confirmar el regalo.");
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    confirmandoCanje = false;
+                    if (btnConfirmar) btnConfirmar.disabled = false;
+                    mostrarError("Error de red al confirmar el canje.");
+                });
+        }
+
         function iniciarProcesoAleatorio() {
             const progressBar = document.getElementById('tensa-progress-bar');
             const txtEstado = document.getElementById('txt-estado-sorteo');
 
+            progressBar.style.width = '0%';
             let porcentaje = 0;
             let msgIdx = 0;
 
-            // Enviar petición al backend de Django
             const formData = new FormData();
+            formData.append('accion', 'sortear');
             formData.append('invitado_qr', invitadoQrActual);
+            formData.append('excluir_ids', JSON.stringify(idsExcluidos));
+            formData.append('cambios_realizados', cambiosRealizados);
             formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
             const peticionBackend = fetch("{% url 'regalos:api_procesar_canje_aleatorio' evento.slug %}", {
@@ -544,62 +805,64 @@
                 body: formData
             }).then(res => res.json());
 
-            // Animación de barra de tensión de 2.8 segundos
             const intervalo = setInterval(() => {
-                porcentaje += 3;
+                porcentaje += 4;
                 if (porcentaje > 92) porcentaje = 92;
-
                 progressBar.style.width = porcentaje + '%';
 
-                const stepThreshold = Math.floor(92 / MENSAJES_TENSIÓN.length);
-                const nuevoIdx = Math.min(Math.floor(porcentaje / stepThreshold), MENSAJES_TENSIÓN.length - 1);
+                const stepThreshold = Math.floor(92 / MENSAJES_TENSION.length);
+                const nuevoIdx = Math.min(Math.floor(porcentaje / stepThreshold), MENSAJES_TENSION.length - 1);
                 if (nuevoIdx !== msgIdx) {
                     msgIdx = nuevoIdx;
-                    txtEstado.textContent = MENSAJES_TENSIÓN[msgIdx];
+                    txtEstado.textContent = MENSAJES_TENSION[msgIdx];
                 }
-            }, 80);
+            }, 70);
 
             Promise.all([
                 peticionBackend,
-                new Promise(resolve => setTimeout(resolve, 2800)) // 2.8 segundos de suspenso cinemático
+                new Promise(resolve => setTimeout(resolve, 2000))
             ])
-            .then(([data]) => {
-                clearInterval(intervalo);
+                .then(([data]) => {
+                    clearInterval(intervalo);
 
-                if (data.status === 'success') {
-                    progressBar.style.width = '100%';
-                    txtEstado.textContent = '¡Regalo seleccionado!';
+                    if (data.status === 'success') {
+                        progressBar.style.width = '100%';
+                        txtEstado.textContent = '¡Opción lista!';
 
-                    datosCanjeFinal = data;
-
+                        setTimeout(() => {
+                            mostrarVistaPreviaCandidato(data);
+                        }, 300);
+                    } else {
+                        mostrarError(data.message || "No hay más regalos disponibles para esta categoría.");
+                        if (candidatoActual) {
+                            document.getElementById('btn-volver-sortear').disabled = true;
+                            document.getElementById('btn-volver-sortear').classList.add('opacity-40', 'cursor-not-allowed');
+                            document.getElementById('section-sorteo').classList.add('hidden');
+                            document.getElementById('section-sorteo').classList.remove('flex');
+                            document.getElementById('section-seleccion-cambio').classList.remove('hidden');
+                            document.getElementById('section-seleccion-cambio').classList.add('flex');
+                        } else {
+                            setTimeout(() => {
+                                location.reload();
+                            }, 2800);
+                        }
+                    }
+                })
+                .catch(err => {
+                    clearInterval(intervalo);
+                    console.error(err);
+                    mostrarError("Error de red al procesar el sorteo.");
                     setTimeout(() => {
-                        document.getElementById('section-sorteo').classList.add('hidden');
-                        const secRev = document.getElementById('section-revelacion');
-                        secRev.classList.remove('hidden');
-                        secRev.classList.add('flex');
-
-                        setTimeout(ejecutarAperturaCinematica, 400);
-                    }, 400);
-                } else {
-                    mostrarError(data.message || "Error al procesar el sorteo aleatorio.");
-                    setTimeout(() => { location.reload(); }, 3000);
-                }
-            })
-            .catch(err => {
-                clearInterval(intervalo);
-                console.error(err);
-                mostrarError("Error de red al procesar el sorteo.");
-                setTimeout(() => { location.reload(); }, 3500);
-            });
+                        location.reload();
+                    }, 3000);
+                });
         }
 
-        let aperturaEjecutada = false;
-
-        // ANIMACIÓN CINEMÁTICA DE APERTURA DE REGALO
         function ejecutarAperturaCinematica() {
             if (aperturaEjecutada || !datosCanjeFinal) return;
             aperturaEjecutada = true;
 
+            const esDestacado = Boolean(datosCanjeFinal.destacado);
             const lid = document.getElementById('gift-lid');
             const body = document.getElementById('gift-body');
             const glow = document.getElementById('box-glow');
@@ -613,48 +876,46 @@
             body.classList.add('anim-box-body');
             glow.classList.add('anim-radial-glow');
 
-            const sound = document.getElementById('sound-fanfare');
-            if (sound) sound.play().catch(e => console.log(e));
+            const sound = document.getElementById(esDestacado ? 'sound-destacado' : 'sound-normal');
+            if (sound) sound.play().catch(() => {
+            });
 
             setTimeout(() => {
-                if (typeof confetti === 'function') {
-                    confetti({
-                        particleCount: 75,
-                        spread: 85,
-                        origin: { y: 0.6 },
-                        colors: ['#f59e0b', '#fbbf24', '#fef3c7', '#ffffff']
-                    });
-                }
-            }, 400);
+                dispararConfettiCanje(esDestacado);
+            }, 350);
 
             setTimeout(() => {
-                boxContainer.style.transition = 'all 0.5s ease-out';
+                boxContainer.style.transition = 'all 0.45s ease-out';
                 boxContainer.style.transform = 'scale(0.85)';
                 boxContainer.style.opacity = '0';
 
                 setTimeout(() => {
                     boxContainer.classList.add('hidden');
 
-                    document.getElementById('txt-premio-numero').textContent = `Folio #${datosCanjeFinal.numero}`;
-                    document.getElementById('txt-premio-nombre').textContent = datosCanjeFinal.premio;
-                    document.getElementById('txt-ganador-nombre').textContent = datosCanjeFinal.ganador;
-
-                    const mediaContainer = document.getElementById('premio-media-container');
-                    if (datosCanjeFinal.imagen_url) {
-                        mediaContainer.innerHTML = `
-                            <img src="${datosCanjeFinal.imagen_url}" alt="${datosCanjeFinal.premio}"
-                                 class="h-full w-full object-cover"
-                                 onerror="this.parentElement.outerHTML = generarPlaceholderLujoso('${datosCanjeFinal.premio}', 'h-40');"/>
-                        `;
+                    const badgeDest = document.getElementById('badge-destacado-revelado');
+                    if (esDestacado) {
+                        badgeDest.classList.remove('hidden');
+                        badgeDest.classList.add('inline-flex');
                     } else {
-                        mediaContainer.innerHTML = generarPlaceholderLujoso(datosCanjeFinal.premio, 'h-40');
+                        badgeDest.classList.add('hidden');
+                        badgeDest.classList.remove('inline-flex');
                     }
+
+                    const tituloPremio = datosCanjeFinal.premio || datosCanjeFinal.nombre || 'Premio';
+                    document.getElementById('txt-premio-numero').textContent = `Folio #${datosCanjeFinal.numero}`;
+                    document.getElementById('txt-premio-nombre').textContent = tituloPremio;
+                    document.getElementById('txt-ganador-nombre').textContent =
+                        datosCanjeFinal.ganador || invitadoNombreActual;
+
+                    renderMediaEnContenedor(
+                        document.getElementById('premio-media-container'),
+                        datosCanjeFinal
+                    );
 
                     revealedSection.classList.remove('hidden');
                     revealedSection.classList.add('flex');
-                }, 350);
-
-            }, 1200);
+                }, 420);
+            }, esDestacado ? 950 : 750);
         }
     </script>
 </c-layouts.base>

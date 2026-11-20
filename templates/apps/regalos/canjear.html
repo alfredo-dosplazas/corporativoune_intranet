@@ -2,11 +2,11 @@
     <!-- TIPOGRAFÍA, LECTOR QR Y CANVAS-CONFETTI -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap"
+          rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-    <!-- ESTILOS Y ANIMACIONES CINEMÁTICAS AWWWARDS -->
     <style>
         :root {
             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -44,7 +44,6 @@
             }
         }
 
-        /* ANIMACIÓN CINEMÁTICA DE LA CAJA DE REGALO ABRIÉNDOSE */
         @keyframes giftLidOpen {
             0% {
                 transform: translateY(0) rotate(0deg);
@@ -89,6 +88,17 @@
             }
         }
 
+        @keyframes destacadoGlowPulse {
+            0%, 100% {
+                box-shadow: 0 0 40px -8px rgba(245, 158, 11, 0.35), inset 0 0 20px rgba(245, 158, 11, 0.12);
+                border-color: rgba(251, 191, 36, 0.55);
+            }
+            50% {
+                box-shadow: 0 0 75px -4px rgba(245, 158, 11, 0.65), inset 0 0 32px rgba(245, 158, 11, 0.24);
+                border-color: rgba(253, 224, 71, 0.95);
+            }
+        }
+
         .animate-ambient-1 {
             animation: ambientDrift 16s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -113,6 +123,10 @@
             animation: giftRadialGlow 1.4s ease-out forwards;
         }
 
+        .destacado-panel-epic {
+            animation: destacadoGlowPulse 2.8s infinite ease-in-out;
+        }
+
         .glass-panel-luxury {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.012) 100%);
             backdrop-filter: blur(28px);
@@ -128,12 +142,12 @@
             border: 1px solid rgba(255, 255, 255, 0.07);
         }
 
-        /* Estilización para el viewport de la cámara html5-qrcode */
         #reader video {
             border-radius: 1rem;
             object-fit: cover !important;
             width: 100% !important;
         }
+
         #reader {
             border: none !important;
         }
@@ -143,7 +157,7 @@
     <div data-theme="{{ evento.empresa.theme }}"
          class="min-h-screen w-full bg-[#050507] text-white flex flex-col justify-between p-4 md:p-8 relative overflow-x-hidden select-none">
 
-        <!-- MALLA DE GRADIENTES AMBIENTALES Y MICRO-PUNTOS -->
+        <!-- MALLA DE GRADIENTES AMBIENTALES -->
         <div class="absolute inset-0 pointer-events-none overflow-hidden">
             <div class="absolute inset-0 opacity-[0.14] bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px]"></div>
             <div class="absolute -top-32 left-1/4 w-[750px] h-[750px] bg-gradient-to-br from-amber-500/18 via-orange-600/10 to-transparent rounded-full blur-[150px] animate-ambient-1 mix-blend-screen"></div>
@@ -156,7 +170,8 @@
             <div class="flex items-center space-x-3">
                 <div class="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-300">
                     <svg class="w-5 h-5 stroke-[1.75]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5zM6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75z" />
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5zM6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75z"/>
                     </svg>
                 </div>
                 <div>
@@ -176,7 +191,6 @@
 
             <!-- BARRA ASISTENTE DE PASOS VISUAL (STEP 1 -> STEP 2) -->
             <div class="w-full grid grid-cols-2 gap-3 mb-5" id="stepper-bar">
-                <!-- Step 1: Invitado -->
                 <div id="step-1-indicator"
                      class="p-3.5 rounded-2xl glass-card border border-amber-400/60 bg-amber-400/10 flex items-center space-x-3 transition-all duration-500">
                     <div id="step-1-badge"
@@ -189,7 +203,6 @@
                     </div>
                 </div>
 
-                <!-- Step 2: Regalo -->
                 <div id="step-2-indicator"
                      class="p-3.5 rounded-2xl glass-card border border-white/10 opacity-50 flex items-center space-x-3 transition-all duration-500">
                     <div id="step-2-badge"
@@ -204,21 +217,20 @@
             </div>
 
             <!-- TARJETA DEL ESCÁNER PRINCIPAL -->
-            <div id="section-escaneo" class="w-full glass-panel-luxury rounded-3xl p-6 md:p-8 flex flex-col items-center relative overflow-hidden">
-                <!-- ALERTA DINÁMICA DE ERROR -->
-                <div id="alerta-error" class="hidden w-full mb-4 p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center space-x-2.5">
+            <div id="section-escaneo"
+                 class="w-full glass-panel-luxury rounded-3xl p-6 md:p-8 flex flex-col items-center relative overflow-hidden">
+                <div id="alerta-error"
+                     class="hidden w-full mb-4 p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center space-x-2.5">
                     <svg class="w-4 h-4 shrink-0 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
                     </svg>
                     <span id="texto-error">Error al escanear</span>
                 </div>
 
-                <!-- CONTENEDOR CÁMARA CON HAZ LÁSER -->
                 <div class="relative w-full aspect-square max-w-[340px] rounded-2xl overflow-hidden border border-white/10 bg-black/60 shadow-2xl flex items-center justify-center">
-                    <!-- Haz Láser Animado -->
                     <div class="scanner-laser absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_15px_#f59e0b] z-20 pointer-events-none"></div>
 
-                    <!-- Esquinas de Guía del Escáner -->
                     <div class="absolute inset-4 pointer-events-none z-10 flex flex-col justify-between">
                         <div class="flex justify-between">
                             <span class="w-4 h-4 border-t-2 border-l-2 border-amber-400"></span>
@@ -230,83 +242,106 @@
                         </div>
                     </div>
 
-                    <!-- Lector nativo html5-qrcode -->
                     <div id="reader" class="w-full h-full"></div>
                 </div>
 
-                <!-- INSTRUCCIÓN ACTIVA PARA EL OPERADOR -->
                 <div class="mt-6 text-center">
                     <p id="instrucciones-escaneo" class="text-sm font-bold text-white tracking-wide">
-                        Apunta la cámara al código QR del <span class="text-amber-400 font-black underline">Invitado</span>.
+                        Apunta la cámara al código QR del <span
+                            class="text-amber-400 font-black underline">Invitado</span>.
                     </p>
-                    <p class="text-[11px] text-zinc-400 font-mono mt-1">Coloca el código QR dentro del marco iluminado</p>
+                    <p class="text-[11px] text-zinc-400 font-mono mt-1">Coloca el código QR dentro del marco
+                        iluminado</p>
                 </div>
             </div>
 
-            <!-- SECCIÓN CINEMÁTICA DE APERTURA DE REGALO (EL MOMENTO MÁGICO) -->
-            <div id="section-revelacion" class="hidden w-full glass-panel-luxury rounded-3xl p-8 md:p-10 flex flex-col items-center justify-center text-center relative overflow-hidden">
-                <!-- Aura de Luz Radial -->
-                <div id="box-glow" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-amber-400/25 rounded-full blur-3xl pointer-events-none opacity-0"></div>
+            <!-- SECCIÓN CINEMÁTICA DE APERTURA DE REGALO -->
+            <div id="section-revelacion"
+                 class="hidden w-full glass-panel-luxury rounded-3xl p-6 md:p-9 flex-col items-center justify-center text-center relative overflow-hidden">
+                <div id="box-glow"
+                     class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-amber-400/25 rounded-full blur-3xl pointer-events-none opacity-0"></div>
 
                 <!-- CAJA DE REGALO VECTORIAL ANIMADA -->
-                <div id="vector-gift-box" class="relative w-44 h-44 flex items-center justify-center cursor-pointer my-4" onclick="ejecutarAperturaCinematica()">
-                    <svg class="w-36 h-36 drop-shadow-[0_15px_30px_rgba(245,158,11,0.35)]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Tapa del Regalo (Animada con Clase anim-lid-open) -->
+                <div id="vector-gift-box"
+                     class="relative w-44 h-44 flex items-center justify-center cursor-pointer my-4"
+                     onclick="ejecutarAperturaCinematica()">
+                    <svg class="w-36 h-36 drop-shadow-[0_15px_30px_rgba(245,158,11,0.35)]" viewBox="0 0 100 100"
+                         fill="none" xmlns="http://www.w3.org/2000/svg">
                         <g id="gift-lid" class="transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]">
-                            <!-- Lazo superior -->
-                            <path d="M50 20 C42 10, 32 18, 48 24 C50 24, 50 24, 50 24 C50 24, 50 24, 52 24 C68 18, 58 10, 50 20 Z" fill="#fbbf24"/>
+                            <path d="M50 20 C42 10, 32 18, 48 24 C50 24, 50 24, 50 24 C50 24, 50 24, 52 24 C68 18, 58 10, 50 20 Z"
+                                  fill="#fbbf24"/>
                             <rect x="20" y="24" width="60" height="12" rx="3" fill="#f59e0b"/>
-                            <!-- Cinta vertical de tapa -->
                             <rect x="45" y="24" width="10" height="12" fill="#fbbf24"/>
                         </g>
-
-                        <!-- Cuerpo del Regalo (Animada con Clase anim-box-body) -->
                         <g id="gift-body">
                             <rect x="25" y="36" width="50" height="46" rx="4" fill="#d97706"/>
-                            <!-- Cinta vertical de cuerpo -->
                             <rect x="45" y="36" width="10" height="46" fill="#fbbf24"/>
-                            <!-- Cinta horizontal de cuerpo -->
                             <rect x="25" y="54" width="50" height="10" fill="#fbbf24"/>
                         </g>
                     </svg>
 
-                    <div id="click-tap-hint" class="absolute -bottom-2 px-4 py-1.5 rounded-full bg-amber-400 text-zinc-950 font-black font-mono text-[10px] uppercase tracking-widest animate-bounce shadow-lg">
+                    <div id="click-tap-hint"
+                         class="absolute -bottom-2 px-4 py-1.5 rounded-full bg-amber-400 text-zinc-950 font-black font-mono text-[10px] uppercase tracking-widest animate-bounce shadow-lg">
                         Toca para Abrir
                     </div>
                 </div>
 
-                <!-- TARJETA FINAL DE RESULTADO CON MANEJO DE IMÁGENES FALTANTES -->
-                <div id="premio-revealed" class="hidden w-full flex-col items-center space-y-4">
-                    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-400/15 border border-emerald-400/40 text-emerald-300 font-mono text-xs font-bold uppercase tracking-widest">
-                        <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                        </svg>
-                        ¡Canje Exitoso!
+                <!-- TARJETA FINAL DE RESULTADO -->
+                <div id="premio-revealed" class="hidden w-full flex-col items-center space-y-3.5">
+                    <!-- Fila de Badges: Estado + Gran Premio -->
+                    <div class="flex flex-wrap items-center justify-center gap-2">
+                        <div class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-400/15 border border-emerald-400/40 text-emerald-300 font-mono text-[11px] font-bold uppercase tracking-widest">
+                            <svg class="w-3.5 h-3.5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                            </svg>
+                            ¡Canje Exitoso!
+                        </div>
+
+                        <div id="badge-destacado-canje"
+                             class="hidden items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-400 text-zinc-950 font-mono text-[11px] font-black uppercase tracking-widest shadow-[0_0_20px_rgba(245,158,11,0.55)]">
+                            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            Gran Premio Destacado
+                        </div>
                     </div>
 
-                    <div class="px-3.5 py-1 rounded-xl bg-amber-400 text-zinc-950 font-mono text-xs font-black" id="txt-premio-numero">
+                    <div class="px-3.5 py-1 rounded-xl bg-amber-400 text-zinc-950 font-mono text-xs font-black"
+                         id="txt-premio-numero">
                         Boleto #000
                     </div>
 
-                    <h2 id="txt-premio-nombre" class="text-2xl md:text-3xl font-black text-white tracking-tight">
+                    <!-- Imagen Completa del Regalo (sin recortar) -->
+                    <div id="premio-media-container"
+                         class="w-full max-w-xs h-44 rounded-2xl overflow-hidden bg-zinc-950/90 border border-white/10 p-3 flex items-center justify-center relative my-1">
+                        <!-- Inyectado por JS -->
+                    </div>
+
+                    <h2 id="txt-premio-nombre" class="text-xl md:text-2xl font-black text-white tracking-tight">
                         Nombre del Premio
                     </h2>
 
                     <!-- Ganador Confirmado -->
-                    <div class="py-2.5 px-6 rounded-2xl bg-white/[0.04] border border-white/10 w-full max-w-sm">
-                        <span class="text-[9px] font-mono text-zinc-400 uppercase tracking-widest block">Ganador(a) Oficial</span>
-                        <p id="txt-ganador-nombre" class="text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-white truncate mt-0.5">
-                            Nombre del Colaborador
-                        </p>
-                    </div>
-
-                    <!-- Contenedor Media con Fallback Blindado -->
-                    <div id="premio-media-container" class="w-full max-w-xs h-40 rounded-2xl overflow-hidden border border-white/10 relative my-2">
-                        <!-- Inyectado por JS -->
+                    <div class="py-2.5 px-5 rounded-2xl bg-white/[0.04] border border-white/10 w-full max-w-sm flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full overflow-hidden border border-amber-400/35 shrink-0 bg-zinc-900 flex items-center justify-center"
+                             id="invitado-avatar-container">
+                            <svg class="w-5 h-5 text-amber-300/80 stroke-[1.6]" fill="none" stroke="currentColor"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                      d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
+                            </svg>
+                        </div>
+                        <div class="min-w-0 flex-1 text-left">
+                            <span class="text-[9px] font-mono text-zinc-400 uppercase tracking-widest block">Ganador(a) Oficial</span>
+                            <p id="txt-ganador-nombre"
+                               class="text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-white truncate mt-0.5">
+                                Nombre del Colaborador
+                            </p>
+                        </div>
                     </div>
 
                     <button onclick="location.reload()"
-                            class="mt-4 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-600 text-zinc-950 font-black text-xs font-mono uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(245,158,11,0.3)] hover:scale-102 transition-transform cursor-pointer">
+                            class="mt-3 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-600 text-zinc-950 font-black text-xs font-mono uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(245,158,11,0.3)] hover:scale-102 transition-transform cursor-pointer">
                         Escanear Siguiente Canje
                     </button>
                 </div>
@@ -318,10 +353,10 @@
         <div id="modal-confirmar-invitado"
              class="fixed inset-0 bg-black/85 backdrop-blur-xl z-50 flex items-center justify-center p-4 hidden">
             <div class="w-full max-w-md glass-panel-luxury rounded-3xl p-6 md:p-8 text-center relative border border-amber-400/40 shadow-[0_25px_60px_rgba(0,0,0,0.9)]">
-                <!-- Insignia Paso 1 Completado -->
                 <div class="w-14 h-14 rounded-2xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center mx-auto mb-4 text-amber-300">
                     <svg class="w-7 h-7 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
                     </svg>
                 </div>
 
@@ -355,24 +390,26 @@
 
     </div>
 
-    <!-- AUDIO PARA DESTACADOS Y ACIERTOS -->
-    <audio id="sound-success" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3" preload="auto"></audio>
-    <audio id="sound-fanfare" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+    <!-- AUDIO PARA NORMAL Y DESTACADO -->
+    <audio id="sound-success" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"
+           preload="auto"></audio>
+    <audio id="sound-normal" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"
+           preload="auto"></audio>
+    <audio id="sound-destacado" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+           preload="auto"></audio>
 
-    <!-- CONTROLADOR JAVASCRIPT: LECTURA DUAL QR, MODAL Y APERTURA DE REGALO -->
     <script>
         let html5QrCode = null;
-        let pasoActual = 1; // 1: Invitado, 2: Regalo, 0: Bloqueado
+        let pasoActual = 1;
         let invitadoQrActual = null;
         let invitadoNombreActual = "";
         let datosCanjeFinal = null;
+        let aperturaEjecutada = false;
 
-        // Generador de Placeholder Blindado de Lujo
-        function generarPlaceholderLujoso(titulo, alturaClase = "h-40") {
+        function generarPlaceholderLujoso(titulo, alturaClase = "h-full") {
             return `
                 <div class="w-full ${alturaClase} rounded-xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 border border-white/[0.06] flex flex-col items-center justify-center p-4 relative overflow-hidden">
-                    <div class="absolute inset-0 opacity-[0.08] bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:16px_16px]"></div>
-                    <div class="relative w-10 h-10 rounded-xl bg-amber-400/[0.08] border border-amber-400/20 flex items-center justify-center mb-2.5 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                    <div class="relative w-10 h-10 rounded-xl bg-amber-400/[0.08] border border-amber-400/20 flex items-center justify-center mb-2">
                         <svg class="w-5 h-5 text-amber-300 stroke-[1.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H4.5a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h17.25" />
                         </svg>
@@ -384,6 +421,42 @@
             `;
         }
 
+        function dispararConfettiCanje(esDestacado = false) {
+            if (typeof confetti !== 'function') return;
+
+            if (esDestacado) {
+                confetti({
+                    particleCount: 120,
+                    spread: 105,
+                    origin: {y: 0.55},
+                    colors: ['#f59e0b', '#fbbf24', '#fde047', '#ffffff']
+                });
+                setTimeout(() => {
+                    confetti({
+                        particleCount: 65,
+                        angle: 60,
+                        spread: 75,
+                        origin: {x: 0.15, y: 0.65},
+                        colors: ['#f59e0b', '#fbbf24', '#ffffff']
+                    });
+                    confetti({
+                        particleCount: 65,
+                        angle: 120,
+                        spread: 75,
+                        origin: {x: 0.85, y: 0.65},
+                        colors: ['#f59e0b', '#fbbf24', '#ffffff']
+                    });
+                }, 260);
+            } else {
+                confetti({
+                    particleCount: 65,
+                    spread: 80,
+                    origin: {y: 0.6},
+                    colors: ['#f59e0b', '#fbbf24', '#fef3c7', '#ffffff']
+                });
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", function () {
             iniciarLectorCamara();
         });
@@ -393,18 +466,19 @@
                 html5QrCode = new Html5Qrcode("reader");
                 const configQR = {
                     fps: 10,
-                    qrbox: function(viewfinderWidth, viewfinderHeight) {
+                    qrbox: function (viewfinderWidth, viewfinderHeight) {
                         const edge = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.75);
-                        return { width: edge, height: edge };
+                        return {width: edge, height: edge};
                     },
                     aspectRatio: 1.0
                 };
 
                 html5QrCode.start(
-                    { facingMode: "environment" },
+                    {facingMode: "environment"},
                     configQR,
                     onScanSuccess,
-                    () => {} // Ignorar cuadros sin QR
+                    () => {
+                    }
                 ).catch(err => {
                     console.error("Cámara error al iniciar: ", err);
                     mostrarError("No se pudo iniciar la cámara trasera. Asegúrate de otorgar permisos de cámara en el navegador.");
@@ -420,23 +494,23 @@
             const texto = document.getElementById('texto-error');
             texto.textContent = mensaje;
             alerta.classList.remove('hidden');
-            setTimeout(() => { alerta.classList.add('hidden'); }, 5000);
+            setTimeout(() => {
+                alerta.classList.add('hidden');
+            }, 5000);
         }
 
-        // Detección de lectura QR
         function onScanSuccess(decodedText) {
             const qrLimpio = decodedText.trim();
 
             if (pasoActual === 1) {
-                pasoActual = 0; // Bloqueo momentáneo
+                pasoActual = 0;
                 validarInvitadoQR(qrLimpio);
             } else if (pasoActual === 2) {
-                pasoActual = 0; // Bloqueo momentáneo
+                pasoActual = 0;
                 procesarCanjeFinal(qrLimpio);
             }
         }
 
-        // PASO 1: Validación de Invitado por AJAX y apertura de Modal de Seguridad
         function validarInvitadoQR(codigoQr) {
             const formData = new FormData();
             formData.append('invitado_qr', codigoQr);
@@ -446,33 +520,31 @@
                 method: 'POST',
                 body: formData
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    invitadoQrActual = codigoQr;
-                    invitadoNombreActual = data.nombre_completo;
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        invitadoQrActual = codigoQr;
+                        invitadoNombreActual = data.nombre_completo;
 
-                    // Sonido confirmación
-                    const s = document.getElementById('sound-success');
-                    if (s) s.play().catch(e => console.log(e));
+                        const s = document.getElementById('sound-success');
+                        if (s) s.play().catch(() => {
+                        });
 
-                    // Desplegar Modal de Confirmación
-                    document.getElementById('modal-invitado-nombre').textContent = data.nombre_completo;
-                    document.getElementById('modal-invitado-qr').textContent = codigoQr;
-                    document.getElementById('modal-confirmar-invitado').classList.remove('hidden');
-                } else {
-                    mostrarError(data.message || "Invitado no encontrado o ya canjeó regalo.");
+                        document.getElementById('modal-invitado-nombre').textContent = data.nombre_completo;
+                        document.getElementById('modal-invitado-qr').textContent = codigoQr;
+                        document.getElementById('modal-confirmar-invitado').classList.remove('hidden');
+                    } else {
+                        mostrarError(data.message || "Invitado no encontrado o ya canjeó regalo.");
+                        pasoActual = 1;
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    mostrarError("Error al conectar con el servidor.");
                     pasoActual = 1;
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                mostrarError("Error al conectar con el servidor.");
-                pasoActual = 1;
-            });
+                });
         }
 
-        // Cancelar Invitado en el Modal
         function cancelarInvitado() {
             document.getElementById('modal-confirmar-invitado').classList.add('hidden');
             invitadoQrActual = null;
@@ -480,14 +552,10 @@
             pasoActual = 1;
         }
 
-        // Confirmar Invitado y Pasar al Paso 2 (Escanear Regalo)
         function confirmarInvitadoYContinuar() {
             document.getElementById('modal-confirmar-invitado').classList.add('hidden');
-
-            // Actualizar interfaz visual al Paso 2
             pasoActual = 2;
 
-            // Transición en el Stepper
             const step1 = document.getElementById('step-1-indicator');
             const step2 = document.getElementById('step-2-indicator');
             const badge1 = document.getElementById('step-1-badge');
@@ -508,7 +576,6 @@
                 `Invitado validado: <strong class="text-emerald-400">${invitadoNombreActual}</strong>.<br>Ahora apunta al QR del <span class="text-amber-400 font-black underline">Regalo</span>.`;
         }
 
-        // PASO 2: Validación del Regalo y Canje Final
         function procesarCanjeFinal(regaloQr) {
             const formData = new FormData();
             formData.append('invitado_qr', invitadoQrActual);
@@ -519,45 +586,45 @@
                 method: 'POST',
                 body: formData
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // Detener cámara
-                    if (html5QrCode && html5QrCode.isScanning) {
-                        html5QrCode.stop().catch(e => console.log(e));
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        if (html5QrCode && html5QrCode.isScanning) {
+                            html5QrCode.stop().catch(() => {
+                            });
+                        }
+
+                        datosCanjeFinal = data.ultimo_ganador || data;
+
+                        document.getElementById('stepper-bar').classList.add('hidden');
+                        document.getElementById('section-escaneo').classList.add('hidden');
+
+                        const secRev = document.getElementById('section-revelacion');
+                        secRev.classList.remove('hidden');
+                        secRev.classList.add('flex');
+
+                        if (Boolean(datosCanjeFinal.destacado)) {
+                            secRev.classList.add('destacado-panel-epic');
+                        }
+
+                        setTimeout(ejecutarAperturaCinematica, 450);
+                    } else {
+                        mostrarError(data.message || "Error al validar el regalo.");
+                        pasoActual = 2;
                     }
-
-                    datosCanjeFinal = data;
-
-                    // Ocultar sección de escaneo y mostrar revelación
-                    document.getElementById('stepper-bar').classList.add('hidden');
-                    document.getElementById('section-escaneo').classList.add('hidden');
-
-                    const secRev = document.getElementById('section-revelacion');
-                    secRev.classList.remove('hidden');
-                    secRev.classList.add('flex');
-
-                    // Auto-disparar apertura cinemática
-                    setTimeout(ejecutarAperturaCinematica, 500);
-                } else {
-                    mostrarError(data.message || "Error al validar el regalo.");
-                    pasoActual = 2; // Permitir escanear otro regalo
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                mostrarError("Error al procesar el canje.");
-                pasoActual = 2;
-            });
+                })
+                .catch(err => {
+                    console.error(err);
+                    mostrarError("Error al procesar el canje.");
+                    pasoActual = 2;
+                });
         }
 
-        let aperturaEjecutada = false;
-
-        // ANIMACIÓN CINEMÁTICA DE APERTURA DE REGALO
         function ejecutarAperturaCinematica() {
             if (aperturaEjecutada || !datosCanjeFinal) return;
             aperturaEjecutada = true;
 
+            const esDestacado = Boolean(datosCanjeFinal.destacado);
             const lid = document.getElementById('gift-lid');
             const body = document.getElementById('gift-body');
             const glow = document.getElementById('box-glow');
@@ -567,56 +634,65 @@
 
             if (hint) hint.remove();
 
-            // 1. Desencadenar animación CSS de tapa elevándose y caja pulsando
             lid.classList.add('anim-lid-open');
             body.classList.add('anim-box-body');
             glow.classList.add('anim-radial-glow');
 
-            // Fanfarria / Sonido épico
-            const sound = document.getElementById('sound-fanfare');
-            if (sound) sound.play().catch(e => console.log(e));
+            const sound = document.getElementById(esDestacado ? 'sound-destacado' : 'sound-normal');
+            if (sound) sound.play().catch(() => {
+            });
 
-            // 2. Disparo de Confeti Dorado en el ápice de la apertura
             setTimeout(() => {
-                if (typeof confetti === 'function') {
-                    confetti({
-                        particleCount: 70,
-                        spread: 85,
-                        origin: { y: 0.6 },
-                        colors: ['#f59e0b', '#fbbf24', '#fef3c7', '#ffffff']
-                    });
-                }
-            }, 400);
+                dispararConfettiCanje(esDestacado);
+            }, 350);
 
-            // 3. Revelar tarjeta final
             setTimeout(() => {
-                boxContainer.style.transition = 'all 0.5s ease-out';
+                boxContainer.style.transition = 'all 0.45s ease-out';
                 boxContainer.style.transform = 'scale(0.85)';
                 boxContainer.style.opacity = '0';
 
                 setTimeout(() => {
                     boxContainer.classList.add('hidden');
 
+                    const badgeDestacado = document.getElementById('badge-destacado-canje');
+                    if (esDestacado) {
+                        badgeDestacado.classList.remove('hidden');
+                        badgeDestacado.classList.add('inline-flex');
+                    } else {
+                        badgeDestacado.classList.add('hidden');
+                        badgeDestacado.classList.remove('inline-flex');
+                    }
+
+                    const tituloPremio = datosCanjeFinal.premio || 'Premio';
+                    const nombreGanador = datosCanjeFinal.ganador || invitadoNombreActual;
+                    const tituloEscapado = String(tituloPremio).replace(/'/g, "\\'");
+
                     document.getElementById('txt-premio-numero').textContent = `Folio #${datosCanjeFinal.numero}`;
-                    document.getElementById('txt-premio-nombre').textContent = datosCanjeFinal.premio;
-                    document.getElementById('txt-ganador-nombre').textContent = datosCanjeFinal.ganador;
+                    document.getElementById('txt-premio-nombre').textContent = tituloPremio;
+                    document.getElementById('txt-ganador-nombre').textContent = nombreGanador;
+
+                    const avatarContainer = document.getElementById('invitado-avatar-container');
+                    if (datosCanjeFinal.invitado_foto_url) {
+                        avatarContainer.innerHTML = `
+                            <img src="${datosCanjeFinal.invitado_foto_url}" alt="${nombreGanador}" class="w-full h-full object-cover"/>
+                        `;
+                    }
 
                     const mediaContainer = document.getElementById('premio-media-container');
                     if (datosCanjeFinal.imagen_url) {
                         mediaContainer.innerHTML = `
-                            <img src="${datosCanjeFinal.imagen_url}" alt="${datosCanjeFinal.premio}"
-                                 class="h-full w-full object-cover"
-                                 onerror="this.parentElement.outerHTML = generarPlaceholderLujoso('${datosCanjeFinal.premio}', 'h-40');"/>
+                            <img src="${datosCanjeFinal.imagen_url}" alt="${tituloPremio}"
+                                 class="max-h-full max-w-full object-contain transition-transform duration-500"
+                                 onerror="this.parentElement.innerHTML = generarPlaceholderLujoso('${tituloEscapado}');"/>
                         `;
                     } else {
-                        mediaContainer.innerHTML = generarPlaceholderLujoso(datosCanjeFinal.premio, 'h-40');
+                        mediaContainer.innerHTML = generarPlaceholderLujoso(tituloPremio);
                     }
 
                     revealedSection.classList.remove('hidden');
                     revealedSection.classList.add('flex');
-                }, 350);
-
-            }, 1200);
+                }, 420);
+            }, esDestacado ? 950 : 750);
         }
     </script>
 </c-layouts.base>

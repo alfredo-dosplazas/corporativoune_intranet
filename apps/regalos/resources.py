@@ -55,7 +55,7 @@ class InvitadoResource(resources.ModelResource):
 
     class Meta:
         model = Invitado
-        fields = ('id', 'evento', 'primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido')
+        fields = ('id', 'evento', 'primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido', 'grupo', 'observaciones')
         export_order = fields
         import_id_fields = ('primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido')
 

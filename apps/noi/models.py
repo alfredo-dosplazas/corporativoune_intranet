@@ -35,4 +35,6 @@ class EmpresaNOI(models.Model):
         return f"{self.razon_social} ({self.numero_empresa})"
 
     class Meta:
+        verbose_name = 'EmpresaNOI'
+        verbose_name_plural = 'EmpresasNOI'
         ordering = ['numero_empresa']

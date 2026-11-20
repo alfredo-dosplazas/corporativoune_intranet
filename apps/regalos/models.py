@@ -29,6 +29,9 @@ class Invitado(models.Model):
 
     foto = models.ImageField(upload_to='invitados', blank=True, null=True)
 
+    grupo = models.CharField(max_length=255, blank=True, null=True)
+    observaciones = models.TextField(blank=True, null=True)
+
     asistio = models.BooleanField(default=False)
 
     @property

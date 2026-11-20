@@ -1,0 +1,27 @@
+<c-layouts.app>
+    <div class="p-8 max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold text-base-content flex items-center gap-3 mb-2">
+            <span class="icon-[ph--hard-drives-fill] text-primary size-8"></span>
+            Gestor de Archivos de Red (Active Directory & DAC)
+        </h1>
+        <p class="text-sm text-base-content/60 mb-8">Selecciona el servidor de red al que deseas conectarte con tus
+            credenciales corporativas.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for serv in servidores %}
+                <a href="{% url 'gestor_smb:explorador_root' servidor_slug=serv.slug %}"
+                   class="p-6 bg-base-100 border border-base-200 rounded-3xl shadow-sm hover:border-primary hover:shadow-md transition-all flex items-center justify-between group">
+                    <div>
+                        <h2 class="font-bold text-base text-base-content group-hover:text-primary transition-colors">{{ serv.nombre }}</h2>
+                        <p class="text-xs font-mono text-base-content/50 mt-1">Host: \\{{ serv.host }}</p>
+                    </div>
+                    <span class="icon-[ph--arrow-right-bold] text-base-content/30 group-hover:text-primary group-hover:translate-x-1 transition-all size-6"></span>
+                </a>
+            {% empty %}
+                <div class="col-span-2 text-center py-12 text-base-content/40">
+                    <p class="text-sm">No hay servidores SMB activos configurados en el panel de administración.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</c-layouts.app>
