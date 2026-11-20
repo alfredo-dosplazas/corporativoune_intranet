@@ -11,7 +11,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
-from django.http import JsonResponse, HttpRequest
+from django.http import JsonResponse, HttpRequest, Http404
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -277,7 +277,7 @@ class RegaloImportView(
             try:
                 model_field = Regalo._meta.get_field(field.attribute or col_name)
                 # BooleanField con default=False suele tratarse como opcional en importaciones
-                opcional = bool(model_field.blank or model_field.null or model_field.default is not NOT_PROVIDED)
+                # opcional = bool(model_field.blank or model_field.null or model_field.default is not NOT_PROVIDED)
             except Exception:
                 opcional = True
 
@@ -441,6 +441,13 @@ class RegaloPDFView(
     pdf_attachment = False
     template_name = 'apps/regalos/pdf.html'
 
+    # Dimensiones fijas solicitadas por proveedor: 9 cm x 5 cm
+    CARD_WIDTH_MM = 90
+    CARD_HEIGHT_MM = 50
+    # Hoja carta horizontal: 279.4mm x 215.9mm -> max 3 cols (270mm) x 4 rows (200mm)
+    MAX_COLS_LETTER_LANDSCAPE = 3
+    MAX_ROWS_LETTER_LANDSCAPE = 4
+
     def dispatch(self, request, *args, **kwargs):
         self.evento = get_object_or_404(Evento, slug=self.kwargs['evento_slug'])
         return super().dispatch(request, *args, **kwargs)
@@ -469,9 +476,19 @@ class RegaloPDFView(
         context = super().get_context_data(**kwargs)
         regalos = self.get_queryset()
 
-        # Configurable por query params: ?cols=4&rows=2 (default: 4 por fila x 2 filas = 8 por hoja)
-        cols = self._get_int_param('cols', default=4, min_val=1, max_val=8)
-        rows = self._get_int_param('rows', default=2, min_val=1, max_val=4)
+        # Por defecto 3x4 = 12 tarjetas de 90x50mm por hoja carta horizontal
+        cols = self._get_int_param(
+            'cols',
+            default=self.MAX_COLS_LETTER_LANDSCAPE,
+            min_val=1,
+            max_val=self.MAX_COLS_LETTER_LANDSCAPE,
+        )
+        rows = self._get_int_param(
+            'rows',
+            default=self.MAX_ROWS_LETTER_LANDSCAPE,
+            min_val=1,
+            max_val=self.MAX_ROWS_LETTER_LANDSCAPE,
+        )
         per_page = cols * rows
 
         items = [
@@ -482,17 +499,18 @@ class RegaloPDFView(
             for regalo in regalos
         ]
 
-        # Agrupamos en páginas exactas desde Python para evitar errores de conteo en el template
         pages = [items[i:i + per_page] for i in range(0, len(items), per_page)]
 
-        # Tamaño de QR proporcional al ancho de columna
-        qr_size_mm = 34 if cols <= 4 else (28 if cols == 5 else 23)
+        # En tarjeta de 90x50mm, 24mm da excelente legibilidad y margen de seguridad
+        qr_size_mm = 24 if cols <= 3 else 20
 
         context['evento'] = self.evento
         context['items'] = items
         context['pages'] = pages
         context['cols'] = cols
         context['rows'] = rows
+        context['card_width_mm'] = self.CARD_WIDTH_MM
+        context['card_height_mm'] = self.CARD_HEIGHT_MM
         context['qr_size_mm'] = qr_size_mm
         context['es_individual'] = len(items) == 1
         return context
@@ -503,8 +521,7 @@ class RegaloPDFView(
 
         if pk or codigo_qr:
             return f'ticket_regalo_{pk or codigo_qr}.pdf'
-        return f'tickets_regalos_{self.evento.slug}.pdf'
-        return f'tickets_regalos_{self.evento.slug}.pdf'
+        return f'tickets_regalos_{self.evento.slug}_9x5cm.pdf'
 
 
 class RegaloPantallaView(TemplateView):

@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Boletos de Tómbola Corporativos</title>
+    <title>Boletos de Tómbola Corporativos (9x5 cm)</title>
     <style>
         :root {
             --primary-color: #0f172a;
@@ -11,9 +11,12 @@
             --border-color: #cbd5e1;
         }
 
+        /* Hoja Carta Horizontal: 279.4mm x 215.9mm */
+        /* Con 3 cols x 90mm = 270mm y 4 rows x 50mm = 200mm:
+           margen horizontal ~ 4.7mm, margen vertical ~ 7.95mm */
         @page {
-            size: letter landscape; /* 279.4mm x 215.9mm */
-            margin: 6mm;
+            size: letter landscape;
+            margin: 7.5mm 4.7mm;
         }
 
         * {
@@ -28,10 +31,9 @@
             color: #0f172a;
         }
 
-        /* HOJA CARTA HORIZONTAL ÚTIL: 267mm x 203mm */
         .sheet {
-            width: 267mm;
-            height: 203mm;
+            width: 270mm;
+            height: 200mm;
             display: flex;
             flex-wrap: wrap;
             align-content: flex-start;
@@ -43,67 +45,80 @@
             page-break-after: avoid;
         }
 
-        /* Cada celda recibe margen de 2mm por lado (4mm entre boletos) */
+        /* Tamaño exacto solicitado: 9 cm x 5 cm */
         .ticket-slot {
-            width: calc((267mm - ({{ cols }}* 4mm)) / {{ cols }});
-            height: calc((203mm - ({{ rows }}* 4mm)) / {{ rows }});
-            margin: 2mm;
+            width: {{ card_width_mm }}mm;
+            height: {{ card_height_mm }}mm;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
 
         .ticket-container {
             width: 100%;
             height: 100%;
-            border: 1.5pt solid var(--ticket-border, var(--primary-color));
-            border-radius: 5px;
+            border: 0.75pt solid var(--ticket-border, var(--border-color));
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: stretch;
+            overflow: hidden;
+            background-color: #ffffff;
+        }
+
+        /* Columna izquierda: información y folio */
+        .ticket-info {
+            flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             overflow: hidden;
-            background-color: #ffffff;
-            page-break-inside: avoid;
-            break-inside: avoid;
         }
 
-        /* BANNER CABECERA CORPORATIVA */
         .header-brand {
             background-color: var(--primary-color);
             color: #ffffff;
-            padding: 2mm;
-            text-align: center;
+            padding: 1.8mm 2.5mm;
+        }
+
+        .brand-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5mm;
+            margin-bottom: 0.8mm;
         }
 
         .logo-img {
-            max-height: 5mm;
-            max-width: 28mm;
-            margin-bottom: 1mm;
+            max-height: 4mm;
+            max-width: 22mm;
             filter: brightness(0) invert(1);
         }
 
         .brand-name {
             font-size: 5.5pt;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.4px;
             text-transform: uppercase;
-            color: #94a3b8;
-            font-weight: 600;
+            color: #cbd5e1;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .event-name {
-            font-size: 7pt;
+            font-size: 7.5pt;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.4px;
             color: #ffffff;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        /* BANDA DE FOLIO Y CATEGORÍA */
         .folio-section {
+            padding: 2mm 2.5mm;
             background-color: var(--bg-light);
-            border-bottom: 1px solid var(--border-color);
-            border-top: 1px solid var(--border-color);
-            padding: 1.5mm 2.5mm;
+            border-bottom: 0.5pt solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -111,97 +126,62 @@
         }
 
         .folio-label {
-            font-size: 6pt;
+            font-size: 6.5pt;
             text-transform: uppercase;
             font-weight: 700;
-            color: #475569;
+            color: #334155;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
         .folio-number {
-            font-size: 10pt;
+            font-size: 12pt;
             font-weight: 900;
             color: var(--ticket-color, var(--accent-color));
-            font-family: monospace;
+            font-family: 'Courier New', Courier, monospace;
             flex-shrink: 0;
         }
 
-        /* CUERPO DEL TICKET / ZONA QR */
+        .footer-section {
+            padding: 1.5mm 2.5mm;
+            background-color: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 1.5mm;
+        }
+
+        .instructions {
+            font-size: 5.5pt;
+            color: #475569;
+            line-height: 1.2;
+        }
+
+        .qr-hash {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 5.5pt;
+            color: #64748b;
+            white-space: nowrap;
+        }
+
+        /* Columna derecha: zona de lectura QR */
         .qr-section {
-            padding: 2mm;
-            text-align: center;
-            flex: 1;
+            width: 31mm;
+            border-left: 0.75pt dashed #94a3b8;
+            background-color: #ffffff;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-        }
-
-        .qr-card {
-            background-color: #ffffff;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
             padding: 1.5mm;
-            display: inline-block;
+            flex-shrink: 0;
         }
 
         .qr-image {
             width: {{ qr_size_mm }}mm;
             height: {{ qr_size_mm }}mm;
             display: block;
-        }
-
-        .qr-hash {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 5pt;
-            color: #64748b;
-            margin-top: 1mm;
-        }
-
-        /* LÍNEA GUÍA DE DOBLEZ */
-        .fold-line {
-            border-top: 1px dashed #94a3af;
-            position: relative;
-            margin: 0.5mm 0;
-            text-align: center;
-        }
-
-        .fold-label {
-            position: absolute;
-            top: -3.5pt;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #ffffff;
-            padding: 0 3px;
-            font-size: 4.5pt;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-
-        /* PIE DE PÁGINA */
-        .footer-section {
-            padding: 2mm 2.5mm;
-            background-color: var(--bg-light);
-            border-top: 1px solid var(--border-color);
-            text-align: center;
-        }
-
-        .instructions {
-            font-size: 5pt;
-            color: #475569;
-            line-height: 1.15;
-        }
-
-        .watermark {
-            font-size: 4.5pt;
-            font-weight: 700;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            margin-top: 0.5mm;
         }
     </style>
 </head>
@@ -214,61 +194,47 @@
                 <div class="ticket-container"
                      style="{% if item.regalo.categoria and item.regalo.categoria.color %}--ticket-color: {{ item.regalo.categoria.color }}; --ticket-border: {{ item.regalo.categoria.color }};{% endif %}">
 
-                    <!-- CABECERA DE MARCA -->
-                    <div class="header-brand">
-                        {% if logo_url %}
-                            <img src="{{ logo_url }}" class="logo-img" alt="Logo Corporativo">
-                        {% else %}
-                            <div class="brand-name">{{ item.regalo.evento.empresa|default:"Corporativo" }}</div>
-                        {% endif %}
-                        <div class="event-name">{{ item.regalo.evento.nombre }}</div>
+                    <div class="ticket-info">
+                        <div class="header-brand">
+                            <div class="brand-row">
+                                {% if logo_url %}
+                                    <img src="{{ logo_url }}" class="logo-img" alt="Logo Corporativo">
+                                {% else %}
+                                    <span class="brand-name">{{ item.regalo.evento.empresa|default:"Corporativo" }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="event-name">{{ item.regalo.evento.nombre }}</div>
+                        </div>
+
+                        <div class="folio-section">
+                            <span class="folio-label">
+                                {% if item.regalo.categoria %}
+                                    {{ item.regalo.categoria.nombre }}
+                                {% else %}
+                                    Boleto
+                                {% endif %}
+                            </span>
+                            <span class="folio-number">#{{ item.regalo.numero|stringformat:"03d" }}</span>
+                        </div>
+
+                        <div class="footer-section">
+                            <div class="instructions">
+                                Conserva este boleto.<br>Válido con QR legible.
+                            </div>
+                            <div class="qr-hash">{{ item.regalo.codigo_qr|slice:":8" }}</div>
+                        </div>
                     </div>
 
-                    <!-- BANDA DE FOLIO -->
-                    <div class="folio-section">
-                        <span class="folio-label">
-                            {% if item.regalo.categoria %}
-                                {{ item.regalo.categoria.nombre }}
-                            {% else %}
-                                Boleto
-                            {% endif %}
-                        </span>
-                        <span class="folio-number">#{{ item.regalo.numero|stringformat:"03d" }}</span>
-                    </div>
-
-                    <!-- GUÍA VISUAL DE DOBLEZ -->
-                    <div class="fold-line">
-                        <span class="fold-label">doblar</span>
-                    </div>
-
-                    <!-- ÁREA CENTRAL CON QR -->
                     <div class="qr-section">
-                        <div class="qr-card">
-                            {% if item.qr_code_base64 %}
-                                <img src="data:image/png;base64,{{ item.qr_code_base64 }}" class="qr-image"
-                                     alt="Código QR"/>
-                            {% else %}
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ item.regalo.codigo_qr }}"
-                                     class="qr-image" alt="Código QR"/>
-                            {% endif %}
-                        </div>
-                        <div class="qr-hash">{{ item.regalo.codigo_qr|slice:":10" }}...</div>
+                        {% if item.qr_code_base64 %}
+                            <img src="data:image/png;base64,{{ item.qr_code_base64 }}" class="qr-image"
+                                 alt="Código QR"/>
+                        {% else %}
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ item.regalo.codigo_qr }}"
+                                 class="qr-image" alt="Código QR"/>
+                        {% endif %}
                     </div>
 
-                    <!-- GUÍA VISUAL DE DOBLEZ INFERIOR -->
-                    <div class="fold-line">
-                        <span class="fold-label">doblar</span>
-                    </div>
-
-                    <!-- FOOTER -->
-                    <div class="footer-section">
-                        <div class="instructions">
-                            Conserva este boleto. Válido con QR legible.
-                        </div>
-                        <div class="watermark">
-                            Control Interno
-                        </div>
-                    </div>
                 </div>
             </div>
         {% endfor %}
