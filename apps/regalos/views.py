@@ -2,8 +2,10 @@ import base64
 import json
 import os
 import random
+from io import BytesIO
 from typing import Any
 
+import qrcode
 from asgiref.sync import sync_to_async
 from channels.layers import get_channel_layer
 from django.conf import settings
@@ -14,6 +16,7 @@ from django.db import transaction
 from django.http import JsonResponse, HttpRequest, Http404
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
+from django.core.cache import cache
 from django.utils import timezone
 from django.views import View
 from django.views.generic import DetailView, TemplateView, CreateView, ListView
@@ -431,6 +434,30 @@ class RegaloDeleteView(
         return reverse('regalos:list', args=[self.evento.slug])
 
 
+def generar_qr_rapido_base64(codigo: str) -> str:
+    """Genera un PNG muy ligero (ideal para 24mm) y lo cachea."""
+    cache_key = f"qr_fast_b64:{codigo}"
+    cached = cache.get(cache_key)
+    if cached:
+        return cached
+
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=3,  # Suficiente para 24mm en impresión, 5x más liviano
+        border=1,
+    )
+    qr.add_data(codigo)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buffer = BytesIO()
+    img.save(buffer, format="PNG", optimize=False)  # optimize=False es mucho más rápido en CPU
+    b64 = base64.b64encode(buffer.getvalue()).decode("ascii")
+    cache.set(cache_key, b64, timeout=86400)
+    return b64
+
+
 class RegaloPDFView(
     PermissionRequiredMixin,
     SedePermissionMixin,
@@ -441,10 +468,8 @@ class RegaloPDFView(
     pdf_attachment = False
     template_name = 'apps/regalos/pdf.html'
 
-    # Dimensiones fijas solicitadas por proveedor: 9 cm x 5 cm
     CARD_WIDTH_MM = 90
     CARD_HEIGHT_MM = 50
-    # Hoja carta horizontal: 279.4mm x 215.9mm -> max 3 cols (270mm) x 4 rows (200mm)
     MAX_COLS_LETTER_LANDSCAPE = 3
     MAX_ROWS_LETTER_LANDSCAPE = 4
 
@@ -453,7 +478,12 @@ class RegaloPDFView(
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        queryset = Regalo.objects.filter(evento=self.evento).order_by('numero')
+        # Evita queries N+1 al acceder a categoria y evento
+        queryset = (
+            Regalo.objects.filter(evento=self.evento)
+            .select_related('categoria', 'evento')
+            .order_by('numero')
+        )
 
         pk = self.kwargs.get('pk') or self.request.GET.get('pk')
         if pk:
@@ -474,51 +504,47 @@ class RegaloPDFView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        regalos = self.get_queryset()
+        regalos = list(self.get_queryset())
 
-        # Por defecto 3x4 = 12 tarjetas de 90x50mm por hoja carta horizontal
-        cols = self._get_int_param(
-            'cols',
-            default=self.MAX_COLS_LETTER_LANDSCAPE,
-            min_val=1,
-            max_val=self.MAX_COLS_LETTER_LANDSCAPE,
-        )
-        rows = self._get_int_param(
-            'rows',
-            default=self.MAX_ROWS_LETTER_LANDSCAPE,
-            min_val=1,
-            max_val=self.MAX_ROWS_LETTER_LANDSCAPE,
-        )
+        cols = self._get_int_param('cols', self.MAX_COLS_LETTER_LANDSCAPE, 1, self.MAX_COLS_LETTER_LANDSCAPE)
+        rows = self._get_int_param('rows', self.MAX_ROWS_LETTER_LANDSCAPE, 1, self.MAX_ROWS_LETTER_LANDSCAPE)
         per_page = cols * rows
 
-        items = [
-            {
-                'regalo': regalo,
-                'qr_code_base64': generar_qr_base64(regalo.codigo_qr),
-            }
-            for regalo in regalos
-        ]
+        # Precalculamos datos planos para que la plantilla casi no tenga lógica
+        items = []
+        for r in regalos:
+            cat = r.categoria
+            items.append({
+                'numero': f"{r.numero:03d}",
+                'codigo_corto': (r.codigo_qr or '')[:8],
+                'categoria_nombre': cat.nombre if cat else 'Boleto',
+                'color': (cat.color if cat and cat.color else '#2563eb'),
+                'qr_b64': generar_qr_rapido_base64(r.codigo_qr),
+            })
 
         pages = [items[i:i + per_page] for i in range(0, len(items), per_page)]
 
-        # En tarjeta de 90x50mm, 24mm da excelente legibilidad y margen de seguridad
-        qr_size_mm = 24 if cols <= 3 else 20
+        # Agrupamos cada página en filas para usar <table> nativo (mucho más rápido en WeasyPrint)
+        grid_pages = [
+            [page[j:j + cols] for j in range(0, len(page), cols)]
+            for page in pages
+        ]
 
-        context['evento'] = self.evento
-        context['items'] = items
-        context['pages'] = pages
-        context['cols'] = cols
-        context['rows'] = rows
-        context['card_width_mm'] = self.CARD_WIDTH_MM
-        context['card_height_mm'] = self.CARD_HEIGHT_MM
-        context['qr_size_mm'] = qr_size_mm
-        context['es_individual'] = len(items) == 1
+        context.update({
+            'evento': self.evento,
+            'empresa_nombre': getattr(self.evento, 'empresa', None) or 'Corporativo',
+            'evento_nombre': self.evento.nombre,
+            'grid_pages': grid_pages,
+            'cols': cols,
+            'card_width_mm': self.CARD_WIDTH_MM,
+            'card_height_mm': self.CARD_HEIGHT_MM,
+            'qr_size_mm': 24 if cols <= 3 else 20,
+        })
         return context
 
     def get_pdf_filename(self):
         pk = self.kwargs.get('pk') or self.request.GET.get('pk')
         codigo_qr = self.kwargs.get('codigo_qr') or self.request.GET.get('codigo_qr')
-
         if pk or codigo_qr:
             return f'ticket_regalo_{pk or codigo_qr}.pdf'
         return f'tickets_regalos_{self.evento.slug}_9x5cm.pdf'
@@ -1134,7 +1160,7 @@ class RegalosCanjeadosView(TemplateView):
                     "nombre": detalle.nombre_regalo,
                     "ganador_nombre": detalle.ganador_nombre,
                     "destacado": detalle.destacado,
-                    "fecha_canje": corrida_seleccionada.fecha_ejecucion # O fecha de asignación
+                    "fecha_canje": corrida_seleccionada.fecha_ejecucion  # O fecha de asignación
                 }
                 for detalle in corrida_seleccionada.detalles.all()
             ]

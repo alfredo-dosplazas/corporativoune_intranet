@@ -252,8 +252,9 @@ class Orden(models.Model):
 class DetalleOrden(models.Model):
     UNIDAD_CHOICES = [
         ('n/a', 'N/A'),
-        ('pza', 'PZA'),
+        ('kg', 'KG'),
         ('metro', 'METRO'),
+        ('pza', 'PZA'),
     ]
 
     orden = models.ForeignKey(Orden, on_delete=models.CASCADE, related_name="detalle_orden")

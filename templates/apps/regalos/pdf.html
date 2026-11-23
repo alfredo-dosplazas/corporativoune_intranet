@@ -4,16 +4,6 @@
     <meta charset="UTF-8">
     <title>Boletos de Tómbola Corporativos (9x5 cm)</title>
     <style>
-        :root {
-            --primary-color: #0f172a;
-            --accent-color: #2563eb;
-            --bg-light: #f8fafc;
-            --border-color: #cbd5e1;
-        }
-
-        /* Hoja Carta Horizontal: 279.4mm x 215.9mm */
-        /* Con 3 cols x 90mm = 270mm y 4 rows x 50mm = 200mm:
-           margen horizontal ~ 4.7mm, margen vertical ~ 7.95mm */
         @page {
             size: letter landscape;
             margin: 7.5mm 4.7mm;
@@ -23,7 +13,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-family: Helvetica, Arial, sans-serif;
         }
 
         body {
@@ -31,67 +21,51 @@
             color: #0f172a;
         }
 
-        .sheet {
-            width: 270mm;
-            height: 200mm;
-            display: flex;
-            flex-wrap: wrap;
-            align-content: flex-start;
-            justify-content: flex-start;
+        .sheet-table {
+            border-collapse: collapse;
+            table-layout: fixed;
             page-break-after: always;
         }
 
-        .sheet:last-child {
+        .sheet-table:last-child {
             page-break-after: avoid;
         }
 
-        /* Tamaño exacto solicitado: 9 cm x 5 cm */
-        .ticket-slot {
+        td.ticket-slot {
             width: {{ card_width_mm }}mm;
             height: {{ card_height_mm }}mm;
-            page-break-inside: avoid;
-            break-inside: avoid;
+            padding: 0;
+            vertical-align: top;
         }
 
-        .ticket-container {
+        .ticket-box {
             width: 100%;
             height: 100%;
-            border: 0.75pt solid var(--ticket-border, var(--border-color));
-            display: flex;
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: stretch;
-            overflow: hidden;
+            border-collapse: collapse;
+            table-layout: fixed;
             background-color: #ffffff;
         }
 
-        /* Columna izquierda: información y folio */
-        .ticket-info {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            overflow: hidden;
+        .left-col {
+            width: 59mm;
+            height: {{ card_height_mm }}mm;
+            vertical-align: top;
+            padding: 0;
         }
 
-        .header-brand {
-            background-color: var(--primary-color);
+        .inner-table {
+            width: 100%;
+            height: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .header-cell {
+            background-color: #0f172a;
             color: #ffffff;
             padding: 1.8mm 2.5mm;
-        }
-
-        .brand-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1.5mm;
-            margin-bottom: 0.8mm;
-        }
-
-        .logo-img {
-            max-height: 4mm;
-            max-width: 22mm;
-            filter: brightness(0) invert(1);
+            height: 14mm;
+            vertical-align: middle;
         }
 
         .brand-name {
@@ -99,146 +73,139 @@
             letter-spacing: 0.4px;
             text-transform: uppercase;
             color: #cbd5e1;
-            font-weight: 700;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-weight: bold;
+            margin-bottom: 0.8mm;
+        }
+
+        .logo-img {
+            max-height: 4mm;
+            max-width: 22mm;
+            display: block;
+            margin-bottom: 0.8mm;
         }
 
         .event-name {
             font-size: 7.5pt;
-            font-weight: 800;
+            font-weight: bold;
             text-transform: uppercase;
             color: #ffffff;
             white-space: nowrap;
             overflow: hidden;
-            text-overflow: ellipsis;
         }
 
-        .folio-section {
+        /* Banda de categoría y folio rellena con el color de la categoría */
+        .folio-cell {
             padding: 2mm 2.5mm;
-            background-color: var(--bg-light);
-            border-bottom: 0.5pt solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 2mm;
+            background-color: {{ item.color|default:"#2563eb" }};
+            color: #ffffff;
+            border-bottom: 0.5pt solid #cbd5e1;
+            height: 18mm;
+            vertical-align: middle;
         }
 
         .folio-label {
             font-size: 6.5pt;
             text-transform: uppercase;
-            font-weight: 700;
-            color: #334155;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-weight: bold;
+            color: #ffffff;
+            float: left;
+            padding-top: 1.5mm;
         }
 
         .folio-number {
             font-size: 12pt;
-            font-weight: 900;
-            color: var(--ticket-color, var(--accent-color));
+            font-weight: bold;
             font-family: 'Courier New', Courier, monospace;
-            flex-shrink: 0;
+            color: #ffffff;
+            float: right;
         }
 
-        .footer-section {
+        .footer-cell {
             padding: 1.5mm 2.5mm;
             background-color: #ffffff;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            gap: 1.5mm;
+            vertical-align: bottom;
         }
 
         .instructions {
             font-size: 5.5pt;
             color: #475569;
             line-height: 1.2;
+            float: left;
         }
 
         .qr-hash {
             font-family: 'Courier New', Courier, monospace;
             font-size: 5.5pt;
             color: #64748b;
-            white-space: nowrap;
+            float: right;
+            padding-top: 2mm;
         }
 
-        /* Columna derecha: zona de lectura QR */
-        .qr-section {
+        .qr-col {
             width: 31mm;
+            height: {{ card_height_mm }}mm;
             border-left: 0.75pt dashed #94a3b8;
-            background-color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            text-align: center;
+            vertical-align: middle;
             padding: 1.5mm;
-            flex-shrink: 0;
         }
 
         .qr-image {
             width: {{ qr_size_mm }}mm;
             height: {{ qr_size_mm }}mm;
-            display: block;
+            display: inline-block;
         }
     </style>
 </head>
 <body>
 
-{% for page in pages %}
-    <div class="sheet">
-        {% for item in page %}
-            <div class="ticket-slot">
-                <div class="ticket-container"
-                     style="{% if item.regalo.categoria and item.regalo.categoria.color %}--ticket-color: {{ item.regalo.categoria.color }}; --ticket-border: {{ item.regalo.categoria.color }};{% endif %}">
-
-                    <div class="ticket-info">
-                        <div class="header-brand">
-                            <div class="brand-row">
-                                {% if logo_url %}
-                                    <img src="{{ logo_url }}" class="logo-img" alt="Logo Corporativo">
-                                {% else %}
-                                    <span class="brand-name">{{ item.regalo.evento.empresa|default:"Corporativo" }}</span>
-                                {% endif %}
-                            </div>
-                            <div class="event-name">{{ item.regalo.evento.nombre }}</div>
-                        </div>
-
-                        <div class="folio-section">
-                            <span class="folio-label">
-                                {% if item.regalo.categoria %}
-                                    {{ item.regalo.categoria.nombre }}
-                                {% else %}
-                                    Boleto
-                                {% endif %}
-                            </span>
-                            <span class="folio-number">#{{ item.regalo.numero|stringformat:"03d" }}</span>
-                        </div>
-
-                        <div class="footer-section">
-                            <div class="instructions">
-                                Conserva este boleto.<br>Válido con QR legible.
-                            </div>
-                            <div class="qr-hash">{{ item.regalo.codigo_qr|slice:":8" }}</div>
-                        </div>
-                    </div>
-
-                    <div class="qr-section">
-                        {% if item.qr_code_base64 %}
-                            <img src="data:image/png;base64,{{ item.qr_code_base64 }}" class="qr-image"
-                                 alt="Código QR"/>
-                        {% else %}
-                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ item.regalo.codigo_qr }}"
-                                 class="qr-image" alt="Código QR"/>
-                        {% endif %}
-                    </div>
-
-                </div>
-            </div>
+{% for page_rows in grid_pages %}
+    <table class="sheet-table">
+        {% for row in page_rows %}
+            <tr>
+                {% for item in row %}
+                    <td class="ticket-slot">
+                        <table class="ticket-box" style="border: 0.75pt solid {{ item.color|default:"#0f172a" }};">
+                            <tr>
+                                <td class="left-col">
+                                    <table class="inner-table">
+                                        <tr>
+                                            <td class="header-cell">
+                                                {% if logo_url %}
+                                                    <img src="{{ logo_url }}" class="logo-img" alt="Logo">
+                                                {% else %}
+                                                    <div class="brand-name">{{ empresa_nombre }}</div>
+                                                {% endif %}
+                                                <div class="event-name">{{ evento_nombre }}</div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="folio-cell"
+                                                style="background-color: {{ item.color|default:"#2563eb" }};">
+                                                <span class="folio-label">{{ item.categoria_nombre }}</span>
+                                                <span class="folio-number">#{{ item.numero }}</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="footer-cell">
+                                                <div class="instructions">Conserva este boleto.<br>Válido con QR
+                                                    legible.
+                                                </div>
+                                                <div class="qr-hash">{{ item.codigo_corto }}</div>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td class="qr-col">
+                                    <img src="data:image/png;base64,{{ item.qr_b64 }}" class="qr-image" alt="QR">
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                {% endfor %}
+            </tr>
         {% endfor %}
-    </div>
+    </table>
 {% endfor %}
 
 </body>
