@@ -47,7 +47,8 @@ class DirectorioListView(
     table_class = ContactoTable
     filterset_class = ContactoFilter
     paginate_by = 12
-    search_fields = ['primer_nombre', 'primer_apellido', 'numero_empleado']
+    search_fields = ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido', 'numero_empleado',
+                     'emails__email', 'telefonos__telefono']
     export_name = 'Directorio'
 
     def get_breadcrumbs(self):

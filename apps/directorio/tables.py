@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from django.db.models import Value
-from django.db.models.functions import Coalesce, Concat, Lower
+from django.db.models.functions import Coalesce, Concat, Lower, Trim, NullIf
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django_tables2 import Column
@@ -114,19 +114,44 @@ class ContactoColumn(Column):
 
     def order(self, queryset, is_descending):
         prefix = "-" if is_descending else ""
+        base = f"{self.contacto_accessor}__" if self.contacto_accessor else ""
 
-        # Ordenar considerando primero el nombre del usuario y respaldando con su contacto si existe
+        # Caso 1: El modelo de la tabla ES Contacto directamente (sin accessor)
+        if queryset.model is Contacto and not self.contacto_accessor:
+            queryset = queryset.annotate(
+                nombre_orden=Lower(
+                    Trim(
+                        Concat(
+                            Coalesce("primer_nombre", Value("")), Value(" "),
+                            Coalesce("segundo_nombre", Value("")), Value(" "),
+                            Coalesce("primer_apellido", Value("")), Value(" "),
+                            Coalesce("segundo_apellido", Value("")),
+                        )
+                    )
+                )
+            ).order_by(f"{prefix}nombre_orden")
+            return (queryset, True)
+
+        # Caso 2: El accessor apunta a un User (ej. 'solicitante', 'usuario')
         queryset = queryset.annotate(
-            nombre_usuario=Concat(
-                "solicitante__first_name", Value(" "), "solicitante__last_name"
+            nombre_usuario=NullIf(
+                Trim(Concat(f"{base}first_name", Value(" "), f"{base}last_name")),
+                Value("")
             ),
-            nombre_contacto=Concat(
-                "solicitante__contacto__primer_nombre", Value(" "),
-                Coalesce("solicitante__contacto__segundo_nombre", Value("")), Value(" "),
-                "solicitante__contacto__primer_apellido", Value(" "),
-                Coalesce("solicitante__contacto__segundo_apellido", Value(""))
+            nombre_contacto=NullIf(
+                Trim(
+                    Concat(
+                        Coalesce(f"{base}contacto__primer_nombre", Value("")), Value(" "),
+                        Coalesce(f"{base}contacto__segundo_nombre", Value("")), Value(" "),
+                        Coalesce(f"{base}contacto__primer_apellido", Value("")), Value(" "),
+                        Coalesce(f"{base}contacto__segundo_apellido", Value("")),
+                    )
+                ),
+                Value("")
             ),
-            nombre_orden=Lower(Coalesce("nombre_usuario", "nombre_contacto", "solicitante__username")),
+            nombre_orden=Lower(
+                Coalesce("nombre_usuario", "nombre_contacto", f"{base}username")
+            ),
         ).order_by(f"{prefix}nombre_orden")
 
         return (queryset, True)
