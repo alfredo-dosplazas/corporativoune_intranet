@@ -6,7 +6,7 @@
 @plugin "@iconify/tailwind4";
 
 @plugin "daisyui" {
-    themes: dos_plazas --default, dos_plazas_dark --prefersdark, abocosa, bbh, dos_plazas, frescopack, encorto;
+    themes: dos_plazas --default, dos_plazas_dark --prefersdark, abocosa, bbh, dos_plazas, frescopack, encorto, dominum, dominum_dark;
 }
 
 @theme {
@@ -575,6 +575,100 @@
 
     --color-error: #EF4444;
     --color-error-content: #450A0A;
+
+    --radius-selector: 0.25rem;
+    --radius-field: 0.25rem;
+    --radius-box: 0.375rem;
+    --size-selector: 0.20rem;
+    --size-field: 0.20rem;
+    --border: 1px;
+    --depth: 1;
+    --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+    name: "dominum";
+    default: false;
+    prefersdark: false;
+    color-scheme: "light";
+
+    --color-base-100: #F9FAFB;
+    --color-base-200: #E5E7EB;
+    --color-base-300: #D1D5DB;
+    --color-base-content: #081B38;
+
+    --color-primary: #0B254A;
+    --color-primary-content: #FFFFFF;
+    --color-primary-light: #4A90C8;
+    --color-primary-dark: #06152B;
+
+    --color-secondary: #3B82C4;
+    --color-secondary-content: #FFFFFF;
+
+    --color-accent: #5299D0;
+    --color-accent-content: #081B38;
+
+    --color-neutral: #1E293B;
+    --color-neutral-content: #F9FAFB;
+
+    --color-info: #38BDF8;
+    --color-info-content: #081B38;
+
+    --color-success: #16A34A;
+    --color-success-content: #FFFFFF;
+
+    --color-warning: #FACC15;
+    --color-warning-content: #1F2937;
+
+    --color-error: #DC2626;
+    --color-error-content: #FFFFFF;
+
+    --radius-selector: 0.25rem;
+    --radius-field: 0.25rem;
+    --radius-box: 0.375rem;
+    --size-selector: 0.20rem;
+    --size-field: 0.20rem;
+    --border: 1px;
+    --depth: 1;
+    --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+    name: "dominum_dark";
+    default: false;
+    prefersdark: false;
+    color-scheme: "dark";
+
+    --color-base-100: #111827;
+    --color-base-200: #0B0F17;
+    --color-base-300: #1F2937;
+    --color-base-content: #F9FAFB;
+
+    --color-primary: #3B82C4;
+    --color-primary-content: #FFFFFF;
+    --color-primary-light: #69A8DC;
+    --color-primary-dark: #1A4B7C;
+
+    --color-secondary: #0F2E5A;
+    --color-secondary-content: #F9FAFB;
+
+    --color-accent: #5299D0;
+    --color-accent-content: #081B38;
+
+    --color-neutral: #1F2937;
+    --color-neutral-content: #F9FAFB;
+
+    --color-info: #38BDF8;
+    --color-info-content: #081B38;
+
+    --color-success: #22C55E;
+    --color-success-content: #052E16;
+
+    --color-warning: #FACC15;
+    --color-warning-content: #1F2937;
+
+    --color-error: #EF4444;
+    --color-error-content: #FFFFFF;
 
     --radius-selector: 0.25rem;
     --radius-field: 0.25rem;
