@@ -1319,6 +1319,11 @@ class InvitadoCreateView(
 
 def enviar_qr_invitado(request, pk):
     invitado = get_object_or_404(Invitado, pk=pk)
+
+    if not invitado.telefono:
+        messages.error(request, 'El invitado no tiene número de teléfono')
+        return redirect('regalos:invitados_list', invitado.evento.slug)
+
     enviar_qr_invitado_task.delay(pk)
     messages.info(request, f'Enviando qr al invitado: {invitado}')
     return redirect('regalos:invitados__list', invitado.evento.slug)

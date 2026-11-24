@@ -146,6 +146,7 @@ class ContactoTable(TableWithActions):
         fields = [
             'contacto',
             'empresa',
+            'sede_administrativa',
             'puesto_area',
             'correo',
             'telefono',
