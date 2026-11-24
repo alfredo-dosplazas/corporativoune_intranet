@@ -29,6 +29,7 @@ urlpatterns = [
                   path("gestor-archivos/", include("apps.gestor_smb.urls")),
                   path('noi/', include('apps.noi.urls')),
                   path('sae/', include('apps.sae.urls')),
+                  path('', include('apps.whatsapp.urls')),
                   path('', include('apps.explorador.urls')),
                   path('', include('pwa.urls')),
                   path("jsreverse.json", urls_json, name="js_reverse"),

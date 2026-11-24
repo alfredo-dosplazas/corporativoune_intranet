@@ -42,6 +42,7 @@ from apps.regalos.resources import RegaloResource, InvitadoResource
 from apps.regalos.services import asignar_regalo_aleatorio, _asignar_regalo_aleatorio
 from apps.regalos.tables import RegaloTable, EventoTable, InvitadoTable
 from apps.regalos.tasks import procesar_y_notificar_sorteo_task
+from apps.whatsapp.tasks import enviar_qr_invitado_task
 
 
 class RegaloModuloView(
@@ -1314,6 +1315,13 @@ class InvitadoCreateView(
             {'title': 'Invitados', 'url': reverse('regalos:invitados__list', args=[self.evento.slug])},
             {'title': 'Crear'},
         ]
+
+
+def enviar_qr_invitado(request, pk):
+    invitado = get_object_or_404(Invitado, pk=pk)
+    enviar_qr_invitado_task.delay(pk)
+    messages.info(request, f'Enviando qr al invitado: {invitado}')
+    return redirect('regalos:invitados__list', invitado.evento.slug)
 
 
 class InvitadoUpdateView(

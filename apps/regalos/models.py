@@ -32,6 +32,17 @@ class Invitado(models.Model):
     grupo = models.CharField(max_length=255, blank=True, null=True)
     observaciones = models.TextField(blank=True, null=True)
 
+    telefono = models.CharField(
+        max_length=25,
+        blank=True,
+        null=True,
+        verbose_name="Teléfono WhatsApp (con LADA, sin +)",
+        help_text="Ej. 5214611234567"
+    )
+    qr_enviado_en = models.DateTimeField(blank=True, null=True)
+    confirmacion_recibida = models.BooleanField(default=False)
+    confirmacion_recibida_en = models.DateTimeField(blank=True, null=True)
+
     asistio = models.BooleanField(default=False)
 
     @property

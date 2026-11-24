@@ -22,7 +22,7 @@ class InvitadoTable(TableWithActions):
 
     class Meta:
         model = Invitado
-        fields = ['foto', 'nombre_completo', 'grupo', 'observaciones', 'asistio', 'categoria']
+        fields = ['foto', 'nombre_completo', 'grupo', 'observaciones', 'asistio', 'categoria', 'telefono', 'qr_enviado_en', 'confirmacion_recibida']
 
     def render_foto(self, record):
         if record.foto:

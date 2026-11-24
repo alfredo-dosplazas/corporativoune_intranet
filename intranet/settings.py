@@ -95,6 +95,8 @@ INSTALLED_APPS = [
     'apps.vs_erp',
 
     'apps.gestor_smb',
+
+    'apps.whatsapp',
 ]
 
 MIDDLEWARE = [

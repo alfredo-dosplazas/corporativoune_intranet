@@ -17,6 +17,13 @@
         </li>
     {% endif %}
 
+    <!-- 1. VER CÓDIGO QR -->
+    {% if perms.regalos.enviar_qr_invitado %}
+        <li>
+            <a href="{% url 'regalos:invitados__enviar_qr' record.pk %}">Envíar qr por Whatsapp</a>
+        </li>
+    {% endif %}
+
     <!-- 2. EDITAR INVITADO -->
     {% if perms.regalos.change_invitado %}
         <li>

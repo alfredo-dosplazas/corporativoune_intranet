@@ -128,6 +128,9 @@ class InvitadoForm(forms.ModelForm):
             'primer_apellido',
             'segundo_apellido',
             'categoria',
+            'telefono',
+            'grupo',
+            'observaciones',
             'asistio',
         ]
 
