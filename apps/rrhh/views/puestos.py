@@ -169,7 +169,7 @@ class PuestoDetailView(PermissionRequiredMixin, BreadcrumbsMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['personal'] = self.get_object().contactos.exclude(
-            Q(fecha_egreso__isnull=True) |
+            Q(fecha_egreso__isnull=False) |
             Q(esta_archivado=True) |
             Q(usuario__is_active=False)
         )
