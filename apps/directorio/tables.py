@@ -160,6 +160,13 @@ class ContactoColumn(Column):
 class ContactoTable(TableWithActions):
     actions_template = "components/apps/directorio/contactos/table/actions.html"
 
+    numero_empleado = Column(
+        empty_values=(),
+        attrs={
+            "th": {"class": "w-px whitespace-nowrap text-center"},
+            "td": {"class": "w-px whitespace-nowrap text-center"},
+        },
+    )
     contacto = ContactoColumn(verbose_name="Nombre", mostrar_empresa=False, mostrar_area=False)
     correo = Column(empty_values=(), verbose_name='Correo')
     telefono = Column(empty_values=(), verbose_name='Teléfono')
@@ -169,6 +176,7 @@ class ContactoTable(TableWithActions):
     class Meta:
         model = Contacto
         fields = [
+            'numero_empleado',
             'contacto',
             'empresa',
             'sede_administrativa',

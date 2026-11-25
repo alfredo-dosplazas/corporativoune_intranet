@@ -66,7 +66,7 @@ class Contacto(models.Model):
     foto = models.ImageField(upload_to=rename_contacto_image, blank=True, null=True)
 
     numero_empleado = models.CharField(
-        max_length=255, blank=True, null=True, unique=True,
+        max_length=255, blank=True, null=True,
         verbose_name='Número de Empleado'
     )
 
@@ -380,3 +380,4 @@ class Contacto(models.Model):
         permissions = [
             ('acceder_directorio', 'Acceder al Directorio'),
         ]
+        unique_together = ['numero_empleado', 'razon_social']

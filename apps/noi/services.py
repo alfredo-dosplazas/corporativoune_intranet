@@ -1,7 +1,13 @@
 import calendar
+import logging
 from datetime import datetime, timedelta, date
 
 from django.db import connections
+
+from apps.noi.db_router import get_or_create_noi_connection_alias
+from apps.noi.models import EmpresaNOI, MapeoDepartamentoNOI
+
+logger = logging.getLogger(__name__)
 
 
 def _construir_filtros_sql(tabla_activa, num_empresa, search_query=None, status_filter=None, sort_by=None):
@@ -384,3 +390,99 @@ def listar_periodos_disponibles(empresa_obj, db_alias):
 
     periodos.sort(key=lambda x: x['fecha'], reverse=True)
     return periodos
+
+def _normalizar_depto(valor: str | None) -> str:
+    if not valor:
+        return ""
+    return " ".join(str(valor).strip().lower().split())
+
+
+def obtener_departamentos_noi_con_mapeo(empresa_noi: EmpresaNOI, buscar: str | None = None) -> dict:
+    """
+    Consulta los departamentos de una EmpresaNOI en Firebird y los cruza
+    con MapeoDepartamentoNOI para indicar si están mapeados o no.
+    """
+    mapeos_qs = (
+        MapeoDepartamentoNOI.objects.filter(empresa_noi=empresa_noi, activo=True)
+        .select_related("empresa_destino")
+        .order_by("departamento_noi")
+    )
+
+    # Indexar mapeos por nombre/clave normalizado
+    mapa_por_clave_norm = {}
+    for m in mapeos_qs:
+        norm = _normalizar_depto(m.departamento_noi)
+        if norm:
+            mapa_por_clave_norm[norm] = m
+
+    db_alias = get_or_create_noi_connection_alias(empresa_noi)
+    num_emp = str(empresa_noi.numero_empresa).strip()
+    tabla_deptos = f"DEPTOS{num_emp}"
+
+    departamentos = []
+    error_bd = None
+
+    sql = f"""
+        SELECT
+            CLAVE,
+            NOMBRE
+        FROM {tabla_deptos}
+        ORDER BY NOMBRE ASC, CLAVE ASC
+    """
+
+    try:
+        with connections[db_alias].cursor() as cursor:
+            cursor.execute(sql)
+            cols = [c[0].lower() for c in cursor.description]
+            filas = cursor.fetchall()
+
+        for fila in filas:
+            raw = dict(zip(cols, fila))
+            clave = str(raw.get("clave") or "").strip()
+            nombre = " ".join(str(raw.get("nombre") or "").strip().split())
+
+            # Buscar mapeo por nombre normalizado o por clave normalizada
+            mapeo = (
+                mapa_por_clave_norm.get(_normalizar_depto(nombre))
+                or mapa_por_clave_norm.get(_normalizar_depto(clave))
+            )
+
+            item = {
+                "clave": clave,
+                "nombre": nombre or "(Sin nombre)",
+                "esta_mapeado": mapeo is not None,
+                "empresa_destino": mapeo.empresa_destino if mapeo else None,
+                "mapeo_id": mapeo.id if mapeo else None,
+            }
+
+            if buscar:
+                q = buscar.strip().lower()
+                empresa_txt = (
+                    f"{item['empresa_destino'].nombre} {item['empresa_destino'].nombre_corto}".lower()
+                    if item["empresa_destino"]
+                    else ""
+                )
+                if (
+                    q not in item["clave"].lower()
+                    and q not in item["nombre"].lower()
+                    and q not in empresa_txt
+                ):
+                    continue
+
+            departamentos.append(item)
+
+    except Exception as exc:
+        logger.exception("Error consultando %s para %s: %s", tabla_deptos, empresa_noi, exc)
+        error_bd = f"No se pudo consultar la tabla {tabla_deptos}: {exc}"
+
+    total_mapeados = sum(1 for d in departamentos if d["esta_mapeado"])
+    total_sin_mapear = len(departamentos) - total_mapeados
+
+    return {
+        "tabla_deptos": tabla_deptos,
+        "departamentos": departamentos,
+        "total": len(departamentos),
+        "total_mapeados": total_mapeados,
+        "total_sin_mapear": total_sin_mapear,
+        "error_bd": error_bd,
+    }

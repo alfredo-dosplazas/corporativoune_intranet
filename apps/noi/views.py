@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.urls import reverse
 from django.views import View
 from django.views.generic import TemplateView
+from django_tables2 import SingleTableMixin
 
 from apps.core.mixins.breadcrumbs import BreadcrumbsMixin
 from apps.core.mixins.responsive_view import ResponsiveViewModeMixin
@@ -19,7 +20,7 @@ from apps.noi.services import (
     obtener_total_trabajadores,
     obtener_pagina_trabajadores,
     obtener_todos_trabajadores_para_exportar,
-    calcular_metricas_rotacion_mensual,
+    calcular_metricas_rotacion_mensual, obtener_departamentos_noi_con_mapeo,
 )
 from apps.noi.tables import TrabajadorNOITable
 
@@ -271,3 +272,79 @@ class ExportarExcelNOIView(PermissionRequiredMixin, View):
         )
         response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
         return response
+
+class DepartamentosNOIListView(PermissionRequiredMixin, TemplateView):
+    """
+    Vista de consulta para listar los departamentos de una EmpresaNOI
+    e identificar cuáles ya tienen mapeo hacia una Empresa del sistema.
+    """
+
+    permission_required = ["noi.acceder_modulo_noi"]
+    template_name = "apps/noi/departamentos/list.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        user = request.user
+        if user.is_authenticated:
+            empresas_qs = (
+                EmpresaNOI.objects.filter(activa=True)
+                if user.is_superuser
+                else user.empresas_noi_permitidas.filter(activa=True)
+            )
+            self.empresas_disponibles = empresas_qs.order_by("numero_empresa")
+
+            empresa_id = request.GET.get("empresa")
+            if empresa_id:
+                self.empresa_noi = self.empresas_disponibles.filter(id=empresa_id).first()
+                if not self.empresa_noi:
+                    raise PermissionDenied("No tienes permisos para consultar esta empresa NOI.")
+            else:
+                self.empresa_noi = self.empresas_disponibles.first()
+        else:
+            self.empresas_disponibles = EmpresaNOI.objects.none()
+            self.empresa_noi = None
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        buscar = (self.request.GET.get("q") or "").strip()
+        estado_mapeo = (self.request.GET.get("mapeo") or "").strip().lower()  # todos | mapeados | sin_mapear
+
+        info = {
+            "tabla_deptos": None,
+            "departamentos": [],
+            "total": 0,
+            "total_mapeados": 0,
+            "total_sin_mapear": 0,
+            "error_bd": None,
+        }
+
+        if self.empresa_noi:
+            info = obtener_departamentos_noi_con_mapeo(self.empresa_noi, buscar=buscar)
+
+            if estado_mapeo == "mapeados":
+                info["departamentos"] = [d for d in info["departamentos"] if d["esta_mapeado"]]
+            elif estado_mapeo == "sin_mapear":
+                info["departamentos"] = [d for d in info["departamentos"] if not d["esta_mapeado"]]
+
+        context.update(
+            {
+                "page_title": "Departamentos NOI y Mapeo",
+                "empresas_disponibles": self.empresas_disponibles,
+                "empresa_noi_activa": self.empresa_noi,
+                "buscar": buscar,
+                "estado_mapeo": estado_mapeo,
+                "tabla_deptos": info["tabla_deptos"],
+                "departamentos": info["departamentos"],
+                "total_departamentos": info["total"],
+                "total_mapeados": info["total_mapeados"],
+                "total_sin_mapear": info["total_sin_mapear"],
+                "error_bd": info["error_bd"],
+                "breadcrumbs": [
+                    {"title": "Inicio", "url": reverse("home")},
+                    {"title": "Módulo NOI"},
+                    {"title": "Departamentos NOI"},
+                ],
+            }
+        )
+        return context

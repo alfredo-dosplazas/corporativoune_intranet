@@ -13364,6 +13364,9 @@
   .max-w-\[200px\] {
     max-width: 200px;
   }
+  .max-w-\[210px\] {
+    max-width: 210px;
+  }
   .max-w-\[220px\] {
     max-width: 220px;
   }
@@ -21449,6 +21452,11 @@
   .md\:inline {
     @media (width >= 48rem) {
       display: inline;
+    }
+  }
+  .md\:inline-block {
+    @media (width >= 48rem) {
+      display: inline-block;
     }
   }
   .md\:inline-flex {

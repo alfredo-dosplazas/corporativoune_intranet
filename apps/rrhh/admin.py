@@ -14,7 +14,7 @@ class SedeIpRangeInline(admin.TabularInline):
 class SedeAdmin(admin.ModelAdmin):
     search_fields = ['nombre']
     inlines = [SedeIpRangeInline]
-    list_display = ['nombre', 'codigo', 'ciudad', 'activa']
+    list_display = ['nombre', 'codigo', 'ciudad', 'es_principal', 'empresa_principal', 'activa']
 
 
 @admin.register(Area)

@@ -2,6 +2,8 @@ import django_filters
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout
 from dal import autocomplete
+from django import forms
+from django.db.models import Q
 
 from apps.core.models import Empresa
 from apps.directorio.models import Contacto
@@ -49,11 +51,31 @@ class ContactoFilter(django_filters.FilterSet):
         )
     )
 
+    es_inactivo = django_filters.ChoiceFilter(
+        label='Estado',
+        method='filter_es_inactivo',
+        choices=[
+            ('activos', 'Activos'),
+            ('inactivos', 'Inactivos'),
+        ],
+        widget=forms.Select(attrs={'class': 'select select-bordered w-full'}),
+    )
+
     class Meta:
         model = Contacto
-        fields = ["empresa", "sede", "area", "puesto"]
+        fields = ["empresa", "sede", "area", "puesto", "esta_archivado"]
+
+    def filter_es_inactivo(self, queryset, name, value):
+        condicion_inactivo = Q(fecha_egreso__isnull=False) | Q(usuario__is_active=False)
+
+        if value == 'inactivos':
+            return queryset.filter(condicion_inactivo).distinct()
+        if value == 'activos':
+            return queryset.exclude(condicion_inactivo).distinct()
+        return queryset
 
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
         sedes_permitidas = kwargs.pop("sedes_permitidas", None)
 
         super().__init__(*args, **kwargs)
@@ -88,8 +110,12 @@ class ContactoFilter(django_filters.FilterSet):
             self.form.fields["empresa"].queryset = Empresa.objects.all()
             self.form.fields["puesto"].queryset = Puesto.objects.all()
 
-        self.form.helper.layout = Layout(
-            'empresa',
-            'area',
-            'puesto',
-        )
+        layout_fields = ['empresa', 'area', 'puesto']
+
+        if user is not None:
+            layout_fields.append('es_inactivo')
+        else:
+            self.filters.pop('es_inactivo', None)
+            self.form.fields.pop('es_inactivo', None)
+
+        self.form.helper.layout = Layout(*layout_fields)

@@ -10,6 +10,10 @@ class Sede(models.Model):
     codigo = models.CharField(max_length=20, unique=True)
     ciudad = models.CharField(max_length=100, blank=True, null=True)
     activa = models.BooleanField(default=True)
+    es_principal = models.BooleanField(default=False)
+
+    empresa_principal = models.ForeignKey(Empresa, on_delete=models.CASCADE, blank=True, null=True,
+                                          related_name="empresa_principal")
 
     empresas = models.ManyToManyField(
         Empresa,

@@ -1,0 +1,193 @@
+<c-layouts.app>
+    <c-slot name="header">
+        <!-- BARRA DE ACCIONES Y FILTROS -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+
+            <!-- TÍTULO DE LA VISTA -->
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="icon-[tabler--building-community] text-primary text-base"></span>
+                <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">
+                    Departamentos NOI
+                </h1>
+                {% if empresa_noi_activa and tabla_deptos %}
+                    <span class="hidden md:inline-block text-[11px] text-base-content/50 font-mono">
+                        ({{ tabla_deptos }})
+                    </span>
+                {% endif %}
+            </div>
+
+            <!-- SELECTOR EMPRESA + FILTRO MAPEO + BUSCADOR + CONTADORES -->
+            <div class="flex items-center gap-2 flex-1 justify-end max-w-3xl flex-wrap sm:flex-nowrap">
+
+                <!-- SELECTOR DE EMPRESA NOI -->
+                {% if empresas_disponibles %}
+                    <form method="get" action="" class="shrink-0">
+                        {% if buscar %}
+                            <input type="hidden" name="q" value="{{ buscar }}">
+                        {% endif %}
+                        {% if estado_mapeo %}
+                            <input type="hidden" name="mapeo" value="{{ estado_mapeo }}">
+                        {% endif %}
+                        <select name="empresa"
+                                onchange="this.form.submit()"
+                                class="select select-xs h-7 min-h-0 bg-base-100 border-base-300 text-xs rounded-md max-w-[210px]">
+                            {% for emp in empresas_disponibles %}
+                                <option value="{{ emp.id }}"
+                                        {% if empresa_noi_activa and emp.id == empresa_noi_activa.id %}selected{% endif %}>
+                                    {{ emp.numero_empresa }} - {{ emp.nombre_corto|upper }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                {% endif %}
+
+                <!-- FILTRO DE ESTADO DE MAPEO -->
+                <form method="get" action="" class="shrink-0">
+                    {% if empresa_noi_activa %}
+                        <input type="hidden" name="empresa" value="{{ empresa_noi_activa.id }}">
+                    {% endif %}
+                    {% if buscar %}
+                        <input type="hidden" name="q" value="{{ buscar }}">
+                    {% endif %}
+                    <select name="mapeo"
+                            onchange="this.form.submit()"
+                            class="select select-xs h-7 min-h-0 bg-base-100 border-base-300 text-xs rounded-md">
+                        <option value="" {% if not estado_mapeo %}selected{% endif %}>Todos</option>
+                        <option value="mapeados" {% if estado_mapeo == 'mapeados' %}selected{% endif %}>Mapeados
+                        </option>
+                        <option value="sin_mapear" {% if estado_mapeo == 'sin_mapear' %}selected{% endif %}>Sin mapear
+                        </option>
+                    </select>
+                </form>
+
+                <!-- BUSCADOR RÁPIDO -->
+                <form method="get" action="" id="search-form" class="flex items-center gap-2 flex-1 max-w-xs">
+                    {% if empresa_noi_activa %}
+                        <input type="hidden" name="empresa" value="{{ empresa_noi_activa.id }}">
+                    {% endif %}
+                    {% if estado_mapeo %}
+                        <input type="hidden" name="mapeo" value="{{ estado_mapeo }}">
+                    {% endif %}
+
+                    <div class="relative flex-1 flex items-center">
+                        <span class="absolute left-2.5 text-base-content/40 pointer-events-none z-10">
+                            <span class="icon-[tabler--search] text-xs block"></span>
+                        </span>
+                        <input
+                                type="text"
+                                name="q"
+                                value="{{ buscar|default:'' }}"
+                                placeholder="Buscar clave, depto o empresa..."
+                                class="input input-xs w-full pl-7 pr-3 bg-base-100 border-base-300 focus:border-primary focus:outline-none text-xs rounded-md h-7"
+                        />
+                    </div>
+                </form>
+
+                <!-- RESUMEN DE CONTEO -->
+                <div class="hidden sm:flex items-center gap-2 border-l border-base-300 pl-2 text-[11px] text-base-content/70 shrink-0">
+                    <span title="Total mostrados">
+                        Total: <strong class="text-base-content">{{ departamentos|length }}</strong>
+                    </span>
+                    <span class="text-success" title="Departamentos mapeados">
+                        ✓ <strong class="font-mono">{{ total_mapeados }}</strong>
+                    </span>
+                    <span class="text-warning" title="Departamentos sin mapear">
+                        ! <strong class="font-mono">{{ total_sin_mapear }}</strong>
+                    </span>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- CHIPS DE FILTROS ACTIVOS -->
+        {% if buscar or estado_mapeo %}
+            <div class="flex items-center gap-1.5 flex-wrap pt-1 border-t border-base-200/60 mt-1">
+                {% if buscar %}
+                    <a href="?{% if empresa_noi_activa %}empresa={{ empresa_noi_activa.id }}&{% endif %}{% if estado_mapeo %}mapeo={{ estado_mapeo }}{% endif %}"
+                       class="badge badge-ghost border-base-300 badge-xs gap-1 text-[10px] h-4.5">
+                        <span>"{{ buscar }}"</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+                {% if estado_mapeo %}
+                    <a href="?{% if empresa_noi_activa %}empresa={{ empresa_noi_activa.id }}&{% endif %}{% if buscar %}q={{ buscar|urlencode }}{% endif %}"
+                       class="badge badge-info badge-outline badge-xs gap-1 text-[10px] h-4.5">
+                        <span>Mapeo: {{ estado_mapeo }}</span>
+                        <span class="icon-[tabler--x] text-[9px]"></span>
+                    </a>
+                {% endif %}
+                <a href="?{% if empresa_noi_activa %}empresa={{ empresa_noi_activa.id }}{% endif %}"
+                   class="text-[10px] text-primary hover:underline ml-1">Limpiar</a>
+            </div>
+        {% endif %}
+    </c-slot>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="p-2 sm:p-3 space-y-2">
+        {% if error_bd %}
+            <div role="alert" class="alert alert-error text-xs py-2">
+                <span class="icon-[tabler--alert-circle] text-sm"></span>
+                <span>{{ error_bd }}</span>
+            </div>
+        {% endif %}
+
+        {% if empresa_noi_activa %}
+            <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-base-100 border border-base-200 rounded-lg text-[11px] text-base-content/70">
+                <div>
+                    <span class="font-semibold text-base-content">{{ empresa_noi_activa.razon_social }}</span>
+                    <span class="opacity-60">({{ empresa_noi_activa.nombre_corto }} · No. {{ empresa_noi_activa.numero_empresa }})</span>
+                </div>
+                <div>
+                    Empresa por defecto:
+                    <strong class="text-base-content">
+                        {{ empresa_noi_activa.empresa_default.nombre_corto|default:"General / Default" }}
+                    </strong>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="overflow-x-auto max-h-[75vh] bg-base-100 border border-base-200 rounded-lg">
+            <table class="table table-zebra table-pin-rows table-xs w-full">
+                <thead>
+                <tr class="text-[11px] text-base-content/70 bg-base-200/50">
+                    <th class="w-24">Clave</th>
+                    <th>Departamento en NOI</th>
+                    <th class="w-32 text-center">Mapeo</th>
+                    <th>Empresa Destino</th>
+                </tr>
+                </thead>
+                <tbody class="text-xs">
+                {% for depto in departamentos %}
+                    <tr class="hover">
+                        <td class="font-mono text-[11px] text-base-content/80">{{ depto.clave }}</td>
+                        <td class="font-medium text-base-content">{{ depto.nombre }}</td>
+                        <td class="text-center">
+                            {% if depto.esta_mapeado %}
+                                <span class="badge badge-success badge-outline badge-xs text-[10px]">Mapeado</span>
+                            {% else %}
+                                <span class="badge badge-warning badge-outline badge-xs text-[10px]">Sin mapear</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if depto.empresa_destino %}
+                                <span class="font-semibold text-primary">{{ depto.empresa_destino.nombre_corto }}</span>
+                                <span class="text-[11px] text-base-content/50">({{ depto.empresa_destino.nombre }})</span>
+                            {% else %}
+                                <span class="text-[11px] text-base-content/50">
+                                        Usa default ({{ empresa_noi_activa.empresa_default.nombre_corto|default:"General" }})
+                                    </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-8 text-base-content/50 text-xs">
+                            No hay departamentos para mostrar con los criterios seleccionados.
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</c-layouts.app>

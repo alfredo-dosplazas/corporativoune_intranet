@@ -119,6 +119,7 @@ class ContactoForm(forms.ModelForm):
                             Column('puesto', css_class="col-span-12 sm:col-span-6"),
                             css_class="grid grid-cols-12 gap-2"
                         ),
+                        'razon_social',
                         'jefe_directo',
                         'empresas_relacionadas',
                         css_class="card bg-base-100 border border-base-200 p-4 shadow-2xs space-y-2"

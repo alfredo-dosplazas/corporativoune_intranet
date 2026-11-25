@@ -60,6 +60,7 @@ class DirectorioListView(
     def get_filterset_kwargs(self, filterset_class):
         kwargs = super().get_filterset_kwargs(filterset_class)
         kwargs['sedes_permitidas'] = obtener_sedes_permitidas(self.request)
+        kwargs['user'] = self.request.user
         return kwargs
 
     def get_queryset(self):
@@ -75,6 +76,7 @@ class DirectorioListView(
         contactos_sedes_permitidas = (
             Contacto.objects.filter(
                 Q(usuario__is_active=True) | Q(usuario__isnull=True),
+                fecha_egreso__isnull=True,
                 esta_archivado=False,
                 mostrar_en_directorio=True,
                 sede_administrativa_id__in=sedes_permitidas
