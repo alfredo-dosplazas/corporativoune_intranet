@@ -16,7 +16,7 @@
                 <div class="flex items-center gap-2 min-w-0">
                     <span class="icon-[tabler--id-badge-2] text-primary text-base shrink-0"></span>
                     <h1 class="font-bold text-xs sm:text-sm text-base-content truncate">{{ puesto.nombre }}</h1>
-                    <span class="badge badge-xs badge-neutral shrink-0">{{ puesto.contactos.count }} asignados</span>
+                    <span class="badge badge-xs badge-neutral shrink-0">{{ personal.count }} asignados</span>
                 </div>
             </div>
 
@@ -66,7 +66,7 @@
 
                         <div class="pt-2 border-t border-base-200/60 flex items-center justify-between text-[11px]">
                             <span class="text-base-content/60 text-[10px] uppercase font-semibold">Colaboradores Activos</span>
-                            <span class="badge badge-sm badge-neutral font-mono font-bold">{{ puesto.contactos.count }}</span>
+                            <span class="badge badge-sm badge-neutral font-mono font-bold">{{ personal.count }}</span>
                         </div>
                     </div>
                 </div>
@@ -80,7 +80,7 @@
                     <div class="flex items-center gap-1">
                         <span class="icon-[tabler--users] size-3.5"></span> Colaboradores con este Puesto
                     </div>
-                    <span class="badge badge-xs badge-neutral">{{ puesto.contactos.count }}</span>
+                    <span class="badge badge-xs badge-neutral">{{ personal.count }}</span>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
