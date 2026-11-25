@@ -212,17 +212,15 @@ class ExportOrdenesDetalleExcelView(PermissionRequiredMixin, View):
     Vista orientada a HTTP response para descargar el reporte en Excel con metadatos en el archivo y contenido.
     """
 
-    permission_required = 'compras.view_orden'
+    permission_required = 'compras.exportar_excel_detalle_orden'
 
     def get(self, request, *args, **kwargs):
         ordenes_qs = Orden.objects.all()
         f = OrdenFilter(request.GET, queryset=ordenes_qs)
-        detalles_qs = DetalleOrden.objects.filter(orden__in=f.qs).select_related('orden')
+        detalles_qs = DetalleOrden.objects.filter(orden__in=f.qs).select_related('orden', 'orden__proveedor')
 
-        # Obtener datos limpios de los filtros aplicados
         filtros_datos = f.form.cleaned_data if f.is_valid() else {}
 
-        # 1. Instanciar exporter con los metadatos del filtro
         exporter = OrdenesExcelExporter(
             queryset=detalles_qs,
             usuario=request.user,
@@ -233,7 +231,6 @@ class ExportOrdenesDetalleExcelView(PermissionRequiredMixin, View):
         wb = exporter.build_workbook()
 
         timestamp = timezone.localtime(timezone.now()).strftime('%Y%m%d_%H%M')
-
         filename = f"desglose_costos_{timestamp}.xlsx"
 
         response = HttpResponse(

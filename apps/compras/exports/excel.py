@@ -1,3 +1,4 @@
+import math
 import os
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -9,8 +10,11 @@ from django.utils import timezone
 class OrdenesExcelExporter:
     """
     Servicio encargado de generar un reporte profesional en Excel (Estilo Ejecutivo / ERP)
-    con desglose de artículos, fecha, metadatos de filtrado y logotipo corporativo.
+    con desglose de artículos, proveedor, fecha, metadatos de filtrado y logotipo corporativo.
     """
+
+    MAX_WIDTH_PROVEEDOR = 35
+    MAX_WIDTH_ARTICULO = 45
 
     def __init__(self, queryset, usuario=None, empresa_nombre="EMPRESA S.A. DE C.V.", logo_path=None, filtros=None):
         self.queryset = queryset
@@ -18,6 +22,16 @@ class OrdenesExcelExporter:
         self.empresa_nombre = empresa_nombre
         self.logo_path = logo_path
         self.filtros = filtros or {}
+
+    @staticmethod
+    def _calcular_altura_fila(texto: str, ancho_columna: int, altura_base: int = 20) -> int:
+        """Calcula una altura de fila proporcional para textos largos con wrap_text."""
+        if not texto:
+            return altura_base
+        parrafos = str(texto).splitlines() or [str(texto)]
+        ancho_util = max(ancho_columna - 3, 10)
+        total_lineas = sum(max(1, math.ceil(len(p) / ancho_util)) for p in parrafos)
+        return max(altura_base, total_lineas * 15 + 6)
 
     def build_workbook(self) -> openpyxl.Workbook:
         wb = openpyxl.Workbook()
@@ -37,6 +51,7 @@ class OrdenesExcelExporter:
         font_total = Font(name="Calibri", size=11, bold=True, color="1F2937")
 
         align_left = Alignment(horizontal="left", vertical="center")
+        align_left_wrap = Alignment(horizontal="left", vertical="center", wrap_text=True)
         align_center = Alignment(horizontal="center", vertical="center")
         align_right = Alignment(horizontal="right", vertical="center")
 
@@ -74,7 +89,6 @@ class OrdenesExcelExporter:
             value=f"Fecha de emisión: {fecha_actual}  |  Generado por: {self.usuario}"
         ).font = font_subtitle
 
-        # Formatear metadatos de los filtros aplicados
         f_inicio = self.filtros.get('fecha_inicio')
         f_fin = self.filtros.get('fecha_fin')
         estado = self.filtros.get('estado') or 'Todos'
@@ -90,17 +104,26 @@ class OrdenesExcelExporter:
         ws.row_dimensions[3].height = 18
         ws.row_dimensions[4].height = 18
 
-        header_row = 6  # Los encabezados inician en la fila 6 por el renglón extra de filtros
+        header_row = 6
 
         # --- 3. ENCABEZADOS DE LA TABLA ---
-        headers = ["Folio", "Fecha", "Artículo", "Unidad", "Cantidad", "Costo Unitario", "Costo Total"]
+        headers = [
+            "Folio",          # Col 1 (A)
+            "Fecha",          # Col 2 (B)
+            "Proveedor",      # Col 3 (C)
+            "Artículo",       # Col 4 (D)
+            "Unidad",         # Col 5 (E)
+            "Cantidad",       # Col 6 (F)
+            "Costo Unitario", # Col 7 (G)
+            "Costo Total",    # Col 8 (H)
+        ]
         for col_num, header in enumerate(headers, 1):
             cell = ws.cell(row=header_row, column=col_num, value=header)
             cell.font = font_header
             cell.fill = fill_header
-            if col_num in [1, 2, 4, 5]:
+            if col_num in [1, 2, 5, 6]:
                 cell.alignment = align_center
-            elif col_num in [6, 7]:
+            elif col_num in [7, 8]:
                 cell.alignment = align_right
             else:
                 cell.alignment = align_left
@@ -113,25 +136,32 @@ class OrdenesExcelExporter:
         for detalle in self.queryset:
             folio = detalle.orden.folio or "SIN FOLIO"
             fecha_orden = detalle.orden.fecha_orden.strftime('%Y-%m-%d') if detalle.orden.fecha_orden else ""
-            articulo = detalle.descripcion
+            proveedor = (
+                detalle.orden.proveedor.nombre_completo
+                if getattr(detalle.orden, 'proveedor', None)
+                else "SIN PROVEEDOR"
+            )
+            articulo = detalle.descripcion or ""
             unidad = detalle.get_unidad_display()
             cantidad = float(detalle.cantidad)
             precio_unitario = float(detalle.precio_unitario)
             costo_total = cantidad * precio_unitario
 
-            ws.append([folio, fecha_orden, articulo, unidad, cantidad, precio_unitario, costo_total])
+            ws.append([folio, fecha_orden, proveedor, articulo, unidad, cantidad, precio_unitario, costo_total])
 
             c_folio = ws.cell(row=row_num, column=1)
             c_fecha = ws.cell(row=row_num, column=2)
-            c_articulo = ws.cell(row=row_num, column=3)
-            c_unidad = ws.cell(row=row_num, column=4)
-            c_cant = ws.cell(row=row_num, column=5)
-            c_punit = ws.cell(row=row_num, column=6)
-            c_total = ws.cell(row=row_num, column=7)
+            c_prov = ws.cell(row=row_num, column=3)
+            c_articulo = ws.cell(row=row_num, column=4)
+            c_unidad = ws.cell(row=row_num, column=5)
+            c_cant = ws.cell(row=row_num, column=6)
+            c_punit = ws.cell(row=row_num, column=7)
+            c_total = ws.cell(row=row_num, column=8)
 
             c_folio.alignment = align_center
             c_fecha.alignment = align_center
-            c_articulo.alignment = align_left
+            c_prov.alignment = align_left_wrap
+            c_articulo.alignment = align_left_wrap
             c_unidad.alignment = align_center
             c_cant.alignment = align_right
             c_punit.alignment = align_right
@@ -141,11 +171,15 @@ class OrdenesExcelExporter:
             c_punit.number_format = '"$"#,##0.00'
             c_total.number_format = '"$"#,##0.00'
 
-            for cell in (c_folio, c_fecha, c_articulo, c_unidad, c_cant, c_punit, c_total):
+            for cell in (c_folio, c_fecha, c_prov, c_articulo, c_unidad, c_cant, c_punit, c_total):
                 cell.font = font_data
                 cell.border = thin_border
 
-            ws.row_dimensions[row_num].height = 20
+            # Ajustar altura de fila según el texto más alto entre Proveedor y Artículo
+            altura_prov = self._calcular_altura_fila(proveedor, self.MAX_WIDTH_PROVEEDOR)
+            altura_art = self._calcular_altura_fila(articulo, self.MAX_WIDTH_ARTICULO)
+            ws.row_dimensions[row_num].height = max(altura_prov, altura_art)
+
             row_num += 1
 
         # --- 5. FILA DE TOTALES GENERALES ---
@@ -157,37 +191,49 @@ class OrdenesExcelExporter:
         end_data_row = total_row - 1
 
         if end_data_row >= start_data_row:
-            cell_sum_cant = ws.cell(row=total_row, column=5, value=f"=SUM(E{start_data_row}:E{end_data_row})")
-            cell_sum_tot = ws.cell(row=total_row, column=7, value=f"=SUM(G{start_data_row}:G{end_data_row})")
+            cell_sum_cant = ws.cell(row=total_row, column=6, value=f"=SUM(F{start_data_row}:F{end_data_row})")
+            cell_sum_tot = ws.cell(row=total_row, column=8, value=f"=SUM(H{start_data_row}:H{end_data_row})")
         else:
-            cell_sum_cant = ws.cell(row=total_row, column=5, value=0)
-            cell_sum_tot = ws.cell(row=total_row, column=7, value=0)
+            cell_sum_cant = ws.cell(row=total_row, column=6, value=0)
+            cell_sum_tot = ws.cell(row=total_row, column=8, value=0)
 
         cell_sum_cant.number_format = '#,##0'
         cell_sum_tot.number_format = '"$"#,##0.00'
 
-        for col_idx in range(1, 8):
+        for col_idx in range(1, 9):
             cell = ws.cell(row=total_row, column=col_idx)
             cell.font = font_total
             cell.border = total_border
-            if col_idx in [5, 7]:
+            if col_idx in [6, 8]:
                 cell.alignment = align_right
 
         ws.row_dimensions[total_row].height = 22
 
-        # --- 6. AUTO-AJUSTE DE ANCHO DE COLUMNAS ---
+        # --- 6. AUTO-AJUSTE DE ANCHO DE COLUMNAS (CON LÍMITE EN TEXTO LARGO) ---
+        limites_ancho = {
+            3: self.MAX_WIDTH_PROVEEDOR,  # Columna C: Proveedor
+            4: self.MAX_WIDTH_ARTICULO,   # Columna D: Artículo
+        }
+
         for col in ws.columns:
             max_len = 0
-            col_letter = get_column_letter(col[0].column)
+            col_idx = col[0].column
+            col_letter = get_column_letter(col_idx)
             for cell in col:
                 if cell.row < header_row:
                     continue
                 val_str = str(cell.value or '')
                 if cell.number_format and '$' in cell.number_format:
                     val_str = f"${val_str}.00"
-                if len(val_str) > max_len:
-                    max_len = len(val_str)
+                # Tomar la línea más larga si tiene saltos de línea
+                linea_max = max((len(l) for l in val_str.splitlines()), default=0)
+                if linea_max > max_len:
+                    max_len = linea_max
 
-            ws.column_dimensions[col_letter].width = max(max_len + 5, 14)
+            ancho_calculado = max(max_len + 5, 14)
+            if col_idx in limites_ancho:
+                ancho_calculado = min(ancho_calculado, limites_ancho[col_idx])
+
+            ws.column_dimensions[col_letter].width = ancho_calculado
 
         return wb

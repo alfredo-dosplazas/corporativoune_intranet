@@ -243,6 +243,9 @@ class Orden(models.Model):
         super().save(*args, **kwargs)
 
     class Meta:
+        permissions = [
+            ('exportar_excel_detalle_orden', 'Exportar resumen ordenes con detalles en Excel')
+        ]
         ordering = ['-created_at']
 
     def __str__(self):
