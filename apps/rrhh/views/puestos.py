@@ -59,6 +59,7 @@ class PuestoListView(PermissionRequiredMixin, BreadcrumbsMixin, SearchableListMi
 
         context['sin_puesto_count'] = Contacto.objects.filter(
             Q(usuario__is_active=True) | Q(usuario__isnull=True),
+            fecha_baja__isnull=True,
             esta_archivado=False,
             mostrar_en_directorio=True,
             puesto__isnull=True,
@@ -87,6 +88,7 @@ class PuestoSinPuestoDetailView(PermissionRequiredMixin, BreadcrumbsMixin, ListV
         empresas_ids = obtener_empresas_permitidas(self.request)
         return Contacto.objects.filter(
             Q(usuario__is_active=True) | Q(usuario__isnull=True),
+            fecha_baja__isnull=True,
             esta_archivado=False,
             mostrar_en_directorio=True,
             puesto__isnull=True,

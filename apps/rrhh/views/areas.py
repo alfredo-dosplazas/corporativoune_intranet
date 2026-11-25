@@ -65,6 +65,7 @@ class AreaListView(
 
         context['sin_area_count'] = Contacto.objects.filter(
             Q(usuario__is_active=True) | Q(usuario__isnull=True),
+            fecha_baja__isnull=True,
             esta_archivado=False,
             mostrar_en_directorio=True,
             area__isnull=True,
@@ -92,6 +93,7 @@ class AreaSinAreaDetailView(PermissionRequiredMixin, BreadcrumbsMixin, ListView)
         empresas_ids = obtener_empresas_permitidas(self.request)
         return Contacto.objects.filter(
             Q(usuario__is_active=True) | Q(usuario__isnull=True),
+            fecha_baja__isnull=True,
             esta_archivado=False,
             mostrar_en_directorio=True,
             area__isnull=True,
