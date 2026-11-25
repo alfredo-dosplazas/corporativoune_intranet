@@ -31,7 +31,6 @@ class EmpresaAutocomplete(autocomplete.Select2QuerySetView):
         # Filtrado por sedes permitidas globales
         sedes = obtener_sedes_permitidas(self.request)
 
-        print(sedes)
         if sedes is not None:
             qs = qs.filter(sedes__id__in=sedes).distinct()
 

@@ -21,6 +21,9 @@ class Sede(models.Model):
     def __str__(self):
         return self.nombre
 
+    class Meta:
+        ordering = ['nombre', 'ciudad']
+
 
 class SedeIPRange(models.Model):
     sede = models.ForeignKey(

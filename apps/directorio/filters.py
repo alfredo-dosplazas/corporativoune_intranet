@@ -7,6 +7,7 @@ from apps.core.models import Empresa
 from apps.directorio.models import Contacto
 from apps.rrhh.models.areas import Area
 from apps.rrhh.models.puestos import Puesto
+from apps.rrhh.models.sedes import Sede
 
 
 class ContactoFilter(django_filters.FilterSet):
@@ -15,6 +16,15 @@ class ContactoFilter(django_filters.FilterSet):
         field_name='empresa',
         widget=autocomplete.ModelSelect2(
             url='empresa__autocomplete',
+            attrs={'style': 'width: 100%;', 'data-dropdown-parent': '#modal_filtros'}
+        ),
+    )
+
+    sede = django_filters.ModelChoiceFilter(
+        queryset=Sede.objects.none(),
+        field_name='sede_administrativa',
+        widget=autocomplete.ModelSelect2(
+            url='directorio:sede__autocomplete',
             attrs={'style': 'width: 100%;', 'data-dropdown-parent': '#modal_filtros'}
         ),
     )
@@ -41,7 +51,7 @@ class ContactoFilter(django_filters.FilterSet):
 
     class Meta:
         model = Contacto
-        fields = ["empresa", "area", "puesto"]
+        fields = ["empresa", "sede", "area", "puesto"]
 
     def __init__(self, *args, **kwargs):
         sedes_permitidas = kwargs.pop("sedes_permitidas", None)
@@ -56,6 +66,10 @@ class ContactoFilter(django_filters.FilterSet):
 
         # Restringir los querysets/choices según las sedes pasadas
         if sedes_permitidas is not None:
+            self.form.fields["sede"].queryset = (
+                Sede.objects.filter(id__in=sedes_permitidas).distinct()
+            )
+
             self.form.fields["empresa"].queryset = (
                 Empresa.objects.filter(sedes__id__in=sedes_permitidas).distinct()
             )
