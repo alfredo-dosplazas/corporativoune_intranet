@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎄 {{ evento.titulo }} - Elección Fiesta de Fin de Año</title>
+    <title>🗽 {{ evento.titulo }} - Comida Navideña Nueva York</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .snow-overlay {
@@ -15,17 +15,17 @@
             radial-gradient(2px 2px at 200px 180px, #fde047, rgba(0, 0, 0, 0));
         }
 
-        /* Estilo activo al seleccionar una tarjeta */
+        /* Estilo activo al seleccionar una opción de menú */
         input[type="radio"]:checked + .option-card {
             border-color: #f59e0b;
-            background-color: rgba(245, 158, 11, 0.14);
-            box-shadow: 0 0 28px rgba(245, 158, 11, 0.28);
-            transform: translateY(-2px);
+            background-color: rgba(245, 158, 11, 0.16);
+            box-shadow: 0 0 35px rgba(245, 158, 11, 0.35), inset 0 0 15px rgba(245, 158, 11, 0.1);
+            transform: translateY(-3px);
         }
 
         input[type="radio"]:checked + .option-card .radio-ring {
             border-color: #f59e0b;
-            background-color: rgba(245, 158, 11, 0.15);
+            background-color: rgba(245, 158, 11, 0.2);
         }
 
         input[type="radio"]:checked + .option-card .radio-indicator {
@@ -37,25 +37,45 @@
             transform: scale(0);
         }
 
-        /* Estilos para contenido WYSIWYG en tema oscuro */
+        /* Estilos enriquecidos para el contenido del menú (WYSIWYG) */
         .wysiwyg-content p {
-            margin-bottom: 0.65rem;
+            margin-top: 0.85rem;
+            margin-bottom: 0.35rem;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #fde68a;
+            border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+            padding-bottom: 2px;
         }
 
-        .wysiwyg-content p:last-child {
-            margin-bottom: 0;
+        .wysiwyg-content p:first-child {
+            margin-top: 0.25rem;
         }
 
         .wysiwyg-content ul {
-            list-style-type: disc;
-            padding-left: 1.4rem;
-            margin-bottom: 0.65rem;
+            list-style-type: none;
+            padding-left: 0;
+            margin-bottom: 0.75rem;
         }
 
-        .wysiwyg-content ol {
-            list-style-type: decimal;
-            padding-left: 1.4rem;
-            margin-bottom: 0.65rem;
+        .wysiwyg-content li {
+            position: relative;
+            padding-left: 14px;
+            margin-bottom: 0.35rem;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            color: #e2e8f0;
+        }
+
+        .wysiwyg-content li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: #f59e0b;
+            font-weight: bold;
         }
 
         .wysiwyg-content strong {
@@ -63,9 +83,8 @@
             font-weight: 700;
         }
 
-        .wysiwyg-content a {
-            color: #fbbf24;
-            text-decoration: underline;
+        .option-card {
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
     </style>
     {% if exito %}
@@ -73,41 +92,41 @@
     {% endif %}
 </head>
 <body class="text-slate-100 py-6 sm:py-10 px-3 sm:px-6 flex justify-center items-start relative snow-overlay overflow-x-hidden"
-      style="background-color: #090d16; {% if evento.imagen_fondo %}background-image: linear-gradient(rgba(9, 13, 22, 0.85), rgba(3, 7, 18, 0.92)), url('{{ evento.imagen_fondo.url }}');{% else %}background-image: linear-gradient(rgba(9, 13, 22, 0.85), rgba(3, 7, 18, 0.92));{% endif %} background-size: cover; background-position: center; background-attachment: fixed; min-height: 100vh;">
+      style="background-color: #050811; {% if evento.imagen_fondo %}background-image: linear-gradient(rgba(5, 8, 17, 0.78), rgba(9, 13, 22, 0.88)), url('{{ evento.imagen_fondo.url }}');{% else %}background-image: linear-gradient(rgba(5, 8, 17, 0.78), rgba(9, 13, 22, 0.88)), url('id-66e3-7-image.jpg');{% endif %} background-size: cover; background-position: center; background-attachment: fixed; min-height: 100vh;">
 
-<div class="max-w-6xl w-full bg-slate-900/90 backdrop-blur-md border-2 border-amber-500/40 rounded-3xl p-5 sm:p-10 shadow-[0_0_60px_rgba(245,158,11,0.2)] relative z-10">
+<div class="max-w-5xl w-full bg-slate-950/85 backdrop-blur-lg border-2 border-amber-500/35 rounded-3xl p-5 sm:p-10 shadow-[0_0_60px_rgba(245,158,11,0.25)] relative z-10">
 
-    <!-- BARRA SUPERIOR -->
+    <!-- BARRA SUPERIOR CON ESTILO NUEVA YORK GALA -->
     <div class="flex flex-col sm:flex-row justify-between items-center gap-3 mb-6 pb-4 border-b border-amber-500/20">
-        <span class="bg-emerald-500/20 text-emerald-300 text-xs font-bold px-4 py-2 rounded-full uppercase tracking-wider border border-emerald-500/40 flex items-center gap-2 shadow-inner">
-            <span>✨</span> Fiesta de Fin de Año &middot; Votación de Temática
+        <span class="bg-amber-500/15 text-amber-300 text-xs font-bold px-4 py-2 rounded-full uppercase tracking-wider border border-amber-500/30 flex items-center gap-2 shadow-inner">
+            <span>🗽</span> Experiencia Navideña &middot; Nueva York 2026
         </span>
 
         {% if perms.votaciones.view_votosesion or request.user.is_superuser %}
             <a href="{% url 'votaciones:resultados_evento' evento.id %}"
-               class="text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-100 px-4 py-2 rounded-xl border border-amber-500/40 transition flex items-center gap-2 shadow-sm">
+               class="text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-amber-100 px-4 py-2 rounded-xl border border-amber-500/30 transition flex items-center gap-2 shadow-sm">
                 <span>📊</span> Ver Tendencias <span
                     class="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded">Staff</span>
             </a>
         {% endif %}
     </div>
 
-    <!-- TITULO Y DESCRIPCIÓN WYSIWYG -->
+    <!-- TITULO Y ENCABEZADO ESTILO GALA -->
     <header class="text-center mb-8">
-        <div class="inline-block text-4xl mb-2">🎄 ⭐ 🥂</div>
-        <h1 class="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-100 drop-shadow-sm">
+        <div class="inline-block text-4xl mb-2 tracking-widest">✨ 🗽 🥂</div>
+        <h1 class="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-yellow-400 to-amber-200 drop-shadow-sm uppercase tracking-wide">
             {{ evento.titulo }}
         </h1>
-        <p class="text-slate-200 text-sm sm:text-base mt-3 max-w-2xl mx-auto">
+        <p class="text-slate-200 text-xs sm:text-sm font-medium tracking-wide mt-3 max-w-2xl mx-auto uppercase text-amber-200/80">
             {% if evento.subtitulo %}
                 {{ evento.subtitulo }}
             {% else %}
-                ¡Tu opinión cuenta! Elige tu temática preferida para celebrar juntos los logros del año.
+                Selecciona la propuesta gastronómica que prefieras para nuestro banquete
             {% endif %}
         </p>
 
         {% if evento.descripcion %}
-            <div class="wysiwyg-content mt-5 max-w-3xl mx-auto text-left text-xs sm:text-sm text-slate-300 bg-slate-950/75 border border-amber-500/20 rounded-2xl p-4 sm:p-5 shadow-inner">
+            <div class="wysiwyg-content mt-5 max-w-3xl mx-auto text-left text-xs sm:text-sm text-slate-300 bg-slate-900/70 border border-amber-500/20 rounded-2xl p-4 sm:p-5 shadow-inner">
                 {{ evento.descripcion|safe }}
             </div>
         {% endif %}
@@ -117,8 +136,8 @@
         <div class="bg-emerald-950/80 border-2 border-emerald-500 text-emerald-200 p-8 sm:p-12 rounded-3xl text-center my-8 shadow-2xl">
             <div class="text-7xl mb-4 animate-bounce">🎁</div>
             <h2 class="text-3xl font-black text-amber-300">¡Voto Registrado con Éxito!</h2>
-            <p class="text-slate-300 text-sm mt-2">Gracias por ayudarnos a planear nuestra fiesta de fin de año.
-                Reiniciando pantalla...</p>
+            <p class="text-slate-300 text-sm mt-2">Gracias por elegir tu propuesta para la Comida Navideña. Reiniciando
+                pantalla...</p>
         </div>
     {% else %}
         {% if messages %}
@@ -134,7 +153,7 @@
             {% csrf_token %}
 
             {% if evento.requiere_identificador %}
-                <div class="bg-slate-950/90 p-5 sm:p-6 rounded-2xl border border-amber-500/30 max-w-xl mx-auto shadow-inner space-y-3">
+                <div class="bg-slate-950/90 p-5 sm:p-6 rounded-2xl border border-amber-500/25 max-w-xl mx-auto shadow-inner space-y-3">
                     <label for="identificador" class="block text-sm font-bold text-slate-200 flex items-center gap-2">
                         <span>🪪</span> Nombre Completo o Correo Corporativo <span class="text-amber-400">*</span>
                     </label>
@@ -143,7 +162,7 @@
                            placeholder="Ej. Juan Pérez / jperez@corporativoune.mx"
                            class="w-full bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400/30 transition">
 
-                    <div class="bg-amber-950/40 border border-amber-500/30 rounded-xl p-3 flex items-start gap-2.5 text-xs text-amber-200/90">
+                    <div class="bg-amber-950/40 border border-amber-500/25 rounded-xl p-3 flex items-start gap-2.5 text-xs text-amber-200/90">
                         <span class="text-base leading-none">❄️</span>
                         <p class="leading-relaxed">
                             Solo se registrará un voto por colaborador corporativo para garantizar un resultado
@@ -156,7 +175,7 @@
             <!-- PREGUNTAS / CRITERIOS -->
             {% for criterio in criterios %}
                 <section
-                        class="criterio-section bg-slate-950/80 border border-amber-500/20 rounded-3xl p-5 sm:p-8 space-y-6 shadow-xl"
+                        class="criterio-section bg-slate-950/70 border border-amber-500/20 rounded-3xl p-4 sm:p-8 space-y-6 shadow-xl"
                         data-criterio-id="{{ criterio.id }}">
                     <div class="border-b border-amber-500/20 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <h2 class="text-lg sm:text-2xl font-bold text-amber-300 flex items-center gap-2">
@@ -167,10 +186,10 @@
                         </span>
                     </div>
 
-                    <!-- OPCIONES / TEMÁTICAS PROPUESTAS -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <!-- 2 OPCIONES / TEMÁTICAS PROPUESTAS (GRID EN 2 COLUMNAS SIMÉTRICAS) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {% for participante in participantes %}
-                            <label class="cursor-pointer group relative block">
+                            <label class="cursor-pointer group relative block h-full">
                                 <input type="radio"
                                        name="categoria_{{ criterio.id }}"
                                        value="{{ participante.id }}"
@@ -178,45 +197,51 @@
                                        class="sr-only criterio-radio"
                                        onchange="actualizarEstadoVotacion()">
 
-                                <div class="option-card h-full bg-slate-900/90 border-2 border-slate-800 rounded-2xl p-5 transition duration-200 flex flex-col justify-between hover:border-amber-400/60">
-                                    <div class="space-y-3">
+                                <div class="option-card h-full bg-slate-900/70 border-2 border-slate-800/80 rounded-2xl p-5 sm:p-6 transition duration-300 flex flex-col justify-between hover:border-amber-400/60 hover:bg-slate-900/90">
+                                    <div class="space-y-4">
                                         {% if participante.imagen %}
                                             <div class="aspect-video w-full rounded-xl overflow-hidden bg-slate-950 border border-slate-800 relative group/img">
                                                 <img src="{{ participante.imagen.url }}"
                                                      alt="{{ participante.nombre }}"
-                                                     class="lightbox-trigger w-full h-full object-contain bg-slate-950 group-hover:scale-105 transition duration-300"
+                                                     class="lightbox-trigger w-full h-full object-cover bg-slate-950 group-hover:scale-105 transition duration-300"
                                                      data-src="{{ participante.imagen.url }}"
                                                      data-title="{{ participante.nombre|escapejs }}"
-                                                     data-caption="
-                                                             {% if participante.descripcion %}{{ participante.descripcion|striptags|escapejs }}{% endif %}">
+                                                     data-caption="">
 
                                                 <button type="button"
                                                         onclick="event.preventDefault(); event.stopPropagation(); openLightboxFromElement(this.previousElementSibling)"
-                                                        class="absolute bottom-2 right-2 bg-slate-950/85 hover:bg-amber-400 hover:text-slate-950 text-slate-100 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-700/80 backdrop-blur-sm transition flex items-center gap-1.5 shadow-md">
-                                                    <span>🔍</span> Ver completa
+                                                        class="absolute bottom-3 right-3 bg-slate-950/90 hover:bg-amber-400 hover:text-slate-950 text-slate-100 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-700/80 backdrop-blur-sm transition flex items-center gap-1.5 shadow-md">
+                                                    <span>🔍</span> Ver menú completo
                                                 </button>
                                             </div>
                                         {% else %}
-                                            <div class="aspect-video w-full rounded-xl bg-gradient-to-br from-emerald-950/30 to-amber-950/30 border border-amber-500/20 flex items-center justify-center text-4xl">
-                                                🥂
+                                            <div class="aspect-video w-full rounded-xl bg-gradient-to-br from-emerald-950/20 to-amber-950/20 border border-amber-500/20 flex items-center justify-center text-4xl">
+                                                🍽️
                                             </div>
                                         {% endif %}
 
-                                        <h3 class="font-bold text-lg text-white group-hover:text-amber-300 transition">
-                                            {{ participante.nombre }}
-                                        </h3>
+                                        <div class="flex items-start justify-between gap-3">
+                                            <h3 class="font-extrabold text-xl sm:text-2xl text-white group-hover:text-amber-300 transition">
+                                                {{ participante.nombre }}
+                                            </h3>
+                                            <span class="text-[10px] bg-amber-500/10 text-amber-300 px-2 py-1 rounded font-bold uppercase border border-amber-500/20 tracking-wider whitespace-nowrap">
+                                                Dos Plazas
+                                            </span>
+                                        </div>
 
                                         {% if participante.descripcion %}
-                                            <div class="wysiwyg-content text-xs text-slate-300 leading-relaxed">
+                                            <div class="wysiwyg-content text-xs text-slate-300 bg-slate-950/50 p-4 rounded-xl border border-slate-800/60 leading-relaxed space-y-2">
                                                 {{ participante.descripcion|safe }}
                                             </div>
                                         {% endif %}
                                     </div>
 
-                                    <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                                        <span class="select-label group-hover:text-amber-300 font-medium">Seleccionar {{ evento.etiqueta_opciones|lower }}</span>
-                                        <div class="radio-ring w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center group-hover:border-amber-400 transition">
-                                            <div class="radio-indicator w-2.5 h-2.5 rounded-full bg-amber-400 transition-transform duration-150"></div>
+                                    <div class="mt-5 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                                        <span class="select-label group-hover:text-amber-300 font-semibold tracking-wide">
+                                            Elegir este menú
+                                        </span>
+                                        <div class="radio-ring w-6 h-6 rounded-full border-2 border-slate-600 flex items-center justify-center group-hover:border-amber-400 transition">
+                                            <div class="radio-indicator w-3 h-3 rounded-full bg-amber-400 transition-transform duration-150"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -228,10 +253,10 @@
 
             <!-- BOTON VOTAR -->
             <div class="text-center pt-4 space-y-2">
-                <p id="progresoTexto" class="text-xs text-slate-400"></p>
+                <p id="progresoTexto" class="text-xs text-slate-400 font-medium"></p>
                 <button id="btnSubmitVoto" type="submit"
-                        class="w-full sm:w-auto min-w-[280px] bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 text-lg font-black py-4 px-10 rounded-2xl shadow-[0_0_30px_rgba(245,158,11,0.35)] transition transform active:scale-95">
-                    ✨ Confirmar y Emitir Mi Voto ✨
+                        class="w-full sm:w-auto min-w-[300px] bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 text-base font-black py-4 px-12 rounded-2xl shadow-[0_0_35px_rgba(245,158,11,0.4)] transition transform active:scale-95 uppercase tracking-wide">
+                    ✨ Registrar mi elección ✨
                 </button>
             </div>
         </form>
