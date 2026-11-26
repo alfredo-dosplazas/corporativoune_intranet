@@ -5,7 +5,7 @@ from dal import autocomplete
 from django import forms
 from django.db.models import Q
 
-from apps.core.models import Empresa
+from apps.core.models import Empresa, RazonSocial
 from apps.directorio.models import Contacto
 from apps.rrhh.models.areas import Area
 from apps.rrhh.models.puestos import Puesto
@@ -27,6 +27,15 @@ class ContactoFilter(django_filters.FilterSet):
         field_name='sede_administrativa',
         widget=autocomplete.ModelSelect2(
             url='directorio:sede__autocomplete',
+            attrs={'style': 'width: 100%;', 'data-dropdown-parent': '#modal_filtros'}
+        ),
+    )
+
+    razon_social = django_filters.ModelChoiceFilter(
+        queryset=RazonSocial.objects.all(),
+        field_name='razon_social',
+        widget=autocomplete.ModelSelect2(
+            url='razon_social__autocomplete',
             attrs={'style': 'width: 100%;', 'data-dropdown-parent': '#modal_filtros'}
         ),
     )
@@ -58,12 +67,12 @@ class ContactoFilter(django_filters.FilterSet):
             ('activos', 'Activos'),
             ('inactivos', 'Inactivos'),
         ],
-        widget=forms.Select(attrs={'class': 'select select-bordered w-full'}),
+        widget=forms.Select(attrs={'class': 'select w-full'}),
     )
 
     class Meta:
         model = Contacto
-        fields = ["empresa", "sede", "area", "puesto", "esta_archivado"]
+        fields = ["empresa", "sede", "razon_social", "area", "puesto", "esta_archivado"]
 
     def filter_es_inactivo(self, queryset, name, value):
         condicion_inactivo = Q(fecha_egreso__isnull=False) | Q(usuario__is_active=False)
