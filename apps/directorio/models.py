@@ -108,12 +108,20 @@ class Contacto(models.Model):
         verbose_name='Sede Administrativa',
     )
 
-    # DONDE APARECE
+    # EN QUÉ SEDES APARECE ESTE CONTACTO
     sedes_visibles = models.ManyToManyField(
         Sede,
         related_name="contactos_visibles",
         blank=True,
-        help_text="Sedes donde este contacto aparece en el directorio"
+        help_text="Sedes adicionales donde este contacto aparece en el directorio."
+    )
+
+    # QUÉ SEDES ADICIONALES PUEDE CONSULTAR ESTE USUARIO (opcional, si el perfil es de usuario)
+    sedes_consulta = models.ManyToManyField(
+        Sede,
+        related_name="usuarios_que_consultan",
+        blank=True,
+        help_text="Sedes adicionales que este usuario puede ver en el directorio además de las permitidas por defecto."
     )
 
     es_jefe = models.BooleanField(default=False, verbose_name="Es jefe")

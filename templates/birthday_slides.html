@@ -1,0 +1,140 @@
+{% load static %}
+{% load django_tables2 %}
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap"
+      rel="stylesheet">
+
+<c-layouts.app>
+    <c-slot name="header">
+        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+
+            <div class="justify-self-start">
+                <h1 class="text-primary font-bold text-xl flex items-center gap-2">
+                    Cumpleañeros de {{ mes_actual }}
+                </h1>
+            </div>
+
+            <div class="justify-self-center w-full flex justify-center"></div>
+
+            <div class="justify-self-end flex items-center gap-2">
+                <button id="download-btn" class="btn btn-sm btn-primary">
+                    Descargar diapositivas
+                </button>
+
+                <form method="GET">
+                    <label>
+                        <select onchange="this.form.submit()" name="mes" id="id_mes"
+                                class="select">
+                            {% for numero, mes in meses.items %}
+                                <option value="{{ numero }}"
+                                        {% if numero_mes_actual == numero %}selected{% endif %}>{{ mes }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                </form>
+            </div>
+
+        </div>
+    </c-slot>
+
+    <!-- CONTENEDOR DE LAS DIAPOSITIVAS -->
+    <div class="flex flex-col items-center justify-center gap-8 py-8">
+        {% for slide in slides %}
+            <div class="slide relative w-[1280px] h-[720px] rounded-lg overflow-hidden
+                        bg-cover bg-center"
+                 style="background-image: url('{% static \"img/birthday-bg.jpg\" %}'); filter: brightness(1.3);">
+
+                <!-- LOGOS DE EMPRESA -->
+                <div class="flex justify-center gap-10 pt-6 relative z-10">
+                    {% for empresa in empresas %}
+                        {% if empresa.logo %}
+                            <img src="{{ empresa.logo.url }}"
+                                 class="h-20 drop-shadow-lg">
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                <!-- TÍTULO PRINCIPAL -->
+                <div class="text-center mt-6 relative z-10">
+                    <h1 class="title-main">¡Empezamos el mes</h1>
+                    <h2 class="title-sub">de cumpleaños de {{ mes_actual }}!</h2>
+                </div>
+
+                <!-- GRILLA DE PERSONAS -->
+                <div class="grid grid-cols-3 gap-10 mt-12 px-20 relative z-10">
+                    {% for c in slide %}
+                        <div class="person-card text-center bg-transparent
+                                    rounded-lg p-2 shadow-none"
+                             data-theme="{{ c.empresa.theme }}">
+
+                            <!-- FOTO CON GORRITO -->
+                            <div class="person-photo relative w-40 h-40 mx-auto
+                                        rounded-full overflow-hidden border-4 border-primary">
+                                {% if c.foto %}
+                                    <img src="{{ c.foto.url }}" class="w-full h-full object-cover">
+                                {% else %}
+                                    <img src="{% static 'img/avatar.png' %}"
+                                         class="w-full h-full object-cover">
+                                {% endif %}
+
+                                <!-- Gorrito -->
+                                <img src="{% static 'img/hat.png' %}"
+                                     class="hat absolute inset-0 w-10 h-10 mx-auto"
+                                     style="top: -12px; left: 50%; transform: translateX(-50%);" />
+                            </div>
+
+                            <!-- FECHA -->
+                            <div class="flex justify-center items-center gap-2 mt-3 text-gray-800">
+                                🎁 <span>{{ c.fecha_nacimiento|date:"d / m" }}</span>
+                            </div>
+
+                            <!-- NOMBRE -->
+                            <div class="mt-2 text-sm font-semibold uppercase tracking-wide text-gray-900">
+                                {{ c.nombre_completo }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- SCRIPT DE DESCARGA -->
+    <script>
+        document.getElementById('download-btn').addEventListener('click', async () => {
+            const slides = document.querySelectorAll('.slide');
+            let index = 1;
+            for (const slide of slides) {
+                const result = await snapdom(slide);
+                await result.toPng();
+                await result.download({format: 'png', filename: `cumple_{{ mes_actual }}_${index}.png`});
+                index++;
+            }
+        });
+    </script>
+</c-layouts.app>
+
+<!-- ESTILOS ADICIONALES -->
+<style>
+    /* Tipografía */
+    .title-main,
+    .title-sub {
+        font-family: 'Playfair Display', serif;
+        color: #1e3a8a; /* azul oscuro para mejor contraste */
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    .title-main { font-size: 4rem; font-weight: 700; }
+    .title-sub  { font-size: 4rem; font-style: italic; }
+
+    /* Sombras para los logos */
+    img.drop-shadow-lg { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
+
+    /* Ajuste del gorrito */
+    .person-photo .hat { pointer-events: none; }
+
+    /* Evitar que el overlay bloquee interacciones */
+    .slide > * { position: relative; }
+
+    /* Opcional: ligera sombra al avatar para que destaque sobre fondos claros */
+    .person-photo img { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+</style>

@@ -5,6 +5,7 @@ from apps.core.models import Empresa
 
 class Puesto(models.Model):
     nombre = models.CharField(max_length=100)
+    nombre_noi = models.CharField(max_length=100, blank=True, null=True)
     empresa = models.ForeignKey(Empresa, on_delete=models.PROTECT, related_name='puesto')
 
     def __str__(self):

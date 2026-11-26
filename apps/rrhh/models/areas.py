@@ -6,6 +6,7 @@ from apps.core.models import Empresa
 
 class Area(models.Model):
     nombre = models.CharField(max_length=100)
+    nombre_noi = models.CharField(max_length=100, blank=True, null=True)
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='areas')
     jefe_area = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='jefe_areas')
     aprobador_papeleria = models.ForeignKey(

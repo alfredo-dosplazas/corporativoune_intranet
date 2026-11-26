@@ -114,42 +114,41 @@ class CumpleaniosDiapositivasView(BreadcrumbsMixin, SingleTableMixin, ListView):
     template_name = "apps/cumpleanios/diapositivas.html"
     model = Cumpleanero
     context_object_name = 'cumpleaneros'
-
     def get_queryset(self):
         qs = super().get_queryset()
         mes = obtener_mes_seleccionado(self.request)
-
         qs = filtrar_cumpleaneros_permitidos(self.request, qs)
         return (
             qs.annotate(mes_nacimiento=ExtractMonth('fecha_nacimiento'))
             .filter(mes_nacimiento=mes)
-            .order_by('fecha_nacimiento__day', 'primer_apellido', 'primer_nombre')
+            .order_by('fecha_nacimiento__day',
+                      'primer_apellido',
+                      'primer_nombre')
         )
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         cumpleaneros = list(context['cumpleaneros'])
         mes = obtener_mes_seleccionado(self.request)
-
+        # datos para la plantilla
         context['slides'] = list(agrupar_en_chunks(cumpleaneros, 3))
         context['meses'] = MESES
         context['numero_mes_actual'] = mes
         context['mes_actual'] = MESES.get(mes)
-
-        empresas = context['cumpleaneros'].values_list('empresa', flat=True).distinct()
-
-        context['empresas'] = empresas
-
+        # 👇 Empresas vinculadas únicamente a los cumpleañeros filtrados
+        empresas_ids = context['cumpleaneros'].values_list(
+            'empresa_id', flat=True
+        ).distinct()
         if self.request.user.is_superuser:
-            context['empresas'] = Empresa.objects.filter()
+            # super‑usuario ve todas esas empresas
+            context['empresas'] = Empresa.objects.filter(id__in=empresas_ids)
         else:
+            # usuario normal → restringido a sus sedes permitidas
             sedes_permitidas = obtener_sedes_permitidas(self.request)
             context['empresas'] = Empresa.objects.filter(
+                id__in=empresas_ids,
                 sedes__id__in=sedes_permitidas
             ).distinct()
-
         return context
-
     def get_breadcrumbs(self):
         return [
             {'title': 'Inicio', 'url': reverse('home')},

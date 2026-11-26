@@ -65,30 +65,35 @@ class DirectorioListView(
 
     def get_queryset(self):
         qs = super().get_queryset()
-
         user = self.request.user
 
         if user.is_superuser:
             return qs
 
-        sedes_permitidas = obtener_sedes_permitidas(self.request)
+        sedes_base = set(obtener_sedes_permitidas(self.request))
+        contacto_user = getattr(user, 'contacto', None)
+        if contacto_user:
+            if contacto_user.sede_administrativa_id:
+                sedes_base.add(contacto_user.sede_administrativa_id)
+            sedes_base.update(contacto_user.sedes_consulta.values_list('id', flat=True))
 
-        contactos_sedes_permitidas = (
+        contactos_visibles = (
             Contacto.objects.filter(
                 Q(usuario__is_active=True) | Q(usuario__isnull=True),
                 fecha_egreso__isnull=True,
                 esta_archivado=False,
                 mostrar_en_directorio=True,
-                sede_administrativa_id__in=sedes_permitidas
+            )
+            .filter(
+                Q(sede_administrativa_id__in=sedes_base) |
+                Q(sedes_visibles__id__in=sedes_base)
             )
             .select_related('empresa', 'sede_administrativa', 'area', 'puesto')
             .prefetch_related('emails', 'telefonos')
             .distinct()
         )
 
-        qs = qs.filter(id__in=contactos_sedes_permitidas.values_list('id'))
-
-        return qs
+        return qs.filter(id__in=contactos_visibles.values_list('id', flat=True))
 
 
 class ContactoCreateView(

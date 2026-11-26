@@ -104,6 +104,40 @@ def _obtener_nombre_puesto_noi(cursor, num_empresa: str, clave_puesto: str | Non
     tabla_puestos = f"PUESTOS{str(num_empresa).strip()}"
     return _obtener_nombre_catalogo_noi(cursor, tabla_puestos, clave_puesto)
 
+def _obtener_o_vincular_catalogo(modelo, empresa: Empresa, valor_noi: str):
+    """
+    1. Busca si ya existe por `nombre_noi` (ej. nombre='PROGRAMAS', nombre_noi='DOS').
+       Lo devuelve intacto sin tocar `nombre`.
+    2. Si no existe por `nombre_noi`, busca si existe un registro previo por `nombre`
+       (migración de registros viejos donde `nombre_noi` era NULL/vacío) y le llena `nombre_noi`.
+    3. Si no existe de ninguna forma, lo crea con `nombre` y `nombre_noi` iguales.
+    """
+    # 1. Coincidencia exacta/insensible por nombre_noi
+    instancia = modelo.objects.filter(
+        empresa=empresa,
+        nombre_noi__iexact=valor_noi
+    ).first()
+
+    if instancia:
+        return instancia
+
+    # 2. Coincidencia por nombre interno (para registros creados antes de añadir nombre_noi)
+    instancia = modelo.objects.filter(
+        empresa=empresa,
+        nombre__iexact=valor_noi
+    ).first()
+
+    if instancia:
+        instancia.nombre_noi = valor_noi
+        instancia.save(update_fields=['nombre_noi'])
+        return instancia
+
+    # 3. No existe: crear ambos campos con el valor de NOI
+    return modelo.objects.create(
+        empresa=empresa,
+        nombre=valor_noi,
+        nombre_noi=valor_noi,
+    )
 
 def _resolver_area_y_puesto(
         empresa: Empresa,
@@ -115,7 +149,8 @@ def _resolver_area_y_puesto(
     Resuelve Area y Puesto vinculados a la empresa destino:
     - Si el contacto ya tiene area o puesto asignados, los conserva para no pisar
       ajustes manuales (como puestos definitivos asignados en el directorio).
-    - Si no los tiene, crea/obtiene el registro en Area o Puesto para esa Empresa.
+    - Si no los tiene, vincula por nombre_noi o nombre, o crea el registro nuevo
+      poblando tanto `nombre` como `nombre_noi`.
     """
     area = None
     if contacto_existente and contacto_existente.area_id:
@@ -123,10 +158,7 @@ def _resolver_area_y_puesto(
     else:
         nombre_area = _limpiar_str(nombre_depto, max_len=100)
         if nombre_area:
-            area, _ = Area.objects.get_or_create(
-                empresa=empresa,
-                nombre=nombre_area,
-            )
+            area = _obtener_o_vincular_catalogo(Area, empresa, nombre_area)
 
     puesto = None
     if contacto_existente and contacto_existente.puesto_id:
@@ -134,10 +166,7 @@ def _resolver_area_y_puesto(
     else:
         nombre_puesto_limpio = _limpiar_str(nombre_puesto, max_len=100)
         if nombre_puesto_limpio:
-            puesto, _ = Puesto.objects.get_or_create(
-                empresa=empresa,
-                nombre=nombre_puesto_limpio,
-            )
+            puesto = _obtener_o_vincular_catalogo(Puesto, empresa, nombre_puesto_limpio)
 
     return area, puesto
 
