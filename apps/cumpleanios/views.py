@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.db.models.functions import ExtractMonth
 from django.shortcuts import render
 
@@ -14,6 +15,7 @@ from apps.core.models import Empresa
 from apps.cumpleanios.models import Cumpleanero
 from apps.cumpleanios.tables import CumpleaneroTable
 from apps.directorio.models import Contacto
+from apps.directorio.utils import obtener_sedes_permitidas
 
 MESES = {
     1: 'Enero',
@@ -31,6 +33,35 @@ MESES = {
 }
 
 
+def filtrar_cumpleaneros_permitidos(request, queryset):
+    qs = queryset.filter(
+        Q(usuario__is_active=True) | Q(usuario__isnull=True),
+        fecha_egreso__isnull=True,
+        esta_archivado=False,
+        mostrar_en_cumpleanios=True,
+    )
+
+    user = request.user
+    if user.is_superuser:
+        return qs.select_related('empresa', 'sede_administrativa', 'area', 'puesto', 'usuario').distinct()
+
+    sedes_permitidas = obtener_sedes_permitidas(request)
+
+    return (
+        qs.filter(sede_administrativa_id__in=sedes_permitidas)
+        .select_related('empresa', 'sede_administrativa', 'area', 'puesto', 'usuario')
+        .distinct()
+    )
+
+
+def obtener_mes_seleccionado(request):
+    try:
+        mes = int(request.GET.get('mes', now().month))
+        return mes if 1 <= mes <= 12 else now().month
+    except (TypeError, ValueError):
+        return now().month
+
+
 class CumpleaniosView(BreadcrumbsMixin, SearchableListMixin, SingleTableMixin, ListView):
     permission_required = ['cumpleanios.acceder_cumpleanios']
     template_name = "apps/cumpleanios/index.html"
@@ -46,19 +77,19 @@ class CumpleaniosView(BreadcrumbsMixin, SearchableListMixin, SingleTableMixin, L
         return table
 
     def get_queryset(self):
-        mes = int(self.request.GET.get('mes', now().month))
+        qs = super().get_queryset()
+        mes = obtener_mes_seleccionado(self.request)
 
+        qs = filtrar_cumpleaneros_permitidos(self.request, qs)
         return (
-            Cumpleanero.objects
-            .annotate(mes_nacimiento=ExtractMonth('fecha_nacimiento'))
+            qs.annotate(mes_nacimiento=ExtractMonth('fecha_nacimiento'))
             .filter(mes_nacimiento=mes)
-            .order_by('fecha_nacimiento__day')
+            .order_by('fecha_nacimiento__day', 'primer_apellido', 'primer_nombre')
         )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        mes = int(self.request.GET.get('mes', now().month))
+        mes = obtener_mes_seleccionado(self.request)
 
         context['meses'] = MESES
         context['numero_mes_actual'] = mes
@@ -72,9 +103,11 @@ class CumpleaniosView(BreadcrumbsMixin, SearchableListMixin, SingleTableMixin, L
             {'title': 'Cumpleaños'},
         ]
 
+
 def agrupar_en_chunks(lista, n):
     for i in range(0, len(lista), n):
         yield lista[i:i + n]
+
 
 class CumpleaniosDiapositivasView(BreadcrumbsMixin, SingleTableMixin, ListView):
     permission_required = ['cumpleanios.acceder_cumpleanios']
@@ -82,28 +115,38 @@ class CumpleaniosDiapositivasView(BreadcrumbsMixin, SingleTableMixin, ListView):
     model = Cumpleanero
     context_object_name = 'cumpleaneros'
 
-
     def get_queryset(self):
-        mes = int(self.request.GET.get('mes', now().month))
+        qs = super().get_queryset()
+        mes = obtener_mes_seleccionado(self.request)
 
+        qs = filtrar_cumpleaneros_permitidos(self.request, qs)
         return (
-            Cumpleanero.objects
-            .annotate(mes_nacimiento=ExtractMonth('fecha_nacimiento'))
+            qs.annotate(mes_nacimiento=ExtractMonth('fecha_nacimiento'))
             .filter(mes_nacimiento=mes)
-            .order_by('fecha_nacimiento__day')
+            .order_by('fecha_nacimiento__day', 'primer_apellido', 'primer_nombre')
         )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
         cumpleaneros = list(context['cumpleaneros'])
-        context['slides'] = list(agrupar_en_chunks(cumpleaneros, 3))
+        mes = obtener_mes_seleccionado(self.request)
 
-        mes = int(self.request.GET.get('mes', now().month))
+        context['slides'] = list(agrupar_en_chunks(cumpleaneros, 3))
         context['meses'] = MESES
         context['numero_mes_actual'] = mes
         context['mes_actual'] = MESES.get(mes)
-        context['empresas'] = Empresa.objects.all()
+
+        empresas = context['cumpleaneros'].values_list('empresa', flat=True).distinct()
+
+        context['empresas'] = empresas
+
+        if self.request.user.is_superuser:
+            context['empresas'] = Empresa.objects.filter()
+        else:
+            sedes_permitidas = obtener_sedes_permitidas(self.request)
+            context['empresas'] = Empresa.objects.filter(
+                sedes__id__in=sedes_permitidas
+            ).distinct()
 
         return context
 

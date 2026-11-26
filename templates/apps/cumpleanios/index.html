@@ -1,40 +1,85 @@
 {% load django_tables2 %}
+
 <c-layouts.app>
     <c-slot name="header">
-        <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
 
-            <!-- START -->
-            <div class="justify-self-start">
-                <h1 class="text-primary font-bold text-xl flex items-center gap-2">
-                    Cumpleañeros de {{ mes_actual }}
+            <!-- TÍTULO Y MES ACTIVO -->
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="icon-[tabler--cake] text-primary text-base"></span>
+                <h1 class="font-bold text-xs sm:text-sm text-base-content tracking-tight">
+                    Cumpleaños — {{ mes_actual }}
                 </h1>
             </div>
 
-            <!-- MIDDLE -->
-            <div class="justify-self-center w-full flex justify-center">
-                <c-shared.searchbar/>
-            </div>
+            <!-- CONTROLES: SELECTOR DE MES, BUSCADOR Y DIAPOSITIVAS -->
+            <div class="flex items-center gap-2 flex-1 justify-end max-w-2xl">
 
+                <form method="get" action="" id="cumpleanios-filter-form"
+                      class="flex items-center gap-2 flex-1 justify-end">
+                    {% for key, value in request.GET.items %}
+                        {% if key != 'mes' and key != 'q' and key != 'page' and value %}
+                            <input type="hidden" name="{{ key }}" value="{{ value }}">
+                        {% endif %}
+                    {% endfor %}
 
-            <!-- END -->
-            <div class="justify-self-end flex items-center gap-2">
-                <a class="btn btn-sm btn-primary" href="{% url 'cumpleanios:diapositivas' %}{% querystring %}">Diapositivas</a>
+                    <!-- SELECTOR DE MES -->
+                    <select name="mes"
+                            onchange="this.form.submit()"
+                            aria-label="Seleccionar mes"
+                            class="select select-xs h-7 min-h-0 bg-base-100 border-base-300 text-xs rounded-md">
+                        {% for num, nombre in meses.items %}
+                            <option value="{{ num }}" {% if num == numero_mes_actual %}selected{% endif %}>
+                                {{ nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
 
-                <form method="GET">
-                    <label>
-                        <select onchange="this.form.submit()" name="mes" id="id_mes" class="select">
-                            {% for numero, mes in meses.items %}
-                                <option value="{{ numero }}"  {% if numero_mes_actual == numero %}
-                                        selected {% endif %}>{{ mes }}</option>
-                            {% endfor %}
-                        </select>
-                    </label>
+                    <!-- BUSCADOR RÁPIDO -->
+                    <div class="relative flex-1 max-w-xs flex items-center">
+                        <span class="absolute left-2.5 text-base-content/40 pointer-events-none z-10">
+                            <span class="icon-[tabler--search] text-xs block"></span>
+                        </span>
+                        <input type="text"
+                               name="q"
+                               value="{{ request.GET.q|default:'' }}"
+                               placeholder="Buscar nombre o apellido..."
+                               class="input input-xs w-full pl-7 pr-3 bg-base-100 border-base-300 focus:border-primary focus:outline-none text-xs rounded-md h-7"/>
+                    </div>
                 </form>
-            </div>
 
+                <!-- ACCESO A DIAPOSITIVAS -->
+                <a href="{% url 'cumpleanios:diapositivas' %}?mes={{ numero_mes_actual }}"
+                   class="btn btn-outline btn-primary btn-xs h-7 min-h-0 px-2.5 gap-1 text-xs shrink-0">
+                    <span class="icon-[tabler--slideshow] text-xs"></span>
+                    <span class="hidden sm:inline">Diapositivas</span>
+                </a>
+
+                <!-- CONTADOR -->
+                <div class="hidden sm:flex items-center border-l border-base-300 pl-2 text-xs text-base-content/60">
+                    <span class="text-[11px] whitespace-nowrap font-bold text-base-content">
+                        {{ table.page.paginator.count|default:cumpleaneros|length }}
+                    </span>
+                </div>
+            </div>
         </div>
 
+        <!-- CHIPS DE FILTROS ACTIVOS -->
+        {% if request.GET.q %}
+            <div class="flex items-center gap-1.5 flex-wrap pt-1 border-t border-base-200/60 mt-1">
+                <a href="{% querystring 'q'="" %}"
+                   class="badge badge-ghost border-base-300 badge-xs gap-1 text-[10px] h-4.5">
+                    <span>"{{ request.GET.q }}"</span>
+                    <span class="icon-[tabler--x] text-[9px]"></span>
+                </a>
+                <a href="{% url 'cumpleanios:list' %}?mes={{ numero_mes_actual }}"
+                   class="text-[10px] text-primary hover:underline ml-1">Limpiar búsqueda</a>
+            </div>
+        {% endif %}
     </c-slot>
 
-    {% render_table table %}
+    <!-- CONTENIDO PRINCIPAL: TABLA -->
+    <div class="flex flex-col flex-1 min-h-0 h-full w-full">
+        {% render_table table %}
+    </div>
 </c-layouts.app>
