@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'django_vite',
     'django_js_reverse',
     'debug_toolbar',
+    'tinymce',
 
     'apps.ad',
     'apps.explorador',

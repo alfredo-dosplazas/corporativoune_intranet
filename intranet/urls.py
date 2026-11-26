@@ -33,6 +33,8 @@ urlpatterns = [
                   path('', include('apps.explorador.urls')),
                   path('', include('pwa.urls')),
                   path("jsreverse.json", urls_json, name="js_reverse"),
+
+                  path('tinymce/', include('tinymce.urls')),
               ] + debug_toolbar_urls()
 
 handler400 = bad_request

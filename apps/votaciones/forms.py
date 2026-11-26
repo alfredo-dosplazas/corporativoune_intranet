@@ -1,10 +1,40 @@
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column, HTML
 from django import forms
-from django.forms.widgets import DateTimeInput
+from django.forms.widgets import DateTimeInput, Textarea
+from tinymce.widgets import TinyMCE
 
 from apps.votaciones.models import EventoVotacion, Criterio, OpcionParticipante
 
+TINYMCE_EVENTO_CONFIG = {
+    'height': 155,
+    'width': '100%',
+    'menubar': False,
+    'statusbar': False,
+    'resize': False,
+    'toolbar_mode': 'sliding',
+    'plugins': 'lists link',
+    'toolbar': 'bold italic underline | bullist numlist | link | removeformat',
+    'content_style': (
+        'body { font-family: system-ui, -apple-system, sans-serif; '
+        'font-size: 13px; margin: 6px 10px; color: #1e293b; }'
+    ),
+}
+
+TINYMCE_INLINE_CONFIG = {
+    'height': 95,
+    'width': '100%',
+    'menubar': False,
+    'statusbar': False,
+    'resize': False,
+    'toolbar_mode': 'sliding',
+    'plugins': 'lists',
+    'toolbar': 'bold italic underline | bullist numlist | removeformat',
+    'content_style': (
+        'body { font-family: system-ui, -apple-system, sans-serif; '
+        'font-size: 12px; margin: 4px 8px; color: #1e293b; }'
+    ),
+}
 
 class EventoVotacionForm(forms.ModelForm):
     class Meta:
@@ -25,9 +55,12 @@ class EventoVotacionForm(forms.ModelForm):
         widgets = {
             'fecha_inicio': DateTimeInput(attrs={'type': 'datetime-local'}, format="%Y-%m-%dT%H:%M"),
             'fecha_fin': DateTimeInput(attrs={'type': 'datetime-local'}, format="%Y-%m-%dT%H:%M"),
-            'descripcion': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Descripción o bases del evento / votación...'}),
+            'descripcion': Textarea(
+                attrs={'rows': 3},
+            ),
             'titulo': forms.TextInput(attrs={'placeholder': 'Ej. Elección de Temática Fin de Año 2026'}),
-            'subtitulo': forms.TextInput(attrs={'placeholder': 'Ej. Selecciona la opción que más te guste para el evento'}),
+            'subtitulo': forms.TextInput(
+                attrs={'placeholder': 'Ej. Selecciona la opción que más te guste para el evento'}),
             'etiqueta_opciones': forms.TextInput(attrs={'placeholder': 'Ej. Temática, Disfraz, Candidato, Propuesta'}),
         }
 
@@ -44,7 +77,8 @@ class EventoVotacionForm(forms.ModelForm):
             Row(
                 # COLUMNA 1: IDENTIFICACIÓN Y TEMÁTICA
                 Column(
-                    HTML('<div class="text-[11px] font-bold text-primary uppercase tracking-wider mb-2 border-b border-base-200 pb-1 flex items-center gap-1"><span class="icon-[tabler--info-circle] size-3.5"></span> Configuración General</div>'),
+                    HTML(
+                        '<div class="text-[11px] font-bold text-primary uppercase tracking-wider mb-2 border-b border-base-200 pb-1 flex items-center gap-1"><span class="icon-[tabler--info-circle] size-3.5"></span> Configuración General</div>'),
                     'titulo',
                     'subtitulo',
                     Row(
@@ -58,7 +92,8 @@ class EventoVotacionForm(forms.ModelForm):
 
                 # COLUMNA 2: TIEMPOS Y REGLAS
                 Column(
-                    HTML('<div class="text-[11px] font-bold text-primary uppercase tracking-wider mb-2 border-b border-base-200 pb-1 flex items-center gap-1"><span class="icon-[tabler--clock-play] size-3.5"></span> Vigencia y Reglas de Voto</div>'),
+                    HTML(
+                        '<div class="text-[11px] font-bold text-primary uppercase tracking-wider mb-2 border-b border-base-200 pb-1 flex items-center gap-1"><span class="icon-[tabler--clock-play] size-3.5"></span> Vigencia y Reglas de Voto</div>'),
                     Row(
                         Column('fecha_inicio', css_class="col-span-12 sm:col-span-6"),
                         Column('fecha_fin', css_class="col-span-12 sm:col-span-6"),
@@ -75,7 +110,8 @@ class EventoVotacionForm(forms.ModelForm):
 
                 # COLUMNA 3: PRESENTACIÓN VISUAL
                 Column(
-                    HTML('<div class="text-[11px] font-bold text-primary uppercase tracking-wider mb-2 border-b border-base-200 pb-1 flex items-center gap-1"><span class="icon-[tabler--photo] size-3.5"></span> Imagen de Portada / Fondo</div>'),
+                    HTML(
+                        '<div class="text-[11px] font-bold text-primary uppercase tracking-wider mb-2 border-b border-base-200 pb-1 flex items-center gap-1"><span class="icon-[tabler--photo] size-3.5"></span> Imagen de Portada / Fondo</div>'),
                     'imagen_fondo',
                     HTML('''
                         <div class="alert alert-info alert-soft text-[11px] p-2 rounded-md mt-2 flex items-start gap-1.5">
@@ -111,3 +147,8 @@ class OpcionParticipanteInlineForm(forms.ModelForm):
             'descripcion',
             'imagen',
         ]
+        widgets = {
+            'descripcion': Textarea(
+                attrs={'rows': 2, 'class': 'textarea w-full'},
+            ),
+        }
