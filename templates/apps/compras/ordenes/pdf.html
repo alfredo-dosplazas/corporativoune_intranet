@@ -216,7 +216,9 @@
 <table class="layout-table">
     <tr>
         <td style="width: 55%;">
-            {% if orden.razon_social.logo %}
+            {% if logo_uri %}
+                <img src="{{ logo_uri }}" class="header-logo" alt="Logo">
+            {% elif orden.razon_social.logo %}
                 <img src="{{ orden.razon_social.logo.url }}" class="header-logo" alt="Logo">
             {% endif %}
             <div class="company-title" style="margin-top: 5px;">{{ orden.razon_social.nombre }}</div>
@@ -333,7 +335,8 @@
 
                     {% if orden.retencion_3 > 0 %}
                         <tr>
-                            <td class="label" style="color: #dc2626;">(-) Retención Fletes ({{ orden.retencion_3 }}%):</td>
+                            <td class="label" style="color: #dc2626;">(-) Retención Fletes ({{ orden.retencion_3 }}%):
+                            </td>
                             <td class="value" style="color: #dc2626;">-{{ orden.monto_retencion_3|money:4 }}</td>
                         </tr>
                     {% endif %}

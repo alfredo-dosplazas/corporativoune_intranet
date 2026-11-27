@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 from django.contrib import messages
@@ -196,7 +197,7 @@ def orden_delete(request, pk):
 class OrdenPdfView(
     PermissionRequiredMixin,
     WeasyTemplateResponseMixin,
-    DetailView
+    DetailView,
 ):
     permission_required = ['compras.view_orden']
     pdf_attachment = False
@@ -205,6 +206,20 @@ class OrdenPdfView(
 
     def get_pdf_filename(self):
         return f'{self.get_object().folio}.pdf'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        logo_uri = None
+        razon_social = getattr(self.object, 'razon_social', None)
+        if razon_social and razon_social.logo:
+            try:
+                logo_path = Path(razon_social.logo.path)
+                if logo_path.is_file():
+                    logo_uri = logo_path.as_uri()
+            except (NotImplementedError, ValueError):
+                logo_uri = None
+        context['logo_uri'] = logo_uri
+        return context
 
 
 class ExportOrdenesDetalleExcelView(PermissionRequiredMixin, View):

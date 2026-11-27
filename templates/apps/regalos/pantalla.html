@@ -623,7 +623,8 @@
             pantallaSocket.onmessage = function (event) {
                 try {
                     const data = JSON.parse(event.data);
-                    if (data.type === 'notificar_nuevo_ganador' && data.ultimo_ganador) {
+                    const esNuevoGanador = data.type === 'NUEVO_GANADOR' || data.type === 'notificar_nuevo_ganador';
+                    if (esNuevoGanador && data.ultimo_ganador) {
                         const tarjeta = insertarOActualizarGanadorEnGrid(data.ultimo_ganador);
                         ejecutarSpotlightNuevoGanador(data.ultimo_ganador, tarjeta);
                     }
