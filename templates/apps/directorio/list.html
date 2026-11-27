@@ -57,22 +57,43 @@
                 </button>
 
                 <!-- MENÚ EXPORTAR -->
-                {% if user.is_superuser %}
-                    <div class="dropdown dropdown-end">
-                        <button tabindex="0"
-                                class="btn btn-ghost btn-xs btn-square h-7 w-7 border border-base-300 bg-base-100">
-                            <span class="icon-[tabler--dots-vertical] text-xs"></span>
-                        </button>
-                        <ul tabindex="0"
-                            class="dropdown-content menu menu-xs bg-base-100 rounded-md border border-base-200 shadow-lg w-36 z-50 p-1">
-                            <li>
-                                <a href="{% querystring "_export"="xls" %}" target="_blank">
-                                    <span class="icon-[tabler--file-spreadsheet]"></span> Excel
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                {% endif %}
+                <!-- MENÚ EXCEL (EXPORTAR / IMPORTAR / PLANTILLA) -->
+                <div class="dropdown dropdown-end">
+                    <button type="button"
+                            tabindex="0"
+                            title="Opciones de Excel"
+                            aria-label="Opciones de Excel"
+                            class="btn btn-ghost btn-xs btn-square h-7 w-7 border border-base-300 bg-base-100 hover:bg-base-200/60 text-base-content/75">
+                        <span class="icon-[tabler--dots-vertical] text-xs"></span>
+                    </button>
+
+                    <ul tabindex="0"
+                        class="dropdown-content menu menu-xs bg-base-100 rounded-md border border-base-200 shadow-lg w-48 z-50 p-1 space-y-0.5">
+                        <li class="menu-title px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-base-content/45">
+                            Excel (.xlsx)
+                        </li>
+                        <li>
+                            <a href="{% url 'directorio:exportar_excel' %}" class="gap-2 rounded py-1.5">
+                                <span class="icon-[tabler--file-spreadsheet] text-sm text-success shrink-0"></span>
+                                <span>Exportar a Excel</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'directorio:importar_excel' %}" class="gap-2 rounded py-1.5">
+                                <span class="icon-[tabler--file-import] text-sm text-primary shrink-0"></span>
+                                <span>Importar Excel</span>
+                            </a>
+                        </li>
+                        <div class="divider my-0.5 h-px bg-base-200"></div>
+                        <li>
+                            <a href="{% url 'directorio:plantilla_excel' %}"
+                               class="gap-2 rounded py-1.5 text-base-content/80">
+                                <span class="icon-[tabler--download] text-sm text-base-content/60 shrink-0"></span>
+                                <span>Plantilla de importación</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
 
                 <!-- CONTADOR + CAMBIADOR DE VISTA -->
                 <div class="hidden sm:flex items-center gap-1.5 border-l border-base-300 pl-2 text-xs text-base-content/60">
